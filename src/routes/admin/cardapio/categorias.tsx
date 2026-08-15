@@ -1,6 +1,267 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/components/admin/layout/PlaceholderPage";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { Plus, Trash2, X } from "lucide-react";
+import {
+  deleteCategoryFn,
+  listCategoriesFn,
+  saveCategoryFn,
+} from "@/server/functions/categories.fn";
 
 export const Route = createFileRoute("/admin/cardapio/categorias")({
-  component: () => <PlaceholderPage title="Categorias" phase="Fase 2" />,
+  component: CategoriesPage,
 });
+
+type Draft = {
+  id: string | null;
+  name: string;
+  slug: string;
+  icon: string;
+  kind: "PIZZA" | "SIMPLE";
+  sortOrder: number;
+  isActive: boolean;
+};
+
+const EMPTY: Draft = {
+  id: null,
+  name: "",
+  slug: "",
+  icon: "",
+  kind: "SIMPLE",
+  sortOrder: 0,
+  isActive: true,
+};
+
+function slugify(v: string) {
+  return v
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function CategoriesPage() {
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data, isPending } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => listCategoriesFn(),
+  });
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["categories"] });
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+  };
+
+  const save = useMutation({
+    mutationFn: (d: Draft) =>
+      saveCategoryFn({
+        data: {
+          id: d.id,
+          data: {
+            name: d.name,
+            slug: d.slug,
+            icon: d.icon || null,
+            kind: d.kind,
+            sortOrder: d.sortOrder,
+            isActive: d.isActive,
+          },
+        },
+      }),
+    onSuccess: () => {
+      invalidate();
+      setDraft(null);
+    },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteCategoryFn({ data: { id } }),
+    onSuccess: (res) => {
+      if (!res.ok) setError(res.error);
+      else invalidate();
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold text-neutral-900">Categorias</h1>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setDraft({ ...EMPTY, sortOrder: (data?.length ?? 0) + 1 });
+          }}
+          className="flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a]"
+        >
+          <Plus className="size-4" />
+          Nova categoria
+        </button>
+      </header>
+
+      {error && (
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
+          {error}
+          <button type="button" onClick={() => setError(null)} aria-label="Fechar">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
+      {draft && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setError(null);
+            save.mutate(draft);
+          }}
+          className="grid grid-cols-1 gap-4 rounded-2xl border border-neutral-200 bg-white p-5 md:grid-cols-5"
+        >
+          <label className="space-y-1.5 md:col-span-2">
+            <span className="text-sm font-medium text-neutral-900">Nome</span>
+            <input
+              value={draft.name}
+              onChange={(e) =>
+                setDraft({
+                  ...draft,
+                  name: e.target.value,
+                  slug: draft.id ? draft.slug : slugify(e.target.value),
+                })
+              }
+              required
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-neutral-900">Ícone (lucide)</span>
+            <input
+              value={draft.icon}
+              onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
+              placeholder="Pizza, CupSoda..."
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-neutral-900">Tipo</span>
+            <select
+              value={draft.kind}
+              onChange={(e) => setDraft({ ...draft, kind: e.target.value as Draft["kind"] })}
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
+            >
+              <option value="PIZZA">Pizza (com foto)</option>
+              <option value="SIMPLE">Simples (com ícone)</option>
+            </select>
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-neutral-900">Ordem</span>
+            <input
+              type="number"
+              value={draft.sortOrder}
+              onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+            />
+          </label>
+
+          <div className="flex items-center gap-2 md:col-span-5">
+            <button
+              type="submit"
+              disabled={save.isPending}
+              className="rounded-xl bg-[#E11D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+            >
+              {save.isPending ? "Salvando..." : "Salvar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setDraft(null)}
+              className="rounded-xl border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
+            <tr>
+              <th className="px-5 py-3 font-medium">Categoria</th>
+              <th className="px-5 py-3 font-medium">Ícone</th>
+              <th className="px-5 py-3 font-medium">Produtos</th>
+              <th className="px-5 py-3 font-medium">Ordem</th>
+              <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 text-right font-medium">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-neutral-100">
+            {isPending && (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-neutral-500">
+                  Carregando...
+                </td>
+              </tr>
+            )}
+            {data?.map((c) => (
+              <tr key={c.id} className="hover:bg-neutral-50">
+                <td className="px-5 py-3 font-medium text-neutral-900">{c.name}</td>
+                <td className="px-5 py-3 text-neutral-600">{c.icon ?? "-"}</td>
+                <td className="px-5 py-3 text-neutral-600">{c._count.products}</td>
+                <td className="px-5 py-3 text-neutral-600">{c.sortOrder}</td>
+                <td className="px-5 py-3">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      c.isActive
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-neutral-100 text-neutral-500"
+                    }`}
+                  >
+                    {c.isActive ? "Ativo" : "Inativo"}
+                  </span>
+                </td>
+                <td className="px-5 py-3">
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        setDraft({
+                          id: c.id,
+                          name: c.name,
+                          slug: c.slug,
+                          icon: c.icon ?? "",
+                          kind: c.kind,
+                          sortOrder: c.sortOrder,
+                          isActive: c.isActive,
+                        });
+                      }}
+                      className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-100"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm(`Excluir a categoria "${c.name}"?`)) remove.mutate(c.id);
+                      }}
+                      className="rounded-lg border border-neutral-200 p-1.5 text-neutral-600 hover:bg-red-50 hover:text-[#E11D2E]"
+                      aria-label={`Excluir ${c.name}`}
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

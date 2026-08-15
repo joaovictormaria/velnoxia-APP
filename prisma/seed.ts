@@ -32,16 +32,16 @@ const categories = [
 ];
 
 const products = [
-  { slug: "calabresa", name: "Calabresa", description: "Molho de tomate, mussarela, calabresa fatiada e cebola.", basePrice: 39.9, categorySlug: "tradicionais", tag: "Mais pedida" },
-  { slug: "frango-com-catupiry", name: "Frango com Catupiry", description: "Frango desfiado, catupiry cremoso e milho.", basePrice: 44.9, categorySlug: "tradicionais" },
-  { slug: "marguerita", name: "Marguerita", description: "Molho de tomate, mussarela, tomate fatiado e manjericão fresco.", basePrice: 41.9, categorySlug: "tradicionais" },
-  { slug: "portuguesa", name: "Portuguesa", description: "Presunto, ovos, cebola, azeitona e mussarela.", basePrice: 45.9, categorySlug: "tradicionais" },
-  { slug: "pepperoni-duplo", name: "Pepperoni Duplo", description: "Dose dupla de pepperoni importado e mussarela.", basePrice: 56.9, categorySlug: "especiais", tag: "Mais pedida" },
-  { slug: "quatro-queijos", name: "Quatro Queijos", description: "Mussarela, provolone, parmesão e gorgonzola.", basePrice: 55.9, categorySlug: "especiais" },
-  { slug: "bacon-cheddar", name: "Bacon Cheddar", description: "Bacon crocante, cheddar cremoso e cebola caramelizada.", basePrice: 54.9, categorySlug: "especiais", tag: "Novidade" },
-  { slug: "chocolate-com-morango", name: "Chocolate com Morango", description: "Chocolate ao leite derretido e morangos frescos.", basePrice: 44.9, categorySlug: "doces" },
-  { slug: "banana-com-canela", name: "Banana com Canela", description: "Banana caramelizada, canela e leite condensado.", basePrice: 41.9, categorySlug: "doces" },
-  { slug: "ninho-com-nutella", name: "Ninho com Nutella", description: "Leite ninho, Nutella e morango.", basePrice: 47.9, categorySlug: "doces", tag: "Mais pedida" },
+  { slug: "calabresa", name: "Calabresa", description: "Molho de tomate, mussarela, calabresa fatiada e cebola.", basePrice: 39.9, categorySlug: "tradicionais", tag: "Mais pedida", imageUrl: "/menu/pepperoni.jpg" },
+  { slug: "frango-com-catupiry", name: "Frango com Catupiry", description: "Frango desfiado, catupiry cremoso e milho.", basePrice: 44.9, categorySlug: "tradicionais", imageUrl: "/menu/frango.jpg" },
+  { slug: "marguerita", name: "Marguerita", description: "Molho de tomate, mussarela, tomate fatiado e manjericão fresco.", basePrice: 41.9, categorySlug: "tradicionais", imageUrl: "/menu/mussarela.jpg" },
+  { slug: "portuguesa", name: "Portuguesa", description: "Presunto, ovos, cebola, azeitona e mussarela.", basePrice: 45.9, categorySlug: "tradicionais", imageUrl: "/menu/mussarela.jpg" },
+  { slug: "pepperoni-duplo", name: "Pepperoni Duplo", description: "Dose dupla de pepperoni importado e mussarela.", basePrice: 56.9, categorySlug: "especiais", tag: "Mais pedida", imageUrl: "/menu/pepperoni.jpg" },
+  { slug: "quatro-queijos", name: "Quatro Queijos", description: "Mussarela, provolone, parmesão e gorgonzola.", basePrice: 55.9, categorySlug: "especiais", imageUrl: "/menu/quatro-queijos.jpg" },
+  { slug: "bacon-cheddar", name: "Bacon Cheddar", description: "Bacon crocante, cheddar cremoso e cebola caramelizada.", basePrice: 54.9, categorySlug: "especiais", tag: "Novidade", imageUrl: "/menu/frango.jpg" },
+  { slug: "chocolate-com-morango", name: "Chocolate com Morango", description: "Chocolate ao leite derretido e morangos frescos.", basePrice: 44.9, categorySlug: "doces", imageUrl: "/menu/pepperoni.jpg" },
+  { slug: "banana-com-canela", name: "Banana com Canela", description: "Banana caramelizada, canela e leite condensado.", basePrice: 41.9, categorySlug: "doces", imageUrl: "/menu/frango.jpg" },
+  { slug: "ninho-com-nutella", name: "Ninho com Nutella", description: "Leite ninho, Nutella e morango.", basePrice: 47.9, categorySlug: "doces", tag: "Mais pedida", imageUrl: "/menu/quatro-queijos.jpg" },
   { slug: "coca-cola-2l", name: "Coca-Cola 2L", description: "Garrafa 2 litros, geladinha.", basePrice: 12.9, categorySlug: "bebidas", tag: "Mais pedida" },
   { slug: "guarana-antarctica-2l", name: "Guaraná Antarctica 2L", description: "Garrafa 2 litros.", basePrice: 12.9, categorySlug: "bebidas" },
   { slug: "ice-tea-limao-2l", name: "Ice Tea Limão 2L", description: "Garrafa 2 litros, chá gelado sabor limão.", basePrice: 11.9, categorySlug: "bebidas" },
@@ -179,16 +179,21 @@ async function main() {
         description: p.description,
         basePrice: p.basePrice,
         tag: p.tag,
+        imageUrl: "imageUrl" in p ? p.imageUrl : null,
         sortOrder: index,
         categoryId: categoryIdBySlug.get(p.categorySlug)!,
         allowHalfAndHalf: isPizza,
         sizes: isPizza
           ? {
-              create: PIZZA_SIZE_DELTAS.map(({ size, delta }) => ({
-                size,
-                price: Math.round((p.basePrice + delta) * 100) / 100,
-                isAvailable: size !== "GIGANTE",
-              })),
+              // A ProductSize row means "this size is offered" — Gigante fica
+              // de fora para o admin poder adicioná-lo pela tela de edição.
+              create: PIZZA_SIZE_DELTAS.filter(({ size }) => size !== "GIGANTE").map(
+                ({ size, delta }) => ({
+                  size,
+                  price: Math.round((p.basePrice + delta) * 100) / 100,
+                  isAvailable: true,
+                }),
+              ),
             }
           : undefined,
       },

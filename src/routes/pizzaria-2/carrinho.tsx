@@ -5,20 +5,23 @@ import { CartItemRow } from "@/components/site/pizzaria2/CartItemRow";
 import { MenuThumb } from "@/components/site/pizzaria2/MenuThumb";
 import { PriceTag } from "@/components/site/pizzaria2/PriceTag";
 import { useCart } from "@/lib/pizzaria2/cart";
-import { formatCurrency, productBySlug, productsByCategory, suggestedDrinkSlugs } from "@/lib/pizzaria2/menu";
+import { formatCurrency, suggestedDrinkSlugs } from "@/lib/pizzaria2/menu";
+import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { usePizzariaOnboarding, whatsappLink } from "@/lib/pizzaria2/onboarding";
 
 export const Route = createFileRoute("/pizzaria-2/carrinho")({
   component: PizzariaCarrinho,
 });
 
-// "Continuar comprando" reopens the same rich cardápio picker the produto
-// screen uses — it just needs *a* pizza slug to anchor that route.
-const cardapioAnchorSlug = productsByCategory("tradicionais")[0]?.slug ?? "";
-
 function PizzariaCarrinho() {
   const { lines, addLine, removeLine, clearCart, subtotal, deliveryFee, total } = useCart();
   const { businessPhone } = usePizzariaOnboarding();
+  const { categories, productBySlug, productsByCategory } = useMenu();
+
+  // "Continuar comprando" reopens the same rich cardápio picker the produto
+  // screen uses — it just needs *a* pizza slug to anchor that route.
+  const cardapioAnchorSlug =
+    productsByCategory(categories[0]?.slug ?? "")[0]?.slug ?? "";
 
   const suggestedDrinks = suggestedDrinkSlugs
     .map((slug) => productBySlug(slug))
