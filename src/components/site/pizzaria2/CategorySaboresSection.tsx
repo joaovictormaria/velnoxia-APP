@@ -5,7 +5,8 @@ import { Reveal } from "@/components/site/Reveal";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductCard } from "./ProductCard";
 import { useCart } from "@/lib/pizzaria2/cart";
-import { categoryBySlug, productsByCategory, type CategorySlug } from "@/lib/pizzaria2/menu";
+import type { CategorySlug } from "@/lib/pizzaria2/menu";
+import { useMenu } from "@/lib/pizzaria2/menu-provider";
 
 export const categoryBadges: Record<string, string> = {
   tradicionais: "Sabores que todo mundo ama",
@@ -77,6 +78,7 @@ export function CategorySaboresSection({
   defaultCategorySlug?: CategorySlug;
 }) {
   const { addLine } = useCart();
+  const { categoryBySlug, productsByCategory } = useMenu();
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(defaultCategorySlug);
   const category = categoryBySlug(activeSlug);
   const items = productsByCategory(activeSlug);

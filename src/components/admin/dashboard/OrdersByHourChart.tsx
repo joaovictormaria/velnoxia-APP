@@ -37,7 +37,7 @@ export function OrdersByHourChart({
               cursor={{ stroke: "#E5E5E5" }}
               contentStyle={{ borderRadius: 12, border: "1px solid #E5E5E5", fontSize: 12 }}
               labelFormatter={(label) => `Às ${label}`}
-              formatter={(value: number) => [value, "Pedidos"]}
+              formatter={(value) => [Number(value ?? 0), "Pedidos"]}
             />
             <Line
               type="monotone"

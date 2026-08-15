@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { categories, type CategorySlug } from "@/lib/pizzaria2/menu";
+import type { CategorySlug } from "@/lib/pizzaria2/menu";
+import { useMenu } from "@/lib/pizzaria2/menu-provider";
 
 export function CategoryTabs({
   activeSlug,
@@ -8,6 +9,8 @@ export function CategoryTabs({
   activeSlug: string;
   onSelect: (slug: CategorySlug) => void;
 }) {
+  const { categories } = useMenu();
+
   return (
     <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0 sm:overflow-visible sm:pb-0">
       {categories.map((cat) => {

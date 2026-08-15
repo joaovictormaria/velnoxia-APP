@@ -19,8 +19,10 @@ import { Route as Pizzaria2IndexRouteImport } from './routes/pizzaria-2/index'
 import { Route as Pizzaria2CarrinhoRouteImport } from './routes/pizzaria-2/carrinho'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
 import { Route as AdminCardapioIndexRouteImport } from './routes/admin/cardapio/index'
+import { Route as AdminCardapioProductIdRouteImport } from './routes/admin/cardapio/$productId'
 import { Route as AdminCardapioCategoriasRouteImport } from './routes/admin/cardapio/categorias'
 import { Route as AdminCardapioExtrasRouteImport } from './routes/admin/cardapio/extras'
+import { Route as AdminCardapioNovoRouteImport } from './routes/admin/cardapio/novo'
 import { Route as AdminClientesIndexRouteImport } from './routes/admin/clientes/index'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin/configuracoes/index'
 import { Route as AdminCuponsIndexRouteImport } from './routes/admin/cupons/index'
@@ -79,6 +81,11 @@ const AdminCardapioIndexRoute = AdminCardapioIndexRouteImport.update({
   path: '/cardapio/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminCardapioProductIdRoute = AdminCardapioProductIdRouteImport.update({
+  id: '/cardapio/$productId',
+  path: '/cardapio/$productId',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminCardapioCategoriasRoute = AdminCardapioCategoriasRouteImport.update({
   id: '/cardapio/categorias',
   path: '/cardapio/categorias',
@@ -87,6 +94,11 @@ const AdminCardapioCategoriasRoute = AdminCardapioCategoriasRouteImport.update({
 const AdminCardapioExtrasRoute = AdminCardapioExtrasRouteImport.update({
   id: '/cardapio/extras',
   path: '/cardapio/extras',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminCardapioNovoRoute = AdminCardapioNovoRouteImport.update({
+  id: '/cardapio/novo',
+  path: '/cardapio/novo',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminClientesIndexRoute = AdminClientesIndexRouteImport.update({
@@ -134,8 +146,10 @@ export interface FileRoutesByFullPath {
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
   '/admin/': typeof AdminIndexRoute
   '/pizzaria-2/': typeof Pizzaria2IndexRoute
+  '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
+  '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/pizzaria-2/produto/$slug': typeof Pizzaria2ProdutoSlugRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
@@ -153,8 +167,10 @@ export interface FileRoutesByTo {
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
   '/admin': typeof AdminIndexRoute
   '/pizzaria-2': typeof Pizzaria2IndexRoute
+  '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
+  '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/pizzaria-2/produto/$slug': typeof Pizzaria2ProdutoSlugRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesIndexRoute
@@ -175,8 +191,10 @@ export interface FileRoutesById {
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
   '/admin/': typeof AdminIndexRoute
   '/pizzaria-2/': typeof Pizzaria2IndexRoute
+  '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
+  '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/pizzaria-2/produto/$slug': typeof Pizzaria2ProdutoSlugRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
@@ -198,8 +216,10 @@ export interface FileRouteTypes {
     | '/pizzaria-2/carrinho'
     | '/admin/'
     | '/pizzaria-2/'
+    | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
+    | '/admin/cardapio/novo'
     | '/admin/relatorios/produtos'
     | '/pizzaria-2/produto/$slug'
     | '/admin/avaliacoes/'
@@ -217,8 +237,10 @@ export interface FileRouteTypes {
     | '/pizzaria-2/carrinho'
     | '/admin'
     | '/pizzaria-2'
+    | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
+    | '/admin/cardapio/novo'
     | '/admin/relatorios/produtos'
     | '/pizzaria-2/produto/$slug'
     | '/admin/avaliacoes'
@@ -238,8 +260,10 @@ export interface FileRouteTypes {
     | '/pizzaria-2/carrinho'
     | '/admin/'
     | '/pizzaria-2/'
+    | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
+    | '/admin/cardapio/novo'
     | '/admin/relatorios/produtos'
     | '/pizzaria-2/produto/$slug'
     | '/admin/avaliacoes/'
@@ -330,6 +354,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCardapioIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/cardapio/$productId': {
+      id: '/admin/cardapio/$productId'
+      path: '/cardapio/$productId'
+      fullPath: '/admin/cardapio/$productId'
+      preLoaderRoute: typeof AdminCardapioProductIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/cardapio/categorias': {
       id: '/admin/cardapio/categorias'
       path: '/cardapio/categorias'
@@ -342,6 +373,13 @@ declare module '@tanstack/react-router' {
       path: '/cardapio/extras'
       fullPath: '/admin/cardapio/extras'
       preLoaderRoute: typeof AdminCardapioExtrasRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/cardapio/novo': {
+      id: '/admin/cardapio/novo'
+      path: '/cardapio/novo'
+      fullPath: '/admin/cardapio/novo'
+      preLoaderRoute: typeof AdminCardapioNovoRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/clientes/': {
@@ -399,8 +437,10 @@ declare module '@tanstack/react-router' {
 interface AdminRouteRouteChildren {
   AdminLoginRoute: typeof AdminLoginRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminCardapioProductIdRoute: typeof AdminCardapioProductIdRoute
   AdminCardapioCategoriasRoute: typeof AdminCardapioCategoriasRoute
   AdminCardapioExtrasRoute: typeof AdminCardapioExtrasRoute
+  AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
   AdminAvaliacoesIndexRoute: typeof AdminAvaliacoesIndexRoute
   AdminCardapioIndexRoute: typeof AdminCardapioIndexRoute
@@ -414,8 +454,10 @@ interface AdminRouteRouteChildren {
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminLoginRoute: AdminLoginRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminCardapioProductIdRoute: AdminCardapioProductIdRoute,
   AdminCardapioCategoriasRoute: AdminCardapioCategoriasRoute,
   AdminCardapioExtrasRoute: AdminCardapioExtrasRoute,
+  AdminCardapioNovoRoute: AdminCardapioNovoRoute,
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
   AdminAvaliacoesIndexRoute: AdminAvaliacoesIndexRoute,
   AdminCardapioIndexRoute: AdminCardapioIndexRoute,

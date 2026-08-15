@@ -1,0 +1,127 @@
+import { createContext, useContext, useMemo, type ReactNode } from "react";
+import {
+  Cake,
+  CupSoda,
+  Drumstick,
+  GlassWater,
+  Pizza,
+  Sandwich,
+  Star,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
+import type { Category, Extra, Product, SizeKey } from "./menu";
+
+/** Categories store an icon by name; this maps those names to components. */
+const ICONS: Record<string, LucideIcon> = {
+  Pizza,
+  Star,
+  Cake,
+  CupSoda,
+  GlassWater,
+  Sandwich,
+  Drumstick,
+  UtensilsCrossed,
+};
+
+const SIZE_KEY_BY_LABEL: Record<string, SizeKey> = {
+  BROTINHO: "broto",
+  MEDIA: "media",
+  GRANDE: "grande",
+  GIGANTE: "gigante",
+};
+
+/** Shape returned by getStorefrontMenuFn. */
+export type MenuPayload = {
+  categories: {
+    id: string;
+    name: string;
+    slug: string;
+    icon: string | null;
+    imageUrl: string | null;
+    kind: "PIZZA" | "SIMPLE";
+    products: {
+      id: string;
+      name: string;
+      slug: string;
+      description: string;
+      basePrice: number;
+      imageUrl: string | null;
+      tag: string | null;
+      allowHalfAndHalf: boolean;
+      sizes: { size: string; price: number }[];
+    }[];
+  }[];
+  extras: { id: string; name: string; price: number }[];
+};
+
+export type MenuApi = {
+  categories: Category[];
+  products: Product[];
+  extras: Extra[];
+  categoryBySlug: (slug: string) => Category | undefined;
+  productBySlug: (slug: string) => Product | undefined;
+  productsByCategory: (slug: string) => Product[];
+};
+
+const MenuContext = createContext<MenuApi | null>(null);
+
+function adapt(payload: MenuPayload): MenuApi {
+  const categories: Category[] = payload.categories.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    shortName: c.name.replace(/^Pizzas\s+/i, ""),
+    image: c.imageUrl ?? c.products.find((p) => p.imageUrl)?.imageUrl ?? undefined,
+    icon: c.icon ? ICONS[c.icon] : undefined,
+    kind: c.kind === "PIZZA" ? "pizza" : "simple",
+  }));
+
+  const products: Product[] = payload.categories.flatMap((c) =>
+    c.products.map((p) => ({
+      slug: p.slug,
+      name: p.name,
+      desc: p.description,
+      price: p.basePrice,
+      image: p.imageUrl ?? undefined,
+      icon: !p.imageUrl && c.icon ? ICONS[c.icon] : undefined,
+      categorySlug: c.slug,
+      tag: p.tag ?? undefined,
+      allowHalfAndHalf: p.allowHalfAndHalf,
+      sizes: p.sizes
+        .map((s) => ({ key: SIZE_KEY_BY_LABEL[s.size], price: s.price }))
+        .filter((s) => s.key),
+    })),
+  );
+
+  const extras: Extra[] = payload.extras.map((x) => ({
+    id: x.id,
+    label: x.name,
+    price: x.price,
+  }));
+
+  return {
+    categories,
+    products,
+    extras,
+    categoryBySlug: (slug) => categories.find((c) => c.slug === slug),
+    productBySlug: (slug) => products.find((p) => p.slug === slug),
+    productsByCategory: (slug) => products.filter((p) => p.categorySlug === slug),
+  };
+}
+
+export function MenuProvider({
+  payload,
+  children,
+}: {
+  payload: MenuPayload;
+  children: ReactNode;
+}) {
+  const value = useMemo(() => adapt(payload), [payload]);
+  return <MenuContext.Provider value={value}>{children}</MenuContext.Provider>;
+}
+
+export function useMenu(): MenuApi {
+  const ctx = useContext(MenuContext);
+  if (!ctx) throw new Error("useMenu must be used inside <MenuProvider>");
+  return ctx;
+}

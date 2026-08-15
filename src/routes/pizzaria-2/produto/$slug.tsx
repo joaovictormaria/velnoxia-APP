@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,16 +11,13 @@ import { QuantityStepper } from "@/components/site/pizzaria2/QuantityStepper";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import {
-  categoryBySlug,
-  extras as extrasCatalog,
+  availableSizes,
   formatCurrency,
-  productBySlug,
-  products,
-  sizeBlocks,
   sizePrice,
   suggestedDrinkSlugs,
   type SizeKey,
 } from "@/lib/pizzaria2/menu";
+import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/pizzaria-2/produto/$slug")({
@@ -30,15 +27,21 @@ export const Route = createFileRoute("/pizzaria-2/produto/$slug")({
   component: PizzariaPersonalizacao,
 });
 
-const pizzaProducts = products.filter((p) =>
-  ["tradicionais", "especiais", "doces"].includes(p.categorySlug),
-);
-
 function PizzariaPersonalizacao() {
   const { slug } = Route.useParams();
   const { view } = Route.useSearch();
   const { addLine } = useCart();
   const goToCardapio = useGoToCardapio();
+  const {
+    categories,
+    products,
+    extras: extrasCatalog,
+    categoryBySlug,
+    productBySlug,
+  } = useMenu();
+
+  // Half-and-half is only offered by products flagged for it in the admin.
+  const pizzaProducts = products.filter((p) => p.allowHalfAndHalf);
 
   // The active product lives in local state (seeded from the route param) so
   // picking another pizza from the in-page cardápio never navigates away —
@@ -61,13 +64,27 @@ function PizzariaPersonalizacao() {
 
   const half2 = productBySlug(half2Slug);
 
-  const basePrice = useMemo(() => {
-    if (!product) return 0;
-    if (mode === "inteira") return product.price;
-    return Math.max(product.price, half2?.price ?? product.price);
-  }, [product, mode, half2]);
+  const sizeOptions = useMemo(
+    () => (product ? availableSizes(product) : []),
+    [product],
+  );
 
-  const unitPrice = sizePrice(basePrice, size);
+  // Keep the selected size valid when switching to a product that offers
+  // a different set of sizes.
+  useEffect(() => {
+    if (sizeOptions.length && !sizeOptions.some((s) => s.key === size)) {
+      setSize(sizeOptions[0].key);
+    }
+  }, [sizeOptions, size]);
+
+  // Prices are absolute per size, so half-and-half compares the two flavours
+  // at the *same* size and charges the higher one.
+  const unitPrice = useMemo(() => {
+    if (!product) return 0;
+    const own = sizePrice(product, size);
+    if (mode === "inteira" || !half2) return own;
+    return Math.max(own, sizePrice(half2, size));
+  }, [product, half2, mode, size]);
   const extrasTotal = selectedExtras.reduce((sum, id) => {
     const extra = extrasCatalog.find((e) => e.id === id);
     return sum + (extra?.price ?? 0);
@@ -90,7 +107,7 @@ function PizzariaPersonalizacao() {
   }
 
   const category = categoryBySlug(product.categorySlug);
-  const sizeLabel = sizeBlocks.find((s) => s.key === size)?.label ?? "Média";
+  const sizeLabel = sizeOptions.find((s) => s.key === size)?.label ?? "Média";
 
   function toggleExtra(id: string) {
     setSelectedExtras((prev) =>
@@ -267,7 +284,7 @@ function PizzariaPersonalizacao() {
           <div>
             <h2 className="font-display text-base font-bold text-charcoal">Escolha o tamanho</h2>
             <div className="mt-3 grid grid-cols-3 gap-2.5">
-              {sizeBlocks.map((block) => (
+              {sizeOptions.map((block) => (
                 <button
                   key={block.key}
                   type="button"
@@ -286,7 +303,7 @@ function PizzariaPersonalizacao() {
                       size === block.key ? "text-mozzarella/85" : "text-charcoal/50",
                     )}
                   >
-                    {formatCurrency(sizePrice(basePrice, block.key))}
+                    {formatCurrency(block.price)}
                   </span>
                 </button>
               ))}

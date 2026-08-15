@@ -7,14 +7,12 @@ import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { usePizzariaOnboarding, whatsappLink } from "@/lib/pizzaria2/onboarding";
 import {
-  categories,
   formatCurrency,
-  productsByCategory,
-  products as allProducts,
   type Category,
   type CategorySlug,
   type Product,
 } from "@/lib/pizzaria2/menu";
+import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { cn } from "@/lib/utils";
 import ingredientsPhoto from "@/assets/fotos de pizza/mussarela.jpg";
 
@@ -43,7 +41,10 @@ export function CardapioPicker({
 }) {
   const { addLine, itemCount, total } = useCart();
   const { businessPhone, businessName } = usePizzariaOnboarding();
-  const [activeSlug, setActiveSlug] = useState<CategorySlug>("tradicionais");
+  const { categories, products: allProducts, productsByCategory } = useMenu();
+  const [activeSlug, setActiveSlug] = useState<CategorySlug>(
+    categories[0]?.slug ?? "tradicionais",
+  );
   const [query, setQuery] = useState("");
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
@@ -57,7 +58,7 @@ export function CardapioPicker({
       );
     }
     return productsByCategory(activeSlug);
-  }, [query, activeSlug]);
+  }, [query, activeSlug, allProducts, productsByCategory]);
 
   function toggleFavorite(slug: string) {
     setFavorites((prev) => {
