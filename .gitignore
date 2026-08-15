@@ -1,0 +1,18 @@
+node_modules
+.output
+.vinxi
+.env
+.env.local
+
+# build output
+dist
+.vercel
+.nitro
+
+# Next.js leftovers (not part of this project)
+.next/
+next-env.d.ts
+
+# agent/instruction files (local only)
+AGENTS.md
+CLAUDE.md

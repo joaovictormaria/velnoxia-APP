@@ -1,0 +1,180 @@
+import { useState, type ReactNode } from "react";
+import { Link } from "@tanstack/react-router";
+import { ArrowRight, Award, BookOpen, ChevronDown, ShieldCheck, Truck } from "lucide-react";
+import { Reveal } from "@/components/site/Reveal";
+import { CategoryTabs } from "./CategoryTabs";
+import { ProductCard } from "./ProductCard";
+import { useCart } from "@/lib/pizzaria2/cart";
+import { categoryBySlug, productsByCategory, type CategorySlug } from "@/lib/pizzaria2/menu";
+
+export const categoryBadges: Record<string, string> = {
+  tradicionais: "Sabores que todo mundo ama",
+  especiais: "Para ocasiões especiais",
+  doces: "Pra adoçar o pedido",
+  bebidas: "Geladinhas pra acompanhar",
+  acompanhamentos: "Aquele extra pro pedido",
+};
+
+export const categoryDescriptions: Record<string, [string, string]> = {
+  tradicionais: [
+    "Os clássicos que nunca saem de moda.",
+    "Qualidade, sabor e ingredientes selecionados para a pizza perfeita.",
+  ],
+  especiais: [
+    "Combinações autorais para quem quer sair do óbvio.",
+    "Receitas exclusivas com ingredientes premium, feitas para impressionar.",
+  ],
+  doces: [
+    "Pra fechar o pedido com um toque doce.",
+    "Recheios generosos e cobertura na medida certa, direto do forno.",
+  ],
+  bebidas: [
+    "Pra acompanhar sua pizza geladinha.",
+    "Sempre bem gelada, na hora que o pedido chega.",
+  ],
+  acompanhamentos: [
+    "Aquele extra pra completar o pedido.",
+    "Porções generosas, feitas pra dividir — ou não.",
+  ],
+};
+
+const trustItems: { label: string; renderIcon: () => ReactNode }[] = [
+  {
+    label: "Ingredientes selecionados",
+    renderIcon: () => <Award className="h-5 w-5 animate-badge-shine" />,
+  },
+  {
+    label: "Entrega rápida",
+    renderIcon: () => (
+      <span className="relative flex h-5 w-5 items-center justify-center">
+        <span className="pointer-events-none absolute -left-1 top-0 flex flex-col gap-0.5">
+          <span className="h-1 w-1 rounded-full bg-olive/60 animate-truck-smoke" style={{ animationDelay: "0s" }} />
+          <span className="h-1 w-1 rounded-full bg-olive/60 animate-truck-smoke" style={{ animationDelay: "0.35s" }} />
+        </span>
+        <Truck className="h-5 w-5 animate-truck-drive" />
+      </span>
+    ),
+  },
+  {
+    label: "Compra segura",
+    renderIcon: () => (
+      <span className="relative flex h-5 w-5 items-center justify-center">
+        <span className="absolute inset-0 rounded-full bg-olive/40 animate-ping" />
+        <ShieldCheck className="relative h-5 w-5" />
+      </span>
+    ),
+  },
+];
+
+/**
+ * The full, interactive cardápio — category filters + product list — lives
+ * entirely inside this component so it can be embedded once as a Home
+ * section (#cardapio). Switching categories is local state, not routing.
+ */
+export function CategorySaboresSection({
+  defaultCategorySlug = "tradicionais",
+}: {
+  defaultCategorySlug?: CategorySlug;
+}) {
+  const { addLine } = useCart();
+  const [activeSlug, setActiveSlug] = useState<CategorySlug>(defaultCategorySlug);
+  const category = categoryBySlug(activeSlug);
+  const items = productsByCategory(activeSlug);
+
+  if (!category) return null;
+
+  const [firstLine, secondLine] = categoryDescriptions[category.slug] ?? ["", ""];
+
+  // Landing directly on the produto page's "cardápio" screen (the same one
+  // the add-to-cart flow slides into) needs *a* valid pizza slug to anchor
+  // the route — which one barely matters since that screen shows every category.
+  const ctaProductSlug =
+    (category.kind === "pizza" ? items[0]?.slug : undefined) ??
+    productsByCategory("tradicionais")[0]?.slug ??
+    "";
+
+  return (
+    <>
+      <div className="grid grid-cols-1 gap-12 lg:grid-cols-[400px_1fr] lg:gap-16 2xl:grid-cols-[440px_1fr] 2xl:gap-20">
+        <Reveal variant="up" className="lg:pt-1">
+          <span className="inline-flex items-center gap-2 rounded-full bg-tomato/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-tomato">
+            {category.icon && <category.icon className="h-4 w-4" />}
+            {categoryBadges[category.slug]}
+          </span>
+
+          <h2 className="mt-5 font-display text-5xl font-extrabold leading-[1.05] text-charcoal sm:text-6xl lg:text-5xl">
+            {category.name}
+          </h2>
+
+          <p className="mt-5 max-w-md text-base leading-relaxed text-charcoal/60">
+            {firstLine}
+            <br />
+            {secondLine}
+          </p>
+
+          <Link
+            to="/pizzaria-2/produto/$slug"
+            params={{ slug: ctaProductSlug }}
+            search={{ view: "cardapio" }}
+            className="group mt-7 flex items-center gap-4 rounded-4xl bg-linear-to-br from-tomato to-[#b8341c] p-6 text-mozzarella shadow-[0_20px_40px_-24px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
+          >
+            <span className="grid h-13 w-13 shrink-0 place-items-center rounded-full bg-mozzarella/15">
+              <BookOpen className="h-6 w-6" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-bold leading-tight">Veja o cardápio completo</span>
+              <span className="mt-1 block text-sm leading-tight text-mozzarella/80">
+                Mais sabores incríveis esperam por você!
+              </span>
+            </span>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-mozzarella text-tomato transition-transform group-hover:translate-x-0.5">
+              <ArrowRight className="h-5 w-5" />
+            </span>
+          </Link>
+
+          <div className="mt-7 grid grid-cols-3 gap-4">
+            {trustItems.map((item) => (
+              <div key={item.label} className="flex flex-col items-start gap-2.5">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-olive/10 text-olive">
+                  {item.renderIcon()}
+                </span>
+                <span className="text-xs leading-tight text-charcoal/60">{item.label}</span>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
+        <div>
+          <CategoryTabs activeSlug={category.slug} onSelect={setActiveSlug} />
+
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3">
+            {items.map((product, i) => (
+              <Reveal key={product.slug} variant="up" delay={Math.min(i * 40, 320)}>
+                <ProductCard
+                  product={product}
+                  linkToCustomize={category.kind === "pizza"}
+                  onQuickAdd={() =>
+                    addLine({
+                      name: product.name,
+                      sizeLabel: category.kind === "pizza" ? "Média" : undefined,
+                      image: product.image,
+                      icon: product.icon,
+                      unitPrice: product.price,
+                      extras: [],
+                      qty: 1,
+                    })
+                  }
+                />
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-14 flex items-center justify-center gap-2.5 text-base font-medium text-tomato">
+        <ChevronDown className="h-5 w-5 animate-bounce" />
+        Explore o cardápio completo e monte sua pizza favorita!
+      </div>
+    </>
+  );
+}
