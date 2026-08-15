@@ -8,6 +8,7 @@ import { useCart } from "@/lib/pizzaria2/cart";
 import { usePizzariaOnboarding, whatsappLink } from "@/lib/pizzaria2/onboarding";
 import {
   formatCurrency,
+  sizePrice,
   type Category,
   type CategorySlug,
   type Product,
@@ -229,9 +230,11 @@ export function CardapioPicker({
                       sizeLabel: isPizza ? "Média" : undefined,
                       image: product.image,
                       icon: product.icon,
-                      unitPrice: product.price,
+                      unitPrice: sizePrice(product, "media"),
                       extras: [],
                       qty: 1,
+                      productSlug: product.slug,
+                      sizeKey: isPizza ? "media" : undefined,
                     })
                   }
                 />

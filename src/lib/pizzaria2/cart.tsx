@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { SizeKey } from "./menu";
 
 export type CartLineExtra = { id: string; label: string; price: number };
 
@@ -21,6 +22,13 @@ export type CartLine = {
   extras: CartLineExtra[];
   note?: string;
   qty: number;
+  /**
+   * Identifiers the checkout sends to the server, which re-prices every line
+   * from the database — the displayed unitPrice above is never trusted.
+   */
+  productSlug: string;
+  sizeKey?: SizeKey;
+  secondProductSlug?: string;
 };
 
 type CartContextValue = {

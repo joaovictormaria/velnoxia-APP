@@ -135,6 +135,9 @@ function PizzariaPersonalizacao() {
       extras: chosenExtras,
       note: note.trim() || undefined,
       qty,
+      productSlug: product.slug,
+      sizeKey: sizeOptions.length ? size : undefined,
+      secondProductSlug: mode === "meia" ? half2?.slug : undefined,
     });
     goToScreen("cardapio");
   }
@@ -160,6 +163,7 @@ function PizzariaPersonalizacao() {
       unitPrice: drink.price,
       extras: [],
       qty: 1,
+      productSlug: drink.slug,
     });
   }
 

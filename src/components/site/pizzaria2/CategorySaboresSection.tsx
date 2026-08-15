@@ -5,7 +5,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductCard } from "./ProductCard";
 import { useCart } from "@/lib/pizzaria2/cart";
-import type { CategorySlug } from "@/lib/pizzaria2/menu";
+import { sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 
 export const categoryBadges: Record<string, string> = {
@@ -161,9 +161,11 @@ export function CategorySaboresSection({
                       sizeLabel: category.kind === "pizza" ? "Média" : undefined,
                       image: product.image,
                       icon: product.icon,
-                      unitPrice: product.price,
+                      unitPrice: sizePrice(product, "media"),
                       extras: [],
                       qty: 1,
+                      productSlug: product.slug,
+                      sizeKey: category.kind === "pizza" ? "media" : undefined,
                     })
                   }
                 />

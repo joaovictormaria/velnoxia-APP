@@ -1,13 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartItemRow } from "@/components/site/pizzaria2/CartItemRow";
+import { CheckoutForm } from "@/components/site/pizzaria2/CheckoutForm";
 import { MenuThumb } from "@/components/site/pizzaria2/MenuThumb";
 import { PriceTag } from "@/components/site/pizzaria2/PriceTag";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency, suggestedDrinkSlugs } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { usePizzariaOnboarding, whatsappLink } from "@/lib/pizzaria2/onboarding";
+import { getStoreInfoFn } from "@/server/functions/storefront-checkout.fn";
 
 export const Route = createFileRoute("/pizzaria-2/carrinho")({
   component: PizzariaCarrinho,
@@ -17,6 +21,12 @@ function PizzariaCarrinho() {
   const { lines, addLine, removeLine, clearCart, subtotal, deliveryFee, total } = useCart();
   const { businessPhone } = usePizzariaOnboarding();
   const { categories, productBySlug, productsByCategory } = useMenu();
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+
+  const { data: storeInfo } = useQuery({
+    queryKey: ["store-info"],
+    queryFn: () => getStoreInfoFn(),
+  });
 
   // "Continuar comprando" reopens the same rich cardápio picker the produto
   // screen uses — it just needs *a* pizza slug to anchor that route.
@@ -110,6 +120,7 @@ function PizzariaCarrinho() {
                           unitPrice: drink.price,
                           extras: [],
                           qty: 1,
+                          productSlug: drink.slug,
                         })
                       }
                       className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-tomato text-tomato transition-colors hover:bg-tomato hover:text-mozzarella"
@@ -155,14 +166,20 @@ function PizzariaCarrinho() {
             </Link>
           </Button>
           <Button
-            asChild
+            onClick={() => setCheckoutOpen(true)}
             className="rounded-full bg-tomato px-8 py-6 text-base font-semibold text-mozzarella shadow-none hover:bg-tomato/90 sm:flex-1 sm:max-w-sm"
           >
-            <a href={whatsappHref} target="_blank" rel="noopener noreferrer">
-              Finalizar pedido →
-            </a>
+            Finalizar pedido →
           </Button>
         </div>
+      )}
+
+      {checkoutOpen && (
+        <CheckoutForm
+          storeInfo={storeInfo ?? null}
+          businessPhone={businessPhone}
+          onClose={() => setCheckoutOpen(false)}
+        />
       )}
     </main>
   );
