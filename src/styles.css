@@ -190,6 +190,39 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/*
+ * Scope for the admin panel: the site-wide theme in :root is dark, but the
+ * admin content area is a light surface. Without this, every shadcn component
+ * (Label, Input, Table, Dialog, Select...) inherits near-white text tokens and
+ * renders invisible on the white cards. Declared after :root so it wins on
+ * order — both selectors have the same specificity.
+ */
+.admin-theme {
+  --background: oklch(0.99 0 0);
+  --foreground: oklch(0.21 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0 0);
+  --primary: oklch(0.57 0.216 27);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.21 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.52 0 0);
+  --accent: oklch(0.96 0 0);
+  --accent-foreground: oklch(0.21 0 0);
+  --destructive: oklch(0.57 0.216 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(0.87 0 0);
+  --ring: oklch(0.57 0.216 27);
+  --surface: oklch(0.97 0 0);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.21 0 0);
+  --sidebar-border: oklch(0.9 0 0);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
