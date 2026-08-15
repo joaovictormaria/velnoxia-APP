@@ -1,17 +1,27 @@
 {
-  "name": "velnox-ia",
+  "name": "velnoxia-app",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
-    "start": "node .output/server/index.mjs"
+    "build": "prisma generate && vite build",
+    "start": "prisma migrate deploy && node .output/server/index.mjs",
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "node --experimental-strip-types prisma/seed.ts"
   },
   "engines": {
     "node": "24.x"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
     "@radix-ui/react-accordion": "^1.2.20",
     "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-aspect-ratio": "^1.1.15",
@@ -41,12 +51,15 @@
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.170.25",
     "@tanstack/react-start": "^1.168.42",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "dotenv": "^17.4.2",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.31.0",
+    "prisma": "^7.9.1",
     "react": "^19.2.8",
     "react-day-picker": "^10.0.1",
     "react-dom": "^19.2.8",

@@ -1,0 +1,411 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enums ----------
+
+enum AdminRole {
+  OWNER
+  MANAGER
+}
+
+enum Weekday {
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+enum CategoryKind {
+  PIZZA
+  SIMPLE
+}
+
+enum SizeLabel {
+  BROTINHO
+  MEDIA
+  GRANDE
+  GIGANTE
+}
+
+enum HalfPizzaPricingRule {
+  HIGHEST_PRICE
+  AVERAGE_PRICE
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum OrderType {
+  DELIVERY
+  PICKUP
+}
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+}
+
+enum OrderSource {
+  SITE
+  WHATSAPP
+  PHONE
+  ADMIN
+}
+
+enum StatusAuthorType {
+  ADMIN
+  SYSTEM
+  CUSTOMER
+}
+
+enum ReviewChannel {
+  GOOGLE
+  WHATSAPP
+  SITE
+  OTHER
+}
+
+enum ReviewStatus {
+  PENDING
+  RESPONDED
+}
+
+enum NotificationType {
+  NEW_ORDER
+  ORDER_CANCELLED
+  NEW_REVIEW
+}
+
+// ---------- Auth ----------
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(OWNER)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  respondedReviews Review[] @relation("ReviewRespondedBy")
+}
+
+// ---------- Configuração da loja ----------
+
+model StoreSettings {
+  id                       String          @id @default("singleton")
+  storeName                String          @default("Bella Pizza")
+  logoUrl                  String?
+  primaryColor             String          @default("#E11D2E")
+  whatsappNumber           String
+  addressStreet            String?
+  addressNumber            String?
+  addressComplement        String?
+  addressNeighborhood      String?
+  addressCity              String?
+  addressState             String?
+  addressZipCode           String?
+  deliveryFee              Float           @default(6)
+  freeDeliveryMinOrder     Float?
+  minOrderValue            Float           @default(0)
+  estimatedDeliveryMinMin  Int             @default(35)
+  estimatedDeliveryMinMax  Int             @default(55)
+  estimatedPickupMinMin    Int             @default(15)
+  estimatedPickupMinMax    Int             @default(25)
+  acceptsDelivery          Boolean         @default(true)
+  acceptsPickup            Boolean         @default(true)
+  acceptedPaymentMethods   PaymentMethod[] @default([PIX, CREDIT_CARD, DEBIT_CARD, CASH])
+  autoPrintEnabled         Boolean         @default(false)
+  whatsappNotifyEnabled    Boolean         @default(true)
+  notificationSoundEnabled Boolean         @default(true)
+  createdAt                DateTime        @default(now())
+  updatedAt                DateTime        @updatedAt
+
+  openingHours     OpeningHour[]
+  restaurantPhotos RestaurantPhoto[]
+}
+
+model OpeningHour {
+  id              String        @id @default(cuid())
+  storeSettingsId String        @default("singleton")
+  storeSettings   StoreSettings @relation(fields: [storeSettingsId], references: [id], onDelete: Cascade)
+  weekday         Weekday
+  isOpen          Boolean       @default(true)
+  opensAt         String        @default("18:00")
+  closesAt        String        @default("23:30")
+
+  @@unique([storeSettingsId, weekday])
+}
+
+model RestaurantPhoto {
+  id              String        @id @default(cuid())
+  storeSettingsId String        @default("singleton")
+  storeSettings   StoreSettings @relation(fields: [storeSettingsId], references: [id], onDelete: Cascade)
+  url             String
+  caption         String?
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+}
+
+// ---------- Cardápio ----------
+
+model Category {
+  id        String       @id @default(cuid())
+  name      String
+  slug      String       @unique
+  icon      String?
+  imageUrl  String?
+  kind      CategoryKind @default(SIMPLE)
+  sortOrder Int          @default(0)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  products Product[]
+
+  @@index([sortOrder])
+}
+
+model Product {
+  id                     String               @id @default(cuid())
+  name                   String
+  slug                   String               @unique
+  description            String
+  categoryId             String
+  category               Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  basePrice              Float
+  imageUrl               String?
+  tag                    String?
+  isActive               Boolean              @default(true)
+  allowHalfAndHalf       Boolean              @default(false)
+  halfPizzaPricingRule   HalfPizzaPricingRule @default(HIGHEST_PRICE)
+  sortOrder              Int                  @default(0)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  sizes      ProductSize[]
+  orderItems OrderItem[]
+
+  @@index([categoryId, isActive])
+}
+
+model ProductSize {
+  id          String    @id @default(cuid())
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size        SizeLabel
+  price       Float
+  isAvailable Boolean   @default(true)
+
+  @@unique([productId, size])
+}
+
+model Extra {
+  id        String   @id @default(cuid())
+  name      String
+  price     Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItemExtras OrderItemExtra[]
+}
+
+model Coupon {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  description    String?
+  discountType   DiscountType
+  discountValue  Float
+  minOrderValue  Float?
+  maxUsage       Int?
+  usageCount     Int          @default(0)
+  validFrom      DateTime
+  validUntil     DateTime
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  orders Order[]
+}
+
+// ---------- Clientes ----------
+
+model Customer {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String   @unique
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders  Order[]
+  reviews Review[]
+}
+
+// ---------- Pedidos ----------
+
+model Order {
+  id     String @id @default(cuid())
+  number Int    @unique @default(autoincrement())
+
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName  String
+  customerPhone String
+
+  type   OrderType     @default(DELIVERY)
+  status OrderStatus   @default(RECEIVED)
+  source OrderSource   @default(SITE)
+
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+
+  subtotal    Float
+  deliveryFee Float @default(0)
+  discount    Float @default(0)
+  total       Float
+
+  couponId String?
+  coupon   Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+
+  deliveryStreet       String?
+  deliveryNumber       String?
+  deliveryComplement   String?
+  deliveryNeighborhood String?
+  deliveryCity         String?
+  deliveryState        String?
+  deliveryZipCode      String?
+
+  customerNote String?
+  internalNote String?
+
+  estimatedDeliveryAt DateTime?
+  autoPrintRequested  Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+  reviews       Review[]
+
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([customerId])
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId          String?
+  product            Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productNameSnapshot String
+  sizeLabel           SizeLabel?
+
+  isHalfAndHalf              Boolean @default(false)
+  secondProductId             String?
+  secondProductNameSnapshot   String?
+
+  unitPrice Float
+  quantity  Int    @default(1)
+  note      String?
+
+  extras OrderItemExtra[]
+
+  @@index([orderId])
+}
+
+model OrderItemExtra {
+  id           String    @id @default(cuid())
+  orderItemId  String
+  orderItem    OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  extraId      String?
+  extra        Extra?    @relation(fields: [extraId], references: [id], onDelete: SetNull)
+  nameSnapshot String
+  priceSnapshot Float
+}
+
+model OrderStatusHistory {
+  id         String           @id @default(cuid())
+  orderId    String
+  order      Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status     OrderStatus
+  note       String?
+  authorType StatusAuthorType @default(SYSTEM)
+  authorName String?
+  createdAt  DateTime         @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+// ---------- Avaliações ----------
+
+model Review {
+  id                  String       @id @default(cuid())
+  customerId          String?
+  customer            Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerNameSnapshot String
+  orderId             String?
+  order               Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  rating              Int
+  comment             String
+  channel             ReviewChannel @default(SITE)
+  status              ReviewStatus  @default(PENDING)
+  response            String?
+  respondedAt         DateTime?
+  respondedByAdminId  String?
+  respondedBy         AdminUser?   @relation("ReviewRespondedBy", fields: [respondedByAdminId], references: [id], onDelete: SetNull)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ---------- Notificações ----------
+
+model Notification {
+  id              String           @id @default(cuid())
+  type            NotificationType
+  title           String
+  message         String
+  relatedOrderId  String?
+  relatedReviewId String?
+  isRead          Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+
+  @@index([isRead, createdAt])
+}

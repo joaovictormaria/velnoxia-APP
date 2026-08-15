@@ -17,9 +17,8 @@ export default defineConfig({
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart(),
-    // Builds the server output Vercel deploys as a Function — without it the
-    // build emits a bare fetch handler that no host knows how to run.
-    nitro(),
+    // node-server preset: Railway runs a persistent Node process, not serverless functions.
+    nitro({ config: { preset: "node-server" } }),
     viteReact(),
   ],
 });
