@@ -51,7 +51,7 @@ function LoginPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl bg-white p-6 shadow-xl"
+          className="admin-theme space-y-4 rounded-2xl bg-white p-6 text-neutral-900 shadow-xl"
         >
           <div className="space-y-2">
             <Label htmlFor="email">E-mail</Label>
@@ -82,10 +82,16 @@ function LoginPage() {
           <Button
             type="submit"
             disabled={pending}
-            className="w-full bg-[#E11D2E] hover:bg-[#c4172a]"
+            className="w-full bg-[#E11D2E] text-white hover:bg-[#c4172a]"
           >
             {pending ? "Entrando..." : "Entrar"}
           </Button>
+
+          {import.meta.env.DEV && (
+            <p className="rounded-lg bg-neutral-100 px-3 py-2 text-center text-xs text-neutral-600">
+              Acesso de desenvolvimento: <strong>admin@bellapizza.com</strong> / <strong>admin123</strong>
+            </p>
+          )}
         </form>
       </div>
     </div>

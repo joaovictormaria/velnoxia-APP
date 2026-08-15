@@ -31,7 +31,7 @@ function AdminLayout() {
     <div className="flex min-h-screen bg-neutral-950">
       <AdminSidebar storeName="Bella Pizza" onLogout={handleLogout} />
       <main className="flex-1 overflow-x-hidden p-4">
-        <div className="min-h-full rounded-2xl bg-[#FAF9F7] p-8">
+        <div className="admin-theme min-h-full rounded-2xl bg-[#FAF9F7] p-8 text-neutral-900">
           <Outlet />
         </div>
       </main>
