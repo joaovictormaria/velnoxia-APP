@@ -1,6 +1,7 @@
 node_modules
 .output
 .vinxi
+.tanstack
 .env
 .env.local
 
@@ -16,3 +17,7 @@ next-env.d.ts
 # agent/instruction files (local only)
 AGENTS.md
 CLAUDE.md
+
+# Cópia local do projeto white-label (repositório git próprio aninhado).
+# O conteúdo já está integrado em src/ — esta pasta não é versionada aqui.
+velnox-landing/
