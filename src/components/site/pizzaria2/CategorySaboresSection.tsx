@@ -73,15 +73,31 @@ const trustItems: { label: string; renderIcon: () => ReactNode }[] = [
  * section (#cardapio). Switching categories is local state, not routing.
  */
 export function CategorySaboresSection({
-  defaultCategorySlug = "tradicionais",
+  defaultCategorySlug,
 }: {
   defaultCategorySlug?: CategorySlug;
 }) {
   const { addLine } = useCart();
-  const { categoryBySlug, productsByCategory } = useMenu();
-  const [activeSlug, setActiveSlug] = useState<CategorySlug>(defaultCategorySlug);
-  const category = categoryBySlug(activeSlug);
-  const items = productsByCategory(activeSlug);
+  const { categories, products, categoryBySlug, productsByCategory } = useMenu();
+
+  // The opening tab comes from the data, never a fixed slug: the admin can
+  // rename, reorder, deactivate or delete any category, and whichever one the
+  // seed happened to create must not be load-bearing. Prefer the first
+  // category that actually has products so the list is never empty on arrival.
+  const fallbackSlug =
+    categories.find((c) => productsByCategory(c.slug).length > 0)?.slug ??
+    categories[0]?.slug ??
+    "";
+  const initialSlug =
+    defaultCategorySlug && categoryBySlug(defaultCategorySlug)
+      ? defaultCategorySlug
+      : fallbackSlug;
+
+  const [activeSlug, setActiveSlug] = useState<CategorySlug>(initialSlug);
+  // A category can disappear while the page is open (deactivated in the admin),
+  // so fall back rather than blanking the whole section.
+  const category = categoryBySlug(activeSlug) ?? categoryBySlug(fallbackSlug);
+  const items = category ? productsByCategory(category.slug) : [];
 
   if (!category) return null;
 
@@ -91,28 +107,34 @@ export function CategorySaboresSection({
   // the add-to-cart flow slides into) needs *a* valid pizza slug to anchor
   // the route — which one barely matters since that screen shows every category.
   const ctaProductSlug =
-    (category.kind === "pizza" ? items[0]?.slug : undefined) ??
-    productsByCategory("tradicionais")[0]?.slug ??
-    "";
+    (category.kind === "pizza" ? items[0]?.slug : undefined) ?? products[0]?.slug ?? "";
 
   return (
     <>
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-[400px_1fr] lg:gap-16 2xl:grid-cols-[440px_1fr] 2xl:gap-20">
         <Reveal variant="up" className="lg:pt-1">
+          {/* Categories created in the admin have no entry in the copy maps —
+              fall back to the category's own name instead of an empty pill. */}
           <span className="inline-flex items-center gap-2 rounded-full bg-tomato/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-tomato">
             {category.icon && <category.icon className="h-4 w-4" />}
-            {categoryBadges[category.slug]}
+            {categoryBadges[category.slug] ?? category.name}
           </span>
 
           <h2 className="mt-5 font-display text-5xl font-extrabold leading-[1.05] text-charcoal sm:text-6xl lg:text-5xl">
             {category.name}
           </h2>
 
-          <p className="mt-5 max-w-md text-base leading-relaxed text-charcoal/60">
-            {firstLine}
-            <br />
-            {secondLine}
-          </p>
+          {(firstLine || secondLine) && (
+            <p className="mt-5 max-w-md text-base leading-relaxed text-charcoal/60">
+              {firstLine}
+              {secondLine && (
+                <>
+                  <br />
+                  {secondLine}
+                </>
+              )}
+            </p>
+          )}
 
           <Link
             to="/pizzaria-2/produto/$slug"
