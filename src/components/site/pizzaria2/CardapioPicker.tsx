@@ -5,7 +5,7 @@ import { categoryDescriptions } from "./CategorySaboresSection";
 import { ProductCard } from "./ProductCard";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
-import { usePizzariaOnboarding, whatsappLink } from "@/lib/pizzaria2/onboarding";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 import {
   formatCurrency,
   sizePrice,
@@ -41,7 +41,7 @@ export function CardapioPicker({
   onSelectPizza: (slug: string) => void;
 }) {
   const { addLine, itemCount, total } = useCart();
-  const { businessPhone, businessName } = usePizzariaOnboarding();
+  const { storeName: businessName, whatsappHref } = useStore();
   const { categories, products: allProducts, productsByCategory } = useMenu();
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(
     categories[0]?.slug ?? "tradicionais",
@@ -174,8 +174,7 @@ export function CardapioPicker({
           </div>
 
           <a
-            href={whatsappLink(
-              businessPhone,
+            href={whatsappHref(
               `Olá! Vi que ${businessName} tem uma oferta pro primeiro pedido, quero aproveitar 🍕`,
             )}
             target="_blank"
@@ -195,7 +194,7 @@ export function CardapioPicker({
           </a>
 
           <a
-            href={whatsappLink(businessPhone, `Olá! Preciso de uma ajuda com o pedido 🍕`)}
+            href={whatsappHref(`Olá! Preciso de uma ajuda com o pedido 🍕`)}
             target="_blank"
             rel="noopener noreferrer"
             className="group flex items-center gap-2.5 rounded-2xl border border-charcoal/8 bg-mozzarella p-4 transition-colors hover:border-tomato/25"
