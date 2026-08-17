@@ -8,7 +8,7 @@ import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
 import { PromoCarousel } from "@/components/site/pizzaria2/PromoCarousel";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
-import { usePizzariaOnboarding, whatsappLink } from "@/lib/pizzaria2/onboarding";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 import { HERO_BOUNDARY_ID } from "@/lib/pizzaria2/hero-overlap";
 import { cn } from "@/lib/utils";
 import heroPizzaPhoto from "@/assets/fotos de pizza/pizza-hero.jpg";
@@ -55,8 +55,8 @@ const heroCravings = [
 
 function PizzariaInicio() {
   const goToCardapio = useGoToCardapio();
-  const { businessName, businessPhone } = usePizzariaOnboarding();
-  const whatsappHref = whatsappLink(businessPhone);
+  const { storeName: businessName, whatsappHref: buildWhatsappHref } = useStore();
+  const whatsappHref = buildWhatsappHref();
 
   const [activePhoto, setActivePhoto] = useState(0);
   const [hasSwitchedPhoto, setHasSwitchedPhoto] = useState(false);
@@ -267,7 +267,7 @@ function PizzariaInicio() {
         <div className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-tomato/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-olive/10 blur-3xl" />
         <div className="relative mx-auto max-w-[1800px] px-6 py-20 sm:px-10 sm:py-24 xl:px-16">
-          <CategorySaboresSection defaultCategorySlug="tradicionais" />
+          <CategorySaboresSection />
         </div>
       </section>
 
