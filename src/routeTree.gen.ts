@@ -11,7 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
+import { Route as AnaliseRouteImport } from './routes/analise'
+import { Route as CriarSiteRouteImport } from './routes/criar-site'
 import { Route as Pizzaria2RouteRouteImport } from './routes/pizzaria-2/route'
+import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
@@ -42,9 +45,24 @@ const AdminRouteRoute = AdminRouteRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnaliseRoute = AnaliseRouteImport.update({
+  id: '/analise',
+  path: '/analise',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarSiteRoute = CriarSiteRouteImport.update({
+  id: '/criar-site',
+  path: '/criar-site',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const Pizzaria2RouteRoute = Pizzaria2RouteRouteImport.update({
   id: '/pizzaria-2',
   path: '/pizzaria-2',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreviewRoute = PreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -147,6 +165,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/pizzaria-2': typeof Pizzaria2RouteRouteWithChildren
+  '/analise': typeof AnaliseRoute
+  '/criar-site': typeof CriarSiteRoute
+  '/preview': typeof PreviewRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
@@ -169,6 +190,9 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analise': typeof AnaliseRoute
+  '/criar-site': typeof CriarSiteRoute
+  '/preview': typeof PreviewRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
@@ -194,6 +218,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/pizzaria-2': typeof Pizzaria2RouteRouteWithChildren
+  '/analise': typeof AnaliseRoute
+  '/criar-site': typeof CriarSiteRoute
+  '/preview': typeof PreviewRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
@@ -220,6 +247,9 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/pizzaria-2'
+    | '/analise'
+    | '/criar-site'
+    | '/preview'
     | '/admin/login'
     | '/api/health'
     | '/pizzaria-2/carrinho'
@@ -242,6 +272,9 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/analise'
+    | '/criar-site'
+    | '/preview'
     | '/admin/login'
     | '/api/health'
     | '/pizzaria-2/carrinho'
@@ -266,6 +299,9 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/pizzaria-2'
+    | '/analise'
+    | '/criar-site'
+    | '/preview'
     | '/admin/login'
     | '/api/health'
     | '/pizzaria-2/carrinho'
@@ -291,6 +327,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   Pizzaria2RouteRoute: typeof Pizzaria2RouteRouteWithChildren
+  AnaliseRoute: typeof AnaliseRoute
+  CriarSiteRoute: typeof CriarSiteRoute
+  PreviewRoute: typeof PreviewRoute
   ApiHealthRoute: typeof ApiHealthRoute
 }
 
@@ -310,11 +349,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analise': {
+      id: '/analise'
+      path: '/analise'
+      fullPath: '/analise'
+      preLoaderRoute: typeof AnaliseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-site': {
+      id: '/criar-site'
+      path: '/criar-site'
+      fullPath: '/criar-site'
+      preLoaderRoute: typeof CriarSiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pizzaria-2': {
       id: '/pizzaria-2'
       path: '/pizzaria-2'
       fullPath: '/pizzaria-2'
       preLoaderRoute: typeof Pizzaria2RouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/preview': {
+      id: '/preview'
+      path: '/preview'
+      fullPath: '/preview'
+      preLoaderRoute: typeof PreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -513,6 +573,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRouteRoute: AdminRouteRouteWithChildren,
   Pizzaria2RouteRoute: Pizzaria2RouteRouteWithChildren,
+  AnaliseRoute: AnaliseRoute,
+  CriarSiteRoute: CriarSiteRoute,
+  PreviewRoute: PreviewRoute,
   ApiHealthRoute: ApiHealthRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { CartProvider } from "@/lib/pizzaria2/cart";
 import { MenuProvider, type MenuPayload } from "@/lib/pizzaria2/menu-provider";
+import { StoreProvider, type StorePayload } from "@/lib/pizzaria2/store-provider";
+import { useLiveMenu } from "@/lib/pizzaria2/use-live-menu";
 import { Footer } from "@/components/site/pizzaria2/Footer";
 import { Header } from "@/components/site/pizzaria2/Header";
 import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
@@ -21,19 +23,22 @@ export const Route = createFileRoute("/pizzaria-2")({
 });
 
 function PizzariaLayout() {
-  const menu = Route.useLoaderData() as MenuPayload;
+  const data = Route.useLoaderData() as MenuPayload & { store: StorePayload };
+  useLiveMenu();
 
   return (
-    <MenuProvider payload={menu}>
-      <CartProvider>
-        <div className="pizzaria2 flex min-h-screen flex-col bg-cream font-sans text-charcoal">
-          <Header />
-          <div className="flex-1 pt-16.75">
-            <Outlet />
+    <StoreProvider payload={data.store}>
+      <MenuProvider payload={data}>
+        <CartProvider>
+          <div className="pizzaria2 flex min-h-screen flex-col bg-cream font-sans text-charcoal">
+            <Header />
+            <div className="flex-1 pt-16.75">
+              <Outlet />
+            </div>
+            <Footer />
           </div>
-          <Footer />
-        </div>
-      </CartProvider>
-    </MenuProvider>
+        </CartProvider>
+      </MenuProvider>
+    </StoreProvider>
   );
 }
