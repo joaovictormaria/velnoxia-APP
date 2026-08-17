@@ -3,22 +3,30 @@ import { Link } from "@tanstack/react-router";
 import { Menu as MenuIcon, Pizza, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
-import { usePizzariaOnboarding } from "@/lib/pizzaria2/onboarding";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 import { useHeaderOverHero } from "@/lib/pizzaria2/hero-overlap";
 
 export function Header() {
   const [open, setOpen] = useState(false);
   const goToCardapio = useGoToCardapio();
-  const { businessType, businessName } = usePizzariaOnboarding();
+  const { storeName, tagline, logoUrl } = useStore();
   const overHero = useHeaderOverHero();
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-charcoal/8 backdrop-blur">
       <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link to="/pizzaria-2" className="flex items-center gap-2">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-mozzarella">
-            <Pizza className="h-4.5 w-4.5" />
-          </span>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={storeName}
+              className="h-9 w-9 shrink-0 rounded-full object-cover"
+            />
+          ) : (
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-mozzarella">
+              <Pizza className="h-4.5 w-4.5" />
+            </span>
+          )}
           <span className="flex flex-col leading-tight">
             <span
               className={cn(
@@ -26,16 +34,18 @@ export function Header() {
                 overHero ? "text-mozzarella" : "text-charcoal",
               )}
             >
-              {businessName}
+              {storeName}
             </span>
-            <span
-              className={cn(
-                "hidden text-[11px] font-medium uppercase tracking-wide transition-colors sm:inline",
-                overHero ? "text-mozzarella/70" : "text-charcoal/45",
-              )}
-            >
-              {businessType}
-            </span>
+            {tagline && (
+              <span
+                className={cn(
+                  "hidden text-[11px] font-medium uppercase tracking-wide transition-colors sm:inline",
+                  overHero ? "text-mozzarella/70" : "text-charcoal/45",
+                )}
+              >
+                {tagline}
+              </span>
+            )}
           </span>
         </Link>
 

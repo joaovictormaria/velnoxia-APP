@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
-import { whatsappLink } from "@/lib/pizzaria2/onboarding";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -15,24 +15,11 @@ const PAYMENT_LABEL: Record<string, string> = {
   CASH: "Dinheiro",
 };
 
-type StoreInfo = {
-  acceptsDelivery: boolean;
-  acceptsPickup: boolean;
-  acceptedPaymentMethods: string[];
-} | null;
-
-export function CheckoutForm({
-  storeInfo,
-  businessPhone,
-  onClose,
-}: {
-  storeInfo: StoreInfo;
-  businessPhone: string;
-  onClose: () => void;
-}) {
+export function CheckoutForm({ onClose }: { onClose: () => void }) {
+  const storeInfo = useStore();
   const { lines, subtotal, clearCart } = useCart();
   const [type, setType] = useState<"DELIVERY" | "PICKUP">(
-    storeInfo?.acceptsDelivery === false ? "PICKUP" : "DELIVERY",
+    storeInfo.acceptsDelivery === false ? "PICKUP" : "DELIVERY",
   );
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -47,7 +34,7 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const [placed, setPlaced] = useState<{ number: number; total: number } | null>(null);
 
-  const payments = storeInfo?.acceptedPaymentMethods ?? ["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"];
+  const payments = storeInfo.acceptedPaymentMethods;
 
   const submit = useMutation({
     mutationFn: () =>
@@ -86,8 +73,7 @@ export function CheckoutForm({
   });
 
   if (placed) {
-    const href = whatsappLink(
-      businessPhone,
+    const href = storeInfo.whatsappHref(
       `Oi! Acabei de fazer o pedido #${placed.number} pelo site. Total: ${formatCurrency(placed.total)}.`,
     );
     return (
@@ -138,12 +124,12 @@ export function CheckoutForm({
         <h2 className="font-display text-2xl font-bold text-charcoal">Finalizar pedido</h2>
 
         <div className="flex gap-2">
-          {storeInfo?.acceptsDelivery !== false && (
+          {storeInfo.acceptsDelivery && (
             <TypeButton active={type === "DELIVERY"} onClick={() => setType("DELIVERY")}>
               Entrega
             </TypeButton>
           )}
-          {storeInfo?.acceptsPickup !== false && (
+          {storeInfo.acceptsPickup && (
             <TypeButton active={type === "PICKUP"} onClick={() => setType("PICKUP")}>
               Retirada
             </TypeButton>

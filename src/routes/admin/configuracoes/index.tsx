@@ -1,6 +1,573 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PlaceholderPage } from "@/components/admin/layout/PlaceholderPage";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState, type ReactNode } from "react";
+import { Check, Loader2, X } from "lucide-react";
+import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
+import {
+  getStoreSettingsFn,
+  saveOpeningHoursFn,
+  saveStoreSettingsFn,
+} from "@/server/functions/settings.fn";
 
 export const Route = createFileRoute("/admin/configuracoes/")({
-  component: () => <PlaceholderPage title="Configurações" phase="Fase 5" />,
+  component: SettingsPage,
 });
+
+const WEEKDAYS = [
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+  "SUNDAY",
+] as const;
+
+type Weekday = (typeof WEEKDAYS)[number];
+
+const WEEKDAY_LABEL: Record<Weekday, string> = {
+  MONDAY: "Segunda",
+  TUESDAY: "Terça",
+  WEDNESDAY: "Quarta",
+  THURSDAY: "Quinta",
+  FRIDAY: "Sexta",
+  SATURDAY: "Sábado",
+  SUNDAY: "Domingo",
+};
+
+const PAYMENT_METHODS = [
+  { value: "PIX", label: "Pix" },
+  { value: "CREDIT_CARD", label: "Cartão de crédito" },
+  { value: "DEBIT_CARD", label: "Cartão de débito" },
+  { value: "CASH", label: "Dinheiro" },
+] as const;
+
+type Draft = {
+  storeName: string;
+  tagline: string;
+  description: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  whatsappNumber: string;
+  email: string;
+  instagramUrl: string;
+  facebookUrl: string;
+  tiktokUrl: string;
+  addressStreet: string;
+  addressNumber: string;
+  addressComplement: string;
+  addressNeighborhood: string;
+  addressCity: string;
+  addressState: string;
+  addressZipCode: string;
+  deliveryFee: number;
+  freeDeliveryMinOrder: number | null;
+  minOrderValue: number;
+  estimatedDeliveryMinMin: number;
+  estimatedDeliveryMinMax: number;
+  estimatedPickupMinMin: number;
+  estimatedPickupMinMax: number;
+  acceptsDelivery: boolean;
+  acceptsPickup: boolean;
+  acceptedPaymentMethods: string[];
+};
+
+type HoursDraft = Record<Weekday, { isOpen: boolean; opensAt: string; closesAt: string }>;
+
+function SettingsPage() {
+  const queryClient = useQueryClient();
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [hours, setHours] = useState<HoursDraft | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const { data, isPending } = useQuery({
+    queryKey: ["store-settings"],
+    queryFn: () => getStoreSettingsFn(),
+  });
+
+  // Seed the editable copy once the server payload lands.
+  useEffect(() => {
+    if (!data || draft) return;
+    setDraft({
+      storeName: data.storeName,
+      tagline: data.tagline ?? "",
+      description: data.description ?? "",
+      logoUrl: data.logoUrl,
+      primaryColor: data.primaryColor,
+      whatsappNumber: data.whatsappNumber,
+      email: data.email ?? "",
+      instagramUrl: data.instagramUrl ?? "",
+      facebookUrl: data.facebookUrl ?? "",
+      tiktokUrl: data.tiktokUrl ?? "",
+      addressStreet: data.addressStreet ?? "",
+      addressNumber: data.addressNumber ?? "",
+      addressComplement: data.addressComplement ?? "",
+      addressNeighborhood: data.addressNeighborhood ?? "",
+      addressCity: data.addressCity ?? "",
+      addressState: data.addressState ?? "",
+      addressZipCode: data.addressZipCode ?? "",
+      deliveryFee: data.deliveryFee,
+      freeDeliveryMinOrder: data.freeDeliveryMinOrder,
+      minOrderValue: data.minOrderValue,
+      estimatedDeliveryMinMin: data.estimatedDeliveryMinMin,
+      estimatedDeliveryMinMax: data.estimatedDeliveryMinMax,
+      estimatedPickupMinMin: data.estimatedPickupMinMin,
+      estimatedPickupMinMax: data.estimatedPickupMinMax,
+      acceptsDelivery: data.acceptsDelivery,
+      acceptsPickup: data.acceptsPickup,
+      acceptedPaymentMethods: data.acceptedPaymentMethods,
+    });
+    setHours(
+      Object.fromEntries(
+        WEEKDAYS.map((d) => {
+          const row = data.openingHours.find((h) => h.weekday === d);
+          return [
+            d,
+            {
+              isOpen: row?.isOpen ?? true,
+              opensAt: row?.opensAt ?? "18:00",
+              closesAt: row?.closesAt ?? "23:30",
+            },
+          ];
+        }),
+      ) as HoursDraft,
+    );
+  }, [data, draft]);
+
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+    setDraft((d) => (d ? { ...d, [key]: value } : d));
+
+  const save = useMutation({
+    mutationFn: async () => {
+      if (!draft || !hours) throw new Error("Formulário não carregado.");
+      const settingsRes = await saveStoreSettingsFn({
+        data: {
+          ...draft,
+          tagline: draft.tagline || null,
+          description: draft.description || null,
+          email: draft.email || null,
+          instagramUrl: draft.instagramUrl || null,
+          facebookUrl: draft.facebookUrl || null,
+          tiktokUrl: draft.tiktokUrl || null,
+          addressStreet: draft.addressStreet || null,
+          addressNumber: draft.addressNumber || null,
+          addressComplement: draft.addressComplement || null,
+          addressNeighborhood: draft.addressNeighborhood || null,
+          addressCity: draft.addressCity || null,
+          addressState: draft.addressState || null,
+          addressZipCode: draft.addressZipCode || null,
+          acceptedPaymentMethods: draft.acceptedPaymentMethods as ("PIX")[],
+        },
+      });
+      if (!settingsRes.ok) throw new Error(settingsRes.error);
+
+      const hoursRes = await saveOpeningHoursFn({
+        data: WEEKDAYS.map((d) => ({ weekday: d, ...hours[d] })),
+      });
+      if (!hoursRes.ok) throw new Error(hoursRes.error);
+    },
+    onSuccess: () => {
+      setError(null);
+      setSaved(true);
+      queryClient.invalidateQueries({ queryKey: ["store-settings"] });
+      window.setTimeout(() => setSaved(false), 2500);
+    },
+    onError: (e: Error) => {
+      setSaved(false);
+      setError(e.message);
+    },
+  });
+
+  if (isPending || !draft || !hours) {
+    return <p className="text-sm text-neutral-500">Carregando configurações...</p>;
+  }
+
+  const togglePayment = (value: string) =>
+    set(
+      "acceptedPaymentMethods",
+      draft.acceptedPaymentMethods.includes(value)
+        ? draft.acceptedPaymentMethods.filter((v) => v !== value)
+        : [...draft.acceptedPaymentMethods, value],
+    );
+
+  return (
+    <form
+      className="space-y-6 pb-10"
+      onSubmit={(e) => {
+        e.preventDefault();
+        save.mutate();
+      }}
+    >
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-neutral-900">Configurações</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            Tudo aqui aparece direto no cardápio digital.
+          </p>
+        </div>
+        <button
+          type="submit"
+          disabled={save.isPending}
+          className="flex items-center gap-2 rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+        >
+          {save.isPending && <Loader2 className="size-4 animate-spin" />}
+          {saved && !save.isPending && <Check className="size-4" />}
+          {save.isPending ? "Salvando..." : saved ? "Salvo" : "Salvar alterações"}
+        </button>
+      </header>
+
+      {error && (
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
+          {error}
+          <button type="button" onClick={() => setError(null)} aria-label="Fechar">
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
+      <Section title="Identidade" description="Nome, logo e cor que o cliente vê no site.">
+        <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
+          <ImageUploadField
+            kind="logo"
+            label="Logo"
+            value={draft.logoUrl}
+            onChange={(url) => set("logoUrl", url)}
+          />
+          <div className="space-y-4">
+            <Field label="Nome da loja">
+              <Input value={draft.storeName} onChange={(v) => set("storeName", v)} required />
+            </Field>
+            <Field label="Subtítulo" hint="Aparece abaixo do nome no topo. Ex.: Pizzaria">
+              <Input value={draft.tagline} onChange={(v) => set("tagline", v)} />
+            </Field>
+            <Field label="Descrição" hint="Parágrafo curto exibido no rodapé do site.">
+              <textarea
+                value={draft.description}
+                onChange={(e) => set("description", e.target.value)}
+                rows={3}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+              />
+            </Field>
+            <Field label="Cor principal">
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={draft.primaryColor}
+                  onChange={(e) => set("primaryColor", e.target.value)}
+                  className="h-10 w-14 cursor-pointer rounded-lg border border-neutral-300"
+                />
+                <Input value={draft.primaryColor} onChange={(v) => set("primaryColor", v)} />
+              </div>
+            </Field>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Contato e redes" description="Deixe em branco o que não quiser exibir.">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="WhatsApp" hint="Usado nos botões de pedido do site.">
+            <Input
+              value={draft.whatsappNumber}
+              onChange={(v) => set("whatsappNumber", v)}
+              placeholder="(11) 99999-9999"
+              required
+            />
+          </Field>
+          <Field label="E-mail">
+            <Input value={draft.email} onChange={(v) => set("email", v)} type="email" />
+          </Field>
+          <Field label="Instagram">
+            <Input
+              value={draft.instagramUrl}
+              onChange={(v) => set("instagramUrl", v)}
+              placeholder="https://instagram.com/sualoja"
+            />
+          </Field>
+          <Field label="Facebook">
+            <Input
+              value={draft.facebookUrl}
+              onChange={(v) => set("facebookUrl", v)}
+              placeholder="https://facebook.com/sualoja"
+            />
+          </Field>
+          <Field label="TikTok">
+            <Input
+              value={draft.tiktokUrl}
+              onChange={(v) => set("tiktokUrl", v)}
+              placeholder="https://tiktok.com/@sualoja"
+            />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Endereço" description="Exibido no rodapé com link para o mapa.">
+        <div className="grid gap-4 sm:grid-cols-6">
+          <div className="sm:col-span-4">
+            <Field label="Rua">
+              <Input value={draft.addressStreet} onChange={(v) => set("addressStreet", v)} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="Número">
+              <Input value={draft.addressNumber} onChange={(v) => set("addressNumber", v)} />
+            </Field>
+          </div>
+          <div className="sm:col-span-3">
+            <Field label="Complemento">
+              <Input
+                value={draft.addressComplement}
+                onChange={(v) => set("addressComplement", v)}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-3">
+            <Field label="Bairro">
+              <Input
+                value={draft.addressNeighborhood}
+                onChange={(v) => set("addressNeighborhood", v)}
+              />
+            </Field>
+          </div>
+          <div className="sm:col-span-3">
+            <Field label="Cidade">
+              <Input value={draft.addressCity} onChange={(v) => set("addressCity", v)} />
+            </Field>
+          </div>
+          <div className="sm:col-span-1">
+            <Field label="UF">
+              <Input value={draft.addressState} onChange={(v) => set("addressState", v)} />
+            </Field>
+          </div>
+          <div className="sm:col-span-2">
+            <Field label="CEP">
+              <Input value={draft.addressZipCode} onChange={(v) => set("addressZipCode", v)} />
+            </Field>
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Entrega e retirada" description="Controla o que o checkout oferece.">
+        <div className="flex flex-wrap gap-6">
+          <Toggle
+            label="Aceita entrega"
+            checked={draft.acceptsDelivery}
+            onChange={(v) => set("acceptsDelivery", v)}
+          />
+          <Toggle
+            label="Aceita retirada"
+            checked={draft.acceptsPickup}
+            onChange={(v) => set("acceptsPickup", v)}
+          />
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Field label="Taxa de entrega (R$)">
+            <NumberInput value={draft.deliveryFee} onChange={(v) => set("deliveryFee", v)} step={0.5} />
+          </Field>
+          <Field label="Pedido mínimo (R$)">
+            <NumberInput value={draft.minOrderValue} onChange={(v) => set("minOrderValue", v)} step={0.5} />
+          </Field>
+          <Field label="Frete grátis a partir de (R$)" hint="Deixe vazio para não oferecer.">
+            <input
+              type="number"
+              min={0}
+              step={0.5}
+              value={draft.freeDeliveryMinOrder ?? ""}
+              onChange={(e) =>
+                set("freeDeliveryMinOrder", e.target.value === "" ? null : Number(e.target.value))
+              }
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+            />
+          </Field>
+          <Field label="Entrega: mínimo (min)">
+            <NumberInput
+              value={draft.estimatedDeliveryMinMin}
+              onChange={(v) => set("estimatedDeliveryMinMin", v)}
+            />
+          </Field>
+          <Field label="Entrega: máximo (min)">
+            <NumberInput
+              value={draft.estimatedDeliveryMinMax}
+              onChange={(v) => set("estimatedDeliveryMinMax", v)}
+            />
+          </Field>
+          <div />
+          <Field label="Retirada: mínimo (min)">
+            <NumberInput
+              value={draft.estimatedPickupMinMin}
+              onChange={(v) => set("estimatedPickupMinMin", v)}
+            />
+          </Field>
+          <Field label="Retirada: máximo (min)">
+            <NumberInput
+              value={draft.estimatedPickupMinMax}
+              onChange={(v) => set("estimatedPickupMinMax", v)}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-sm font-medium text-neutral-900">Formas de pagamento aceitas</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {PAYMENT_METHODS.map((m) => {
+              const active = draft.acceptedPaymentMethods.includes(m.value);
+              return (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => togglePayment(m.value)}
+                  className={
+                    active
+                      ? "rounded-full bg-[#E11D2E] px-4 py-2 text-sm font-medium text-white"
+                      : "rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+                  }
+                >
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </Section>
+
+      <Section title="Horários de funcionamento" description="Exibidos no rodapé do cardápio.">
+        <div className="space-y-2">
+          {WEEKDAYS.map((d) => (
+            <div
+              key={d}
+              className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3"
+            >
+              <span className="w-24 text-sm font-medium text-neutral-900">
+                {WEEKDAY_LABEL[d]}
+              </span>
+              <Toggle
+                label={hours[d].isOpen ? "Aberto" : "Fechado"}
+                checked={hours[d].isOpen}
+                onChange={(v) =>
+                  setHours((h) => (h ? { ...h, [d]: { ...h[d], isOpen: v } } : h))
+                }
+              />
+              <input
+                type="time"
+                value={hours[d].opensAt}
+                disabled={!hours[d].isOpen}
+                onChange={(e) =>
+                  setHours((h) => (h ? { ...h, [d]: { ...h[d], opensAt: e.target.value } } : h))
+                }
+                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 disabled:opacity-40"
+              />
+              <span className="text-sm text-neutral-400">às</span>
+              <input
+                type="time"
+                value={hours[d].closesAt}
+                disabled={!hours[d].isOpen}
+                onChange={(e) =>
+                  setHours((h) => (h ? { ...h, [d]: { ...h[d], closesAt: e.target.value } } : h))
+                }
+                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 disabled:opacity-40"
+              />
+            </div>
+          ))}
+        </div>
+      </Section>
+    </form>
+  );
+}
+
+function Section({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
+      <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
+      {description && <p className="mt-0.5 text-sm text-neutral-500">{description}</p>}
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium text-neutral-900">{label}</span>
+      {children}
+      {hint && <span className="block text-xs text-neutral-500">{hint}</span>}
+    </label>
+  );
+}
+
+function Input({
+  value,
+  onChange,
+  ...rest
+}: {
+  value: string;
+  onChange: (v: string) => void;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
+  return (
+    <input
+      {...rest}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+    />
+  );
+}
+
+function NumberInput({
+  value,
+  onChange,
+  step = 1,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  step?: number;
+}) {
+  return (
+    <input
+      type="number"
+      min={0}
+      step={step}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+    />
+  );
+}
+
+function Toggle({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-2">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="size-4 accent-[#E11D2E]"
+      />
+      <span className="text-sm text-neutral-700">{label}</span>
+    </label>
+  );
+}

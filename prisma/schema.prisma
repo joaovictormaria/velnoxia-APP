@@ -125,9 +125,17 @@ model AdminUser {
 model StoreSettings {
   id                       String          @id @default("singleton")
   storeName                String          @default("Bella Pizza")
+  /// Short label under the store name in the header (e.g. "Pizzaria").
+  tagline                  String?
+  /// Longer paragraph shown in the storefront footer.
+  description              String?
   logoUrl                  String?
   primaryColor             String          @default("#E11D2E")
   whatsappNumber           String
+  email                    String?
+  instagramUrl             String?
+  facebookUrl              String?
+  tiktokUrl                String?
   addressStreet            String?
   addressNumber            String?
   addressComplement        String?

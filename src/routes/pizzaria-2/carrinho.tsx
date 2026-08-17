@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,8 +9,7 @@ import { PriceTag } from "@/components/site/pizzaria2/PriceTag";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency, suggestedDrinkSlugs } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
-import { usePizzariaOnboarding, whatsappLink } from "@/lib/pizzaria2/onboarding";
-import { getStoreInfoFn } from "@/server/functions/storefront-checkout.fn";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 
 export const Route = createFileRoute("/pizzaria-2/carrinho")({
   component: PizzariaCarrinho,
@@ -19,14 +17,9 @@ export const Route = createFileRoute("/pizzaria-2/carrinho")({
 
 function PizzariaCarrinho() {
   const { lines, addLine, removeLine, clearCart, subtotal, deliveryFee, total } = useCart();
-  const { businessPhone } = usePizzariaOnboarding();
+  const store = useStore();
   const { categories, productBySlug, productsByCategory } = useMenu();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-
-  const { data: storeInfo } = useQuery({
-    queryKey: ["store-info"],
-    queryFn: () => getStoreInfoFn(),
-  });
 
   // "Continuar comprando" reopens the same rich cardápio picker the produto
   // screen uses — it just needs *a* pizza slug to anchor that route.
@@ -37,8 +30,7 @@ function PizzariaCarrinho() {
     .map((slug) => productBySlug(slug))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
-  const whatsappHref = whatsappLink(
-    businessPhone,
+  const whatsappHref = store.whatsappHref(
     `Oi! Quero fazer este pedido:\n${lines
       .map((l) => {
         const extrasTotal = l.extras.reduce((s, e) => s + e.price, 0);
@@ -175,11 +167,7 @@ function PizzariaCarrinho() {
       )}
 
       {checkoutOpen && (
-        <CheckoutForm
-          storeInfo={storeInfo ?? null}
-          businessPhone={businessPhone}
-          onClose={() => setCheckoutOpen(false)}
-        />
+        <CheckoutForm onClose={() => setCheckoutOpen(false)} />
       )}
     </main>
   );
