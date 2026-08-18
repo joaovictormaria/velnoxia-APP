@@ -20,6 +20,8 @@ export type CustomerDetails = {
   complement: string;
   neighborhood: string;
   city: string;
+  state: string;
+  cep: string;
   type: "DELIVERY" | "PICKUP";
   paymentMethod: string;
 };
@@ -32,6 +34,8 @@ const EMPTY: CustomerDetails = {
   complement: "",
   neighborhood: "",
   city: "",
+  state: "",
+  cep: "",
   type: "DELIVERY",
   paymentMethod: "PIX",
 };
@@ -56,6 +60,8 @@ export function loadCustomerDetails(storeSlug: string): CustomerDetails {
       complement: parsed.complement ?? "",
       neighborhood: parsed.neighborhood ?? "",
       city: parsed.city ?? "",
+      state: parsed.state ?? "",
+      cep: parsed.cep ?? "",
       type: parsed.type === "PICKUP" ? "PICKUP" : "DELIVERY",
       paymentMethod: parsed.paymentMethod ?? "PIX",
     };
