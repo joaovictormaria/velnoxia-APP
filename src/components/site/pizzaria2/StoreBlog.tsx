@@ -98,7 +98,7 @@ function Blog({ posts }: { posts: Post[] }) {
           </h2>
         </Reveal>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {posts.map((post, i) => (
             <Reveal key={post.id} variant="up" delay={Math.min(i * 60, 300)}>
               <article className="flex h-full flex-col overflow-hidden rounded-[24px] border border-charcoal/8 bg-mozzarella shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]">
@@ -109,11 +109,11 @@ function Blog({ posts }: { posts: Post[] }) {
                     className="aspect-video w-full object-cover"
                   />
                 )}
-                <div className="flex flex-1 flex-col p-5 sm:p-6">
+                <div className="flex flex-1 flex-col p-4 sm:p-5">
                   <p className="text-xs text-charcoal/45">
                     {dateFormat.format(new Date(post.publishedAt))}
                   </p>
-                  <h3 className="mt-2 font-display text-lg font-bold leading-snug text-charcoal">
+                  <h3 className="mt-2 font-display text-base font-bold leading-snug text-charcoal">
                     {post.title}
                   </h3>
                   {/* whitespace-pre-line keeps the paragraph breaks the owner

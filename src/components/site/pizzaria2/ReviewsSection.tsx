@@ -3,7 +3,11 @@ import { Heart, Star } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 import { getVisitorId } from "@/lib/pizzaria2/visitor-id";
 import { loadCustomerDetails } from "@/lib/pizzaria2/customer-details";
-import { listReviewsFn, submitReviewFn, toggleReviewLikeFn } from "@/server/functions/reviews.fn";
+import {
+  listReviewsFn,
+  submitReviewFn,
+  toggleReviewLikeFn,
+} from "@/server/functions/reviews.fn";
 import { cn } from "@/lib/utils";
 
 type Review = Awaited<ReturnType<typeof listReviewsFn>>["reviews"][number];
@@ -16,11 +20,17 @@ const dateFormat = new Intl.DateTimeFormat("pt-BR", {
 
 function Stars({ value, className }: { value: number; className?: string }) {
   return (
-    <span className={cn("inline-flex gap-0.5", className)} aria-label={value + " de 5 estrelas"}>
+    <span
+      className={cn("inline-flex gap-0.5", className)}
+      aria-label={value + " de 5 estrelas"}
+    >
       {[1, 2, 3, 4, 5].map((i) => (
         <Star
           key={i}
-          className={cn("h-4 w-4", i <= value ? "fill-tomato text-tomato" : "text-charcoal/20")}
+          className={cn(
+            "h-4 w-4",
+            i <= value ? "fill-tomato text-tomato" : "text-charcoal/20",
+          )}
         />
       ))}
     </span>
@@ -66,7 +76,9 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
     }
     setBusy(true);
     try {
-      const res = await submitReviewFn({ data: { storeSlug, visitorId, name, rating, comment } });
+      const res = await submitReviewFn({
+        data: { storeSlug, visitorId, name, rating, comment },
+      });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -88,7 +100,11 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
     setReviews((prev) =>
       prev.map((r) =>
         r.id === id
-          ? { ...r, likedByMe: !r.likedByMe, likeCount: r.likeCount + (r.likedByMe ? -1 : 1) }
+          ? {
+              ...r,
+              likedByMe: !r.likedByMe,
+              likeCount: r.likeCount + (r.likedByMe ? -1 : 1),
+            }
           : r,
       ),
     );
@@ -100,11 +116,15 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
     // a moment later. Waiting on a round trip to fill a heart feels broken.
     flip(reviewId);
     try {
-      const res = await toggleReviewLikeFn({ data: { storeSlug, reviewId, visitorId } });
+      const res = await toggleReviewLikeFn({
+        data: { storeSlug, reviewId, visitorId },
+      });
       if (res.ok) {
         setReviews((prev) =>
           prev.map((r) =>
-            r.id === reviewId ? { ...r, likedByMe: res.likedByMe, likeCount: res.likeCount } : r,
+            r.id === reviewId
+              ? { ...r, likedByMe: res.likedByMe, likeCount: res.likeCount }
+              : r,
           ),
         );
       } else {
@@ -116,7 +136,10 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
   }
 
   return (
-    <div id="avaliacoes" className="scroll-mt-24 border-t border-charcoal/8 pt-10 lg:border-t-0 lg:pt-0">
+    <div
+      id="avaliacoes"
+      className="scroll-mt-24 border-t border-charcoal/8 pt-10 lg:border-t-0 lg:pt-0"
+    >
       <div>
         <Reveal variant="up">
           <div className="flex flex-wrap items-end justify-between gap-4">
@@ -137,7 +160,8 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                 <div>
                   <Stars value={Math.round(summary.average)} />
                   <p className="mt-1 text-xs text-charcoal/55">
-                    {summary.total} {summary.total === 1 ? "avaliação" : "avaliações"}
+                    {summary.total}{" "}
+                    {summary.total === 1 ? "avaliação" : "avaliações"}
                   </p>
                 </div>
               </div>
@@ -149,10 +173,14 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
           <Reveal variant="left">
             <form
               onSubmit={submit}
-              className="rounded-[24px] border border-charcoal/8 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]"
+              className="rounded-[24px] border border-charcoal/8 bg-white p-5 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]"
             >
-              <p className="font-display text-lg font-bold text-charcoal">Deixe sua avaliação</p>
-              <p className="mt-1 text-sm text-charcoal/55">Conte o que achou da loja e do site.</p>
+              <p className="font-display text-base font-bold text-charcoal">
+                Deixe sua avaliação
+              </p>
+              <p className="mt-1 text-sm text-charcoal/55">
+                Conte o que achou da loja e do site.
+              </p>
 
               {sent ? (
                 <p className="mt-6 rounded-xl bg-tomato/10 px-4 py-3 text-sm text-charcoal">
@@ -160,7 +188,10 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                 </p>
               ) : (
                 <>
-                  <div className="mt-5 flex gap-1" onMouseLeave={() => setHover(0)}>
+                  <div
+                    className="mt-4 flex gap-1"
+                    onMouseLeave={() => setHover(0)}
+                  >
                     {[1, 2, 3, 4, 5].map((i) => (
                       <button
                         key={i}
@@ -172,8 +203,10 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                       >
                         <Star
                           className={cn(
-                            "h-7 w-7",
-                            i <= (hover || rating) ? "fill-tomato text-tomato" : "text-charcoal/25",
+                            "h-6 w-6",
+                            i <= (hover || rating)
+                              ? "fill-tomato text-tomato"
+                              : "text-charcoal/25",
                           )}
                         />
                       </button>
@@ -193,7 +226,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                     onChange={(e) => setComment(e.target.value)}
                     placeholder="O que você achou?"
                     required
-                    rows={4}
+                    rows={3}
                     maxLength={1000}
                     className="mt-3 w-full resize-none rounded-xl border border-charcoal/12 bg-white px-4 py-3 text-sm text-charcoal outline-none focus:border-tomato"
                   />
@@ -203,7 +236,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                   <button
                     type="submit"
                     disabled={busy}
-                    className="mt-4 w-full rounded-full bg-tomato px-6 py-3 text-sm font-semibold text-[color:var(--on-primary)] transition-transform hover:scale-[1.02] disabled:opacity-60"
+                    className="mt-4 w-full rounded-full bg-tomato px-6 py-2.5 text-sm font-semibold text-[color:var(--on-primary)] transition-transform hover:scale-[1.02] disabled:opacity-60"
                   >
                     {busy ? "Enviando..." : "Enviar avaliação"}
                   </button>
@@ -233,14 +266,18 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                       <Stars value={r.rating} />
                     </div>
 
-                    <p className="mt-3 text-sm leading-relaxed text-charcoal/70">{r.comment}</p>
+                    <p className="mt-3 text-sm leading-relaxed text-charcoal/70">
+                      {r.comment}
+                    </p>
 
                     {r.response && (
                       <div className="mt-4 rounded-xl border-l-2 border-tomato bg-charcoal/[0.03] px-4 py-3">
                         <p className="text-xs font-semibold uppercase tracking-wide text-tomato">
                           Resposta da loja
                         </p>
-                        <p className="mt-1 text-sm leading-relaxed text-charcoal/70">{r.response}</p>
+                        <p className="mt-1 text-sm leading-relaxed text-charcoal/70">
+                          {r.response}
+                        </p>
                       </div>
                     )}
 
@@ -256,7 +293,12 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                           : "border-charcoal/12 text-charcoal/55 hover:border-tomato/30 hover:text-tomato",
                       )}
                     >
-                      <Heart className={cn("h-3.5 w-3.5", r.likedByMe && "fill-tomato")} />
+                      <Heart
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          r.likedByMe && "fill-tomato",
+                        )}
+                      />
                       {r.likeCount > 0 ? r.likeCount : "Curtir"}
                     </button>
                   </article>

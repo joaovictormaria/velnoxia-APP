@@ -34,7 +34,10 @@ import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 
 /** The trade config names its icons, so they are resolved here. */
-const CARE_ICONS: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
+const CARE_ICONS: Record<
+  string,
+  ComponentType<{ className?: string; strokeWidth?: number }>
+> = {
   Leaf,
   Wheat,
   Flame,
@@ -69,10 +72,6 @@ export const Route = createFileRoute("/$storeSlug/")({
   },
   component: PizzariaInicio,
 });
-
-
-
-
 
 function PizzariaInicio() {
   const goToCardapio = useGoToCardapio();
@@ -146,7 +145,12 @@ function PizzariaInicio() {
               isOpen ? "bg-olive" : "bg-tomato",
             )}
           />
-          <span className={cn("relative h-3 w-3 rounded-full", isOpen ? "bg-olive" : "bg-tomato")} />
+          <span
+            className={cn(
+              "relative h-3 w-3 rounded-full",
+              isOpen ? "bg-olive" : "bg-tomato",
+            )}
+          />
         </span>
       ),
     },
@@ -206,9 +210,15 @@ function PizzariaInicio() {
           <div className="relative z-10 order-2 flex items-center justify-center px-4 py-10 sm:px-6 md:order-1">
             <Reveal variant="up" className="mx-auto max-w-xl text-center">
               <h1 className="font-display text-[7vw] font-extrabold leading-[1.1] sm:text-5xl md:text-4xl lg:text-5xl">
-                <span className="block whitespace-nowrap text-[color:var(--on-primary)]">Bateu aquela vontade de</span>
+                <span className="block whitespace-nowrap text-[color:var(--on-primary)]">
+                  Bateu aquela vontade de
+                </span>
                 <span className="block min-h-[1.2em] whitespace-nowrap text-[color:var(--on-primary-accent)] md:text-3xl lg:text-4xl xl:text-5xl">
-                  <TypingText texts={heroCravings} className="text-[color:var(--on-primary-accent)]" caretClassName="text-[color:var(--on-primary-accent)]/70" />
+                  <TypingText
+                    texts={heroCravings}
+                    className="text-[color:var(--on-primary-accent)]"
+                    caretClassName="text-[color:var(--on-primary-accent)]/70"
+                  />
                 </span>
               </h1>
               <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[color:var(--on-primary-muted)]">
@@ -272,10 +282,18 @@ function PizzariaInicio() {
                   <span
                     className={cn(
                       "grid h-11 w-11 shrink-0 place-items-center rounded-full",
-                      block.tone === "olive" ? "bg-olive/10 text-olive" : "bg-tomato/10 text-tomato",
+                      block.tone === "olive"
+                        ? "bg-olive/10 text-olive"
+                        : "bg-tomato/10 text-tomato",
                     )}
                   >
-                    {block.renderIcon ? block.renderIcon() : <block.icon className={cn("h-5 w-5", block.iconClassName)} />}
+                    {block.renderIcon ? (
+                      block.renderIcon()
+                    ) : (
+                      <block.icon
+                        className={cn("h-5 w-5", block.iconClassName)}
+                      />
+                    )}
                   </span>
                   <span className="font-display text-sm font-bold text-charcoal">
                     {block.title}
@@ -284,7 +302,10 @@ function PizzariaInicio() {
 
                 <div className="flex-1">
                   {block.detail.map((line) => (
-                    <p key={line} className="text-sm font-semibold leading-relaxed text-charcoal/80">
+                    <p
+                      key={line}
+                      className="text-sm font-semibold leading-relaxed text-charcoal/80"
+                    >
                       {line}
                     </p>
                   ))}
@@ -294,7 +315,9 @@ function PizzariaInicio() {
                   <span
                     className={cn(
                       "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                      block.tone === "olive" ? "bg-olive/10 text-olive" : "bg-tomato/10 text-tomato",
+                      block.tone === "olive"
+                        ? "bg-olive/10 text-olive"
+                        : "bg-tomato/10 text-tomato",
                     )}
                   >
                     {block.badge}
@@ -317,7 +340,10 @@ function PizzariaInicio() {
         </div>
       </section>
 
-      <section id="promocoes" className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20">
+      <section
+        id="promocoes"
+        className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20"
+      >
         <Reveal variant="up" className="mx-auto max-w-[1200px]">
           <PromoCarousel slides={promotions} />
         </Reveal>
@@ -331,90 +357,97 @@ function PizzariaInicio() {
         </div>
       </section>
 
-      <section id="restaurante" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10">
+      <section
+        id="restaurante"
+        className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10"
+      >
         <div className="mx-auto max-w-[1800px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)] sm:p-10 xl:px-14">
           <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
             <div>
-            <Reveal variant="left">
-              {/* Dashed frame only while there is nothing to show; once the
+              <Reveal variant="left">
+                {/* Dashed frame only while there is nothing to show; once the
                   owner uploads a photo it fills it and the dashes go away. */}
-              <div
-                className={cn(
-                  "relative mx-auto aspect-4/3 w-full max-w-[420px] overflow-hidden rounded-[24px] sm:mx-0",
-                  aboutImageUrl
-                    ? "border border-charcoal/10"
-                    : "border border-dashed border-charcoal/15 bg-charcoal/[0.03]",
-                )}
-              >
-                {aboutImageUrl ? (
-                  <img
-                    src={aboutImageUrl}
-                    alt={businessName}
-                    className="absolute inset-0 h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
-                    <Camera className="h-9 w-9" strokeWidth={1.5} />
-                    <span className="text-xs font-medium">Foto do restaurante em breve</span>
+                <div
+                  className={cn(
+                    "relative mx-auto aspect-4/3 w-full max-w-[420px] overflow-hidden rounded-[24px] sm:mx-0",
+                    aboutImageUrl
+                      ? "border border-charcoal/10"
+                      : "border border-dashed border-charcoal/15 bg-charcoal/[0.03]",
+                  )}
+                >
+                  {aboutImageUrl ? (
+                    <img
+                      src={aboutImageUrl}
+                      alt={businessName}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
+                      <Camera className="h-9 w-9" strokeWidth={1.5} />
+                      <span className="text-xs font-medium">
+                        Foto do restaurante em breve
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </Reveal>
+
+              <Reveal variant="up" className="mt-8">
+                <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
+                  <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
+                  {aboutEyebrow || "Nosso restaurante"}
+                </span>
+                <h2 className="mt-3 font-display text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
+                  {aboutTitle || tradeAboutTitle}
+                </h2>
+                <p className="mt-4 text-base leading-relaxed text-charcoal/60">
+                  {aboutBody || "Na " + businessName + ", " + tradeAboutBody}
+                </p>
+
+                <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="flex gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato/10 text-tomato">
+                      <Clock className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="font-display text-sm font-bold text-charcoal">
+                        Horário de funcionamento
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
+                        Seg a Dom
+                        <br />
+                        18h às 23h30
+                      </p>
+                    </div>
                   </div>
-                )}
-              </div>
-            </Reveal>
 
-            <Reveal variant="up" className="mt-8">
-              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
-                <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
-                {aboutEyebrow || "Nosso restaurante"}
-              </span>
-              <h2 className="mt-3 font-display text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
-                {aboutTitle || tradeAboutTitle}
-              </h2>
-              <p className="mt-4 max-w-md text-base leading-relaxed text-charcoal/60">
-                {aboutBody || "Na " + businessName + ", " + tradeAboutBody}
-              </p>
-
-              <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div className="flex gap-3">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato/10 text-tomato">
-                    <Clock className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="font-display text-sm font-bold text-charcoal">
-                      Horário de funcionamento
-                    </p>
-                    <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
-                      Seg a Dom
-                      <br />
-                      18h às 23h30
-                    </p>
+                  <div className="flex gap-3">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-olive/10 text-olive">
+                      <MapPin className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="font-display text-sm font-bold text-charcoal">
+                        Localização
+                      </p>
+                      <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
+                        {hasAddress
+                          ? addressLines.join(" — ")
+                          : "Endereço ainda não informado."}
+                      </p>
+                      {mapsHref && (
+                        <a
+                          href={mapsHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center text-sm font-semibold text-tomato hover:underline"
+                        >
+                          Ver no mapa →
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex gap-3">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-olive/10 text-olive">
-                    <MapPin className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="font-display text-sm font-bold text-charcoal">Localização</p>
-                    <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
-                      {hasAddress
-                        ? addressLines.join(" — ")
-                        : "Endereço ainda não informado."}
-                    </p>
-                    {mapsHref && (
-                      <a
-                        href={mapsHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-2 inline-flex items-center text-sm font-semibold text-tomato hover:underline"
-                      >
-                        Ver no mapa →
-                      </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Reveal>
+              </Reveal>
             </div>
 
             <ReviewsSection storeSlug={storeSlug} />
@@ -462,7 +495,10 @@ function PizzariaInicio() {
         </div>
       </section>
 
-      <section className="px-4 pb-16 sm:px-6 sm:pb-24">
+      <section
+        id="contato"
+        className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24"
+      >
         <Reveal
           variant="up"
           className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] bg-tomato px-6 py-8 shadow-[0_20px_50px_-30px_rgba(233,75,44,0.55)] sm:px-10 sm:py-9"
