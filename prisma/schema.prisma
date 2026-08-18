@@ -104,11 +104,50 @@ enum NotificationType {
   NEW_REVIEW
 }
 
+// ---------- Tenant ----------
+
+enum StoreStatus {
+  TRIAL
+  ACTIVE
+  SUSPENDED
+}
+
+/// Tenant root. Every customer-facing and admin-facing record hangs off a
+/// Store, and every query must be scoped by storeId — there is no global view.
+model Store {
+  id          String      @id @default(cuid())
+  /// Public URL segment: velnox.app/<slug>. Checked against RESERVED_SLUGS on
+  /// signup so a store can never shadow a real route (/admin, /criar-site...).
+  slug        String      @unique
+  name        String
+  status      StoreStatus @default(TRIAL)
+  trialEndsAt DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  settings      StoreSettings?
+  admins        AdminUser[]
+  categories    Category[]
+  products      Product[]
+  extras        Extra[]
+  coupons       Coupon[]
+  customers     Customer[]
+  orders        Order[]
+  reviews       Review[]
+  notifications Notification[]
+
+  @@index([status])
+}
+
 // ---------- Auth ----------
 
 model AdminUser {
   id           String    @id @default(cuid())
+  storeId      String
+  store        Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name         String
+  /// Globally unique: the login form finds the user by e-mail alone, and the
+  /// store comes from the user record rather than being typed in.
   email        String    @unique
   passwordHash String
   role         AdminRole @default(OWNER)
@@ -118,12 +157,16 @@ model AdminUser {
   updatedAt    DateTime  @updatedAt
 
   respondedReviews Review[] @relation("ReviewRespondedBy")
+
+  @@index([storeId])
 }
 
 // ---------- Configuração da loja ----------
 
 model StoreSettings {
-  id                       String          @id @default("singleton")
+  id                       String          @id @default(cuid())
+  storeId                  String          @unique
+  store                    Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
   storeName                String          @default("Bella Pizza")
   /// Short label under the store name in the header (e.g. "Pizzaria").
   tagline                  String?
@@ -165,7 +208,7 @@ model StoreSettings {
 
 model OpeningHour {
   id              String        @id @default(cuid())
-  storeSettingsId String        @default("singleton")
+  storeSettingsId String
   storeSettings   StoreSettings @relation(fields: [storeSettingsId], references: [id], onDelete: Cascade)
   weekday         Weekday
   isOpen          Boolean       @default(true)
@@ -177,7 +220,7 @@ model OpeningHour {
 
 model RestaurantPhoto {
   id              String        @id @default(cuid())
-  storeSettingsId String        @default("singleton")
+  storeSettingsId String
   storeSettings   StoreSettings @relation(fields: [storeSettingsId], references: [id], onDelete: Cascade)
   url             String
   caption         String?
@@ -189,8 +232,10 @@ model RestaurantPhoto {
 
 model Category {
   id        String       @id @default(cuid())
+  storeId   String
+  store     Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name      String
-  slug      String       @unique
+  slug      String
   icon      String?
   imageUrl  String?
   kind      CategoryKind @default(SIMPLE)
@@ -201,13 +246,16 @@ model Category {
 
   products Product[]
 
-  @@index([sortOrder])
+  @@unique([storeId, slug])
+  @@index([storeId, sortOrder])
 }
 
 model Product {
   id                     String               @id @default(cuid())
+  storeId                String
+  store                  Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name                   String
-  slug                   String               @unique
+  slug                   String
   description            String
   categoryId             String
   category               Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
@@ -224,7 +272,9 @@ model Product {
   sizes      ProductSize[]
   orderItems OrderItem[]
 
+  @@unique([storeId, slug])
   @@index([categoryId, isActive])
+  @@index([storeId, isActive])
 }
 
 model ProductSize {
@@ -240,6 +290,8 @@ model ProductSize {
 
 model Extra {
   id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name      String
   price     Float
   isActive  Boolean  @default(true)
@@ -247,11 +299,15 @@ model Extra {
   updatedAt DateTime @updatedAt
 
   orderItemExtras OrderItemExtra[]
+
+  @@index([storeId, isActive])
 }
 
 model Coupon {
   id             String       @id @default(cuid())
-  code           String       @unique
+  storeId        String
+  store          Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  code           String
   description    String?
   discountType   DiscountType
   discountValue  Float
@@ -265,27 +321,40 @@ model Coupon {
   updatedAt      DateTime     @updatedAt
 
   orders Order[]
+
+  @@unique([storeId, code])
 }
 
 // ---------- Clientes ----------
 
 model Customer {
   id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name      String
-  phone     String   @unique
+  /// Unique per store, not globally: the same person can order from several
+  /// lanchonetes and each keeps its own customer record and history.
+  phone     String
   email     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   orders  Order[]
   reviews Review[]
+
+  @@unique([storeId, phone])
 }
 
 // ---------- Pedidos ----------
 
 model Order {
-  id     String @id @default(cuid())
-  number Int    @unique @default(autoincrement())
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /// Sequential per store, not global — each lanchonete counts its own orders
+  /// from #1. Assigned inside the create transaction, so autoincrement (which
+  /// is database-wide) cannot be used here.
+  number  Int
 
   customerId    String?
   customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
@@ -328,8 +397,9 @@ model Order {
   statusHistory OrderStatusHistory[]
   reviews       Review[]
 
-  @@index([status, createdAt])
-  @@index([createdAt])
+  @@unique([storeId, number])
+  @@index([storeId, status, createdAt])
+  @@index([storeId, createdAt])
   @@index([customerId])
 }
 
@@ -383,6 +453,8 @@ model OrderStatusHistory {
 
 model Review {
   id                  String       @id @default(cuid())
+  storeId             String
+  store               Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   customerId          String?
   customer            Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerNameSnapshot String
@@ -399,14 +471,16 @@ model Review {
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
-  @@index([status])
-  @@index([createdAt])
+  @@index([storeId, status])
+  @@index([storeId, createdAt])
 }
 
 // ---------- Notificações ----------
 
 model Notification {
   id              String           @id @default(cuid())
+  storeId         String
+  store           Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
   type            NotificationType
   title           String
   message         String
@@ -415,5 +489,5 @@ model Notification {
   isRead          Boolean          @default(false)
   createdAt       DateTime         @default(now())
 
-  @@index([isRead, createdAt])
+  @@index([storeId, isRead, createdAt])
 }

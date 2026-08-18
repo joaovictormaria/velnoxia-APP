@@ -8,7 +8,8 @@ import { Header } from "@/components/site/pizzaria2/Header";
 import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
 
 export const Route = createFileRoute("/pizzaria-2")({
-  loader: () => getStorefrontMenuFn(),
+  // TODO: vira params.storeSlug quando a rota virar /$storeSlug.
+  loader: () => getStorefrontMenuFn({ data: { storeSlug: "loja-teste" } }),
   head: () => ({
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },

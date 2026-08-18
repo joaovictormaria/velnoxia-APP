@@ -59,10 +59,13 @@ function priceForSize(
  * Creates an order, recomputing every price from the database. Nothing the
  * client sends about money is trusted — only ids, sizes and quantities.
  */
-export async function createOrderFromCheckout(input: CheckoutInput): Promise<CheckoutResult> {
+export async function createOrderFromCheckout(
+  storeId: string,
+  input: CheckoutInput,
+): Promise<CheckoutResult> {
   if (input.items.length === 0) return { ok: false, error: "O carrinho está vazio." };
 
-  const settings = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
+  const settings = await prisma.storeSettings.findUnique({ where: { storeId } });
   if (!settings) return { ok: false, error: "A loja ainda não está configurada." };
 
   if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
@@ -83,14 +86,14 @@ export async function createOrderFromCheckout(input: CheckoutInput): Promise<Che
     ),
   ];
   const products = await prisma.product.findMany({
-    where: { slug: { in: slugs }, isActive: true },
+    where: { storeId, slug: { in: slugs }, isActive: true },
     include: { sizes: { where: { isAvailable: true } } },
   });
   const productBySlug = new Map(products.map((p) => [p.slug, p]));
 
   const extraIds = [...new Set(input.items.flatMap((i) => i.extraIds))];
   const extras = extraIds.length
-    ? await prisma.extra.findMany({ where: { id: { in: extraIds }, isActive: true } })
+    ? await prisma.extra.findMany({ where: { storeId, id: { in: extraIds }, isActive: true } })
     : [];
   const extraById = new Map(extras.map((e) => [e.id, e]));
 
@@ -179,8 +182,8 @@ export async function createOrderFromCheckout(input: CheckoutInput): Promise<Che
   let discount = 0;
   let couponId: string | null = null;
   if (input.couponCode) {
-    const coupon = await prisma.coupon.findUnique({
-      where: { code: input.couponCode.trim().toUpperCase() },
+    const coupon = await prisma.coupon.findFirst({
+      where: { storeId, code: input.couponCode.trim().toUpperCase() },
     });
     const now = new Date();
     if (
@@ -216,13 +219,26 @@ export async function createOrderFromCheckout(input: CheckoutInput): Promise<Che
 
   const order = await prisma.$transaction(async (tx) => {
     const customer = await tx.customer.upsert({
-      where: { phone },
-      create: { phone, name: input.customerName },
+      where: { storeId_phone: { storeId, phone } },
+      create: { storeId, phone, name: input.customerName },
       update: { name: input.customerName },
     });
 
+    // Order numbers restart at #1 for every store, so each lanchonete sees a
+    // clean sequence instead of a database-wide counter. Computed inside the
+    // transaction and protected by the unique (storeId, number) index: two
+    // simultaneous checkouts cannot land on the same number.
+    const last = await tx.order.findFirst({
+      where: { storeId },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    });
+    const nextNumber = (last?.number ?? 0) + 1;
+
     const created = await tx.order.create({
       data: {
+        storeId,
+        number: nextNumber,
         customerId: customer.id,
         customerName: input.customerName,
         customerPhone: phone,
@@ -263,6 +279,7 @@ export async function createOrderFromCheckout(input: CheckoutInput): Promise<Che
 
     await tx.notification.create({
       data: {
+        storeId,
         type: "NEW_ORDER",
         title: "Novo pedido recebido",
         message: `Pedido #${created.number} de ${input.customerName}`,

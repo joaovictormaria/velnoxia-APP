@@ -11,36 +11,38 @@ export type CategoryInput = {
   isActive: boolean;
 };
 
-export function listCategories() {
+export function listCategories(storeId: string) {
   return prisma.category.findMany({
+    where: { storeId },
     orderBy: { sortOrder: "asc" },
     include: { _count: { select: { products: true } } },
   });
 }
 
-export function listActiveCategories() {
+export function listActiveCategories(storeId: string) {
   return prisma.category.findMany({
-    where: { isActive: true },
+    where: { storeId, isActive: true },
     orderBy: { sortOrder: "asc" },
   });
 }
 
-export function getCategoryById(id: string) {
-  return prisma.category.findUnique({ where: { id } });
+export function getCategoryById(storeId: string, id: string) {
+  return prisma.category.findFirst({ where: { id, storeId } });
 }
 
-export function createCategory(data: CategoryInput) {
-  return prisma.category.create({ data });
+export function createCategory(storeId: string, data: CategoryInput) {
+  return prisma.category.create({ data: { ...data, storeId } });
 }
 
-export function updateCategory(id: string, data: Partial<CategoryInput>) {
-  return prisma.category.update({ where: { id }, data });
+/** storeId is part of the filter so an id from another store matches nothing. */
+export function updateCategory(storeId: string, id: string, data: Partial<CategoryInput>) {
+  return prisma.category.update({ where: { id, storeId }, data });
 }
 
-export function deleteCategory(id: string) {
-  return prisma.category.delete({ where: { id } });
+export function deleteCategory(storeId: string, id: string) {
+  return prisma.category.delete({ where: { id, storeId } });
 }
 
-export function countProductsInCategory(id: string) {
-  return prisma.product.count({ where: { categoryId: id } });
+export function countProductsInCategory(storeId: string, id: string) {
+  return prisma.product.count({ where: { categoryId: id, storeId } });
 }

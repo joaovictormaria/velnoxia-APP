@@ -40,6 +40,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
     mutationFn: () =>
       submitCheckoutFn({
         data: {
+          storeSlug: storeInfo.slug,
           items: lines.map((l) => ({
             productSlug: l.productSlug,
             sizeKey: l.sizeKey,

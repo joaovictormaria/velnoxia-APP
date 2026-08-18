@@ -1,9 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { prisma } from "../db/client";
 import { createOrderFromCheckout } from "../services/order-service";
+import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
 
 const checkoutSchema = z.object({
+  storeSlug: z.string().min(1),
   items: z
     .array(
       z.object({
@@ -42,26 +43,9 @@ export const submitCheckoutFn = createServerFn({ method: "POST" })
     if (data.type === "DELIVERY" && !data.delivery?.street) {
       return { ok: false as const, error: "Informe o endereço de entrega." };
     }
-    return createOrderFromCheckout(data);
+    const store = await getStoreBySlug(data.storeSlug);
+    if (!store || !isStoreServable(store)) {
+      return { ok: false as const, error: "Esta loja não está disponível no momento." };
+    }
+    return createOrderFromCheckout(store.id, data);
   });
-
-/** Public store settings the storefront needs (fees, payment options, hours). */
-export const getStoreInfoFn = createServerFn({ method: "GET" }).handler(async () => {
-  const settings = await prisma.storeSettings.findUnique({
-    where: { id: "singleton" },
-    include: { openingHours: true },
-  });
-  if (!settings) return null;
-  return {
-    storeName: settings.storeName,
-    whatsappNumber: settings.whatsappNumber,
-    deliveryFee: settings.deliveryFee,
-    freeDeliveryMinOrder: settings.freeDeliveryMinOrder,
-    minOrderValue: settings.minOrderValue,
-    acceptsDelivery: settings.acceptsDelivery,
-    acceptsPickup: settings.acceptsPickup,
-    acceptedPaymentMethods: settings.acceptedPaymentMethods,
-    estimatedDeliveryMinMin: settings.estimatedDeliveryMinMin,
-    estimatedDeliveryMinMax: settings.estimatedDeliveryMinMax,
-  };
-});

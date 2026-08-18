@@ -1,8 +1,8 @@
 import type { PaymentMethod, Weekday } from "@prisma/client";
 import { prisma } from "../db/client";
 
-/** The settings row is a singleton — the schema pins its id to this value. */
-const SINGLETON_ID = "singleton";
+
+
 
 export const WEEKDAYS: Weekday[] = [
   "MONDAY",
@@ -52,12 +52,13 @@ export type OpeningHourInput = {
 };
 
 /**
- * Reads the singleton, creating it on first access so a fresh database (or one
- * migrated before the seed ran) never leaves the admin screen without a row.
+ * Reads this store's settings, creating the row (and a full week of opening
+ * hours) on first access — so a store that just signed up opens the admin with
+ * a usable form instead of an empty screen.
  */
-export async function getStoreSettings() {
+export async function getStoreSettings(storeId: string) {
   const existing = await prisma.storeSettings.findUnique({
-    where: { id: SINGLETON_ID },
+    where: { storeId },
     include: {
       openingHours: true,
       restaurantPhotos: { orderBy: { sortOrder: "asc" } },
@@ -67,7 +68,7 @@ export async function getStoreSettings() {
 
   return prisma.storeSettings.create({
     data: {
-      id: SINGLETON_ID,
+      storeId,
       whatsappNumber: "",
       openingHours: { create: WEEKDAYS.map((weekday) => ({ weekday })) },
     },
@@ -82,8 +83,8 @@ export async function getStoreSettings() {
  * Customer-facing subset. Selected explicitly so internal flags (auto-print,
  * notification toggles) never reach the public page.
  */
-export async function getPublicStoreSettings() {
-  const settings = await getStoreSettings();
+export async function getPublicStoreSettings(storeId: string) {
+  const settings = await getStoreSettings(storeId);
   return {
     storeName: settings.storeName,
     tagline: settings.tagline,
@@ -128,33 +129,41 @@ export async function getPublicStoreSettings() {
   };
 }
 
-export async function updateStoreSettings(data: StoreSettingsInput) {
-  await getStoreSettings();
-  return prisma.storeSettings.update({ where: { id: SINGLETON_ID }, data });
+export async function updateStoreSettings(storeId: string, data: StoreSettingsInput) {
+  const settings = await getStoreSettings(storeId);
+  return prisma.storeSettings.update({ where: { id: settings.id }, data });
 }
 
 /** Upserts one row per weekday so the unique (store, weekday) pair is preserved. */
-export async function replaceOpeningHours(hours: OpeningHourInput[]) {
-  await getStoreSettings();
+export async function replaceOpeningHours(storeId: string, hours: OpeningHourInput[]) {
+  const settings = await getStoreSettings(storeId);
   await prisma.$transaction(
     hours.map((h) =>
       prisma.openingHour.upsert({
         where: {
-          storeSettingsId_weekday: { storeSettingsId: SINGLETON_ID, weekday: h.weekday },
+          storeSettingsId_weekday: { storeSettingsId: settings.id, weekday: h.weekday },
         },
-        create: { storeSettingsId: SINGLETON_ID, ...h },
+        create: { storeSettingsId: settings.id, ...h },
         update: { isOpen: h.isOpen, opensAt: h.opensAt, closesAt: h.closesAt },
       }),
     ),
   );
 }
 
-export function addRestaurantPhoto(data: { url: string; caption?: string | null }) {
+export async function addRestaurantPhoto(
+  storeId: string,
+  data: { url: string; caption?: string | null },
+) {
+  const settings = await getStoreSettings(storeId);
   return prisma.restaurantPhoto.create({
-    data: { storeSettingsId: SINGLETON_ID, url: data.url, caption: data.caption ?? null },
+    data: { storeSettingsId: settings.id, url: data.url, caption: data.caption ?? null },
   });
 }
 
-export function deleteRestaurantPhoto(id: string) {
-  return prisma.restaurantPhoto.delete({ where: { id } });
+/** Deletes through the settings row so a photo id from another store is a no-op. */
+export async function deleteRestaurantPhoto(storeId: string, id: string) {
+  const settings = await getStoreSettings(storeId);
+  await prisma.restaurantPhoto.deleteMany({
+    where: { id, storeSettingsId: settings.id },
+  });
 }
