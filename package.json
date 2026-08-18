@@ -9,11 +9,7 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "seed": "node --experimental-strip-types prisma/seed.ts"
   },
   "engines": {
     "node": "24.x"
