@@ -19,6 +19,7 @@ export function ProductModal({
   price,
   tags,
   linkToCustomize,
+  customizeLabel = "Montar do meu jeito →",
   onAdd,
   onCustomize,
   onClose,
@@ -27,6 +28,9 @@ export function ProductModal({
   price: number;
   tags?: string[];
   linkToCustomize: boolean;
+  /** Wording for the way into the produto screen; a pizza is assembled, a
+   *  burger only gains extras. */
+  customizeLabel?: string;
   onAdd: () => void;
   onCustomize?: () => void;
   onClose: () => void;
@@ -184,7 +188,7 @@ export function ProductModal({
                 }}
                 className="mt-4 text-sm font-semibold text-tomato hover:underline"
               >
-                Montar do meu jeito →
+                {customizeLabel}
               </button>
             ) : (
               <Link
@@ -193,7 +197,7 @@ export function ProductModal({
                 onClick={requestClose}
                 className="mt-4 inline-block text-sm font-semibold text-tomato hover:underline"
               >
-                Montar do meu jeito →
+                {customizeLabel}
               </Link>
             ))}
         </div>

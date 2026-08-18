@@ -42,7 +42,15 @@ export function CardapioPicker({
 }) {
   const { addLine, itemCount, total } = useCart();
   const { storeName: businessName, whatsappHref, slug: storeSlug } = useStore();
-  const { categories, products: allProducts, productsByCategory } = useMenu();
+  const {
+    categories,
+    products: allProducts,
+    extras,
+    productsByCategory,
+  } = useMenu();
+  /** See CategorySaboresSection: the produto screen opens whenever there is a
+   *  size or an extra to pick, not only for pizza. */
+  const hasExtras = extras.length > 0;
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(
     categories[0]?.slug ?? "tradicionais",
   );
@@ -248,12 +256,16 @@ export function CardapioPicker({
           (c) => c.slug === open.categorySlug,
         );
         const openIsPizza = openCategory?.kind === "pizza";
+        const openCustomizable = openIsPizza || hasExtras;
         return (
           <ProductModal
             product={open}
             price={sizePrice(open, "media")}
             tags={productTags(open, openCategory)}
-            linkToCustomize={openIsPizza}
+            linkToCustomize={openCustomizable}
+            customizeLabel={
+              openIsPizza ? "Montar do meu jeito →" : "Escolher extras →"
+            }
             onCustomize={
               openIsPizza ? () => onSelectPizza(open.slug) : undefined
             }

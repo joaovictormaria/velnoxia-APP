@@ -17,6 +17,7 @@ export function ProductCard({
   tags,
   favorited,
   onToggleFavorite,
+  ctaQuickAdd,
 }: {
   product: Product;
   linkToCustomize: boolean;
@@ -28,6 +29,10 @@ export function ProductCard({
   tags?: string[];
   favorited?: boolean;
   onToggleFavorite?: () => void;
+  /** Body opens the produto screen, button still adds straight to the cart.
+   *  Used where the screen exists only to offer extras: whoever wants none
+   *  should not have to walk through it. */
+  ctaQuickAdd?: boolean;
 }) {
   const { slug: storeSlug } = useStore();
   const Icon = product.icon;
@@ -69,8 +74,12 @@ export function ProductCard({
 
   const info = (
     <div className="flex flex-col p-5 sm:p-6">
-      <h3 className="font-display text-xl font-bold text-charcoal">{product.name}</h3>
-      <p className="mt-1.5 text-base leading-snug text-charcoal/55">{product.desc}</p>
+      <h3 className="font-display text-xl font-bold text-charcoal">
+        {product.name}
+      </h3>
+      <p className="mt-1.5 text-base leading-snug text-charcoal/55">
+        {product.desc}
+      </p>
       {tags && tags.length > 0 && (
         <div className="mt-2.5 flex flex-wrap gap-1.5">
           {tags.map((tag) => (
@@ -92,15 +101,23 @@ export function ProductCard({
         <button
           type="button"
           onClick={handleToggleFavorite}
-          aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          aria-label={
+            favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"
+          }
           aria-pressed={favorited}
           className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-mozzarella/90 text-charcoal/50 shadow-[0_6px_16px_-6px_rgba(23,23,23,0.4)] transition-colors hover:text-tomato"
         >
-          <Heart className={cn("h-4 w-4", favorited && "fill-tomato text-tomato")} />
+          <Heart
+            className={cn("h-4 w-4", favorited && "fill-tomato text-tomato")}
+          />
         </button>
       )}
       {linkToCustomize && onSelect ? (
-        <button type="button" onClick={onSelect} className="flex flex-col text-left">
+        <button
+          type="button"
+          onClick={onSelect}
+          className="flex flex-col text-left"
+        >
           {media}
           {info}
         </button>
@@ -114,24 +131,47 @@ export function ProductCard({
           {info}
         </Link>
       ) : (
-        <button type="button" onClick={handleQuickAdd} className="flex flex-col text-left">
+        <button
+          type="button"
+          onClick={handleQuickAdd}
+          className="flex flex-col text-left"
+        >
           {media}
           {info}
         </button>
       )}
 
       <div className="flex items-center justify-between gap-3 p-5 pt-0 sm:p-6 sm:pt-0">
-        <PriceTag value={product.price} className="whitespace-nowrap text-xl sm:text-2xl" />
-        {linkToCustomize && onSelect ? (
+        <PriceTag
+          value={product.price}
+          className="whitespace-nowrap text-xl sm:text-2xl"
+        />
+        {ctaQuickAdd ? (
+          <button
+            type="button"
+            onClick={handleQuickAdd}
+            className={ctaClassName}
+          >
+            <Plus className="h-4.5 w-4.5" /> Adicionar
+          </button>
+        ) : linkToCustomize && onSelect ? (
           <button type="button" onClick={onSelect} className={ctaClassName}>
             <Plus className="h-4.5 w-4.5" /> Adicionar
           </button>
         ) : linkToCustomize ? (
-          <Link to="/$storeSlug/produto/$slug" params={{ storeSlug, slug: product.slug }} className={ctaClassName}>
+          <Link
+            to="/$storeSlug/produto/$slug"
+            params={{ storeSlug, slug: product.slug }}
+            className={ctaClassName}
+          >
             <Plus className="h-4.5 w-4.5" /> Adicionar
           </Link>
         ) : (
-          <button type="button" onClick={handleQuickAdd} className={ctaClassName}>
+          <button
+            type="button"
+            onClick={handleQuickAdd}
+            className={ctaClassName}
+          >
             <Plus className="h-4.5 w-4.5" /> Adicionar
           </button>
         )}

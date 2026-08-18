@@ -92,8 +92,17 @@ export function CategorySaboresSection({
   defaultCategorySlug?: CategorySlug;
 }) {
   const { addLine } = useCart();
-  const { categories, products, categoryBySlug, productsByCategory } =
+  const { categories, products, extras, categoryBySlug, productsByCategory } =
     useMenu();
+
+  /*
+   * The produto screen is where sizes and extras are chosen. It was reachable
+   * only from pizza categories, so a hamburgueria with "Bacon extra" cadastrado
+   * never offered it: every burger went straight to the cart. It opens whenever
+   * there is something to choose — and when there is nothing, the direct add
+   * stays, because a screen with no choices is a wasted step.
+   */
+  const hasExtras = extras.length > 0;
   const { slug: storeSlug, businessType } = useStore();
   const { fullMenuTeaser, trustLabels, browseAllBlurb } = heroFor(businessType);
 
@@ -239,7 +248,8 @@ export function CategorySaboresSection({
               >
                 <ProductCard
                   product={product}
-                  linkToCustomize={category.kind === "pizza"}
+                  linkToCustomize={category.kind === "pizza" || hasExtras}
+                  ctaQuickAdd={category.kind !== "pizza"}
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
@@ -270,7 +280,12 @@ export function CategorySaboresSection({
           <ProductModal
             product={open}
             price={sizePrice(open, "media")}
-            linkToCustomize={category.kind === "pizza"}
+            linkToCustomize={category.kind === "pizza" || hasExtras}
+            customizeLabel={
+              category.kind === "pizza"
+                ? "Montar do meu jeito →"
+                : "Escolher extras →"
+            }
             onAdd={() => addProduct(open)}
             onClose={() => setOpenSlug(null)}
           />
