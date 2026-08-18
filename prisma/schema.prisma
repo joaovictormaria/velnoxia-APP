@@ -136,6 +136,7 @@ model Store {
   customers     Customer[]
   orders        Order[]
   reviews       Review[]
+  promotions    Promotion[]
   notifications Notification[]
 
   @@index([status])
@@ -334,6 +335,30 @@ model Coupon {
   orders Order[]
 
   @@unique([storeId, code])
+}
+
+/// Slides of the storefront "Oferta da semana" carousel. Free text rather than
+/// a link to a product: most of these are combos and weekday deals that do not
+/// exist as a single catalog item.
+model Promotion {
+  id            String   @id @default(cuid())
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /// Small line above the title ("Oferta da semana", "Toda sexta-feira").
+  eyebrow       String
+  title         String
+  description   String
+  /// Shown as a badge; free text so "-20%" and "Leve 3 pague 2" both fit.
+  discount      String?
+  price         Float?
+  originalPrice Float?
+  imageUrl      String?
+  sortOrder     Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([storeId, isActive, sortOrder])
 }
 
 // ---------- Clientes ----------

@@ -56,12 +56,22 @@ export type MenuPayload = {
     }[];
   }[];
   extras: { id: string; name: string; price: number }[];
+  promotions: {
+    id: string;
+    eyebrow: string;
+    title: string;
+    description: string;
+    discount: string | null;
+    price: number | null;
+    originalPrice: number | null;
+  }[];
 };
 
 export type MenuApi = {
   categories: Category[];
   products: Product[];
   extras: Extra[];
+  promotions: MenuPayload["promotions"];
   categoryBySlug: (slug: string) => Category | undefined;
   productBySlug: (slug: string) => Product | undefined;
   productsByCategory: (slug: string) => Product[];
@@ -109,6 +119,7 @@ function adapt(payload: MenuPayload): MenuApi {
     categories,
     products,
     extras,
+    promotions: payload.promotions ?? [],
     categoryBySlug: (slug) => categories.find((c) => c.slug === slug),
     productBySlug: (slug) => products.find((p) => p.slug === slug),
     productsByCategory: (slug) => products.filter((p) => p.categorySlug === slug),

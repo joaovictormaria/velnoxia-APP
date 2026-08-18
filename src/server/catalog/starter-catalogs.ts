@@ -45,6 +45,8 @@ export type StarterCatalog = {
   description: string;
   categories: StarterCategory[];
   extras: { name: string; price: number }[];
+  /** Carousel slides the store opens with; the owner edits them in the panel. */
+  promotions: { eyebrow: string; title: string; description: string; discount?: string }[];
 };
 
 const PIZZA_SIZES = (broto: number, media: number, grande: number, gigante: number) => [
@@ -119,6 +121,10 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       { name: "Borda de cheddar", price: 8 },
       { name: "Bacon extra", price: 6 },
     ],
+    promotions: [
+      { eyebrow: "Oferta da semana", title: "Terça da Família", description: "2 pizzas grandes + refrigerante 2L, pra ninguém ficar de fora.", discount: "-20%" },
+      { eyebrow: "Combo especial", title: "Combo Casal", description: "1 pizza média + sobremesa + bebida, pra um jantar a dois." },
+    ],
   },
 
   hamburgueria: {
@@ -171,6 +177,10 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       { name: "Queijo extra", price: 4 },
       { name: "Ovo", price: 3 },
     ],
+    promotions: [
+      { eyebrow: "Oferta da semana", title: "Combo do Dia", description: "Hambúrguer + batata + refrigerante por um preço só.", discount: "-15%" },
+      { eyebrow: "Toda quarta", title: "Dobro de Bacon", description: "Bacon em dobro em qualquer lanche da casa." },
+    ],
   },
 
   acai: {
@@ -221,6 +231,10 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       { name: "Granola", price: 3 },
       { name: "Morango", price: 5 },
       { name: "Paçoca", price: 3 },
+    ],
+    promotions: [
+      { eyebrow: "Oferta da semana", title: "Açaí em Dobro", description: "Leve 1L e pague o preço do 700ml.", discount: "-25%" },
+      { eyebrow: "Combo especial", title: "Combo Casal", description: "1L de açaí com quatro complementos à escolha." },
     ],
   },
 
@@ -284,6 +298,10 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       { name: "Shoyu extra", price: 2 },
       { name: "Wasabi", price: 2 },
       { name: "Gengibre", price: 2 },
+    ],
+    promotions: [
+      { eyebrow: "Oferta da semana", title: "Combinado em Conta", description: "40 peças com desconto para dividir.", discount: "-15%" },
+      { eyebrow: "Toda quinta", title: "Temaki Day", description: "Todos os temakis com preço promocional." },
     ],
   },
 };

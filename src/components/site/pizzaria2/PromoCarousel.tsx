@@ -5,42 +5,21 @@ import { useStore } from "@/lib/pizzaria2/store-provider";
 import { cn } from "@/lib/utils";
 
 type PromoSlide = {
+  id: string;
   eyebrow: string;
   title: string;
   description: string;
-  discount?: string;
-  price?: string;
-  originalPrice?: string;
-  whatsappMessage: string;
+  discount?: string | null;
+  price?: number | null;
+  originalPrice?: number | null;
 };
 
-const promoSlides: PromoSlide[] = [
-  {
-    eyebrow: "Oferta da semana",
-    title: "Terça da Família",
-    description: "2 pizzas grandes + refrigerante 2L, pra ninguém ficar de fora.",
-    discount: "-20%",
-    price: "R$ 79,90",
-    originalPrice: "R$ 99,90",
-    whatsappMessage: "Olá! Quero aproveitar a promoção Terça da Família 🍕",
-  },
-  {
-    eyebrow: "Combo especial",
-    title: "Combo Casal",
-    description: "1 pizza média + sobremesa + bebida, pra um jantar a dois.",
-    price: "R$ 54,90",
-    whatsappMessage: "Olá! Quero pedir o Combo Casal 🍕",
-  },
-  {
-    eyebrow: "Toda sexta-feira",
-    title: "Sexta é Dia de Promoção",
-    description: "Todas as pizzas especiais com desconto — só até domingo.",
-    discount: "-15%",
-    whatsappMessage: "Olá! Quero pedir uma pizza especial da promoção de sexta 🍕",
-  },
-];
 
-export function PromoCarousel() {
+export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
+  // No promotions registered means no carousel — an empty strip with arrows
+  // that go nowhere looks broken, while its absence looks deliberate.
+  if (slides.length === 0) return null;
+
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const { whatsappHref } = useStore();
@@ -68,7 +47,7 @@ export function PromoCarousel() {
 
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
-          {promoSlides.map((slide) => (
+          {slides.map((slide) => (
             <div key={slide.title} className="min-w-0 shrink-0 grow-0 basis-full">
               <div className="relative grid grid-cols-1 items-center gap-8 px-6 pb-14 pt-10 sm:px-10 sm:pb-16 sm:pt-12 md:grid-cols-2 md:gap-12 lg:px-14">
                 <div>
@@ -104,7 +83,7 @@ export function PromoCarousel() {
                   </div>
 
                   <a
-                    href={whatsappHref(slide.whatsappMessage)}
+                    href={whatsappHref(`Olá! Quero aproveitar a promoção ${slide.title}`)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-mozzarella px-6 py-3 text-sm font-semibold text-tomato shadow-sm transition-transform hover:scale-[1.03]"
@@ -143,7 +122,7 @@ export function PromoCarousel() {
       </button>
 
       <div className="relative flex items-center justify-center gap-2 pb-6">
-        {promoSlides.map((slide, i) => (
+        {slides.map((slide, i) => (
           <button
             key={slide.title}
             type="button"

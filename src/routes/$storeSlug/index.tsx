@@ -22,6 +22,7 @@ import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySabo
 import { PromoCarousel } from "@/components/site/pizzaria2/PromoCarousel";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { useStore } from "@/lib/pizzaria2/store-provider";
+import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { HERO_BOUNDARY_ID } from "@/lib/pizzaria2/hero-overlap";
 import { cn } from "@/lib/utils";
 
@@ -80,6 +81,7 @@ function PizzariaInicio() {
     estimatedDeliveryMinMax,
   } = useStore();
   const whatsappHref = buildWhatsappHref();
+  const { promotions } = useMenu();
 
   // Hero comes from the store business type — photo and copy travel together.
   const {
@@ -307,7 +309,7 @@ function PizzariaInicio() {
 
       <section id="promocoes" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-20">
         <Reveal variant="up" className="mx-auto max-w-[1200px]">
-          <PromoCarousel />
+          <PromoCarousel slides={promotions} />
         </Reveal>
       </section>
 

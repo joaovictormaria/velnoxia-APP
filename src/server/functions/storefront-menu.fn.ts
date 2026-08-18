@@ -5,6 +5,7 @@ import { listActiveExtras } from "../repositories/extra-repository";
 import { listMenuForStorefront } from "../repositories/product-repository";
 import { getPublicStoreSettings } from "../repositories/store-settings-repository";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
+import { listActivePromotions } from "../repositories/promotion-repository";
 
 /**
  * Public — no admin session. The tenant comes from the URL segment, so an
@@ -16,10 +17,11 @@ export const getStorefrontMenuFn = createServerFn({ method: "GET" })
     const store = await getStoreBySlug(data.storeSlug);
     if (!store || !isStoreServable(store)) throw notFound();
 
-    const [categories, extras, settings] = await Promise.all([
+    const [categories, extras, settings, promotions] = await Promise.all([
       listMenuForStorefront(store.id),
       listActiveExtras(store.id),
       getPublicStoreSettings(store.id),
+      listActivePromotions(store.id),
     ]);
-    return { categories, extras, store: { ...settings, slug: store.slug } };
+    return { categories, extras, promotions, store: { ...settings, slug: store.slug } };
   });

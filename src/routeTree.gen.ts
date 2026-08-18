@@ -34,6 +34,7 @@ import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin/conf
 import { Route as AdminCuponsIndexRouteImport } from './routes/admin/cupons/index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
 import { Route as AdminPedidosOrderIdRouteImport } from './routes/admin/pedidos/$orderId'
+import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoes/index'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
 
@@ -162,6 +163,11 @@ const AdminPedidosOrderIdRoute = AdminPedidosOrderIdRouteImport.update({
   path: '/pedidos/$orderId',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminPromocoesIndexRoute = AdminPromocoesIndexRouteImport.update({
+  id: '/promocoes/',
+  path: '/promocoes/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminRelatoriosIndexRoute = AdminRelatoriosIndexRouteImport.update({
   id: '/relatorios/',
   path: '/relatorios/',
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons/': typeof AdminCuponsIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
+  '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -227,6 +234,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons': typeof AdminCuponsIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
+  '/admin/promocoes': typeof AdminPromocoesIndexRoute
   '/admin/relatorios': typeof AdminRelatoriosIndexRoute
 }
 export interface FileRoutesById {
@@ -257,6 +265,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons/': typeof AdminCuponsIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
+  '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
 }
 export interface FileRouteTypes {
@@ -288,6 +297,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/admin/cupons/'
     | '/admin/pedidos/'
+    | '/admin/promocoes/'
     | '/admin/relatorios/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -315,6 +325,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/cupons'
     | '/admin/pedidos'
+    | '/admin/promocoes'
     | '/admin/relatorios'
   id:
     | '__root__'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/admin/cupons/'
     | '/admin/pedidos/'
+    | '/admin/promocoes/'
     | '/admin/relatorios/'
   fileRoutesById: FileRoutesById
 }
@@ -535,6 +547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPedidosOrderIdRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/promocoes/': {
+      id: '/admin/promocoes/'
+      path: '/promocoes'
+      fullPath: '/admin/promocoes/'
+      preLoaderRoute: typeof AdminPromocoesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/relatorios/': {
       id: '/admin/relatorios/'
       path: '/relatorios'
@@ -584,6 +603,7 @@ interface AdminRouteRouteChildren {
   AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
   AdminCuponsIndexRoute: typeof AdminCuponsIndexRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
+  AdminPromocoesIndexRoute: typeof AdminPromocoesIndexRoute
   AdminRelatoriosIndexRoute: typeof AdminRelatoriosIndexRoute
 }
 
@@ -603,6 +623,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
   AdminCuponsIndexRoute: AdminCuponsIndexRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
+  AdminPromocoesIndexRoute: AdminPromocoesIndexRoute,
   AdminRelatoriosIndexRoute: AdminRelatoriosIndexRoute,
 }
 

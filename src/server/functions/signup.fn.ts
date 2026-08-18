@@ -92,6 +92,19 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
           });
         }
 
+        if (catalog.promotions.length) {
+          await tx.promotion.createMany({
+            data: catalog.promotions.map((p, i) => ({
+              storeId: store.id,
+              eyebrow: p.eyebrow,
+              title: p.title,
+              description: p.description,
+              discount: p.discount ?? null,
+              sortOrder: i + 1,
+            })),
+          });
+        }
+
         if (catalog.extras.length) {
           await tx.extra.createMany({
             data: catalog.extras.map((e) => ({ storeId: store.id, ...e })),
