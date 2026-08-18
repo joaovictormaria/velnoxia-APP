@@ -3,12 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db/client";
 import { hashPassword } from "../auth/password";
 import { startSessionFor } from "../auth/session";
-import {
-  isEmailTaken,
-  isSlugTaken,
-  slugify,
-  validateSlug,
-} from "../repositories/store-repository";
+import { generateUniqueSlug, isEmailTaken } from "../repositories/store-repository";
 import { WEEKDAYS } from "../repositories/store-settings-repository";
 
 /** How long a new store can use the system before it needs to be paid. */
@@ -16,27 +11,11 @@ const TRIAL_DAYS = 14;
 
 const signupSchema = z.object({
   storeName: z.string().trim().min(2, "Informe o nome da lanchonete."),
-  slug: z.string().trim().toLowerCase(),
   adminName: z.string().trim().min(2, "Informe seu nome."),
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
   password: z.string().min(8, "A senha precisa ter ao menos 8 caracteres."),
   whatsappNumber: z.string().trim().min(8, "Informe o WhatsApp da loja."),
 });
-
-/** Public — checks availability while the person is still typing. */
-export const checkSlugFn = createServerFn({ method: "POST" })
-  .validator(z.object({ slug: z.string() }))
-  .handler(async ({ data }) => {
-    const slug = slugify(data.slug);
-    if (!slug) return { ok: false as const, slug, error: "Informe um endereço." };
-
-    const check = validateSlug(slug);
-    if (!check.ok) return { ok: false as const, slug, error: check.error };
-    if (await isSlugTaken(slug)) {
-      return { ok: false as const, slug, error: "Este endereço já está em uso." };
-    }
-    return { ok: true as const, slug };
-  });
 
 /**
  * Creates the tenant and its first admin in one transaction: a store with no
@@ -45,18 +24,13 @@ export const checkSlugFn = createServerFn({ method: "POST" })
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    const slug = slugify(data.slug);
-    const slugCheck = validateSlug(slug);
-    if (!slugCheck.ok) return { ok: false as const, error: slugCheck.error };
-
-    // Checked before the transaction for a clear message, and enforced again by
-    // the unique indexes below in case two signups race.
-    if (await isSlugTaken(slug)) {
-      return { ok: false as const, error: "Este endereço já está em uso. Escolha outro." };
-    }
     if (await isEmailTaken(data.email)) {
       return { ok: false as const, error: "Já existe uma conta com este e-mail." };
     }
+
+    // Derived from the store name plus a verifier code, so the owner never has
+    // to pick an address and two lanchonetes with the same name never clash.
+    const slug = await generateUniqueSlug(data.storeName);
 
     const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
     const passwordHash = await hashPassword(data.password);
