@@ -17,6 +17,10 @@ export const WEEKDAYS: Weekday[] = [
 export type StoreSettingsInput = {
   storeName: string;
   tagline?: string | null;
+  aboutEyebrow?: string | null;
+  aboutTitle?: string | null;
+  aboutBody?: string | null;
+  aboutImageUrl?: string | null;
   description?: string | null;
   logoUrl?: string | null;
   primaryColor: string;
@@ -98,6 +102,10 @@ export async function getPublicStoreSettings(storeId: string) {
     businessType: store.businessType,
     storeName: settings.storeName,
     tagline: settings.tagline,
+    aboutEyebrow: settings.aboutEyebrow,
+    aboutTitle: settings.aboutTitle,
+    aboutBody: settings.aboutBody,
+    aboutImageUrl: settings.aboutImageUrl,
     description: settings.description,
     logoUrl: settings.logoUrl,
     primaryColor: settings.primaryColor,
@@ -179,4 +187,19 @@ export async function deleteRestaurantPhoto(storeId: string, id: string) {
   await prisma.restaurantPhoto.deleteMany({
     where: { id, storeSettingsId: settings.id },
   });
+}
+
+/** Partial update for just the "Nosso restaurante" copy, so saving it cannot
+ *  clobber the rest of the settings row. */
+export async function updateAboutSection(
+  storeId: string,
+  data: {
+    aboutEyebrow?: string | null;
+    aboutTitle?: string | null;
+    aboutBody?: string | null;
+    aboutImageUrl?: string | null;
+  },
+) {
+  const settings = await getStoreSettings(storeId);
+  return prisma.storeSettings.update({ where: { id: settings.id }, data });
 }

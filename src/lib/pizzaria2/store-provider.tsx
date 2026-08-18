@@ -23,6 +23,10 @@ export type StorePayload = {
   businessType: string;
   storeName: string;
   tagline: string | null;
+  aboutEyebrow: string | null;
+  aboutTitle: string | null;
+  aboutBody: string | null;
+  aboutImageUrl: string | null;
   description: string | null;
   logoUrl: string | null;
   primaryColor: string;

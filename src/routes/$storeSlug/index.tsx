@@ -22,6 +22,8 @@ import { TypingText } from "@/components/site/TypingText";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
 import { PromoCarousel } from "@/components/site/pizzaria2/PromoCarousel";
+import { StoreBlog } from "@/components/site/pizzaria2/StoreBlog";
+import { ReviewsSection } from "@/components/site/pizzaria2/ReviewsSection";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
@@ -75,6 +77,7 @@ export const Route = createFileRoute("/$storeSlug/")({
 function PizzariaInicio() {
   const goToCardapio = useGoToCardapio();
   const {
+    slug: storeSlug,
     storeName: businessName,
     whatsappHref: buildWhatsappHref,
     businessType,
@@ -82,11 +85,14 @@ function PizzariaInicio() {
     hasAddress,
     mapsHref,
     openingHoursSummary,
+    aboutEyebrow,
+    aboutTitle,
+    aboutBody,
     deliveryFee,
     estimatedDeliveryMinMax,
   } = useStore();
   const whatsappHref = buildWhatsappHref();
-  const { promotions } = useMenu();
+  const { promotions, posts } = useMenu();
 
   // Hero comes from the store business type — photo and copy travel together.
   const {
@@ -96,6 +102,8 @@ function PizzariaInicio() {
     careItems,
     markIcon,
     ctaTitle,
+    aboutTitle: tradeAboutTitle,
+    aboutBody: tradeAboutBody,
     ctaBlurb,
   } = heroFor(businessType);
   const MarkIcon = CARE_ICONS[markIcon] ?? Pizza;
@@ -337,15 +345,13 @@ function PizzariaInicio() {
             <Reveal variant="right">
               <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
                 <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
-                Nosso restaurante
+                {aboutEyebrow || "Nosso restaurante"}
               </span>
               <h2 className="mt-3 font-display text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
-                Feita com paixão, servida com carinho.
+                {aboutTitle || tradeAboutTitle}
               </h2>
               <p className="mt-4 max-w-md text-base leading-relaxed text-charcoal/60">
-                Na {businessName}, cada pizza começa com uma massa fermentada por 48 horas,
-                ingredientes selecionados todos os dias e um preparo cuidadoso do início ao fim —
-                para que cada mordida chegue até você com o mesmo carinho de sempre.
+                {aboutBody || "Na " + businessName + ", " + tradeAboutBody}
               </p>
 
               <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -393,6 +399,10 @@ function PizzariaInicio() {
           </div>
         </div>
       </section>
+
+      <StoreBlog posts={posts} />
+
+      <ReviewsSection storeSlug={storeSlug} />
 
       <section className="relative overflow-hidden py-16 sm:py-24">
         <div className="pointer-events-none absolute -left-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-tomato/10 blur-3xl" />

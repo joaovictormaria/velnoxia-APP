@@ -136,6 +136,7 @@ model Store {
   customers     Customer[]
   orders        Order[]
   reviews       Review[]
+  posts                Post[]
   promotions    Promotion[]
   notifications Notification[]
 
@@ -173,6 +174,10 @@ model StoreSettings {
   storeName                String          @default("Bella Pizza")
   /// Short label under the store name in the header (e.g. "Pizzaria").
   tagline                  String?
+  aboutEyebrow             String?
+  aboutTitle               String?
+  aboutBody                String?
+  aboutImageUrl            String?
   /// Longer paragraph shown in the storefront footer.
   description              String?
   logoUrl                  String?
@@ -500,6 +505,9 @@ model Review {
   comment             String
   channel             ReviewChannel @default(SITE)
   status              ReviewStatus  @default(PENDING)
+  visitorId           String?
+  isHidden            Boolean       @default(false)
+  likes               ReviewLike[]
   response            String?
   respondedAt         DateTime?
   respondedByAdminId  String?
@@ -526,4 +534,30 @@ model Notification {
   createdAt       DateTime         @default(now())
 
   @@index([storeId, isRead, createdAt])
+}
+
+model ReviewLike {
+  id        String   @id @default(cuid())
+  reviewId  String
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  visitorId String
+  createdAt DateTime @default(now())
+
+  @@unique([reviewId, visitorId])
+  @@index([reviewId])
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title       String
+  body        String
+  imageUrl    String?
+  isPublished Boolean  @default(true)
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([storeId, publishedAt])
 }
