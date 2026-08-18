@@ -22,6 +22,7 @@ import { Route as AdminCadastroRouteImport } from './routes/admin/cadastro'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
+import { Route as StoreSlugAcompanharTokenRouteImport } from './routes/$storeSlug/acompanhar/$token'
 import { Route as StoreSlugProdutoSlugRouteImport } from './routes/$storeSlug/produto/$slug'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
 import { Route as AdminCardapioIndexRouteImport } from './routes/admin/cardapio/index'
@@ -103,6 +104,12 @@ const ApiUploadRoute = ApiUploadRouteImport.update({
   path: '/api/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StoreSlugAcompanharTokenRoute =
+  StoreSlugAcompanharTokenRouteImport.update({
+    id: '/acompanhar/$token',
+    path: '/acompanhar/$token',
+    getParentRoute: () => StoreSlugRouteRoute,
+  } as any)
 const StoreSlugProdutoSlugRoute = StoreSlugProdutoSlugRouteImport.update({
   id: '/produto/$slug',
   path: '/produto/$slug',
@@ -193,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/api/upload': typeof ApiUploadRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/$storeSlug/acompanhar/$token': typeof StoreSlugAcompanharTokenRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
@@ -221,6 +229,7 @@ export interface FileRoutesByTo {
   '/api/upload': typeof ApiUploadRoute
   '/$storeSlug': typeof StoreSlugIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/$storeSlug/acompanhar/$token': typeof StoreSlugAcompanharTokenRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
@@ -252,6 +261,7 @@ export interface FileRoutesById {
   '/api/upload': typeof ApiUploadRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/$storeSlug/acompanhar/$token': typeof StoreSlugAcompanharTokenRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
@@ -284,6 +294,7 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/$storeSlug/'
     | '/admin/'
+    | '/$storeSlug/acompanhar/$token'
     | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/$storeSlug'
     | '/admin'
+    | '/$storeSlug/acompanhar/$token'
     | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
@@ -342,6 +354,7 @@ export interface FileRouteTypes {
     | '/api/upload'
     | '/$storeSlug/'
     | '/admin/'
+    | '/$storeSlug/acompanhar/$token'
     | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
@@ -463,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$storeSlug/acompanhar/$token': {
+      id: '/$storeSlug/acompanhar/$token'
+      path: '/acompanhar/$token'
+      fullPath: '/$storeSlug/acompanhar/$token'
+      preLoaderRoute: typeof StoreSlugAcompanharTokenRouteImport
+      parentRoute: typeof StoreSlugRouteRoute
+    }
     '/$storeSlug/produto/$slug': {
       id: '/$storeSlug/produto/$slug'
       path: '/produto/$slug'
@@ -574,12 +594,14 @@ declare module '@tanstack/react-router' {
 interface StoreSlugRouteRouteChildren {
   StoreSlugCarrinhoRoute: typeof StoreSlugCarrinhoRoute
   StoreSlugIndexRoute: typeof StoreSlugIndexRoute
+  StoreSlugAcompanharTokenRoute: typeof StoreSlugAcompanharTokenRoute
   StoreSlugProdutoSlugRoute: typeof StoreSlugProdutoSlugRoute
 }
 
 const StoreSlugRouteRouteChildren: StoreSlugRouteRouteChildren = {
   StoreSlugCarrinhoRoute: StoreSlugCarrinhoRoute,
   StoreSlugIndexRoute: StoreSlugIndexRoute,
+  StoreSlugAcompanharTokenRoute: StoreSlugAcompanharTokenRoute,
   StoreSlugProdutoSlugRoute: StoreSlugProdutoSlugRoute,
 }
 

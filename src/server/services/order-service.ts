@@ -53,7 +53,7 @@ export type CheckoutInput = {
 };
 
 export type CheckoutResult =
-  | { ok: true; orderId: string; orderNumber: number; total: number }
+  | { ok: true; orderId: string; orderNumber: number; total: number; trackingToken: string | null }
   | { ok: false; error: string };
 
 /** Price of one product at a given size — falls back to the base price. */
@@ -301,7 +301,13 @@ export async function createOrderFromCheckout(
     return created;
   });
 
-  return { ok: true, orderId: order.id, orderNumber: order.number, total: order.total };
+  return {
+    ok: true,
+    orderId: order.id,
+    orderNumber: order.number,
+    total: order.total,
+    trackingToken: order.trackingToken,
+  };
 }
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2, X } from "lucide-react";
@@ -61,7 +62,11 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   }
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [placed, setPlaced] = useState<{ number: number; total: number } | null>(null);
+  const [placed, setPlaced] = useState<{
+    number: number;
+    total: number;
+    trackingToken: string | null;
+  } | null>(null);
 
   const payments = storeInfo.acceptedPaymentMethods;
 
@@ -164,7 +169,11 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
       saveCustomerDetails(storeInfo.slug, {
         name, phone, street, number, complement, neighborhood, city, state, cep, type, paymentMethod,
       });
-      setPlaced({ number: res.orderNumber, total: res.total });
+      setPlaced({
+        number: res.orderNumber,
+        total: res.total,
+        trackingToken: res.trackingToken,
+      });
       clearCart();
     },
     onError: () => setError("Não foi possível enviar o pedido. Tente novamente."),
@@ -187,6 +196,25 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           <p className="mt-1 text-lg font-bold text-charcoal">
             {formatCurrency(placed.total)}
           </p>
+
+          {/* O link so existe nesta tela: sem WhatsApp automatico, quem fechar a
+              aba perde o acompanhamento. Por isso ele vem em destaque e com o
+              aviso de guardar. */}
+          {placed.trackingToken && (
+            <div className="mt-5 rounded-xl border border-charcoal/12 p-4 text-left">
+              <p className="text-sm font-semibold text-charcoal">Acompanhe seu pedido</p>
+              <p className="mt-0.5 text-xs text-charcoal/55">
+                Guarde este link: ele mostra em que etapa seu pedido está.
+              </p>
+              <Link
+                to="/$storeSlug/acompanhar/$token"
+                params={{ storeSlug: storeInfo.slug, token: placed.trackingToken }}
+                className="mt-2 inline-block text-sm font-semibold text-tomato hover:underline"
+              >
+                Ver o andamento →
+              </Link>
+            </div>
+          )}
 
           <a
             href={href}
