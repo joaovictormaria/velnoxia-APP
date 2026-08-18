@@ -17,13 +17,6 @@ const time = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 });
 
-const SIZE_SHORT: Record<string, string> = {
-  BROTINHO: "B",
-  MEDIA: "M",
-  GRANDE: "G",
-  GIGANTE: "GG",
-};
-
 export const COLUMNS: {
   status: OrderStatus;
   label: string;
@@ -109,7 +102,7 @@ export function KanbanBoard({
               <Icon className="size-5" />
             </header>
 
-            <div className="flex-1 space-y-3 rounded-b-2xl border border-t-0 border-neutral-200 bg-white p-3">
+            <div className="max-h-[calc(100vh-16rem)] flex-1 space-y-3 overflow-y-auto rounded-b-2xl border border-t-0 border-neutral-200 bg-white p-3">
               {orders.length === 0 && (
                 <p className="py-8 text-center text-sm text-neutral-400">
                   Nenhum pedido.
@@ -184,24 +177,15 @@ function OrderCard({
           {order.customerName}
         </p>
 
-        <ul className="mt-2 space-y-0.5">
-          {order.items.slice(0, 3).map((item, i) => (
-            <li key={i} className="truncate text-xs text-neutral-600">
-              {item.quantity}x {item.productNameSnapshot}
-              {item.sizeLabel ? ` ${SIZE_SHORT[item.sizeLabel]}` : ""}
-            </li>
-          ))}
-          {order.items.length > 3 && (
-            <li className="text-xs text-neutral-400">
-              + {order.items.length - 3} itens
-            </li>
-          )}
-        </ul>
-
-        <div className="mt-2 flex flex-wrap items-baseline gap-2">
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <p className="text-sm font-bold text-neutral-900">
             {currency.format(order.total)}
           </p>
+          <span
+            className={`rounded-md px-2 py-0.5 text-xs font-medium ${badge}`}
+          >
+            {order.type === "DELIVERY" ? "Entrega" : "Retirada"}
+          </span>
           {/* The kitchen needs to know a discount was applied, and which code did
             it, before questioning the amount that arrives. */}
           {order.discount > 0 && (
@@ -210,12 +194,6 @@ function OrderCard({
               {currency.format(order.discount)}
             </span>
           )}
-        </div>
-
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <span className={`rounded-md px-2 py-1 text-xs font-medium ${badge}`}>
-            {order.type === "DELIVERY" ? "Entrega" : "Retirada"}
-          </span>
         </div>
 
         {next && (
