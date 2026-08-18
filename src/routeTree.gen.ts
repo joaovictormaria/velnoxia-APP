@@ -16,6 +16,7 @@ import { Route as CriarSiteRouteImport } from './routes/criar-site'
 import { Route as Pizzaria2RouteRouteImport } from './routes/pizzaria-2/route'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminCadastroRouteImport } from './routes/admin/cadastro'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as Pizzaria2IndexRouteImport } from './routes/pizzaria-2/index'
@@ -68,6 +69,11 @@ const PreviewRoute = PreviewRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminCadastroRoute = AdminCadastroRouteImport.update({
+  id: '/cadastro',
+  path: '/cadastro',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
@@ -221,6 +229,7 @@ export interface FileRoutesById {
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
     | '/pizzaria-2/carrinho'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
     | '/pizzaria-2/carrinho'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
     | '/pizzaria-2/carrinho'
@@ -382,6 +394,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/cadastro': {
+      id: '/admin/cadastro'
+      path: '/cadastro'
+      fullPath: '/admin/cadastro'
+      preLoaderRoute: typeof AdminCadastroRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/login': {
@@ -514,6 +533,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteRouteChildren {
+  AdminCadastroRoute: typeof AdminCadastroRoute
   AdminLoginRoute: typeof AdminLoginRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCardapioProductIdRoute: typeof AdminCardapioProductIdRoute
@@ -532,6 +552,7 @@ interface AdminRouteRouteChildren {
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminCadastroRoute: AdminCadastroRoute,
   AdminLoginRoute: AdminLoginRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCardapioProductIdRoute: AdminCardapioProductIdRoute,
