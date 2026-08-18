@@ -57,8 +57,14 @@ export function brandTheme(palette: Palette): BrandTheme {
   const lightest = Math.max(...stops.map(luminance));
   const light = lightest > 0.55;
 
+  /*
+   * Even the flat option has to be a gradient value. The token is consumed by
+   * `background-image`, which rejects a bare colour outright — the declaration
+   * is dropped and the hero renders transparent, i.e. white. Two identical
+   * stops paint the same flat colour through a value the property accepts.
+   */
   const background = solid
-    ? primary
+    ? `linear-gradient(${primary}, ${primary})`
     : `linear-gradient(135deg, ${stops.join(", ")})`;
 
   return {
@@ -72,7 +78,7 @@ export function brandTheme(palette: Palette): BrandTheme {
      * live on :root — so overriding the ingredients further down never reaches
      * them.
      */
-    "--gradient-accent": solid ? primary : background,
+    "--gradient-accent": background,
     "--gradient-ember": `radial-gradient(60% 60% at 30% 20%, color-mix(in oklab, ${primary} 22%, transparent), transparent 70%)`,
     "--on-primary": light ? "#171717" : "#fffdf8",
     "--on-primary-muted": light ? "rgba(23,23,23,0.72)" : "rgba(255,253,248,0.75)",
