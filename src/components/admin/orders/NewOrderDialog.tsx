@@ -165,6 +165,14 @@ export function NewOrderDialog() {
                   </li>
                 ))}
               </ul>
+              {order.discount > 0 && (
+                <div className="flex items-center justify-between text-sm text-emerald-700">
+                  <span>
+                    Desconto{order.coupon ? " · " + order.coupon.code : ""}
+                  </span>
+                  <span>-{currency.format(order.discount)}</span>
+                </div>
+              )}
               <div className="mt-3 flex items-baseline justify-between border-t border-neutral-200 pt-3">
                 <span className="text-lg font-bold">Total</span>
                 <span className="text-lg font-bold">{currency.format(order.total)}</span>
