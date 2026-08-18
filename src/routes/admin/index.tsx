@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Clock, DollarSign, ExternalLink, ShoppingBag, Star, Wallet } from "lucide-react";
 import { KpiCard } from "@/components/admin/dashboard/KpiCard";
+import { MenuQrCodeButton } from "@/components/admin/dashboard/MenuQrCodeButton";
 import { OrdersByHourChart } from "@/components/admin/dashboard/OrdersByHourChart";
 import { OrdersByStatusCard } from "@/components/admin/dashboard/OrdersByStatusCard";
 import { TopProductsList } from "@/components/admin/dashboard/TopProductsList";
@@ -79,6 +80,11 @@ function DashboardPage() {
               <ExternalLink className="size-4" />
               Ver meu cardápio
             </a>
+          )}
+          {/* Ao lado do link do cardápio porque é o mesmo endereço, só que
+              para o cliente que está sentado na mesa. */}
+          {admin && (
+            <MenuQrCodeButton slug={admin.store.slug} storeName={admin.store.name} />
           )}
           <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-700">
             <CalendarDays className="size-4 text-neutral-500" />
