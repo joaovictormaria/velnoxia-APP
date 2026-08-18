@@ -1,8 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
+import {
+  formatCep,
+  isCompleteCep,
+  lookupCep,
+} from "@/lib/pizzaria2/cep-lookup";
 import {
   getStoreSettingsFn,
   saveOpeningHoursFn,
@@ -98,6 +103,12 @@ function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [tab, setTab] = useState<TabId>("identidade");
+  const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "notfound">("idle");
+  const cepRequest = useRef<AbortController | null>(null);
+
+  // Sair da tela no meio de uma busca não deve deixar um retorno tardio
+  // tentando escrever num formulário que já não existe.
+  useEffect(() => () => cepRequest.current?.abort(), []);
 
   const { data, isPending } = useQuery({
     queryKey: ["store-settings"],
@@ -159,6 +170,52 @@ function SettingsPage() {
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => (d ? { ...d, [key]: value } : d));
+
+  /**
+   * Busca o endereço quando o CEP fica completo.
+   *
+   * Disparado na digitação, e não num efeito sobre o valor: um efeito também
+   * rodaria ao abrir a tela com um CEP já salvo, e reescreveria por cima do
+   * endereço que o dono tinha ajustado à mão.
+   */
+  function handleCepChange(value: string) {
+    const cep = formatCep(value);
+    set("addressZipCode", cep);
+
+    // A busca anterior perde a vez: quem digita rápido não pode receber a
+    // resposta de um CEP que já não é o que está no campo.
+    cepRequest.current?.abort();
+    if (!isCompleteCep(cep)) {
+      setCepStatus("idle");
+      return;
+    }
+
+    const controller = new AbortController();
+    cepRequest.current = controller;
+    setCepStatus("loading");
+
+    lookupCep(cep, controller.signal).then((address) => {
+      if (controller.signal.aborted) return;
+      if (!address) {
+        setCepStatus("notfound");
+        return;
+      }
+      setCepStatus("idle");
+      setDraft((d) =>
+        d
+          ? {
+              ...d,
+              // Só o que o ViaCEP devolveu: CEP de cidade inteira vem sem rua,
+              // e apagar uma linha já preenchida seria pior que deixá-la.
+              addressStreet: address.street || d.addressStreet,
+              addressNeighborhood: address.neighborhood || d.addressNeighborhood,
+              addressCity: address.city || d.addressCity,
+              addressState: address.state || d.addressState,
+            }
+          : d,
+      );
+    });
+  }
 
   const save = useMutation({
     mutationFn: async () => {
@@ -443,6 +500,25 @@ function SettingsPage() {
         description="Exibido no rodapé com link para o mapa."
       >
         <div className="grid gap-4 sm:grid-cols-6">
+          <div className="sm:col-span-2">
+            <Field
+              label="CEP"
+              hint={
+                cepStatus === "loading"
+                  ? "Buscando endereço..."
+                  : cepStatus === "notfound"
+                    ? "CEP não encontrado. Preencha à mão."
+                    : "Preenche rua, bairro, cidade e UF."
+              }
+            >
+              <Input
+                value={draft.addressZipCode}
+                onChange={handleCepChange}
+                inputMode="numeric"
+                placeholder="00000-000"
+              />
+            </Field>
+          </div>
           <div className="sm:col-span-4">
             <Field label="Rua">
               <Input
@@ -459,7 +535,7 @@ function SettingsPage() {
               />
             </Field>
           </div>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <Field label="Complemento">
               <Input
                 value={draft.addressComplement}
@@ -467,7 +543,7 @@ function SettingsPage() {
               />
             </Field>
           </div>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <Field label="Bairro">
               <Input
                 value={draft.addressNeighborhood}
@@ -475,7 +551,7 @@ function SettingsPage() {
               />
             </Field>
           </div>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-4">
             <Field label="Cidade">
               <Input
                 value={draft.addressCity}
@@ -483,19 +559,11 @@ function SettingsPage() {
               />
             </Field>
           </div>
-          <div className="sm:col-span-1">
+          <div className="sm:col-span-2">
             <Field label="UF">
               <Input
                 value={draft.addressState}
                 onChange={(v) => set("addressState", v)}
-              />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="CEP">
-              <Input
-                value={draft.addressZipCode}
-                onChange={(v) => set("addressZipCode", v)}
               />
             </Field>
           </div>
