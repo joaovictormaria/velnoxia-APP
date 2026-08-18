@@ -231,7 +231,7 @@ function PizzariaInicio() {
               so the photo's masked edge blends into the exact same gradient with no seam. */}
           <div className="relative z-10 order-2 flex items-center justify-center px-4 py-10 sm:px-6 md:order-1">
             <Reveal variant="up" className="mx-auto max-w-xl text-center">
-              <h1 className="font-display text-[7vw] font-extrabold leading-[1.1] sm:text-5xl md:text-4xl lg:text-5xl">
+              <h1 className="text-halo font-display text-[7vw] font-extrabold leading-[1.1] sm:text-5xl md:text-4xl lg:text-5xl">
                 <span className="block whitespace-nowrap text-[color:var(--on-primary)]">
                   Bateu aquela vontade de
                 </span>
@@ -243,7 +243,7 @@ function PizzariaInicio() {
                   />
                 </span>
               </h1>
-              <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[color:var(--on-primary-muted)]">
+              <p className="text-halo mx-auto mt-5 max-w-md text-base leading-relaxed text-[color:var(--on-primary-muted)]">
                 {heroSubtitle}
               </p>
               <div className="relative mt-8 inline-flex w-fit">

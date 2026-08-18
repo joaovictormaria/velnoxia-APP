@@ -17,7 +17,9 @@ export type Palette = {
   tertiaryColor?: string | null;
 };
 
-function parseHex(hex: string | null | undefined): { r: number; g: number; b: number } | null {
+function parseHex(
+  hex: string | null | undefined,
+): { r: number; g: number; b: number } | null {
   if (!hex) return null;
   const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
   if (!m) return null;
@@ -37,8 +39,9 @@ export function luminance(hex: string): number {
 
 /** Valid stops in order, always with at least the primary. */
 export function paletteStops(p: Palette): string[] {
-  const stops = [p.primaryColor, p.secondaryColor, p.tertiaryColor]
-    .filter((c): c is string => Boolean(parseHex(c)));
+  const stops = [p.primaryColor, p.secondaryColor, p.tertiaryColor].filter(
+    (c): c is string => Boolean(parseHex(c)),
+  );
   return stops.length ? stops : [FALLBACK];
 }
 
@@ -82,7 +85,8 @@ export function brandTheme(palette: Palette): BrandTheme {
    * running from deep blue to cream must satisfy the cream end too, not the
    * average of the two.
    */
-  const worstContrast = (fg: string) => Math.min(...stops.map((s) => contrast(s, fg)));
+  const worstContrast = (fg: string) =>
+    Math.min(...stops.map((s) => contrast(s, fg)));
   const light = worstContrast(ON_DARK) >= worstContrast(ON_LIGHT);
   const onPrimary = light ? ON_DARK : ON_LIGHT;
 
@@ -90,7 +94,8 @@ export function brandTheme(palette: Palette): BrandTheme {
   const bestAccent = accentOptions.reduce((best, c) =>
     worstContrast(c) > worstContrast(best) ? c : best,
   );
-  const accent = worstContrast(bestAccent) >= MIN_ACCENT_CONTRAST ? bestAccent : onPrimary;
+  const accent =
+    worstContrast(bestAccent) >= MIN_ACCENT_CONTRAST ? bestAccent : onPrimary;
 
   /*
    * Even the flat option has to be a gradient value. The token is consumed by
@@ -105,8 +110,12 @@ export function brandTheme(palette: Palette): BrandTheme {
   return {
     "--tomato": primary,
     "--primary": primary,
-    "--primary-glow": solid ? primary : `color-mix(in oklab, ${primary} 82%, white)`,
-    "--primary-deep": solid ? primary : `color-mix(in oklab, ${stops.at(-1)!} 78%, black)`,
+    "--primary-glow": solid
+      ? primary
+      : `color-mix(in oklab, ${primary} 82%, white)`,
+    "--primary-deep": solid
+      ? primary
+      : `color-mix(in oklab, ${stops.at(-1)!} 78%, black)`,
     /*
      * The composed gradients are restated, not just their ingredients: a custom
      * property containing var() is substituted where it is declared, and these
@@ -116,7 +125,21 @@ export function brandTheme(palette: Palette): BrandTheme {
     "--gradient-accent": background,
     "--gradient-ember": `radial-gradient(60% 60% at 30% 20%, color-mix(in oklab, ${primary} 22%, transparent), transparent 70%)`,
     "--on-primary": onPrimary,
-    "--on-primary-muted": light ? "rgba(23,23,23,0.72)" : "rgba(255,253,248,0.75)",
+    "--on-primary-muted": light
+      ? "rgba(23,23,23,0.72)"
+      : "rgba(255,253,248,0.75)",
+    /*
+     * A halo in the opposite color of the text, used as a soft glow behind the
+     * hero headline. It is deliberately self-effacing: on a background where the
+     * text already stands out, the halo is close to that background and cannot
+     * be seen. It only becomes visible where the background drifts toward the
+     * text color — the exact spot where a phrase would otherwise dissolve. That
+     * is what makes it safe to apply always, including on a gradient that no
+     * single text color can survive end to end.
+     */
+    "--on-primary-halo": light
+      ? "rgba(255,253,248,0.62)"
+      : "rgba(23,23,23,0.5)",
     // The accent keeps its warm hue only while it stays readable. When no warm
     // tone clears the bar — a mid green, a grey — the highlighted word falls
     // back to the plain text color: losing the color beats losing the word.

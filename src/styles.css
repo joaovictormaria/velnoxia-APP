@@ -583,3 +583,19 @@
     animation: none;
   }
 }
+
+/* Soft halo behind text that sits on the brand color. Two layers: a tight one
+   that keeps the letter edges crisp, and a wide, faint one that lifts the word
+   off the background. Both use the same token, which is the opposite of the
+   text color, so the effect disappears wherever it is not needed. */
+@utility text-halo {
+  text-shadow:
+    0 1px 1.5px var(--on-primary-halo),
+    0 0 12px var(--on-primary-halo);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .text-halo {
+    text-shadow: 0 1px 1.5px var(--on-primary-halo);
+  }
+}
