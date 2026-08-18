@@ -235,6 +235,24 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /* The bar is hidden, the scrolling is not: wheel, touch, arrows, Page Down and
+     Ctrl+End all keep working. Only the drawn track goes away — and it goes away
+     on every scrolling box, not just the page, so an inner panel does not show a
+     bar the page no longer has. */
+  html,
+  body,
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
   h1,
   h2,
   h3,
