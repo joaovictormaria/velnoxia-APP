@@ -116,6 +116,8 @@ enum StoreStatus {
 /// Store, and every query must be scoped by storeId — there is no global view.
 model Store {
   id          String      @id @default(cuid())
+  /// Drives the starter catalog and the storefront copy (pizzaria, hamburgueria...).
+  businessType String     @default("pizzaria")
   /// Public URL segment: velnox.app/<slug>. Checked against RESERVED_SLUGS on
   /// signup so a store can never shadow a real route (/admin, /criar-site...).
   slug        String      @unique

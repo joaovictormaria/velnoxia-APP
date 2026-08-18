@@ -5,6 +5,7 @@ import { hashPassword } from "../auth/password";
 import { startSessionFor } from "../auth/session";
 import { generateUniqueSlug, isEmailTaken } from "../repositories/store-repository";
 import { WEEKDAYS } from "../repositories/store-settings-repository";
+import { getStarterCatalog, STARTER_CATALOGS } from "../catalog/starter-catalogs";
 
 /** How long a new store can use the system before it needs to be paid. */
 const TRIAL_DAYS = 14;
@@ -15,6 +16,7 @@ const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
   password: z.string().min(8, "A senha precisa ter ao menos 8 caracteres."),
   whatsappNumber: z.string().trim().min(8, "Informe o WhatsApp da loja."),
+  businessType: z.enum(Object.keys(STARTER_CATALOGS) as [string, ...string[]]),
 });
 
 /**
@@ -32,6 +34,7 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
     // to pick an address and two lanchonetes with the same name never clash.
     const slug = await generateUniqueSlug(data.storeName);
 
+    const catalog = getStarterCatalog(data.businessType);
     const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
     const passwordHash = await hashPassword(data.password);
 
@@ -42,17 +45,55 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
           data: {
             slug,
             name: data.storeName,
+            businessType: data.businessType,
             status: "TRIAL",
             trialEndsAt,
             settings: {
               create: {
                 storeName: data.storeName,
+                tagline: catalog.tagline,
+                description: catalog.description,
                 whatsappNumber: data.whatsappNumber,
                 openingHours: { create: WEEKDAYS.map((weekday) => ({ weekday })) },
               },
             },
           },
         });
+
+
+        // Starter menu, in the same transaction: a store whose catalog failed
+        // halfway would show a broken cardápio on its very first visit.
+        for (const [i, category] of catalog.categories.entries()) {
+          await tx.category.create({
+            data: {
+              storeId: store.id,
+              name: category.name,
+              slug: category.slug,
+              icon: category.icon,
+              kind: category.kind,
+              sortOrder: i + 1,
+              products: {
+                create: category.products.map((product, j) => ({
+                  storeId: store.id,
+                  name: product.name,
+                  slug: slugifyProduct(product.name),
+                  description: product.description,
+                  basePrice: product.basePrice,
+                  tag: product.tag ?? null,
+                  allowHalfAndHalf: product.allowHalfAndHalf ?? false,
+                  sortOrder: j + 1,
+                  sizes: product.sizes ? { create: product.sizes } : undefined,
+                })),
+              },
+            },
+          });
+        }
+
+        if (catalog.extras.length) {
+          await tx.extra.createMany({
+            data: catalog.extras.map((e) => ({ storeId: store.id, ...e })),
+          });
+        }
 
         return tx.adminUser.create({
           data: {
@@ -80,3 +121,13 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
 
     return { ok: true as const, slug, trialEndsAt, trialDays: TRIAL_DAYS };
   });
+
+/** Product slugs are unique per store, so the plain name is enough. */
+function slugifyProduct(name: string) {
+  return name
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
