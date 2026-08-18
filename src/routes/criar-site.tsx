@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Navbar } from "@/components/site/Navbar";
 import { AiAssistant } from "@/components/site/AiAssistant";
 
@@ -7,6 +7,15 @@ const description =
   "Responda algumas perguntas rápidas e geramos um exemplo personalizado do site do seu restaurante — na hora, sem compromisso.";
 
 export const Route = createFileRoute("/criar-site")({
+  /**
+   * Este domínio é a entrada do aplicativo, não a vitrine do produto: quem
+   * chega aqui quer entrar na própria conta. A tela de marketing continua no
+   * repositório, mas fora do caminho — se um dia voltar a ser servida, será
+   * de outro endereço.
+   */
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/login" });
+  },
   head: () => ({
     meta: [
       { title },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, redirect } from "@tanstack/react-router";
 import { AlertTriangle, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { Navbar } from "@/components/site/Navbar";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,15 @@ const description =
   "Nossa IA está analisando as informações do seu negócio para gerar um site personalizado.";
 
 export const Route = createFileRoute("/analise")({
+  /**
+   * Este domínio é a entrada do aplicativo, não a vitrine do produto: quem
+   * chega aqui quer entrar na própria conta. A tela de marketing continua no
+   * repositório, mas fora do caminho — se um dia voltar a ser servida, será
+   * de outro endereço.
+   */
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/login" });
+  },
   head: () => ({
     meta: [
       { title },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowRight, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
@@ -7,6 +7,15 @@ import { stockImageUrl } from "@/lib/stock-image";
 import type { GeneratedSiteContent } from "@/lib/generate-site";
 
 export const Route = createFileRoute("/preview")({
+  /**
+   * Este domínio é a entrada do aplicativo, não a vitrine do produto: quem
+   * chega aqui quer entrar na própria conta. A tela de marketing continua no
+   * repositório, mas fora do caminho — se um dia voltar a ser servida, será
+   * de outro endereço.
+   */
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/login" });
+  },
   head: () => ({
     meta: [{ title: "Prévia do site — gerado por velnox.ia" }],
   }),

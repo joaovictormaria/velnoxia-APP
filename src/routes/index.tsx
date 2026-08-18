@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Navbar } from "@/components/site/Navbar";
 import { Hero } from "@/components/site/Hero";
 import { Footer } from "@/components/site/Footer";
@@ -10,6 +10,15 @@ const description =
   "A velnox.ia cria sites profissionais para restaurantes com Inteligência Artificial: mais pedidos no WhatsApp, delivery integrado e destaque no Google.";
 
 export const Route = createFileRoute("/")({
+  /**
+   * Este domínio é a entrada do aplicativo, não a vitrine do produto: quem
+   * chega aqui quer entrar na própria conta. A tela de marketing continua no
+   * repositório, mas fora do caminho — se um dia voltar a ser servida, será
+   * de outro endereço.
+   */
+  beforeLoad: () => {
+    throw redirect({ to: "/admin/login" });
+  },
   head: () => ({
     meta: [
       { title },
