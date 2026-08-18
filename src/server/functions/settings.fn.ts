@@ -34,6 +34,9 @@ const settingsSchema = z.object({
   primaryColor: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "Use uma cor no formato #RRGGBB."),
+  colorMode: z.enum(["SOLID", "GRADIENT"]),
+  secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
+  tertiaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
   whatsappNumber: z.string().trim().min(1, "Informe o WhatsApp."),
   email: optionalText,
   instagramUrl: optionalText,

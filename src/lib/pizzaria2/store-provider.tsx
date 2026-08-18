@@ -26,6 +26,9 @@ export type StorePayload = {
   description: string | null;
   logoUrl: string | null;
   primaryColor: string;
+  colorMode: string;
+  secondaryColor: string | null;
+  tertiaryColor: string | null;
   whatsappNumber: string;
   email: string | null;
   instagramUrl: string | null;

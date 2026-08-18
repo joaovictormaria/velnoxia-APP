@@ -48,6 +48,9 @@ type Draft = {
   description: string;
   logoUrl: string | null;
   primaryColor: string;
+  colorMode: "SOLID" | "GRADIENT";
+  secondaryColor: string;
+  tertiaryColor: string;
   whatsappNumber: string;
   email: string;
   instagramUrl: string;
@@ -95,6 +98,9 @@ function SettingsPage() {
       description: data.description ?? "",
       logoUrl: data.logoUrl,
       primaryColor: data.primaryColor,
+      colorMode: data.colorMode === "SOLID" ? "SOLID" : "GRADIENT",
+      secondaryColor: data.secondaryColor ?? "#F59E0B",
+      tertiaryColor: data.tertiaryColor ?? "#7C3AED",
       whatsappNumber: data.whatsappNumber,
       email: data.email ?? "",
       instagramUrl: data.instagramUrl ?? "",
@@ -145,6 +151,8 @@ function SettingsPage() {
         data: {
           ...draft,
           tagline: draft.tagline || null,
+          secondaryColor: draft.colorMode === "GRADIENT" ? draft.secondaryColor : null,
+          tertiaryColor: draft.colorMode === "GRADIENT" ? draft.tertiaryColor : null,
           description: draft.description || null,
           email: draft.email || null,
           instagramUrl: draft.instagramUrl || null,
@@ -249,16 +257,61 @@ function SettingsPage() {
                 className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
               />
             </Field>
-            <Field label="Cor principal">
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={draft.primaryColor}
-                  onChange={(e) => set("primaryColor", e.target.value)}
-                  className="h-10 w-14 cursor-pointer rounded-lg border border-neutral-300"
-                />
-                <Input value={draft.primaryColor} onChange={(v) => set("primaryColor", v)} />
+            <Field label="Cores do site">
+              <div className="flex gap-2">
+                {(["SOLID", "GRADIENT"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => set("colorMode", mode)}
+                    className={
+                      draft.colorMode === mode
+                        ? "rounded-full bg-[#E11D2E] px-4 py-2 text-sm font-medium text-white"
+                        : "rounded-full border border-neutral-300 bg-white px-4 py-2 text-sm text-neutral-600 hover:bg-neutral-50"
+                    }
+                  >
+                    {mode === "SOLID" ? "Cor única" : "Degradê"}
+                  </button>
+                ))}
               </div>
+
+              <div className="mt-3 space-y-2">
+                <ColorRow
+                  label={draft.colorMode === "SOLID" ? "Cor" : "Cor 1"}
+                  value={draft.primaryColor}
+                  onChange={(v) => set("primaryColor", v)}
+                />
+                {draft.colorMode === "GRADIENT" && (
+                  <>
+                    <ColorRow
+                      label="Cor 2"
+                      value={draft.secondaryColor}
+                      onChange={(v) => set("secondaryColor", v)}
+                    />
+                    <ColorRow
+                      label="Cor 3"
+                      value={draft.tertiaryColor}
+                      onChange={(v) => set("tertiaryColor", v)}
+                    />
+                  </>
+                )}
+              </div>
+
+              {/* Shows the real thing rather than three swatches: the point of a
+                  gradient is how the colours meet, which separate chips hide. */}
+              <div
+                className="mt-3 h-16 rounded-xl border border-neutral-200"
+                style={{
+                  background:
+                    draft.colorMode === "SOLID"
+                      ? draft.primaryColor
+                      : `linear-gradient(135deg, ${draft.primaryColor}, ${draft.secondaryColor}, ${draft.tertiaryColor})`,
+                }}
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                O texto do site escurece ou clareia sozinho para continuar legível
+                sobre as cores escolhidas.
+              </p>
             </Field>
           </div>
         </div>
@@ -569,5 +622,33 @@ function Toggle({
       />
       <span className="text-sm text-neutral-700">{label}</span>
     </label>
+  );
+}
+
+function ColorRow({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-10 w-14 shrink-0 cursor-pointer rounded-lg border border-neutral-300"
+        aria-label={label}
+      />
+      <span className="w-12 shrink-0 text-xs text-neutral-500">{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-neutral-300 px-3 py-2 font-mono text-sm text-neutral-900"
+      />
+    </div>
   );
 }

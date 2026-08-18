@@ -176,6 +176,10 @@ model StoreSettings {
   description              String?
   logoUrl                  String?
   primaryColor             String          @default("#E11D2E")
+  /// SOLID uses primaryColor flat; GRADIENT blends the three stops.
+  colorMode                String          @default("GRADIENT")
+  secondaryColor           String?
+  tertiaryColor            String?
   whatsappNumber           String
   email                    String?
   instagramUrl             String?

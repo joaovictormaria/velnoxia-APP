@@ -20,6 +20,10 @@ export type StoreSettingsInput = {
   description?: string | null;
   logoUrl?: string | null;
   primaryColor: string;
+  /** "SOLID" paints a flat colour; "GRADIENT" blends the stops below. */
+  colorMode: string;
+  secondaryColor?: string | null;
+  tertiaryColor?: string | null;
   whatsappNumber: string;
   email?: string | null;
   instagramUrl?: string | null;
@@ -97,6 +101,9 @@ export async function getPublicStoreSettings(storeId: string) {
     description: settings.description,
     logoUrl: settings.logoUrl,
     primaryColor: settings.primaryColor,
+    colorMode: settings.colorMode,
+    secondaryColor: settings.secondaryColor,
+    tertiaryColor: settings.tertiaryColor,
     whatsappNumber: settings.whatsappNumber,
     email: settings.email,
     instagramUrl: settings.instagramUrl,

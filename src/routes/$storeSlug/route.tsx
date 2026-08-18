@@ -37,7 +37,7 @@ function PizzariaLayout() {
               a single choice restyles the whole storefront consistently. */}
           <div
             className="pizzaria2 flex min-h-screen flex-col bg-cream font-sans text-charcoal"
-            style={brandTheme(data.store.primaryColor) as React.CSSProperties}
+            style={brandTheme(data.store) as React.CSSProperties}
           >
             <Header />
             <div className="flex-1 pt-16.75">
