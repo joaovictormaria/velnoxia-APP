@@ -126,7 +126,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                 Avaliações
               </span>
               <h2 className="mt-3 font-display text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
-                O que estão achando
+                Nos diga como foi sua experiência no atendimento!
               </h2>
             </div>
             {summary.total > 0 && (
