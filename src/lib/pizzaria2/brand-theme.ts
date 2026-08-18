@@ -44,18 +44,53 @@ export function paletteStops(p: Palette): string[] {
 
 export type BrandTheme = Record<string, string>;
 
+const ON_DARK = "#171717";
+const ON_LIGHT = "#fffdf8";
+
+/**
+ * Warm tones for the highlighted word in the headline, from deepest to
+ * lightest. One of them is picked by measurement; the point of the list is that
+ * a mid-tone brand color has somewhere to go when the obvious choice is too
+ * close to the background.
+ */
+const ACCENTS_FOR_DARK_TEXT = ["#7a3b00", "#5a2a00", "#3d1c00"];
+const ACCENTS_FOR_LIGHT_TEXT = ["#ffd166", "#ffe3a3", "#fff3d6"];
+
+/** Below this a phrase stops being comfortably readable. */
+const MIN_ACCENT_CONTRAST = 4.5;
+
+/** WCAG contrast ratio between two hex colors, from 1 (same) to 21 (black on white). */
+export function contrast(a: string, b: string): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
 export function brandTheme(palette: Palette): BrandTheme {
   const stops = paletteStops(palette);
   const primary = stops[0];
   const solid = palette.colorMode === "SOLID" || stops.length < 2;
 
   /*
-   * Contrast is judged by the lightest stop, not by the average. Text sits over
-   * the whole background, so a gradient that runs from deep blue to cream would
-   * pass an averaged check and still lose the headline at the cream end.
+   * Which of the two text colors survives on this background is measured, not
+   * guessed from a luminance threshold. A fixed cutoff gets the middle of the
+   * range wrong: a medium purple or a medium blue reads as "dark" and keeps the
+   * cream text at a contrast around 3, which is where headlines start to
+   * disappear. Measuring picks dark text for both and lands near 6.
+   *
+   * The worst stop decides. Text sits over the whole background, so a gradient
+   * running from deep blue to cream must satisfy the cream end too, not the
+   * average of the two.
    */
-  const lightest = Math.max(...stops.map(luminance));
-  const light = lightest > 0.55;
+  const worstContrast = (fg: string) => Math.min(...stops.map((s) => contrast(s, fg)));
+  const light = worstContrast(ON_DARK) >= worstContrast(ON_LIGHT);
+  const onPrimary = light ? ON_DARK : ON_LIGHT;
+
+  const accentOptions = light ? ACCENTS_FOR_DARK_TEXT : ACCENTS_FOR_LIGHT_TEXT;
+  const bestAccent = accentOptions.reduce((best, c) =>
+    worstContrast(c) > worstContrast(best) ? c : best,
+  );
+  const accent = worstContrast(bestAccent) >= MIN_ACCENT_CONTRAST ? bestAccent : onPrimary;
 
   /*
    * Even the flat option has to be a gradient value. The token is consumed by
@@ -80,8 +115,11 @@ export function brandTheme(palette: Palette): BrandTheme {
      */
     "--gradient-accent": background,
     "--gradient-ember": `radial-gradient(60% 60% at 30% 20%, color-mix(in oklab, ${primary} 22%, transparent), transparent 70%)`,
-    "--on-primary": light ? "#171717" : "#fffdf8",
+    "--on-primary": onPrimary,
     "--on-primary-muted": light ? "rgba(23,23,23,0.72)" : "rgba(255,253,248,0.75)",
-    "--on-primary-accent": light ? "#7a3b00" : "#ffd166",
+    // The accent keeps its warm hue only while it stays readable. When no warm
+    // tone clears the bar — a mid green, a grey — the highlighted word falls
+    // back to the plain text color: losing the color beats losing the word.
+    "--on-primary-accent": accent,
   };
 }
