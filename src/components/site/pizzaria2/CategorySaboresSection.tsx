@@ -103,7 +103,12 @@ export function CategorySaboresSection({
 
   if (!category) return null;
 
-  const [firstLine, secondLine] = categoryDescriptions[category.slug] ?? ["", ""];
+  // The category's own copy wins. The maps below stay only as a fallback for
+  // stores seeded before these columns existed — a category created in the
+  // admin has no entry there and would otherwise render blank.
+  const [fallbackFirst, fallbackSecond] = categoryDescriptions[category.slug] ?? ["", ""];
+  const firstLine = category.headline ?? fallbackFirst;
+  const secondLine = category.subhead ?? fallbackSecond;
 
   // Landing directly on the produto page's "cardápio" screen (the same one
   // the add-to-cart flow slides into) needs *a* valid pizza slug to anchor
@@ -119,7 +124,7 @@ export function CategorySaboresSection({
               fall back to the category's own name instead of an empty pill. */}
           <span className="inline-flex items-center gap-2 rounded-full bg-tomato/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-tomato">
             {category.icon && <category.icon className="h-4 w-4" />}
-            {categoryBadges[category.slug] ?? category.name}
+            {category.badge ?? categoryBadges[category.slug] ?? category.name}
           </span>
 
           <h2 className="mt-5 font-display text-5xl font-extrabold leading-[1.05] text-charcoal sm:text-6xl lg:text-5xl">

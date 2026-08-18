@@ -25,6 +25,11 @@ export type StarterProduct = {
 
 export type StarterCategory = {
   name: string;
+  /** Pill above the title on the storefront. */
+  badge?: string;
+  /** Two lines under the title. */
+  headline?: string;
+  subhead?: string;
   slug: string;
   icon: string;
   kind: CategoryKind;
@@ -58,6 +63,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Pizzas Tradicionais",
         slug: "tradicionais",
+        badge: "Sabores que todo mundo ama",
+        headline: "Os clássicos que nunca saem de moda.",
+        subhead: "Ingredientes selecionados para a pizza perfeita.",
         icon: "Pizza",
         kind: "PIZZA",
         products: [
@@ -70,6 +78,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Pizzas Especiais",
         slug: "especiais",
+        badge: "Para ocasiões especiais",
+        headline: "Combinações autorais para quem quer sair do óbvio.",
+        subhead: "Receitas exclusivas, feitas para impressionar.",
         icon: "Star",
         kind: "PIZZA",
         products: [
@@ -80,6 +91,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Pizzas Doces",
         slug: "doces",
+        badge: "Pra adoçar o pedido",
+        headline: "Pra fechar o pedido com um toque doce.",
+        subhead: "Recheio generoso e cobertura na medida certa.",
         icon: "Cake",
         kind: "PIZZA",
         products: [
@@ -89,6 +103,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Bebidas",
         slug: "bebidas",
+        badge: "Geladinhas pra acompanhar",
+        headline: "Pra acompanhar seu pedido bem gelada.",
+        subhead: "Sempre na temperatura certa quando chega.",
         icon: "CupSoda",
         kind: "SIMPLE",
         products: [
@@ -112,6 +129,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Hambúrgueres",
         slug: "hamburgueres",
+        badge: "O que a gente faz de melhor",
+        headline: "Carne na chapa e pão macio.",
+        subhead: "Montado na hora do seu pedido.",
         icon: "Sandwich",
         kind: "SIMPLE",
         products: [
@@ -124,6 +144,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Porções",
         slug: "porcoes",
+        badge: "Pra dividir (ou não)",
+        headline: "Porções pra acompanhar o lanche.",
+        subhead: "Fritas na hora, sempre crocantes.",
         icon: "UtensilsCrossed",
         kind: "SIMPLE",
         products: [
@@ -158,6 +181,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Açaí",
         slug: "acai",
+        badge: "Cremoso do jeito certo",
+        headline: "Açaí batido na hora que você pede.",
+        subhead: "Escolha o tamanho e os complementos.",
         icon: "GlassWater",
         kind: "SIMPLE",
         products: [
@@ -169,6 +195,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Combos",
         slug: "combos",
+        badge: "Rende pra mais de um",
+        headline: "Porções maiores com preço melhor.",
+        subhead: "Ideal pra dividir a dois.",
         icon: "Star",
         kind: "SIMPLE",
         products: [
@@ -203,6 +232,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Combinados",
         slug: "combinados",
+        badge: "Montados na hora",
+        headline: "Seleção de sushis e sashimis do dia.",
+        subhead: "Peixe fresco, cortado na hora.",
         icon: "UtensilsCrossed",
         kind: "SIMPLE",
         products: [
@@ -213,6 +245,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Temakis",
         slug: "temakis",
+        badge: "Enrolado na hora",
+        headline: "Cone crocante, recheio generoso.",
+        subhead: "Sai do balcão direto pro seu pedido.",
         icon: "Drumstick",
         kind: "SIMPLE",
         products: [
@@ -224,6 +259,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       {
         name: "Pratos Quentes",
         slug: "pratos-quentes",
+        badge: "Pra quem prefere quente",
+        headline: "Opções quentes do wok e da chapa.",
+        subhead: "Servidos na porção individual.",
         icon: "UtensilsCrossed",
         kind: "SIMPLE",
         products: [

@@ -15,6 +15,9 @@ const categorySchema = z.object({
     .string()
     .min(1)
     .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífens."),
+  badge: z.string().nullish(),
+  headline: z.string().nullish(),
+  subhead: z.string().nullish(),
   icon: z.string().nullish(),
   imageUrl: z.string().nullish(),
   kind: z.enum(["PIZZA", "SIMPLE"]),

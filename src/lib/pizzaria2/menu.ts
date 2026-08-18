@@ -13,6 +13,10 @@ export type Category = {
   slug: CategorySlug;
   name: string;
   shortName: string;
+  /** Storefront copy, editable per category in the admin. */
+  badge?: string;
+  headline?: string;
+  subhead?: string;
   /** Pizza categories have a photo; simple categories fall back to a branded icon tile. */
   image?: string;
   icon?: LucideIcon;

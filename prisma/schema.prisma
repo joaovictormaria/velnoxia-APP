@@ -238,6 +238,11 @@ model Category {
   store     Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name      String
   slug      String
+  /// Small pill above the category title on the storefront.
+  badge     String?
+  /// Two-line blurb under the category title.
+  headline  String?
+  subhead   String?
   icon      String?
   imageUrl  String?
   kind      CategoryKind @default(SIMPLE)

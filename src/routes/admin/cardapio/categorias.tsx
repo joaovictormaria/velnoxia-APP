@@ -17,6 +17,9 @@ type Draft = {
   name: string;
   slug: string;
   icon: string;
+  badge: string;
+  headline: string;
+  subhead: string;
   kind: "PIZZA" | "SIMPLE";
   sortOrder: number;
   isActive: boolean;
@@ -27,6 +30,9 @@ const EMPTY: Draft = {
   name: "",
   slug: "",
   icon: "",
+  badge: "",
+  headline: "",
+  subhead: "",
   kind: "SIMPLE",
   sortOrder: 0,
   isActive: true,
@@ -65,6 +71,9 @@ function CategoriesPage() {
             name: d.name,
             slug: d.slug,
             icon: d.icon || null,
+            badge: d.badge || null,
+            headline: d.headline || null,
+            subhead: d.subhead || null,
             kind: d.kind,
             sortOrder: d.sortOrder,
             isActive: d.isActive,
@@ -143,6 +152,39 @@ function CategoriesPage() {
               value={draft.icon}
               onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
               placeholder="Pizza, CupSoda..."
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+            />
+          </label>
+
+          {/* Copy shown above and under this category's title on the menu.
+              Optional: left blank, the storefront falls back to the category
+              name rather than rendering an empty pill. */}
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-neutral-900">Selo</span>
+            <input
+              value={draft.badge}
+              onChange={(e) => setDraft({ ...draft, badge: e.target.value })}
+              placeholder="Sabores que todo mundo ama"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-neutral-900">Descrição — 1ª linha</span>
+            <input
+              value={draft.headline}
+              onChange={(e) => setDraft({ ...draft, headline: e.target.value })}
+              placeholder="Os clássicos que nunca saem de moda."
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-neutral-900">Descrição — 2ª linha</span>
+            <input
+              value={draft.subhead}
+              onChange={(e) => setDraft({ ...draft, subhead: e.target.value })}
+              placeholder="Ingredientes selecionados em cada receita."
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
             />
           </label>
@@ -236,6 +278,9 @@ function CategoriesPage() {
                           name: c.name,
                           slug: c.slug,
                           icon: c.icon ?? "",
+                          badge: c.badge ?? "",
+                          headline: c.headline ?? "",
+                          subhead: c.subhead ?? "",
                           kind: c.kind,
                           sortOrder: c.sortOrder,
                           isActive: c.isActive,

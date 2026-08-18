@@ -37,6 +37,9 @@ export type MenuPayload = {
     id: string;
     name: string;
     slug: string;
+    badge: string | null;
+    headline: string | null;
+    subhead: string | null;
     icon: string | null;
     imageUrl: string | null;
     kind: "PIZZA" | "SIMPLE";
@@ -72,6 +75,9 @@ function adapt(payload: MenuPayload): MenuApi {
     name: c.name,
     shortName: c.name.replace(/^Pizzas\s+/i, ""),
     image: c.imageUrl ?? c.products.find((p) => p.imageUrl)?.imageUrl ?? undefined,
+    badge: c.badge ?? undefined,
+    headline: c.headline ?? undefined,
+    subhead: c.subhead ?? undefined,
     icon: c.icon ? ICONS[c.icon] : undefined,
     kind: c.kind === "PIZZA" ? "pizza" : "simple",
   }));

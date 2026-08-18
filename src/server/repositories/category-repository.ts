@@ -4,6 +4,9 @@ import { prisma } from "../db/client";
 export type CategoryInput = {
   name: string;
   slug: string;
+  badge?: string | null;
+  headline?: string | null;
+  subhead?: string | null;
   icon?: string | null;
   imageUrl?: string | null;
   kind: CategoryKind;
