@@ -1,4 +1,4 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { UtensilsCrossed } from "lucide-react";
 import { z } from "zod";
@@ -41,10 +41,11 @@ function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <UtensilsCrossed className="size-10 text-[#E11D2E]" />
+          {/* Product name, not a store name: one login serves every lanchonete. */}
           <div>
-            <h1 className="text-2xl font-bold text-white">Bella Pizza</h1>
+            <h1 className="text-2xl font-bold text-white">velnox.ia</h1>
             <p className="text-[10px] font-semibold tracking-widest text-[#E11D2E]">
-              SISTEMA DO ADMINISTRADOR
+              PAINEL DA SUA LANCHONETE
             </p>
           </div>
         </div>
@@ -86,6 +87,19 @@ function LoginPage() {
           >
             {pending ? "Entrando..." : "Entrar"}
           </Button>
+
+          <div className="flex items-center gap-3 pt-1">
+            <span className="h-px flex-1 bg-neutral-200" />
+            <span className="text-xs text-neutral-500">ainda não tem conta?</span>
+            <span className="h-px flex-1 bg-neutral-200" />
+          </div>
+
+          <Link
+            to="/admin/cadastro"
+            className="flex w-full items-center justify-center rounded-md border border-[#E11D2E] px-4 py-2 text-sm font-semibold text-[#E11D2E] transition-colors hover:bg-[#E11D2E]/5"
+          >
+            Criar conta da minha lanchonete
+          </Link>
 
           {import.meta.env.DEV && (
             <p className="rounded-lg bg-neutral-100 px-3 py-2 text-center text-xs text-neutral-600">
