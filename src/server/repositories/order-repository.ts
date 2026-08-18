@@ -30,12 +30,16 @@ const KANBAN_STATUSES: OrderStatus[] = [
 ];
 
 /** Board data: a capped page per column plus the true total for "+ N pedidos". */
-export async function listKanbanOrders(options: { date?: string; search?: string; perColumn?: number }) {
+export async function listKanbanOrders(
+  storeId: string,
+  options: { date?: string; search?: string; perColumn?: number },
+) {
   const perColumn = options.perColumn ?? 8;
   const { from, to } = dayRange(options.date);
   const search = options.search?.trim();
 
   const where = {
+    storeId,
     createdAt: { gte: from, lte: to },
     ...(search
       ? {
@@ -73,9 +77,9 @@ export async function listKanbanOrders(options: { date?: string; search?: string
   return columns;
 }
 
-export function getOrderById(id: string) {
-  return prisma.order.findUnique({
-    where: { id },
+export function getOrderById(storeId: string, id: string) {
+  return prisma.order.findFirst({
+    where: { id, storeId },
     include: {
       items: { include: { extras: true, product: { select: { imageUrl: true } } } },
       statusHistory: { orderBy: { createdAt: "asc" } },
@@ -86,25 +90,29 @@ export function getOrderById(id: string) {
 }
 
 /** Ids of RECEIVED orders, so the admin can pop a dialog for unseen ones. */
-export function listPendingOrderIds() {
+export function listPendingOrderIds(storeId: string) {
   const { from, to } = dayRange();
   return prisma.order.findMany({
-    where: { status: "RECEIVED", createdAt: { gte: from, lte: to } },
+    where: { storeId, status: "RECEIVED", createdAt: { gte: from, lte: to } },
     orderBy: { createdAt: "desc" },
     select: { id: true, number: true, createdAt: true },
   });
 }
 
-export function updateOrderNotes(id: string, data: { customerNote?: string; internalNote?: string }) {
-  return prisma.order.update({ where: { id }, data });
+export function updateOrderNotes(
+  storeId: string,
+  id: string,
+  data: { customerNote?: string; internalNote?: string },
+) {
+  return prisma.order.update({ where: { id, storeId }, data });
 }
 
 /** Footer metrics of the Kanban board. */
-export async function getKanbanMetrics(date?: string) {
+export async function getKanbanMetrics(storeId: string, date?: string) {
   const { from, to } = dayRange(date);
 
   const orders = await prisma.order.findMany({
-    where: { createdAt: { gte: from, lte: to } },
+    where: { storeId, createdAt: { gte: from, lte: to } },
     select: {
       status: true,
       createdAt: true,

@@ -302,12 +302,15 @@ const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
 };
 
 export async function transitionOrderStatus(
+  storeId: string,
   orderId: string,
   status: OrderStatus,
   author: { authorType: StatusAuthorType; authorName?: string; note?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
+  // storeId is part of the lookup: an order id from another store must simply
+  // not be found, not be moved.
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, storeId },
     select: { status: true, type: true },
   });
   if (!order) return { ok: false, error: "Pedido não encontrado." };

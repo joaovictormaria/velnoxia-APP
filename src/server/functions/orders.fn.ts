@@ -22,10 +22,10 @@ const ORDER_STATUS = z.enum([
 export const listKanbanOrdersFn = createServerFn({ method: "GET" })
   .validator(z.object({ date: z.string().optional(), search: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     const [columns, metrics] = await Promise.all([
-      listKanbanOrders(data ?? {}),
-      getKanbanMetrics(data?.date),
+      listKanbanOrders(storeId, data ?? {}),
+      getKanbanMetrics(storeId, data?.date),
     ]);
     return { columns, metrics };
   });
@@ -33,15 +33,15 @@ export const listKanbanOrdersFn = createServerFn({ method: "GET" })
 export const getOrderFn = createServerFn({ method: "GET" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-    return getOrderById(data.id);
+    const { storeId } = await requireAdminSession();
+    return getOrderById(storeId, data.id);
   });
 
 export const updateOrderStatusFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), status: ORDER_STATUS, note: z.string().optional() }))
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
-    return transitionOrderStatus(data.id, data.status, {
+    return transitionOrderStatus(admin.storeId, data.id, data.status, {
       authorType: "ADMIN",
       authorName: admin.name,
       note: data.note,
@@ -57,9 +57,9 @@ export const updateOrderNotesFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     const { id, ...notes } = data;
-    await updateOrderNotes(id, notes);
+    await updateOrderNotes(storeId, id, notes);
     return { ok: true as const };
   });
 
@@ -68,16 +68,16 @@ export const updateOrderNotesFn = createServerFn({ method: "POST" })
  * can compare against the ids it already showed.
  */
 export const listPendingOrdersFn = createServerFn({ method: "GET" }).handler(async () => {
-  await requireAdminSession();
-  return listPendingOrderIds();
+  const { storeId } = await requireAdminSession();
+  return listPendingOrderIds(storeId);
 });
 
 export const markOrderNotificationsReadFn = createServerFn({ method: "POST" })
   .validator(z.object({ orderId: z.string() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     await prisma.notification.updateMany({
-      where: { relatedOrderId: data.orderId, isRead: false },
+      where: { storeId, relatedOrderId: data.orderId, isRead: false },
       data: { isRead: true },
     });
     return { ok: true as const };
