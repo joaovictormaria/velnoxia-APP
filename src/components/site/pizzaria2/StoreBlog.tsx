@@ -87,7 +87,7 @@ function Blog({ posts }: { posts: Post[] }) {
       id="novidades"
       className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10"
     >
-      <div className="mx-auto max-w-[1800px]">
+      <div className="mx-auto max-w-[1800px] rounded-[32px] bg-tomato/25 p-6 sm:p-10">
         <Reveal variant="up">
           <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
             <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
