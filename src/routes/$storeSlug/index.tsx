@@ -88,6 +88,7 @@ function PizzariaInicio() {
     aboutEyebrow,
     aboutTitle,
     aboutBody,
+    aboutImageUrl,
     deliveryFee,
     estimatedDeliveryMinMax,
   } = useStore();
@@ -335,11 +336,28 @@ function PizzariaInicio() {
           <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
             <div>
             <Reveal variant="left">
-              <div className="relative mx-auto aspect-4/3 w-full max-w-[300px] overflow-hidden rounded-[24px] border border-dashed border-charcoal/15 bg-charcoal/[0.03] sm:mx-0">
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
-                  <Camera className="h-9 w-9" strokeWidth={1.5} />
-                  <span className="text-xs font-medium">Foto do restaurante em breve</span>
-                </div>
+              {/* Dashed frame only while there is nothing to show; once the
+                  owner uploads a photo it fills it and the dashes go away. */}
+              <div
+                className={cn(
+                  "relative mx-auto aspect-4/3 w-full max-w-[420px] overflow-hidden rounded-[24px] sm:mx-0",
+                  aboutImageUrl
+                    ? "border border-charcoal/10"
+                    : "border border-dashed border-charcoal/15 bg-charcoal/[0.03]",
+                )}
+              >
+                {aboutImageUrl ? (
+                  <img
+                    src={aboutImageUrl}
+                    alt={businessName}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
+                    <Camera className="h-9 w-9" strokeWidth={1.5} />
+                    <span className="text-xs font-medium">Foto do restaurante em breve</span>
+                  </div>
+                )}
               </div>
             </Reveal>
 
