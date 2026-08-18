@@ -6,9 +6,9 @@ import { useReviews } from "@/lib/pizzaria2/reviews-provider";
 import { ReviewCard, Stars } from "./ReviewCard";
 import { cn } from "@/lib/utils";
 
-/** The column holds this many; anything past it goes to the moving strip below
- *  the card, so the page does not grow one review at a time. */
-const LIST_LIMIT = 4;
+/** Only the newest review stays here. When someone writes a new one, the one
+ *  that was here moves down to the strip and the new name takes the spot. */
+const LIST_LIMIT = 1;
 
 export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
   const { reviews, summary, like, submit, visitorId } = useReviews();
@@ -159,8 +159,11 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
             Ninguém avaliou ainda. Seja a primeira pessoa!
           </p>
         ) : (
-          reviews.slice(0, LIST_LIMIT).map((review, i) => (
-            <Reveal key={review.id} variant="up" delay={Math.min(i * 40, 240)}>
+          reviews.slice(0, LIST_LIMIT).map((review) => (
+            <Reveal key={review.id} variant="up">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-charcoal/40">
+                Feedback mais recente
+              </p>
               <ReviewCard
                 review={review}
                 onLike={() => like(review.id)}

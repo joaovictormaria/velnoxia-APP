@@ -3,24 +3,31 @@ import { Reveal } from "@/components/site/Reveal";
 import { useReviews } from "@/lib/pizzaria2/reviews-provider";
 import { ReviewCard } from "./ReviewCard";
 
-/** Below this the column above already shows everything; a strip of three cards
- *  sliding past would only repeat it. */
-const MIN_REVIEWS = 5;
-
 /** Seconds each card takes to cross, so more reviews means a longer loop rather
  *  than a faster one. */
 const SECONDS_PER_CARD = 7;
+
+/** Few older reviews would leave gaps on a wide screen, so the list repeats
+ *  until it is at least this long before the loop is built. */
+const MIN_TRACK_CARDS = 6;
 
 const PAUSE_MS = 3000;
 
 export function ReviewsMarquee() {
   const { reviews } = useReviews();
-  if (reviews.length < MIN_REVIEWS) return null;
-  return <Marquee />;
+  // The newest one lives in the column above; this strip carries the ones it
+  // pushed out, so it only exists from the second review on.
+  const older = reviews.slice(1);
+  if (older.length === 0) return null;
+  return <Marquee older={older} />;
 }
 
-function Marquee() {
-  const { reviews, like, visitorId } = useReviews();
+function Marquee({
+  older,
+}: {
+  older: ReturnType<typeof useReviews>["reviews"];
+}) {
+  const { like, visitorId } = useReviews();
   const [paused, setPaused] = useState(false);
   const timer = useRef<number | null>(null);
 
@@ -43,9 +50,12 @@ function Marquee() {
     timer.current = window.setTimeout(() => setPaused(false), PAUSE_MS);
   }
 
-  // Two copies back to back: the animation travels exactly one copy's width and
-  // starts over, so the seam never shows.
-  const track = [...reviews, ...reviews];
+  const base = [...older];
+  while (base.length < MIN_TRACK_CARDS) base.push(...older);
+
+  // Two copies of the base back to back: the animation travels exactly one
+  // copy's width and starts over, so the seam never shows.
+  const track = [...base, ...base];
 
   return (
     <section
@@ -55,9 +65,9 @@ function Marquee() {
     >
       <Reveal variant="up">
         <div
-          className="flex w-max gap-4 animate-reviews-marquee"
+          className="animate-reviews-marquee flex w-max gap-4"
           style={{
-            ["--marquee-duration" as string]: `${reviews.length * SECONDS_PER_CARD}s`,
+            ["--marquee-duration" as string]: `${base.length * SECONDS_PER_CARD}s`,
             animationPlayState: paused ? "paused" : "running",
           }}
         >
@@ -67,7 +77,7 @@ function Marquee() {
               review={review}
               onLike={() => like(review.id)}
               canLike={!!visitorId}
-              className="w-[300px] shrink-0 sm:w-[340px]"
+              className="w-75 shrink-0 sm:w-85"
             />
           ))}
         </div>
