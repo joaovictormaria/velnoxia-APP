@@ -1,0 +1,262 @@
+import type { CategoryKind, SizeLabel } from "@prisma/client";
+
+/**
+ * What a store gets the moment it signs up.
+ *
+ * Without this a new store lands on its own URL with no categories at all, and
+ * the storefront drops the whole menu section — the owner sees a site with no
+ * cardápio and assumes the signup failed. Everything here is a starting point
+ * the owner edits in the admin; nothing is fixed.
+ *
+ * Photos are deliberately absent for now: the storefront falls back to the
+ * category icon when imageUrl is null, so a fresh store looks intentional
+ * rather than broken while the licensed image set is put together.
+ */
+
+export type StarterProduct = {
+  name: string;
+  description: string;
+  basePrice: number;
+  tag?: string;
+  allowHalfAndHalf?: boolean;
+  sizes?: { size: SizeLabel; price: number }[];
+};
+
+export type StarterCategory = {
+  name: string;
+  slug: string;
+  icon: string;
+  kind: CategoryKind;
+  products: StarterProduct[];
+};
+
+export type StarterCatalog = {
+  /** Shown in the business-type selector at signup. */
+  label: string;
+  /** Short line under the store name in the storefront header. */
+  tagline: string;
+  /** Footer paragraph. */
+  description: string;
+  categories: StarterCategory[];
+  extras: { name: string; price: number }[];
+};
+
+const PIZZA_SIZES = (broto: number, media: number, grande: number, gigante: number) => [
+  { size: "BROTINHO" as SizeLabel, price: broto },
+  { size: "MEDIA" as SizeLabel, price: media },
+  { size: "GRANDE" as SizeLabel, price: grande },
+  { size: "GIGANTE" as SizeLabel, price: gigante },
+];
+
+export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
+  pizzaria: {
+    label: "Pizzaria",
+    tagline: "Pizzaria",
+    description: "Pizza artesanal feita com carinho, para deixar seus momentos ainda melhores.",
+    categories: [
+      {
+        name: "Pizzas Tradicionais",
+        slug: "tradicionais",
+        icon: "Pizza",
+        kind: "PIZZA",
+        products: [
+          { name: "Mussarela", description: "Molho de tomate, mussarela e orégano.", basePrice: 39.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(29.9, 39.9, 49.9, 59.9), tag: "Mais pedida" },
+          { name: "Calabresa", description: "Calabresa fatiada, cebola e mussarela.", basePrice: 42.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(32.9, 42.9, 52.9, 62.9) },
+          { name: "Portuguesa", description: "Presunto, ovo, cebola, azeitona e mussarela.", basePrice: 45.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(35.9, 45.9, 55.9, 65.9) },
+          { name: "Frango com Catupiry", description: "Frango desfiado com catupiry cremoso.", basePrice: 46.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(36.9, 46.9, 56.9, 66.9) },
+        ],
+      },
+      {
+        name: "Pizzas Especiais",
+        slug: "especiais",
+        icon: "Star",
+        kind: "PIZZA",
+        products: [
+          { name: "Quatro Queijos", description: "Mussarela, provolone, gorgonzola e parmesão.", basePrice: 52.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(42.9, 52.9, 62.9, 72.9) },
+          { name: "Pepperoni", description: "Pepperoni italiano e mussarela.", basePrice: 54.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(44.9, 54.9, 64.9, 74.9) },
+        ],
+      },
+      {
+        name: "Pizzas Doces",
+        slug: "doces",
+        icon: "Cake",
+        kind: "PIZZA",
+        products: [
+          { name: "Chocolate com Morango", description: "Chocolate ao leite e morangos frescos.", basePrice: 44.9, sizes: PIZZA_SIZES(34.9, 44.9, 54.9, 64.9) },
+        ],
+      },
+      {
+        name: "Bebidas",
+        slug: "bebidas",
+        icon: "CupSoda",
+        kind: "SIMPLE",
+        products: [
+          { name: "Refrigerante 2L", description: "Coca-Cola, Guaraná ou Fanta.", basePrice: 12.9 },
+          { name: "Suco Natural 500ml", description: "Laranja, limão ou maracujá.", basePrice: 9.9 },
+        ],
+      },
+    ],
+    extras: [
+      { name: "Borda de catupiry", price: 8 },
+      { name: "Borda de cheddar", price: 8 },
+      { name: "Bacon extra", price: 6 },
+    ],
+  },
+
+  hamburgueria: {
+    label: "Hamburgueria / Lanchonete",
+    tagline: "Hamburgueria",
+    description: "Hambúrguer artesanal, pão fresquinho e ingredientes selecionados todos os dias.",
+    categories: [
+      {
+        name: "Hambúrgueres",
+        slug: "hamburgueres",
+        icon: "Sandwich",
+        kind: "SIMPLE",
+        products: [
+          { name: "X-Salada", description: "Hambúrguer, queijo, alface, tomate e maionese.", basePrice: 24.9, tag: "Mais pedido" },
+          { name: "X-Bacon", description: "Hambúrguer, queijo, bacon crocante e cebola.", basePrice: 29.9 },
+          { name: "X-Tudo", description: "Dois hambúrgueres, ovo, bacon, queijo e salada.", basePrice: 36.9 },
+          { name: "Smash Duplo", description: "Dois smash burgers, queijo cheddar e picles.", basePrice: 34.9 },
+        ],
+      },
+      {
+        name: "Porções",
+        slug: "porcoes",
+        icon: "UtensilsCrossed",
+        kind: "SIMPLE",
+        products: [
+          { name: "Batata Frita", description: "Porção individual, crocante e sequinha.", basePrice: 16.9 },
+          { name: "Batata com Cheddar e Bacon", description: "Batata coberta com cheddar e bacon.", basePrice: 24.9 },
+          { name: "Nuggets (10 un.)", description: "Acompanha molho da casa.", basePrice: 19.9 },
+        ],
+      },
+      {
+        name: "Bebidas",
+        slug: "bebidas",
+        icon: "CupSoda",
+        kind: "SIMPLE",
+        products: [
+          { name: "Refrigerante Lata", description: "Coca-Cola, Guaraná ou Fanta.", basePrice: 6.9 },
+          { name: "Milkshake 400ml", description: "Chocolate, morango ou ovomaltine.", basePrice: 18.9 },
+        ],
+      },
+    ],
+    extras: [
+      { name: "Bacon extra", price: 5 },
+      { name: "Queijo extra", price: 4 },
+      { name: "Ovo", price: 3 },
+    ],
+  },
+
+  acai: {
+    label: "Açaiteria",
+    tagline: "Açaiteria",
+    description: "Açaí cremoso batido na hora, com os complementos que você escolher.",
+    categories: [
+      {
+        name: "Açaí",
+        slug: "acai",
+        icon: "GlassWater",
+        kind: "SIMPLE",
+        products: [
+          { name: "Açaí 300ml", description: "Açaí puro batido na hora.", basePrice: 14.9 },
+          { name: "Açaí 500ml", description: "Açaí puro batido na hora.", basePrice: 19.9, tag: "Mais pedido" },
+          { name: "Açaí 700ml", description: "Açaí puro batido na hora.", basePrice: 26.9 },
+        ],
+      },
+      {
+        name: "Combos",
+        slug: "combos",
+        icon: "Star",
+        kind: "SIMPLE",
+        products: [
+          { name: "Combo Casal 1L", description: "Açaí 1L com quatro complementos à escolha.", basePrice: 39.9 },
+          { name: "Barca de Açaí", description: "Açaí, frutas, granola e leite condensado.", basePrice: 44.9 },
+        ],
+      },
+      {
+        name: "Bebidas",
+        slug: "bebidas",
+        icon: "CupSoda",
+        kind: "SIMPLE",
+        products: [
+          { name: "Água Mineral", description: "500ml, com ou sem gás.", basePrice: 4.9 },
+          { name: "Suco Natural 500ml", description: "Laranja, limão ou maracujá.", basePrice: 9.9 },
+        ],
+      },
+    ],
+    extras: [
+      { name: "Leite condensado", price: 3 },
+      { name: "Granola", price: 3 },
+      { name: "Morango", price: 5 },
+      { name: "Paçoca", price: 3 },
+    ],
+  },
+
+  japones: {
+    label: "Comida japonesa",
+    tagline: "Comida japonesa",
+    description: "Peixe fresco, arroz temperado na medida e combinados montados na hora.",
+    categories: [
+      {
+        name: "Combinados",
+        slug: "combinados",
+        icon: "UtensilsCrossed",
+        kind: "SIMPLE",
+        products: [
+          { name: "Combinado 20 peças", description: "Sushis e sashimis variados.", basePrice: 59.9, tag: "Mais pedido" },
+          { name: "Combinado 40 peças", description: "Ideal para dividir entre duas pessoas.", basePrice: 109.9 },
+        ],
+      },
+      {
+        name: "Temakis",
+        slug: "temakis",
+        icon: "Drumstick",
+        kind: "SIMPLE",
+        products: [
+          { name: "Temaki Salmão", description: "Salmão fresco, arroz e cebolinha.", basePrice: 32.9 },
+          { name: "Temaki Atum", description: "Atum, arroz e cream cheese.", basePrice: 34.9 },
+          { name: "Temaki Califórnia", description: "Kani, manga e pepino.", basePrice: 28.9 },
+        ],
+      },
+      {
+        name: "Pratos Quentes",
+        slug: "pratos-quentes",
+        icon: "UtensilsCrossed",
+        kind: "SIMPLE",
+        products: [
+          { name: "Yakisoba de Frango", description: "Macarrão, legumes e frango no shoyu.", basePrice: 38.9 },
+          { name: "Gyoza (6 un.)", description: "Pastéis japoneses grelhados.", basePrice: 24.9 },
+        ],
+      },
+      {
+        name: "Bebidas",
+        slug: "bebidas",
+        icon: "CupSoda",
+        kind: "SIMPLE",
+        products: [
+          { name: "Refrigerante Lata", description: "Coca-Cola, Guaraná ou Fanta.", basePrice: 6.9 },
+          { name: "Chá Gelado 500ml", description: "Limão ou pêssego.", basePrice: 8.9 },
+        ],
+      },
+    ],
+    extras: [
+      { name: "Shoyu extra", price: 2 },
+      { name: "Wasabi", price: 2 },
+      { name: "Gengibre", price: 2 },
+    ],
+  },
+};
+
+export const DEFAULT_BUSINESS_TYPE = "pizzaria";
+
+export function getStarterCatalog(businessType: string): StarterCatalog {
+  return STARTER_CATALOGS[businessType] ?? STARTER_CATALOGS[DEFAULT_BUSINESS_TYPE];
+}
+
+/** Options for the signup selector, in the order they should appear. */
+export const BUSINESS_TYPE_OPTIONS = Object.entries(STARTER_CATALOGS).map(([value, c]) => ({
+  value,
+  label: c.label,
+}));

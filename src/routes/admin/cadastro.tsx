@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createStoreAccountFn } from "@/server/functions/signup.fn";
+import { BUSINESS_TYPE_OPTIONS, DEFAULT_BUSINESS_TYPE } from "@/server/catalog/starter-catalogs";
 
 export const Route = createFileRoute("/admin/cadastro")({
   component: SignupPage,
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/admin/cadastro")({
 function SignupPage() {
   const router = useRouter();
   const [storeName, setStoreName] = useState("");
+  const [businessType, setBusinessType] = useState(DEFAULT_BUSINESS_TYPE);
   const [adminName, setAdminName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
@@ -30,7 +32,7 @@ function SignupPage() {
     setError(null);
 
     const result = await createStoreAccountFn({
-      data: { storeName, adminName, email, password, whatsappNumber },
+      data: { storeName, businessType, adminName, email, password, whatsappNumber },
     });
 
     if (!result.ok) {
@@ -70,6 +72,26 @@ function SignupPage() {
               minLength={2}
               placeholder="Lanche do Zé"
             />
+          </div>
+
+
+          <div className="space-y-2">
+            <Label htmlFor="businessType">O que você vende</Label>
+            <select
+              id="businessType"
+              value={businessType}
+              onChange={(e) => setBusinessType(e.target.value)}
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+            >
+              {BUSINESS_TYPE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-neutral-500">
+              Seu cardápio já nasce com categorias e itens desse ramo — é só ajustar depois.
+            </p>
           </div>
 
           {slugPreview && (
