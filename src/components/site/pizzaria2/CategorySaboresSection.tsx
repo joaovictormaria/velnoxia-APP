@@ -147,18 +147,18 @@ export function CategorySaboresSection({
             to="/$storeSlug/produto/$slug"
             params={{ storeSlug, slug: ctaProductSlug }}
             search={{ view: "cardapio" }}
-            className="group mt-7 flex items-center gap-4 rounded-4xl bg-linear-to-br from-tomato to-[#b8341c] p-6 text-mozzarella shadow-[0_20px_40px_-24px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
+            className="group mt-7 flex items-center gap-4 rounded-4xl bg-linear-to-br from-tomato to-[color:var(--primary-deep)] p-6 text-[color:var(--on-primary)] shadow-[0_20px_40px_-24px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
           >
-            <span className="grid h-13 w-13 shrink-0 place-items-center rounded-full bg-mozzarella/15">
+            <span className="grid h-13 w-13 shrink-0 place-items-center rounded-full bg-[color:var(--on-primary)]/15">
               <BookOpen className="h-6 w-6" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-base font-bold leading-tight">Veja o cardápio completo</span>
-              <span className="mt-1 block text-sm leading-tight text-mozzarella/80">
+              <span className="mt-1 block text-sm leading-tight text-[color:var(--on-primary-muted)]">
                 Mais sabores incríveis esperam por você!
               </span>
             </span>
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-mozzarella text-tomato transition-transform group-hover:translate-x-0.5">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[color:var(--on-primary)] text-[color:var(--primary)] transition-transform group-hover:translate-x-0.5">
               <ArrowRight className="h-5 w-5" />
             </span>
           </Link>

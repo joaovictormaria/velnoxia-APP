@@ -63,7 +63,7 @@ export function PromoCarousel() {
 
   return (
     <div className="relative overflow-hidden rounded-[32px] bg-tomato shadow-[0_25px_60px_-30px_rgba(233,75,44,0.55)]">
-      <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-mozzarella/10 blur-3xl" />
+      <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-[color:var(--on-primary)]/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -right-10 h-64 w-64 rounded-full bg-charcoal/10 blur-3xl" />
 
       <div className="overflow-hidden" ref={emblaRef}>
@@ -72,14 +72,14 @@ export function PromoCarousel() {
             <div key={slide.title} className="min-w-0 shrink-0 grow-0 basis-full">
               <div className="relative grid grid-cols-1 items-center gap-8 px-6 pb-14 pt-10 sm:px-10 sm:pb-16 sm:pt-12 md:grid-cols-2 md:gap-12 lg:px-14">
                 <div>
-                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-mozzarella/80">
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--on-primary-muted)]">
                     <span className="h-1.5 w-1.5 rounded-full bg-mozzarella/80" />
                     {slide.eyebrow}
                   </span>
-                  <h3 className="mt-3 font-display text-2xl font-extrabold leading-tight text-mozzarella sm:text-3xl">
+                  <h3 className="mt-3 font-display text-2xl font-extrabold leading-tight text-[color:var(--on-primary)] sm:text-3xl">
                     {slide.title}
                   </h3>
-                  <p className="mt-3 max-w-sm text-sm leading-relaxed text-mozzarella/80 sm:text-base">
+                  <p className="mt-3 max-w-sm text-sm leading-relaxed text-[color:var(--on-primary-muted)] sm:text-base">
                     {slide.description}
                   </p>
 
@@ -92,11 +92,11 @@ export function PromoCarousel() {
                     {slide.price && (
                       <span className="flex items-baseline gap-2">
                         {slide.originalPrice && (
-                          <span className="text-sm text-mozzarella/55 line-through">
+                          <span className="text-sm text-[color:var(--on-primary)]/55 line-through">
                             {slide.originalPrice}
                           </span>
                         )}
-                        <span className="font-display text-xl font-bold text-mozzarella">
+                        <span className="font-display text-xl font-bold text-[color:var(--on-primary)]">
                           {slide.price}
                         </span>
                       </span>
@@ -113,8 +113,8 @@ export function PromoCarousel() {
                   </a>
                 </div>
 
-                <div className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-dashed border-mozzarella/30 bg-mozzarella/10 md:aspect-4/3">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-mozzarella/60">
+                <div className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-dashed border-[color:var(--on-primary)]/30 bg-[color:var(--on-primary)]/10 md:aspect-4/3">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[color:var(--on-primary-muted)]">
                     <Camera className="h-8 w-8" strokeWidth={1.5} />
                     <span className="text-xs font-medium">Imagem da promoção em breve</span>
                   </div>
@@ -129,7 +129,7 @@ export function PromoCarousel() {
         type="button"
         aria-label="Promoção anterior"
         onClick={() => emblaApi?.scrollPrev()}
-        className="absolute left-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-mozzarella/25 bg-mozzarella/10 text-mozzarella backdrop-blur-sm transition-colors hover:bg-mozzarella/20 sm:flex"
+        className="absolute left-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-[color:var(--on-primary)]/25 bg-[color:var(--on-primary)]/10 text-[color:var(--on-primary)] backdrop-blur-sm transition-colors hover:bg-[color:var(--on-primary)]/20 sm:flex"
       >
         <ChevronLeft className="h-4.5 w-4.5" />
       </button>
@@ -137,7 +137,7 @@ export function PromoCarousel() {
         type="button"
         aria-label="Próxima promoção"
         onClick={() => emblaApi?.scrollNext()}
-        className="absolute right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-mozzarella/25 bg-mozzarella/10 text-mozzarella backdrop-blur-sm transition-colors hover:bg-mozzarella/20 sm:flex"
+        className="absolute right-3 top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-[color:var(--on-primary)]/25 bg-[color:var(--on-primary)]/10 text-[color:var(--on-primary)] backdrop-blur-sm transition-colors hover:bg-[color:var(--on-primary)]/20 sm:flex"
       >
         <ChevronRight className="h-4.5 w-4.5" />
       </button>

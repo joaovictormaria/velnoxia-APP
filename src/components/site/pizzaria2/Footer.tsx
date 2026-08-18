@@ -34,7 +34,7 @@ export function Footer() {
                   className="h-9 w-9 shrink-0 rounded-full object-cover"
                 />
               ) : (
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-mozzarella">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)]">
                   <Pizza className="h-4.5 w-4.5" />
                 </span>
               )}

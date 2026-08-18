@@ -368,7 +368,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           <Button
             type="submit"
             disabled={submit.isPending}
-            className="rounded-full bg-tomato px-8 py-6 text-base font-semibold text-mozzarella hover:bg-tomato/90"
+            className="rounded-full bg-tomato px-8 py-6 text-base font-semibold text-[color:var(--on-primary)] hover:bg-tomato/90"
           >
             {submit.isPending ? "Enviando..." : "Confirmar pedido"}
           </Button>
@@ -423,7 +423,7 @@ function TypeButton({
       onClick={onClick}
       className={`flex-1 rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${
         active
-          ? "border-tomato bg-tomato text-mozzarella"
+          ? "border-tomato bg-tomato text-[color:var(--on-primary)]"
           : "border-charcoal/15 text-charcoal hover:border-tomato/40"
       }`}
     >

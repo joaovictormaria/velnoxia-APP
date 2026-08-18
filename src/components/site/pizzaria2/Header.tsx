@@ -31,7 +31,7 @@ export function Header() {
             <span
               className={cn(
                 "font-display text-lg font-bold transition-colors",
-                overHero ? "text-mozzarella" : "text-charcoal",
+                overHero ? "text-[color:var(--on-primary)]" : "text-charcoal",
               )}
             >
               {storeName}
@@ -40,7 +40,7 @@ export function Header() {
               <span
                 className={cn(
                   "hidden text-[11px] font-medium uppercase tracking-wide transition-colors sm:inline",
-                  overHero ? "text-mozzarella/70" : "text-charcoal/45",
+                  overHero ? "text-[color:var(--on-primary-muted)]" : "text-charcoal/45",
                 )}
               >
                 {tagline}
@@ -55,9 +55,9 @@ export function Header() {
             activeOptions={{ exact: true }}
             className={cn(
               "text-sm font-medium transition-colors",
-              overHero ? "text-mozzarella/80 hover:text-mozzarella" : "text-charcoal/70 hover:text-charcoal",
+              overHero ? "text-[color:var(--on-primary-muted)] hover:text-[color:var(--on-primary)]" : "text-charcoal/70 hover:text-charcoal",
             )}
-            activeProps={{ className: overHero ? "!text-[#ffd166]" : "!text-tomato" }}
+            activeProps={{ className: overHero ? "!text-[color:var(--on-primary-accent)]" : "!text-tomato" }}
           >
             Início
           </Link>
@@ -66,7 +66,7 @@ export function Header() {
             onClick={goToCardapio}
             className={cn(
               "text-sm font-medium transition-colors",
-              overHero ? "text-mozzarella/80 hover:text-mozzarella" : "text-charcoal/70 hover:text-charcoal",
+              overHero ? "text-[color:var(--on-primary-muted)] hover:text-[color:var(--on-primary)]" : "text-charcoal/70 hover:text-charcoal",
             )}
           >
             Cardápio
@@ -74,7 +74,7 @@ export function Header() {
           <span
             className={cn(
               "cursor-default text-sm font-medium transition-colors",
-              overHero ? "text-mozzarella/40" : "text-charcoal/40",
+              overHero ? "text-[color:var(--on-primary-muted)]" : "text-charcoal/40",
             )}
           >
             Acompanhar pedido
@@ -82,7 +82,7 @@ export function Header() {
           <span
             className={cn(
               "cursor-default text-sm font-medium transition-colors",
-              overHero ? "text-mozzarella/40" : "text-charcoal/40",
+              overHero ? "text-[color:var(--on-primary-muted)]" : "text-charcoal/40",
             )}
           >
             Contato
@@ -96,7 +96,7 @@ export function Header() {
             onClick={() => setOpen((v) => !v)}
             className={cn(
               "grid h-9 w-9 place-items-center rounded-full transition-colors md:hidden",
-              overHero ? "text-mozzarella hover:bg-mozzarella/10" : "text-charcoal hover:bg-charcoal/5",
+              overHero ? "text-[color:var(--on-primary)] hover:bg-[color:var(--on-primary)]/10" : "text-charcoal hover:bg-charcoal/5",
             )}
           >
             {open ? <X className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}

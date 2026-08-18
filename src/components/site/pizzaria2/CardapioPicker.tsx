@@ -93,7 +93,7 @@ export function CardapioPicker({
         <Link
           to="/$storeSlug/carrinho"
           params={{ storeSlug }}
-          className="flex items-center gap-2 rounded-full bg-tomato px-4 py-2 text-sm font-bold text-mozzarella transition-colors hover:bg-tomato/90"
+          className="flex items-center gap-2 rounded-full bg-tomato px-4 py-2 text-sm font-bold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
         >
           <span className="relative">
             <ShoppingCart className="h-4 w-4" />
@@ -255,7 +255,7 @@ export function CardapioPicker({
         <Link
           to="/$storeSlug/carrinho"
           params={{ storeSlug }}
-          className="fixed bottom-6 right-6 z-20 flex items-center gap-2 rounded-full bg-tomato px-5 py-3.5 text-sm font-bold text-mozzarella shadow-[0_20px_40px_-16px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
+          className="fixed bottom-6 right-6 z-20 flex items-center gap-2 rounded-full bg-tomato px-5 py-3.5 text-sm font-bold text-[color:var(--on-primary)] shadow-[0_20px_40px_-16px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
         >
           <span className="relative">
             <ShoppingCart className="h-5 w-5" />

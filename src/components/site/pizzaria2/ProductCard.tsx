@@ -7,7 +7,7 @@ import { PriceTag } from "./PriceTag";
 import type { Product } from "@/lib/pizzaria2/menu";
 
 const ctaClassName =
-  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-tomato px-4.5 py-3 text-sm font-semibold text-mozzarella transition-colors hover:bg-tomato/90";
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-tomato px-4.5 py-3 text-sm font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90";
 
 export function ProductCard({
   product,
@@ -59,7 +59,7 @@ export function ProductCard({
         </div>
       )}
       {product.tag && (
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-tomato px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-mozzarella shadow-[0_6px_16px_-6px_rgba(23,23,23,0.5)]">
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-tomato px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[color:var(--on-primary)] shadow-[0_6px_16px_-6px_rgba(23,23,23,0.5)]">
           {product.tag === "Mais pedida" && <Flame className="h-3.5 w-3.5" />}
           {product.tag}
         </span>

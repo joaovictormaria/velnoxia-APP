@@ -63,7 +63,7 @@ function PizzariaCarrinho() {
           <p className="text-sm text-charcoal/55">Seu carrinho está vazio.</p>
           <Button
             asChild
-            className="mt-5 rounded-full bg-tomato text-mozzarella shadow-none hover:bg-tomato/90"
+            className="mt-5 rounded-full bg-tomato text-[color:var(--on-primary)] shadow-none hover:bg-tomato/90"
           >
             <Link
               to="/$storeSlug/produto/$slug"
@@ -115,7 +115,7 @@ function PizzariaCarrinho() {
                           productSlug: drink.slug,
                         })
                       }
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-tomato text-tomato transition-colors hover:bg-tomato hover:text-mozzarella"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-tomato text-tomato transition-colors hover:bg-tomato hover:text-[color:var(--on-primary)]"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
@@ -159,7 +159,7 @@ function PizzariaCarrinho() {
           </Button>
           <Button
             onClick={() => setCheckoutOpen(true)}
-            className="rounded-full bg-tomato px-8 py-6 text-base font-semibold text-mozzarella shadow-none hover:bg-tomato/90 sm:flex-1 sm:max-w-sm"
+            className="rounded-full bg-tomato px-8 py-6 text-base font-semibold text-[color:var(--on-primary)] shadow-none hover:bg-tomato/90 sm:flex-1 sm:max-w-sm"
           >
             Finalizar pedido →
           </Button>

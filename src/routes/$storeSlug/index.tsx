@@ -195,11 +195,11 @@ function PizzariaInicio() {
                 {heroSubtitle}
               </p>
               <div className="relative mt-8 inline-flex w-fit">
-                <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-mozzarella/40" />
+                <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-[color:var(--on-primary)]/40" />
                 <Button
                   size="xl"
                   onClick={goToCardapio}
-                  className="rounded-full bg-mozzarella px-10 text-lg font-semibold text-tomato shadow-none hover:bg-mozzarella/90"
+                  className="rounded-full bg-[color:var(--on-primary)] px-10 text-lg font-semibold text-[color:var(--primary)] shadow-none hover:opacity-90"
                 >
                   Ver cardápio →
                 </Button>
@@ -426,18 +426,18 @@ function PizzariaInicio() {
           variant="up"
           className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] bg-tomato px-6 py-8 shadow-[0_20px_50px_-30px_rgba(233,75,44,0.55)] sm:px-10 sm:py-9"
         >
-          <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-mozzarella/10 blur-2xl" />
+          <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-[color:var(--on-primary)]/10 blur-2xl" />
           <Pizza
             strokeWidth={1}
-            className="pointer-events-none absolute -bottom-8 right-4 h-28 w-28 rotate-12 text-mozzarella/10 sm:right-8 sm:h-32 sm:w-32"
+            className="pointer-events-none absolute -bottom-8 right-4 h-28 w-28 rotate-12 text-[color:var(--on-primary)]/10 sm:right-8 sm:h-32 sm:w-32"
           />
 
           <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-display text-xl font-extrabold text-mozzarella sm:text-2xl">
+              <h2 className="font-display text-xl font-extrabold text-[color:var(--on-primary)] sm:text-2xl">
                 Deu vontade de pizza? 🍕
               </h2>
-              <p className="mt-1.5 text-sm text-mozzarella/80 sm:text-base">
+              <p className="mt-1.5 text-sm text-[color:var(--on-primary-muted)] sm:text-base">
                 Peça agora pelo WhatsApp e fale diretamente com a gente.
               </p>
             </div>

@@ -25,12 +25,12 @@ export function CategoryTabs({
             className={cn(
               "flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-semibold transition-colors",
               active
-                ? "border-tomato bg-tomato text-mozzarella shadow-[0_10px_24px_-14px_rgba(233,75,44,0.65)]"
+                ? "border-tomato bg-tomato text-[color:var(--on-primary)] shadow-[0_10px_24px_-14px_rgba(233,75,44,0.65)]"
                 : "border-charcoal/10 bg-mozzarella text-charcoal hover:border-tomato/30",
             )}
           >
             {Icon && (
-              <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-mozzarella" : "text-tomato")} />
+              <Icon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-[color:var(--on-primary)]" : "text-tomato")} />
             )}
             {cat.shortName}
           </button>
