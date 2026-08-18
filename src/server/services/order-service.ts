@@ -5,7 +5,17 @@ import type {
   SizeLabel,
   StatusAuthorType,
 } from "@prisma/client";
+import { randomBytes } from "node:crypto";
 import { prisma } from "../db/client";
+
+/**
+ * Secret for the tracking link the customer gets. Generated with crypto rather
+ * than from a sequence: a guessable token would let anyone read another person's
+ * order by changing a number in the address.
+ */
+function newTrackingToken() {
+  return randomBytes(24).toString("base64url");
+}
 
 const SIZE_BY_KEY: Record<string, SizeLabel> = {
   broto: "BROTINHO",
@@ -242,6 +252,7 @@ export async function createOrderFromCheckout(
         customerId: customer.id,
         customerName: input.customerName,
         customerPhone: phone,
+        trackingToken: newTrackingToken(),
         type: input.type,
         status: "RECEIVED",
         source: "SITE",

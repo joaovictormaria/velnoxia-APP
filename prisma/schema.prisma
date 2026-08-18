@@ -403,6 +403,10 @@ model Order {
   customerName  String
   customerPhone String
 
+  /// Segredo do link publico de acompanhamento. Unico e nao adivinhavel: sem
+  /// ele, trocar o numero do pedido mostraria o pedido de outra pessoa.
+  trackingToken String? @unique
+
   type   OrderType     @default(DELIVERY)
   status OrderStatus   @default(RECEIVED)
   source OrderSource   @default(SITE)
