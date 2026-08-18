@@ -279,8 +279,12 @@ function OrderDetailPage() {
                         {item.sizeLabel ? ` ${SIZE_LABEL[item.sizeLabel]}` : ""}
                       </p>
                       {item.extras.map((e) => (
-                        <p key={e.id} className="text-xs text-neutral-500">
-                          + {e.nameSnapshot}
+                        <p
+                          key={e.id}
+                          className="flex justify-between gap-2 text-xs text-neutral-500"
+                        >
+                          <span>+ {e.nameSnapshot}</span>
+                          <span>{currency.format(e.priceSnapshot)}</span>
                         </p>
                       ))}
                       {item.note && (
