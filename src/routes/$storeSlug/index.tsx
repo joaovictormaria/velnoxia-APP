@@ -94,7 +94,7 @@ function PizzariaInicio() {
     estimatedDeliveryMinMax,
   } = useStore();
   const whatsappHref = buildWhatsappHref();
-  const { promotions, posts } = useMenu();
+  const { promotions, posts, products } = useMenu();
 
   // Hero comes from the store business type — photo and copy travel together.
   const {
@@ -109,15 +109,35 @@ function PizzariaInicio() {
     ctaBlurb,
   } = heroFor(businessType);
   const MarkIcon = CARE_ICONS[markIcon] ?? Pizza;
+
+  /**
+   * The hero shows the store's own food when there is any. A photo under
+   * /catalogo-inicial/ came with the starter menu, not from the owner, so it
+   * does not count as theirs — otherwise a brand new store would never fall back
+   * to the trade photos, which is the whole point of having them.
+   */
+  const ownPhotos = Array.from(
+    new Set(
+      products
+        .map((p) => p.image)
+        .filter(
+          (src): src is string =>
+            !!src && !src.startsWith("/catalogo-inicial/"),
+        ),
+    ),
+  ).slice(0, 6);
+  const slides = ownPhotos.length > 0 ? ownPhotos : heroPhotos;
   const [activePhoto, setActivePhoto] = useState(0);
   const [hasSwitchedPhoto, setHasSwitchedPhoto] = useState(false);
   useEffect(() => {
+    if (slides.length < 2) return;
     const id = setInterval(() => {
-      setActivePhoto((i) => (i + 1) % heroPhotos.length);
+      setActivePhoto((i) => (i + 1) % slides.length);
       setHasSwitchedPhoto(true);
     }, 5000);
     return () => clearInterval(id);
-  }, []);
+  }, [slides.length]);
+  const currentPhoto = slides.length > 0 ? activePhoto % slides.length : 0;
 
   const isOpen = true; // "Aberto agora" — flip to preview the closed (blinking red) state.
 
@@ -244,7 +264,7 @@ function PizzariaInicio() {
               shows through with no seam — the photo dissolves into the red, not cut by it. */}
           <div className="relative order-1 h-72 sm:h-96 md:order-2 md:h-auto">
             <Reveal variant="scale" className="relative h-full w-full">
-              {heroPhotos.map((photo, i) => (
+              {slides.map((photo, i) => (
                 <img
                   key={photo}
                   src={photo}
@@ -254,10 +274,10 @@ function PizzariaInicio() {
                     "mask-[linear-gradient(to_top,transparent,black_35%)] [-webkit-mask-image:linear-gradient(to_top,transparent,black_35%)]",
                     "md:mask-[linear-gradient(to_right,transparent,black_22%)] md:[-webkit-mask-image:linear-gradient(to_right,transparent,black_22%)]",
                     !hasSwitchedPhoto
-                      ? i === activePhoto
+                      ? i === currentPhoto
                         ? "opacity-100"
                         : "-translate-x-20 opacity-0"
-                      : i === activePhoto
+                      : i === currentPhoto
                         ? "animate-[slide-in-from-right_0.9s_ease-out_forwards]"
                         : "animate-[slide-out-to-left_0.9s_ease-in_forwards]",
                   )}

@@ -15,11 +15,15 @@ O identificador é o da URL de origem: `https://images.unsplash.com/photo-<id>`.
 | Arquivo | ID Unsplash |
 |---|---|
 | pizzaria/hero-pizza.jpg | 1513104890138-7c749659a591 |
+| pizzaria/hero-pizza-2.jpg | 1571997478779-2adcbbe9ab2f |
+| pizzaria/hero-pizza-3.jpg | 1595854341625-f33ee10dbf94 |
 | pizzaria/mussarela.jpg | 1574071318508-1cdbab80d002 |
 | pizzaria/calabresa.jpg | 1565299624946-b28f40a0ae38 |
 | pizzaria/portuguesa.jpg | 1571407970349-bc81e7e96d47 |
 | pizzaria/quatro-queijos.jpg | 1593560708920-61dd98c46a4e |
 | hamburgueria/hero-burger.jpg | 1568901346375-23c9450c58cd |
+| hamburgueria/hero-burger-2.jpg | 1572802419224-296b0aeee0d9 |
+| hamburgueria/hero-burger-3.jpg | 1607013251379-e6eecfffe234 |
 | hamburgueria/x-salada.jpg | 1550547660-d9450f859349 |
 | hamburgueria/x-bacon.jpg | 1594212699903-ec8a3eca50f5 |
 | hamburgueria/batata-frita.jpg | 1573080496219-bb080dd4f877 |
@@ -31,6 +35,8 @@ O identificador é o da URL de origem: `https://images.unsplash.com/photo-<id>`.
 | hamburgueria/refrigerante-lata.jpg | 1554866585-cd94860890b7 |
 | acai/hero-acai.jpg | QyH-eSLaEr8 (foto de copo de açaí) |
 | japones/hero-sushi.jpg | 1579871494447-9811cf80d66c |
+| japones/hero-sushi-2.jpg | 1553621042-f6e147245754 |
+| japones/hero-sushi-3.jpg | 1611143669185-af224c5e3252 |
 | japones/combinado.jpg | 1583623025817-d180a2221d0a |
 | japones/temaki.jpg | 1607301405390-d831c242f59b |
 | japones/yakisoba.jpg | 1585032226651-759b368d7246 |
@@ -40,6 +46,10 @@ O identificador é o da URL de origem: `https://images.unsplash.com/photo-<id>`.
 acai-300-copo.jpg, acai-500-tigela.png, acai-combo-casal.jpg e acai-barca.jpg
 vieram do dono do projeto, não do Unsplash. A procedência e o direito de uso
 delas são de quem as forneceu.
+
+O hero do ramo de acai gira essas mesmas fotos do cliente, e nao fotos de banco:
+as buscas por acai em bancos de imagem trouxeram outras frutas, entao a foto
+verificada e a que veio de quem conhece o produto.
 
 acai-300-copo.jpg tem 447x447 — abaixo do ideal para um card de cardápio, e
 pode aparecer suavizada em telas grandes.

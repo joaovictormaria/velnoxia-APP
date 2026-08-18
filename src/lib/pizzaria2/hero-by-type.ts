@@ -37,7 +37,11 @@ export type HeroContent = {
 
 const HERO_BY_TYPE: Record<string, HeroContent> = {
   pizzaria: {
-    photos: ["/catalogo-inicial/pizzaria/hero-pizza.jpg"],
+    photos: [
+      "/catalogo-inicial/pizzaria/hero-pizza.jpg",
+      "/catalogo-inicial/pizzaria/hero-pizza-2.jpg",
+      "/catalogo-inicial/pizzaria/hero-pizza-3.jpg",
+    ],
     cravings: [
       "queijo derretido?",
       "massa crocante?",
@@ -55,15 +59,25 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     markIcon: "Pizza",
     ctaTitle: "Deu vontade de pizza? 🍕",
     aboutTitle: "Feita com paixão, servida com carinho.",
-    aboutBody: "cada pizza começa com uma massa fermentada por 48 horas, ingredientes selecionados todos os dias e um preparo cuidadoso do início ao fim.",
+    aboutBody:
+      "cada pizza começa com uma massa fermentada por 48 horas, ingredientes selecionados todos os dias e um preparo cuidadoso do início ao fim.",
     browseAllBlurb: "Explore o cardápio completo e monte sua pizza favorita!",
-    trustLabels: ["Ingredientes selecionados", "Entrega rápida", "Compra segura"],
+    trustLabels: [
+      "Ingredientes selecionados",
+      "Entrega rápida",
+      "Compra segura",
+    ],
     ctaBlurb: "Monte sua pizza aqui mesmo e acompanhe o pedido pelo site.",
-    pickerBlurb: "Massa fresca, molho artesanal e muito mais sabor para sua pizza perfeita.",
+    pickerBlurb:
+      "Massa fresca, molho artesanal e muito mais sabor para sua pizza perfeita.",
     fullMenuTeaser: "Mais sabores incríveis esperam por você!",
   },
   hamburgueria: {
-    photos: ["/catalogo-inicial/hamburgueria/hero-burger.jpg"],
+    photos: [
+      "/catalogo-inicial/hamburgueria/hero-burger.jpg",
+      "/catalogo-inicial/hamburgueria/hero-burger-2.jpg",
+      "/catalogo-inicial/hamburgueria/hero-burger-3.jpg",
+    ],
     cravings: [
       "um burger suculento?",
       "bacon crocante?",
@@ -81,15 +95,21 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     markIcon: "Sandwich",
     ctaTitle: "Bateu a fome? 🍔",
     aboutTitle: "Feito na chapa, servido com carinho.",
-    aboutBody: "cada lanche é montado na hora, com pão fresco, carne selecionada e um preparo cuidadoso do início ao fim.",
+    aboutBody:
+      "cada lanche é montado na hora, com pão fresco, carne selecionada e um preparo cuidadoso do início ao fim.",
     browseAllBlurb: "Explore o cardápio completo e monte seu lanche favorito!",
     trustLabels: ["Carne fresca todo dia", "Entrega rápida", "Compra segura"],
     ctaBlurb: "Monte seu lanche aqui mesmo e acompanhe o pedido pelo site.",
-    pickerBlurb: "Pão macio, carne na chapa e ingredientes frescos em cada lanche.",
+    pickerBlurb:
+      "Pão macio, carne na chapa e ingredientes frescos em cada lanche.",
     fullMenuTeaser: "Tem muito mais lanche esperando por você!",
   },
   acai: {
-    photos: ["/catalogo-inicial/acai/hero-acai.jpg"],
+    photos: [
+      "/catalogo-inicial/acai/hero-acai.jpg",
+      "/catalogo-inicial/acai/acai-barca.jpg",
+      "/catalogo-inicial/acai/acai-combo-casal.jpg",
+    ],
     cravings: [
       "açaí bem cremoso?",
       "aquele copo geladinho?",
@@ -107,15 +127,22 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     markIcon: "GlassWater",
     ctaTitle: "Deu vontade de açaí? 🍧",
     aboutTitle: "Batido na hora, servido com carinho.",
-    aboutBody: "o açaí é batido na hora, com polpa selecionada, complementos frescos e um preparo cuidadoso do início ao fim.",
-    browseAllBlurb: "Explore o cardápio completo e monte seu açaí do seu jeito!",
+    aboutBody:
+      "o açaí é batido na hora, com polpa selecionada, complementos frescos e um preparo cuidadoso do início ao fim.",
+    browseAllBlurb:
+      "Explore o cardápio completo e monte seu açaí do seu jeito!",
     trustLabels: ["Polpa selecionada", "Entrega rápida", "Compra segura"],
     ctaBlurb: "Monte seu açaí aqui mesmo e acompanhe o pedido pelo site.",
-    pickerBlurb: "Polpa selecionada, batida na hora, com os complementos que você escolher.",
+    pickerBlurb:
+      "Polpa selecionada, batida na hora, com os complementos que você escolher.",
     fullMenuTeaser: "Tem muito mais combinação esperando por você!",
   },
   japones: {
-    photos: ["/catalogo-inicial/japones/hero-sushi.jpg"],
+    photos: [
+      "/catalogo-inicial/japones/hero-sushi.jpg",
+      "/catalogo-inicial/japones/hero-sushi-2.jpg",
+      "/catalogo-inicial/japones/hero-sushi-3.jpg",
+    ],
     cravings: [
       "salmão fresquinho?",
       "um combinado caprichado?",
@@ -133,11 +160,14 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     markIcon: "Fish",
     ctaTitle: "Deu vontade de sushi? 🍣",
     aboutTitle: "Feito à mão, servido com carinho.",
-    aboutBody: "cada peça é preparada à mão, com peixe fresco do dia, arroz no ponto e um preparo cuidadoso do início ao fim.",
-    browseAllBlurb: "Explore o cardápio completo e monte seu combinado favorito!",
+    aboutBody:
+      "cada peça é preparada à mão, com peixe fresco do dia, arroz no ponto e um preparo cuidadoso do início ao fim.",
+    browseAllBlurb:
+      "Explore o cardápio completo e monte seu combinado favorito!",
     trustLabels: ["Peixe fresco do dia", "Entrega rápida", "Compra segura"],
     ctaBlurb: "Monte seu combinado aqui mesmo e acompanhe o pedido pelo site.",
-    pickerBlurb: "Peixe fresco do dia, arroz temperado na medida e montagem na hora.",
+    pickerBlurb:
+      "Peixe fresco do dia, arroz temperado na medida e montagem na hora.",
     fullMenuTeaser: "Tem muito mais combinado esperando por você!",
   },
 };
