@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, DollarSign, ShoppingBag, Star, Wallet } from "lucide-react";
+import { CalendarDays, DollarSign, ExternalLink, ShoppingBag, Star, Wallet } from "lucide-react";
 import { KpiCard } from "@/components/admin/dashboard/KpiCard";
 import { OrdersByHourChart } from "@/components/admin/dashboard/OrdersByHourChart";
 import { OrdersByStatusCard } from "@/components/admin/dashboard/OrdersByStatusCard";
@@ -31,8 +31,29 @@ function DashboardPage() {
           <p className="mt-1 text-sm text-neutral-600">
             Aqui está o resumo do seu negócio hoje.
           </p>
+          {/* The address is what the owner sends to customers, so it belongs
+              where they see it every day — not buried in the settings page. */}
+          {admin && (
+            <p className="mt-2 text-sm text-neutral-500">
+              Seu cardápio:{' '}
+              <span className="font-mono text-neutral-700">velnox.app/{admin.store.slug}</span>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-3">
+          {/* Opens in a new tab: this is the public site, and the owner is
+              usually mid-task in the panel — replacing it loses that place. */}
+          {admin && (
+            <a
+              href={`/${admin.store.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a]"
+            >
+              <ExternalLink className="size-4" />
+              Ver meu cardápio
+            </a>
+          )}
           <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-700">
             <CalendarDays className="size-4 text-neutral-500" />
             Hoje, {todayLabel.format(new Date())}
