@@ -21,6 +21,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCadastroRouteImport } from './routes/admin/cadastro'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as StoreSlugProdutoSlugRouteImport } from './routes/$storeSlug/produto/$slug'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
 import { Route as AdminCardapioIndexRouteImport } from './routes/admin/cardapio/index'
@@ -94,6 +95,11 @@ const AdminLoginRoute = AdminLoginRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUploadRoute = ApiUploadRouteImport.update({
+  id: '/api/upload',
+  path: '/api/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoreSlugProdutoSlugRoute = StoreSlugProdutoSlugRouteImport.update({
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/upload': typeof ApiUploadRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByTo {
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/upload': typeof ApiUploadRoute
   '/$storeSlug': typeof StoreSlugIndexRoute
   '/admin': typeof AdminIndexRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
@@ -233,6 +241,7 @@ export interface FileRoutesById {
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/upload': typeof ApiUploadRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
+    | '/api/upload'
     | '/$storeSlug/'
     | '/admin/'
     | '/$storeSlug/produto/$slug'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
+    | '/api/upload'
     | '/$storeSlug'
     | '/admin'
     | '/$storeSlug/produto/$slug'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
+    | '/api/upload'
     | '/$storeSlug/'
     | '/admin/'
     | '/$storeSlug/produto/$slug'
@@ -343,6 +355,7 @@ export interface RootRouteChildren {
   CriarSiteRoute: typeof CriarSiteRoute
   PreviewRoute: typeof PreviewRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiUploadRoute: typeof ApiUploadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -429,6 +442,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/upload': {
+      id: '/api/upload'
+      path: '/api/upload'
+      fullPath: '/api/upload'
+      preLoaderRoute: typeof ApiUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$storeSlug/produto/$slug': {
@@ -598,6 +618,7 @@ const rootRouteChildren: RootRouteChildren = {
   CriarSiteRoute: CriarSiteRoute,
   PreviewRoute: PreviewRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiUploadRoute: ApiUploadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

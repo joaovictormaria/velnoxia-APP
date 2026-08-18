@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createR2Client, getR2Config } from "./r2-client";
+import { localPublicUrl } from "./local-uploads";
 
 export type UploadKind = "product" | "category" | "logo" | "restaurant";
 
@@ -33,16 +34,20 @@ export async function createUploadUrl(
     return { ok: false, error: "Formato não suportado. Use JPG, PNG, WEBP ou AVIF." };
   }
 
+  const key = `${FOLDER_BY_KIND[kind]}/${randomUUID()}.${EXTENSION_BY_TYPE[contentType]}`;
+
   const config = getR2Config();
   if (!config) {
+    // No cloud credentials: store on disk instead of refusing the upload, so
+    // an owner can put their own photos on the menu from day one. The client
+    // uploads the same way — it just PUTs to our own endpoint.
     return {
-      ok: false,
-      error:
-        "Armazenamento de imagens não configurado. Defina as variáveis R2_* no ambiente.",
+      ok: true,
+      uploadUrl: `/api/upload?key=${encodeURIComponent(key)}`,
+      publicUrl: localPublicUrl(key),
     };
   }
 
-  const key = `${FOLDER_BY_KIND[kind]}/${randomUUID()}.${EXTENSION_BY_TYPE[contentType]}`;
   const client = createR2Client(config);
 
   const uploadUrl = await getSignedUrl(

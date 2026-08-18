@@ -1,0 +1,4 @@
+# Uploads gravados em disco quando o R2 não está configurado (desenvolvimento).
+# O conteúdo é de cada máquina; só a pasta é versionada.
+*
+!.gitignore
