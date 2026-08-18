@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
+import { loadCustomerDetails, saveCustomerDetails } from "@/lib/pizzaria2/customer-details";
 
 const PAYMENT_LABEL: Record<string, string> = {
   PIX: "Pix",
@@ -35,6 +36,40 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [placed, setPlaced] = useState<{ number: number; total: number } | null>(null);
 
   const payments = storeInfo.acceptedPaymentMethods;
+
+  // Filled after mount, not in a state initialiser: localStorage does not
+  // exist on the server, so seeding it during the first render would make the
+  // client markup disagree with the server's and break hydration.
+  useEffect(() => {
+    const saved = loadCustomerDetails(storeInfo.slug);
+    if (!saved.phone && !saved.name) return;
+    setName(saved.name);
+    setPhone(saved.phone);
+    setStreet(saved.street);
+    setNumber(saved.number);
+    setComplement(saved.complement);
+    setNeighborhood(saved.neighborhood);
+    setCity(saved.city);
+    if (storeInfo.acceptedPaymentMethods.includes(saved.paymentMethod)) {
+      setPaymentMethod(saved.paymentMethod);
+    }
+    if (saved.type === "PICKUP" ? storeInfo.acceptsPickup : storeInfo.acceptsDelivery) {
+      setType(saved.type);
+    }
+  }, [storeInfo.slug]);
+
+  // Mirrors the server rule. Without it a short phone makes the server-side
+  // validator throw, and the mutation's onError shows a generic 'tente
+  // novamente' — hiding the one thing the person needs to know.
+  function localValidation(): string | null {
+    if (phone.replace(/\D/g, "").length < 10) {
+      return 'Informe um WhatsApp válido, com DDD.';
+    }
+    if (type === 'DELIVERY' && !street.trim()) {
+      return 'Informe o endereço de entrega.';
+    }
+    return null;
+  }
 
   const submit = useMutation({
     mutationFn: () =>
@@ -67,6 +102,11 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
         return;
       }
       setError(null);
+      // Saved only after the order is accepted, so a rejected attempt never
+      // becomes the address suggested next time.
+      saveCustomerDetails(storeInfo.slug, {
+        name, phone, street, number, complement, neighborhood, city, type, paymentMethod,
+      });
       setPlaced({ number: res.orderNumber, total: res.total });
       clearCart();
     },
@@ -117,6 +157,11 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          const invalid = localValidation();
+          if (invalid) {
+            setError(invalid);
+            return;
+          }
           setError(null);
           submit.mutate();
         }}
