@@ -169,7 +169,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
           </div>
         </Reveal>
 
-        <div className="mt-6 space-y-5">
+        <div className="mt-6 space-y-3">
           <Reveal variant="left">
             <form
               onSubmit={submit}
@@ -253,7 +253,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
             ) : (
               reviews.map((r, i) => (
                 <Reveal key={r.id} variant="up" delay={Math.min(i * 40, 240)}>
-                  <article className="rounded-[24px] border border-charcoal/8 bg-white p-5 sm:p-6">
+                  <article className="rounded-[20px] border border-charcoal/8 bg-white p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-display text-sm font-bold text-charcoal">
@@ -266,12 +266,12 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                       <Stars value={r.rating} />
                     </div>
 
-                    <p className="mt-3 text-sm leading-relaxed text-charcoal/70">
+                    <p className="mt-2.5 text-sm leading-relaxed text-charcoal/70">
                       {r.comment}
                     </p>
 
                     {r.response && (
-                      <div className="mt-4 rounded-xl border-l-2 border-tomato bg-charcoal/[0.03] px-4 py-3">
+                      <div className="mt-3 rounded-lg border-l-2 border-tomato bg-charcoal/[0.03] px-3 py-2.5">
                         <p className="text-xs font-semibold uppercase tracking-wide text-tomato">
                           Resposta da loja
                         </p>
@@ -287,7 +287,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                       disabled={!visitorId}
                       aria-pressed={r.likedByMe}
                       className={cn(
-                        "mt-4 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                        "mt-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
                         r.likedByMe
                           ? "border-tomato/30 bg-tomato/10 text-tomato"
                           : "border-charcoal/12 text-charcoal/55 hover:border-tomato/30 hover:text-tomato",
