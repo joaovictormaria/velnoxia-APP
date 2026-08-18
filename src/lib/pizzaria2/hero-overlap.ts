@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "@tanstack/react-router";
-
-const HOME_PATH = "/$storeSlug";
+import { useStore } from "./store-provider";
 export const HERO_BOUNDARY_ID = "pizzaria2-hero-boundary";
 const HEADER_HEIGHT = 67;
 
@@ -13,7 +12,13 @@ const HEADER_HEIGHT = 67;
  */
 export function useHeaderOverHero(): boolean {
   const pathname = useLocation({ select: (location) => location.pathname });
-  const isHome = pathname === HOME_PATH || pathname === `${HOME_PATH}/`;
+  // The resolved path, not the route pattern: the browser is at /padaria-x9k2,
+  // never at the literal "/$storeSlug". Comparing against the pattern was always
+  // false, so the header believed it had left the hero from the first paint and
+  // painted its links dark over the brand color.
+  const { slug: storeSlug } = useStore();
+  const home = `/${storeSlug}`;
+  const isHome = pathname === home || pathname === `${home}/`;
   const [overHero, setOverHero] = useState(isHome);
 
   useEffect(() => {
