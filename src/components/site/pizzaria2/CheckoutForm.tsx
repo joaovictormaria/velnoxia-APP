@@ -7,6 +7,7 @@ import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
+import { previewCouponFn } from "@/server/functions/coupons.fn";
 import { loadCustomerDetails, saveCustomerDetails } from "@/lib/pizzaria2/customer-details";
 import { formatCep, isCompleteCep, lookupCep, normalizeCep } from "@/lib/pizzaria2/cep-lookup";
 
@@ -35,6 +36,29 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "notfound">("idle");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [couponCode, setCouponCode] = useState("");
+  /** null = not checked yet. The order service checks again when the order is
+   *  placed; this only lets the customer see the discount before confirming. */
+  const [couponResult, setCouponResult] = useState<
+    { ok: true; code: string; discount: number } | { ok: false; error: string } | null
+  >(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+
+  async function checkCoupon() {
+    const code = couponCode.trim();
+    if (!code) {
+      setCouponResult(null);
+      return;
+    }
+    setCheckingCoupon(true);
+    try {
+      const res = await previewCouponFn({ data: { storeSlug: storeInfo.slug, code, subtotal } });
+      setCouponResult(res);
+    } catch {
+      setCouponResult({ ok: false, error: "Não foi possível conferir o cupom agora." });
+    } finally {
+      setCheckingCoupon(false);
+    }
+  }
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [placed, setPlaced] = useState<{ number: number; total: number } | null>(null);
@@ -333,12 +357,36 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
             </select>
           </Field>
           <Field label="Cupom (opcional)">
-            <input
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-              placeholder="PIZZA10"
-              className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal placeholder:text-charcoal/30"
-            />
+            <div className="flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                  // Editing invalidates the previous answer, so a stale
+                  // "aplicado" never sits next to a code that changed.
+                  setCouponResult(null);
+                }}
+                onBlur={checkCoupon}
+                placeholder="PIZZA10"
+                className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal placeholder:text-charcoal/30"
+              />
+              <button
+                type="button"
+                onClick={checkCoupon}
+                disabled={checkingCoupon || !couponCode.trim()}
+                className="shrink-0 rounded-xl border border-charcoal/15 px-4 text-sm font-medium text-charcoal disabled:opacity-50"
+              >
+                {checkingCoupon ? "..." : "Aplicar"}
+              </button>
+            </div>
+            {couponResult?.ok === true && (
+              <p className="mt-1.5 text-xs font-medium text-olive">
+                {couponResult.code} aplicado: -{formatCurrency(couponResult.discount)}
+              </p>
+            )}
+            {couponResult?.ok === false && (
+              <p className="mt-1.5 text-xs text-tomato">{couponResult.error}</p>
+            )}
           </Field>
         </div>
 
@@ -360,10 +408,15 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
 
         <div className="flex items-center justify-between border-t border-charcoal/10 pt-4">
           <div>
-            <p className="text-xs text-charcoal/50">Subtotal dos itens</p>
-            <p className="font-display text-xl font-bold text-charcoal">
-              {formatCurrency(subtotal)}
+            <p className="text-xs text-charcoal/50">
+              {couponResult?.ok ? "Com o desconto do cupom" : "Subtotal dos itens"}
             </p>
+            <p className="font-display text-xl font-bold text-charcoal">
+              {formatCurrency(subtotal - (couponResult?.ok ? couponResult.discount : 0))}
+            </p>
+            {couponResult?.ok && (
+              <p className="text-xs text-charcoal/45 line-through">{formatCurrency(subtotal)}</p>
+            )}
           </div>
           <Button
             type="submit"

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
+import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
 import {
   createCoupon,
   deleteCoupon,
@@ -79,4 +80,48 @@ export const deleteCouponFn = createServerFn({ method: "POST" })
     const { storeId } = await requireAdminSession();
     await deleteCoupon(storeId, data.id);
     return { ok: true as const };
+  });
+
+/* ---- público: conferir um cupom antes de fechar o pedido ---- */
+
+/**
+ * Checks a code the customer typed and answers with the discount it would give.
+ * The order service validates again when the order is placed — this is the
+ * preview, not the authority, and it must never be the only check.
+ */
+export const previewCouponFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      storeSlug: z.string().min(1),
+      code: z.string().trim().min(1),
+      subtotal: z.number().min(0),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const store = await getStoreBySlug(data.storeSlug);
+    if (!store || !isStoreServable(store)) return { ok: false as const, error: "Loja indisponível." };
+
+    const coupon = await findCouponByCode(store.id, data.code);
+    // Every refusal says which one it is: a customer who is told only "invalid"
+    // retypes the same correct code again.
+    if (!coupon || !coupon.isActive) return { ok: false as const, error: "Cupom não encontrado." };
+    const agora = new Date();
+    if (agora < coupon.validFrom) return { ok: false as const, error: "Esse cupom ainda não começou." };
+    if (agora > coupon.validUntil) return { ok: false as const, error: "Esse cupom já venceu." };
+    if (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage) {
+      return { ok: false as const, error: "Esse cupom já atingiu o limite de usos." };
+    }
+    if (coupon.minOrderValue !== null && data.subtotal < coupon.minOrderValue) {
+      return {
+        ok: false as const,
+        error: `Esse cupom vale a partir de ${coupon.minOrderValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
+      };
+    }
+
+    const bruto =
+      coupon.discountType === "PERCENTAGE"
+        ? (data.subtotal * coupon.discountValue) / 100
+        : coupon.discountValue;
+    const discount = Math.min(Math.round(bruto * 100) / 100, data.subtotal);
+    return { ok: true as const, code: coupon.code, discount };
   });
