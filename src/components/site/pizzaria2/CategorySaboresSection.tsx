@@ -1,9 +1,18 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Award, BookOpen, ChevronDown, ShieldCheck, Truck } from "lucide-react";
+import {
+  ArrowRight,
+  Award,
+  BookOpen,
+  ChevronDown,
+  ShieldCheck,
+  Truck,
+} from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductCard } from "./ProductCard";
+import { ProductRow } from "./ProductRow";
+import { ProductModal } from "./ProductModal";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
@@ -48,22 +57,28 @@ export const categoryDescriptions: Record<string, [string, string]> = {
 // Icons stay fixed — the wording is what changes by trade, and each icon
 // carries its own animation, so they are matched to labels by position.
 const trustIcons: (() => ReactNode)[] = [
-    () => <Award className="h-5 w-5 animate-badge-shine" />,
-    () => (
-      <span className="relative flex h-5 w-5 items-center justify-center">
-        <span className="pointer-events-none absolute -left-1 top-0 flex flex-col gap-0.5">
-          <span className="h-1 w-1 rounded-full bg-olive/60 animate-truck-smoke" style={{ animationDelay: "0s" }} />
-          <span className="h-1 w-1 rounded-full bg-olive/60 animate-truck-smoke" style={{ animationDelay: "0.35s" }} />
-        </span>
-        <Truck className="h-5 w-5 animate-truck-drive" />
+  () => <Award className="h-5 w-5 animate-badge-shine" />,
+  () => (
+    <span className="relative flex h-5 w-5 items-center justify-center">
+      <span className="pointer-events-none absolute -left-1 top-0 flex flex-col gap-0.5">
+        <span
+          className="h-1 w-1 rounded-full bg-olive/60 animate-truck-smoke"
+          style={{ animationDelay: "0s" }}
+        />
+        <span
+          className="h-1 w-1 rounded-full bg-olive/60 animate-truck-smoke"
+          style={{ animationDelay: "0.35s" }}
+        />
       </span>
-    ),
-    () => (
-      <span className="relative flex h-5 w-5 items-center justify-center">
-        <span className="absolute inset-0 rounded-full bg-olive/40 animate-ping" />
-        <ShieldCheck className="relative h-5 w-5" />
-      </span>
-    ),
+      <Truck className="h-5 w-5 animate-truck-drive" />
+    </span>
+  ),
+  () => (
+    <span className="relative flex h-5 w-5 items-center justify-center">
+      <span className="absolute inset-0 rounded-full bg-olive/40 animate-ping" />
+      <ShieldCheck className="relative h-5 w-5" />
+    </span>
+  ),
 ];
 
 /**
@@ -77,7 +92,8 @@ export function CategorySaboresSection({
   defaultCategorySlug?: CategorySlug;
 }) {
   const { addLine } = useCart();
-  const { categories, products, categoryBySlug, productsByCategory } = useMenu();
+  const { categories, products, categoryBySlug, productsByCategory } =
+    useMenu();
   const { slug: storeSlug, businessType } = useStore();
   const { fullMenuTeaser, trustLabels, browseAllBlurb } = heroFor(businessType);
 
@@ -95,6 +111,7 @@ export function CategorySaboresSection({
       : fallbackSlug;
 
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(initialSlug);
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
   // A category can disappear while the page is open (deactivated in the admin),
   // so fall back rather than blanking the whole section.
   const category = categoryBySlug(activeSlug) ?? categoryBySlug(fallbackSlug);
@@ -106,7 +123,24 @@ export function CategorySaboresSection({
   // The category's own copy wins. The maps below stay only as a fallback for
   // stores seeded before these columns existed — a category created in the
   // admin has no entry there and would otherwise render blank.
-  const [fallbackFirst, fallbackSecond] = categoryDescriptions[category.slug] ?? ["", ""];
+  const [fallbackFirst, fallbackSecond] = categoryDescriptions[
+    category.slug
+  ] ?? ["", ""];
+
+  function addProduct(product: (typeof items)[number]) {
+    const isPizza = category?.kind === "pizza";
+    addLine({
+      name: product.name,
+      sizeLabel: isPizza ? "Média" : undefined,
+      image: product.image,
+      icon: product.icon,
+      unitPrice: sizePrice(product, "media"),
+      extras: [],
+      qty: 1,
+      productSlug: product.slug,
+      sizeKey: isPizza ? "media" : undefined,
+    });
+  }
   const firstLine = category.headline ?? fallbackFirst;
   const secondLine = category.subhead ?? fallbackSecond;
 
@@ -114,7 +148,9 @@ export function CategorySaboresSection({
   // the add-to-cart flow slides into) needs *a* valid pizza slug to anchor
   // the route — which one barely matters since that screen shows every category.
   const ctaProductSlug =
-    (category.kind === "pizza" ? items[0]?.slug : undefined) ?? products[0]?.slug ?? "";
+    (category.kind === "pizza" ? items[0]?.slug : undefined) ??
+    products[0]?.slug ??
+    "";
 
   return (
     <>
@@ -153,7 +189,9 @@ export function CategorySaboresSection({
               <BookOpen className="h-6 w-6" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-base font-bold leading-tight">Veja o cardápio completo</span>
+              <span className="block text-base font-bold leading-tight">
+                Veja o cardápio completo
+              </span>
               <span className="mt-1 block text-sm leading-tight text-[color:var(--on-primary-muted)]">
                 {fullMenuTeaser}
               </span>
@@ -169,7 +207,9 @@ export function CategorySaboresSection({
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-olive/10 text-olive">
                   {trustIcons[i]?.()}
                 </span>
-                <span className="text-xs leading-tight text-charcoal/60">{label}</span>
+                <span className="text-xs leading-tight text-charcoal/60">
+                  {label}
+                </span>
               </div>
             ))}
           </div>
@@ -178,16 +218,33 @@ export function CategorySaboresSection({
         <div>
           <CategoryTabs activeSlug={category.slug} onSelect={setActiveSlug} />
 
-          <div className="mt-6 grid max-w-[920px] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 space-y-2.5 md:hidden">
+            {items.map((product) => (
+              <ProductRow
+                key={product.slug}
+                product={product}
+                price={sizePrice(product, "media")}
+                onOpen={() => setOpenSlug(product.slug)}
+                onQuickAdd={() => addProduct(product)}
+              />
+            ))}
+          </div>
+
+          <div className="mt-6 hidden max-w-[920px] gap-5 md:grid md:grid-cols-2 lg:grid-cols-3">
             {items.map((product, i) => (
-              <Reveal key={product.slug} variant="up" delay={Math.min(i * 40, 320)}>
+              <Reveal
+                key={product.slug}
+                variant="up"
+                delay={Math.min(i * 40, 320)}
+              >
                 <ProductCard
                   product={product}
                   linkToCustomize={category.kind === "pizza"}
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
-                      sizeLabel: category.kind === "pizza" ? "Média" : undefined,
+                      sizeLabel:
+                        category.kind === "pizza" ? "Média" : undefined,
                       image: product.image,
                       icon: product.icon,
                       unitPrice: sizePrice(product, "media"),
@@ -203,6 +260,22 @@ export function CategorySaboresSection({
           </div>
         </div>
       </div>
+
+      {(() => {
+        const open = openSlug
+          ? items.find((p) => p.slug === openSlug)
+          : undefined;
+        if (!open) return null;
+        return (
+          <ProductModal
+            product={open}
+            price={sizePrice(open, "media")}
+            linkToCustomize={category.kind === "pizza"}
+            onAdd={() => addProduct(open)}
+            onClose={() => setOpenSlug(null)}
+          />
+        );
+      })()}
 
       <div className="mt-14 flex items-center justify-center gap-2.5 text-base font-medium text-tomato">
         <ChevronDown className="h-5 w-5 animate-bounce" />

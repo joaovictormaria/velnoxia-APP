@@ -75,7 +75,20 @@ type Draft = {
   acceptedPaymentMethods: string[];
 };
 
-type HoursDraft = Record<Weekday, { isOpen: boolean; opensAt: string; closesAt: string }>;
+type HoursDraft = Record<
+  Weekday,
+  { isOpen: boolean; opensAt: string; closesAt: string }
+>;
+
+type TabId = "identidade" | "contato" | "endereco" | "entrega" | "horarios";
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: "identidade", label: "Identidade" },
+  { id: "contato", label: "Contato e redes" },
+  { id: "endereco", label: "Endereço" },
+  { id: "entrega", label: "Entrega e retirada" },
+  { id: "horarios", label: "Horários" },
+];
 
 function SettingsPage() {
   const queryClient = useQueryClient();
@@ -83,6 +96,7 @@ function SettingsPage() {
   const [hours, setHours] = useState<HoursDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [tab, setTab] = useState<TabId>("identidade");
 
   const { data, isPending } = useQuery({
     queryKey: ["store-settings"],
@@ -151,8 +165,10 @@ function SettingsPage() {
         data: {
           ...draft,
           tagline: draft.tagline || null,
-          secondaryColor: draft.colorMode === "GRADIENT" ? draft.secondaryColor : null,
-          tertiaryColor: draft.colorMode === "GRADIENT" ? draft.tertiaryColor : null,
+          secondaryColor:
+            draft.colorMode === "GRADIENT" ? draft.secondaryColor : null,
+          tertiaryColor:
+            draft.colorMode === "GRADIENT" ? draft.tertiaryColor : null,
           description: draft.description || null,
           email: draft.email || null,
           instagramUrl: draft.instagramUrl || null,
@@ -165,7 +181,7 @@ function SettingsPage() {
           addressCity: draft.addressCity || null,
           addressState: draft.addressState || null,
           addressZipCode: draft.addressZipCode || null,
-          acceptedPaymentMethods: draft.acceptedPaymentMethods as ("PIX")[],
+          acceptedPaymentMethods: draft.acceptedPaymentMethods as "PIX"[],
         },
       });
       if (!settingsRes.ok) throw new Error(settingsRes.error);
@@ -188,7 +204,9 @@ function SettingsPage() {
   });
 
   if (isPending || !draft || !hours) {
-    return <p className="text-sm text-neutral-500">Carregando configurações...</p>;
+    return (
+      <p className="text-sm text-neutral-500">Carregando configurações...</p>
+    );
   }
 
   const togglePayment = (value: string) =>
@@ -221,20 +239,50 @@ function SettingsPage() {
         >
           {save.isPending && <Loader2 className="size-4 animate-spin" />}
           {saved && !save.isPending && <Check className="size-4" />}
-          {save.isPending ? "Salvando..." : saved ? "Salvo" : "Salvar alterações"}
+          {save.isPending
+            ? "Salvando..."
+            : saved
+              ? "Salvo"
+              : "Salvar alterações"}
         </button>
       </header>
+
+      <div className="flex flex-wrap gap-1 rounded-xl bg-neutral-100 p-1">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={
+              "rounded-lg px-4 py-2 text-sm font-medium transition-colors " +
+              (tab === t.id
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-600 hover:text-neutral-900")
+            }
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       {error && (
         <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
           {error}
-          <button type="button" onClick={() => setError(null)} aria-label="Fechar">
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Fechar"
+          >
             <X className="size-4" />
           </button>
         </div>
       )}
 
-      <Section title="Identidade" description="Nome, logo e cor que o cliente vê no site.">
+      <Section
+        active={tab === "identidade"}
+        title="Identidade"
+        description="Nome, logo e cor que o cliente vê no site."
+      >
         <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
           <ImageUploadField
             kind="logo"
@@ -244,12 +292,25 @@ function SettingsPage() {
           />
           <div className="space-y-4">
             <Field label="Nome da loja">
-              <Input value={draft.storeName} onChange={(v) => set("storeName", v)} required />
+              <Input
+                value={draft.storeName}
+                onChange={(v) => set("storeName", v)}
+                required
+              />
             </Field>
-            <Field label="Subtítulo" hint="Aparece abaixo do nome no topo. Ex.: Pizzaria">
-              <Input value={draft.tagline} onChange={(v) => set("tagline", v)} />
+            <Field
+              label="Subtítulo"
+              hint="Aparece abaixo do nome no topo. Ex.: Pizzaria"
+            >
+              <Input
+                value={draft.tagline}
+                onChange={(v) => set("tagline", v)}
+              />
             </Field>
-            <Field label="Descrição" hint="Parágrafo curto exibido no rodapé do site.">
+            <Field
+              label="Descrição"
+              hint="Parágrafo curto exibido no rodapé do site."
+            >
               <textarea
                 value={draft.description}
                 onChange={(e) => set("description", e.target.value)}
@@ -309,15 +370,19 @@ function SettingsPage() {
                 }}
               />
               <p className="mt-1 text-xs text-neutral-500">
-                O texto do site escurece ou clareia sozinho para continuar legível
-                sobre as cores escolhidas.
+                O texto do site escurece ou clareia sozinho para continuar
+                legível sobre as cores escolhidas.
               </p>
             </Field>
           </div>
         </div>
       </Section>
 
-      <Section title="Contato e redes" description="Deixe em branco o que não quiser exibir.">
+      <Section
+        active={tab === "contato"}
+        title="Contato e redes"
+        description="Deixe em branco o que não quiser exibir."
+      >
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="WhatsApp" hint="Usado nos botões de pedido do site.">
             <Input
@@ -328,7 +393,11 @@ function SettingsPage() {
             />
           </Field>
           <Field label="E-mail">
-            <Input value={draft.email} onChange={(v) => set("email", v)} type="email" />
+            <Input
+              value={draft.email}
+              onChange={(v) => set("email", v)}
+              type="email"
+            />
           </Field>
           <Field label="Instagram">
             <Input
@@ -354,16 +423,26 @@ function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Endereço" description="Exibido no rodapé com link para o mapa.">
+      <Section
+        active={tab === "endereco"}
+        title="Endereço"
+        description="Exibido no rodapé com link para o mapa."
+      >
         <div className="grid gap-4 sm:grid-cols-6">
           <div className="sm:col-span-4">
             <Field label="Rua">
-              <Input value={draft.addressStreet} onChange={(v) => set("addressStreet", v)} />
+              <Input
+                value={draft.addressStreet}
+                onChange={(v) => set("addressStreet", v)}
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
             <Field label="Número">
-              <Input value={draft.addressNumber} onChange={(v) => set("addressNumber", v)} />
+              <Input
+                value={draft.addressNumber}
+                onChange={(v) => set("addressNumber", v)}
+              />
             </Field>
           </div>
           <div className="sm:col-span-3">
@@ -384,23 +463,36 @@ function SettingsPage() {
           </div>
           <div className="sm:col-span-3">
             <Field label="Cidade">
-              <Input value={draft.addressCity} onChange={(v) => set("addressCity", v)} />
+              <Input
+                value={draft.addressCity}
+                onChange={(v) => set("addressCity", v)}
+              />
             </Field>
           </div>
           <div className="sm:col-span-1">
             <Field label="UF">
-              <Input value={draft.addressState} onChange={(v) => set("addressState", v)} />
+              <Input
+                value={draft.addressState}
+                onChange={(v) => set("addressState", v)}
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
             <Field label="CEP">
-              <Input value={draft.addressZipCode} onChange={(v) => set("addressZipCode", v)} />
+              <Input
+                value={draft.addressZipCode}
+                onChange={(v) => set("addressZipCode", v)}
+              />
             </Field>
           </div>
         </div>
       </Section>
 
-      <Section title="Entrega e retirada" description="Controla o que o checkout oferece.">
+      <Section
+        active={tab === "entrega"}
+        title="Entrega e retirada"
+        description="Controla o que o checkout oferece."
+      >
         <div className="flex flex-wrap gap-6">
           <Toggle
             label="Aceita entrega"
@@ -416,19 +508,33 @@ function SettingsPage() {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <Field label="Taxa de entrega (R$)">
-            <NumberInput value={draft.deliveryFee} onChange={(v) => set("deliveryFee", v)} step={0.5} />
+            <NumberInput
+              value={draft.deliveryFee}
+              onChange={(v) => set("deliveryFee", v)}
+              step={0.5}
+            />
           </Field>
           <Field label="Pedido mínimo (R$)">
-            <NumberInput value={draft.minOrderValue} onChange={(v) => set("minOrderValue", v)} step={0.5} />
+            <NumberInput
+              value={draft.minOrderValue}
+              onChange={(v) => set("minOrderValue", v)}
+              step={0.5}
+            />
           </Field>
-          <Field label="Frete grátis a partir de (R$)" hint="Deixe vazio para não oferecer.">
+          <Field
+            label="Frete grátis a partir de (R$)"
+            hint="Deixe vazio para não oferecer."
+          >
             <input
               type="number"
               min={0}
               step={0.5}
               value={draft.freeDeliveryMinOrder ?? ""}
               onChange={(e) =>
-                set("freeDeliveryMinOrder", e.target.value === "" ? null : Number(e.target.value))
+                set(
+                  "freeDeliveryMinOrder",
+                  e.target.value === "" ? null : Number(e.target.value),
+                )
               }
               className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
             />
@@ -461,7 +567,9 @@ function SettingsPage() {
         </div>
 
         <div className="mt-5">
-          <p className="text-sm font-medium text-neutral-900">Formas de pagamento aceitas</p>
+          <p className="text-sm font-medium text-neutral-900">
+            Formas de pagamento aceitas
+          </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {PAYMENT_METHODS.map((m) => {
               const active = draft.acceptedPaymentMethods.includes(m.value);
@@ -484,7 +592,11 @@ function SettingsPage() {
         </div>
       </Section>
 
-      <Section title="Horários de funcionamento" description="Exibidos no rodapé do cardápio.">
+      <Section
+        active={tab === "horarios"}
+        title="Horários de funcionamento"
+        description="Exibidos no rodapé do cardápio."
+      >
         <div className="space-y-2">
           {WEEKDAYS.map((d) => (
             <div
@@ -498,7 +610,9 @@ function SettingsPage() {
                 label={hours[d].isOpen ? "Aberto" : "Fechado"}
                 checked={hours[d].isOpen}
                 onChange={(v) =>
-                  setHours((h) => (h ? { ...h, [d]: { ...h[d], isOpen: v } } : h))
+                  setHours((h) =>
+                    h ? { ...h, [d]: { ...h[d], isOpen: v } } : h,
+                  )
                 }
               />
               <input
@@ -506,7 +620,9 @@ function SettingsPage() {
                 value={hours[d].opensAt}
                 disabled={!hours[d].isOpen}
                 onChange={(e) =>
-                  setHours((h) => (h ? { ...h, [d]: { ...h[d], opensAt: e.target.value } } : h))
+                  setHours((h) =>
+                    h ? { ...h, [d]: { ...h[d], opensAt: e.target.value } } : h,
+                  )
                 }
                 className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 disabled:opacity-40"
               />
@@ -516,7 +632,11 @@ function SettingsPage() {
                 value={hours[d].closesAt}
                 disabled={!hours[d].isOpen}
                 onChange={(e) =>
-                  setHours((h) => (h ? { ...h, [d]: { ...h[d], closesAt: e.target.value } } : h))
+                  setHours((h) =>
+                    h
+                      ? { ...h, [d]: { ...h[d], closesAt: e.target.value } }
+                      : h,
+                  )
                 }
                 className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 disabled:opacity-40"
               />
@@ -531,16 +651,23 @@ function SettingsPage() {
 function Section({
   title,
   description,
+  active,
   children,
 }: {
   title: string;
   description?: string;
+  active: boolean;
   children: ReactNode;
 }) {
+  // The form is controlled — the values live in state, not in the DOM — so a
+  // hidden section keeps everything the owner typed in it.
+  if (!active) return null;
   return (
     <section className="rounded-2xl border border-neutral-200 bg-white p-5 sm:p-6">
       <h2 className="text-lg font-semibold text-neutral-900">{title}</h2>
-      {description && <p className="mt-0.5 text-sm text-neutral-500">{description}</p>}
+      {description && (
+        <p className="mt-0.5 text-sm text-neutral-500">{description}</p>
+      )}
       <div className="mt-5">{children}</div>
     </section>
   );
