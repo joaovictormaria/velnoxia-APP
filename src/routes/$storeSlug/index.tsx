@@ -24,6 +24,8 @@ import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySabo
 import { PromoCarousel } from "@/components/site/pizzaria2/PromoCarousel";
 import { StoreBlog } from "@/components/site/pizzaria2/StoreBlog";
 import { ReviewsSection } from "@/components/site/pizzaria2/ReviewsSection";
+import { ReviewsMarquee } from "@/components/site/pizzaria2/ReviewsMarquee";
+import { ReviewsProvider } from "@/lib/pizzaria2/reviews-provider";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
@@ -357,103 +359,107 @@ function PizzariaInicio() {
         </div>
       </section>
 
-      <section
-        id="restaurante"
-        className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10"
-      >
-        <div className="mx-auto max-w-[1800px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)] sm:p-10 xl:px-14">
-          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
-            <div>
-              <Reveal variant="left">
-                {/* Dashed frame only while there is nothing to show; once the
+      <ReviewsProvider storeSlug={storeSlug}>
+        <section
+          id="restaurante"
+          className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10"
+        >
+          <div className="mx-auto max-w-[1800px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)] sm:p-10 xl:px-14">
+            <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
+              <div>
+                <Reveal variant="left">
+                  {/* Dashed frame only while there is nothing to show; once the
                   owner uploads a photo it fills it and the dashes go away. */}
-                <div
-                  className={cn(
-                    "relative mx-auto aspect-4/3 w-full max-w-[420px] overflow-hidden rounded-[24px] sm:mx-0",
-                    aboutImageUrl
-                      ? "border border-charcoal/10"
-                      : "border border-dashed border-charcoal/15 bg-charcoal/[0.03]",
-                  )}
-                >
-                  {aboutImageUrl ? (
-                    <img
-                      src={aboutImageUrl}
-                      alt={businessName}
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
-                      <Camera className="h-9 w-9" strokeWidth={1.5} />
-                      <span className="text-xs font-medium">
-                        Foto do restaurante em breve
+                  <div
+                    className={cn(
+                      "relative mx-auto aspect-4/3 w-full max-w-[420px] overflow-hidden rounded-[24px] sm:mx-0",
+                      aboutImageUrl
+                        ? "border border-charcoal/10"
+                        : "border border-dashed border-charcoal/15 bg-charcoal/[0.03]",
+                    )}
+                  >
+                    {aboutImageUrl ? (
+                      <img
+                        src={aboutImageUrl}
+                        alt={businessName}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
+                        <Camera className="h-9 w-9" strokeWidth={1.5} />
+                        <span className="text-xs font-medium">
+                          Foto do restaurante em breve
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Reveal>
+
+                <Reveal variant="up" className="mt-8">
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
+                    <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
+                    {aboutEyebrow || "Nosso restaurante"}
+                  </span>
+                  <h2 className="mt-3 font-display text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
+                    {aboutTitle || tradeAboutTitle}
+                  </h2>
+                  <p className="mt-4 text-base leading-relaxed text-charcoal/60">
+                    {aboutBody || "Na " + businessName + ", " + tradeAboutBody}
+                  </p>
+
+                  <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div className="flex gap-3">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato/10 text-tomato">
+                        <Clock className="h-5 w-5" />
                       </span>
+                      <div>
+                        <p className="font-display text-sm font-bold text-charcoal">
+                          Horário de funcionamento
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
+                          Seg a Dom
+                          <br />
+                          18h às 23h30
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </Reveal>
 
-              <Reveal variant="up" className="mt-8">
-                <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
-                  <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
-                  {aboutEyebrow || "Nosso restaurante"}
-                </span>
-                <h2 className="mt-3 font-display text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
-                  {aboutTitle || tradeAboutTitle}
-                </h2>
-                <p className="mt-4 text-base leading-relaxed text-charcoal/60">
-                  {aboutBody || "Na " + businessName + ", " + tradeAboutBody}
-                </p>
-
-                <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div className="flex gap-3">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato/10 text-tomato">
-                      <Clock className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <p className="font-display text-sm font-bold text-charcoal">
-                        Horário de funcionamento
-                      </p>
-                      <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
-                        Seg a Dom
-                        <br />
-                        18h às 23h30
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-olive/10 text-olive">
-                      <MapPin className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <p className="font-display text-sm font-bold text-charcoal">
-                        Localização
-                      </p>
-                      <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
-                        {hasAddress
-                          ? addressLines.join(" — ")
-                          : "Endereço ainda não informado."}
-                      </p>
-                      {mapsHref && (
-                        <a
-                          href={mapsHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center text-sm font-semibold text-tomato hover:underline"
-                        >
-                          Ver no mapa →
-                        </a>
-                      )}
+                    <div className="flex gap-3">
+                      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-olive/10 text-olive">
+                        <MapPin className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <p className="font-display text-sm font-bold text-charcoal">
+                          Localização
+                        </p>
+                        <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
+                          {hasAddress
+                            ? addressLines.join(" — ")
+                            : "Endereço ainda não informado."}
+                        </p>
+                        {mapsHref && (
+                          <a
+                            href={mapsHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-2 inline-flex items-center text-sm font-semibold text-tomato hover:underline"
+                          >
+                            Ver no mapa →
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Reveal>
+                </Reveal>
+              </div>
+
+              <ReviewsSection storeSlug={storeSlug} />
             </div>
-
-            <ReviewsSection storeSlug={storeSlug} />
           </div>
-        </div>
-      </section>
+        </section>
+
+        <ReviewsMarquee />
+      </ReviewsProvider>
 
       <StoreBlog posts={posts} />
 

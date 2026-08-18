@@ -542,3 +542,26 @@
 @utility animate-badge-shine {
   animation: badge-shine 2.6s ease-in-out infinite;
 }
+
+@keyframes reviews-marquee {
+  from {
+    transform: translateX(0);
+  }
+  /* One copy's width. The track holds the reviews twice, so landing here looks
+     identical to the start and the loop has no seam. */
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility animate-reviews-marquee {
+  animation: reviews-marquee var(--marquee-duration, 40s) linear infinite;
+}
+
+/* Someone who asked the system for less motion gets a strip they scroll
+   themselves instead of one that moves on its own. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-reviews-marquee {
+    animation: none;
+  }
+}
