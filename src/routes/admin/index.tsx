@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Clock, DollarSign, ExternalLink, ShoppingBag, Star, Wallet } from "lucide-react";
 import { KpiCard } from "@/components/admin/dashboard/KpiCard";
+import { semProtocolo, urlDoCardapio, useBaseUrlPublica } from "@/lib/public-url";
 import { MenuQrCodeButton } from "@/components/admin/dashboard/MenuQrCodeButton";
 import { OrdersByHourChart } from "@/components/admin/dashboard/OrdersByHourChart";
 import { OrdersByStatusCard } from "@/components/admin/dashboard/OrdersByStatusCard";
@@ -18,6 +19,7 @@ const todayLabel = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "lo
 
 function DashboardPage() {
   const { admin } = Route.useRouteContext();
+  const basePublica = useBaseUrlPublica();
   const trial = admin?.store.status === "TRIAL" ? trialCountdown(admin.store.trialEndsAt) : null;
   const { data, isPending } = useQuery({
     queryKey: ["dashboard"],
@@ -60,10 +62,12 @@ function DashboardPage() {
           </p>
           {/* The address is what the owner sends to customers, so it belongs
               where they see it every day — not buried in the settings page. */}
-          {admin && (
+          {admin && basePublica && (
             <p className="mt-2 text-sm text-neutral-500">
               Seu cardápio:{' '}
-              <span className="font-mono text-neutral-700">velnox.app/{admin.store.slug}</span>
+              <span className="font-mono text-neutral-700">
+                {semProtocolo(urlDoCardapio(basePublica, admin.store.slug))}
+              </span>
             </p>
           )}
         </div>

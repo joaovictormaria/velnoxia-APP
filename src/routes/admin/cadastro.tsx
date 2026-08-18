@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
+import { semProtocolo, useBaseUrlPublica } from "@/lib/public-url";
 import { useState } from "react";
 import { UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const basePublica = useBaseUrlPublica();
 
   // Preview only. The real address is built on the server, which appends the
   // verifier code — so this shows the shape, never a promise of the final URL.
@@ -98,7 +100,8 @@ function SignupPage() {
             <div className="rounded-lg bg-neutral-100 px-3 py-2.5">
               <p className="text-xs text-neutral-500">Endereço do seu cardápio</p>
               <p className="mt-0.5 font-mono text-sm text-neutral-800">
-                velnox.app/{slugPreview}-<span className="text-neutral-400">••••</span>
+                {basePublica ? semProtocolo(basePublica) : ""}/{slugPreview}-
+                <span className="text-neutral-400">••••</span>
               </p>
               <p className="mt-1 text-xs text-neutral-500">
                 Criado automaticamente a partir do nome, com um código só seu — assim

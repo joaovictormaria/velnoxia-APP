@@ -3,7 +3,7 @@ import { prisma } from "../db/client";
 
 /**
  * Slugs a store may never take, because a store lives at the URL root
- * (velnox.app/<slug>) and would otherwise shadow a real route. Static routes
+ * (velnox.app.br/<slug>) and would otherwise shadow a real route. Static routes
  * win over the dynamic segment in the router, so the store would simply become
  * unreachable — a confusing failure to debug after the fact.
  */

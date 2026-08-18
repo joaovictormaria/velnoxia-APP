@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { QrCode } from "lucide-react";
 import { gerarQrDoCardapio } from "@/lib/qr-menu-image";
+import { urlDoCardapio, useBaseUrlPublica } from "@/lib/public-url";
 
 /**
  * Baixa o QR Code do cardápio da loja, para o dono imprimir e colar nas mesas.
@@ -18,16 +19,10 @@ export function MenuQrCodeButton({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /**
-   * O endereço vem da origem em que o painel está aberto, e não de um domínio
-   * fixo no código: é o mesmo host por onde o cliente chega. Só existe no
-   * navegador, daí o efeito — no servidor não há `window`.
-   */
-  const [menuUrl, setMenuUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    setMenuUrl(`${window.location.origin}/${slug}`);
-  }, [slug]);
+  // Mesma fonte do endereço que o painel mostra ao dono: o que ele lê na tela
+  // e o que vai dentro do código impresso não podem divergir.
+  const basePublica = useBaseUrlPublica();
+  const menuUrl = basePublica ? urlDoCardapio(basePublica, slug) : null;
 
   async function baixar() {
     if (!menuUrl) return;
