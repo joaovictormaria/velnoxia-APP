@@ -102,7 +102,7 @@ export function KanbanBoard({
               <Icon className="size-5" />
             </header>
 
-            <div className="max-h-[calc(100vh-16rem)] flex-1 space-y-3 overflow-y-auto rounded-b-2xl border border-t-0 border-neutral-200 bg-white p-3">
+            <div className="h-[calc(100vh-13rem)] space-y-3 overflow-y-auto rounded-b-2xl border border-t-0 border-neutral-200 bg-white p-3">
               {orders.length === 0 && (
                 <p className="py-8 text-center text-sm text-neutral-400">
                   Nenhum pedido.
