@@ -3,6 +3,7 @@ import { CartProvider } from "@/lib/pizzaria2/cart";
 import { MenuProvider, type MenuPayload } from "@/lib/pizzaria2/menu-provider";
 import { StoreProvider, type StorePayload } from "@/lib/pizzaria2/store-provider";
 import { useLiveMenu } from "@/lib/pizzaria2/use-live-menu";
+import { brandTheme } from "@/lib/pizzaria2/brand-theme";
 import { Footer } from "@/components/site/pizzaria2/Footer";
 import { Header } from "@/components/site/pizzaria2/Header";
 import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
@@ -36,14 +37,7 @@ function PizzariaLayout() {
               a single choice restyles the whole storefront consistently. */}
           <div
             className="pizzaria2 flex min-h-screen flex-col bg-cream font-sans text-charcoal"
-            style={
-              {
-                "--tomato": data.store.primaryColor,
-                "--primary": data.store.primaryColor,
-                "--primary-glow": `color-mix(in oklab, ${data.store.primaryColor} 82%, white)`,
-                "--primary-deep": `color-mix(in oklab, ${data.store.primaryColor} 78%, black)`,
-              } as React.CSSProperties
-            }
+            style={brandTheme(data.store.primaryColor) as React.CSSProperties}
           >
             <Header />
             <div className="flex-1 pt-16.75">

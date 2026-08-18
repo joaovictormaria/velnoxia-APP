@@ -186,12 +186,12 @@ function PizzariaInicio() {
           <div className="relative z-10 order-2 flex items-center justify-center px-4 py-10 sm:px-6 md:order-1">
             <Reveal variant="up" className="mx-auto max-w-xl text-center">
               <h1 className="font-display text-[7vw] font-extrabold leading-[1.1] sm:text-5xl md:text-4xl lg:text-5xl">
-                <span className="block whitespace-nowrap text-mozzarella">Bateu aquela vontade de</span>
-                <span className="block min-h-[1.2em] whitespace-nowrap text-[#ffd166] md:text-3xl lg:text-4xl xl:text-5xl">
-                  <TypingText texts={heroCravings} className="text-[#ffd166]" caretClassName="text-[#ffd166]/70" />
+                <span className="block whitespace-nowrap text-[color:var(--on-primary)]">Bateu aquela vontade de</span>
+                <span className="block min-h-[1.2em] whitespace-nowrap text-[color:var(--on-primary-accent)] md:text-3xl lg:text-4xl xl:text-5xl">
+                  <TypingText texts={heroCravings} className="text-[color:var(--on-primary-accent)]" caretClassName="text-[color:var(--on-primary-accent)]/70" />
                 </span>
               </h1>
-              <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-mozzarella/75">
+              <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[color:var(--on-primary-muted)]">
                 {heroSubtitle}
               </p>
               <div className="relative mt-8 inline-flex w-fit">
