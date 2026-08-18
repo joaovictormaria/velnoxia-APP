@@ -24,9 +24,9 @@ function percentChange(current: number, previous: number): number | null {
   return Math.round(((current - previous) / previous) * 100);
 }
 
-async function summaryForRange(from: Date, to: Date) {
+async function summaryForRange(storeId: string, from: Date, to: Date) {
   const orders = await prisma.order.findMany({
-    where: { createdAt: { gte: from, lte: to }, status: { not: "CANCELLED" } },
+    where: { storeId, createdAt: { gte: from, lte: to }, status: { not: "CANCELLED" } },
     select: { total: true },
   });
   const count = orders.length;
@@ -38,22 +38,22 @@ async function summaryForRange(from: Date, to: Date) {
   };
 }
 
-export async function getDashboardSummary(reference = new Date()) {
+export async function getDashboardSummary(storeId: string, reference = new Date()) {
   const todayStart = startOfDay(reference);
   const todayEnd = endOfDay(reference);
   const yesterdayStart = startOfDay(addDays(reference, -1));
   const yesterdayEnd = endOfDay(addDays(reference, -1));
 
   const [today, yesterday, ratingToday, ratingYesterday] = await Promise.all([
-    summaryForRange(todayStart, todayEnd),
-    summaryForRange(yesterdayStart, yesterdayEnd),
+    summaryForRange(storeId, todayStart, todayEnd),
+    summaryForRange(storeId, yesterdayStart, yesterdayEnd),
     prisma.review.aggregate({
       _avg: { rating: true },
-      where: { createdAt: { lte: todayEnd } },
+      where: { storeId, createdAt: { lte: todayEnd } },
     }),
     prisma.review.aggregate({
       _avg: { rating: true },
-      where: { createdAt: { lte: yesterdayEnd } },
+      where: { storeId, createdAt: { lte: yesterdayEnd } },
     }),
   ]);
 
@@ -74,11 +74,11 @@ export async function getDashboardSummary(reference = new Date()) {
   };
 }
 
-export async function getOrdersByStatus(reference = new Date()) {
+export async function getOrdersByStatus(storeId: string, reference = new Date()) {
   const grouped = await prisma.order.groupBy({
     by: ["status"],
     _count: { _all: true },
-    where: { createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) } },
+    where: { storeId, createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) } },
   });
 
   const counts = new Map<OrderStatus, number>(
@@ -93,9 +93,10 @@ export async function getOrdersByStatus(reference = new Date()) {
   };
 }
 
-export async function getOrdersByHour(reference = new Date()) {
+export async function getOrdersByHour(storeId: string, reference = new Date()) {
   const orders = await prisma.order.findMany({
     where: {
+      storeId,
       createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) },
       status: { not: "CANCELLED" },
     },
@@ -115,12 +116,13 @@ export async function getOrdersByHour(reference = new Date()) {
   });
 }
 
-export async function getTopProducts(reference = new Date(), limit = 6) {
+export async function getTopProducts(storeId: string, reference = new Date(), limit = 6) {
   const grouped = await prisma.orderItem.groupBy({
     by: ["productNameSnapshot"],
     _sum: { quantity: true },
     where: {
       order: {
+        storeId,
         createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) },
         status: { not: "CANCELLED" },
       },
@@ -136,12 +138,12 @@ export async function getTopProducts(reference = new Date(), limit = 6) {
   }));
 }
 
-export async function getDashboardData(reference = new Date()) {
+export async function getDashboardData(storeId: string, reference = new Date()) {
   const [summary, byStatus, byHour, topProducts] = await Promise.all([
-    getDashboardSummary(reference),
-    getOrdersByStatus(reference),
-    getOrdersByHour(reference),
-    getTopProducts(reference),
+    getDashboardSummary(storeId, reference),
+    getOrdersByStatus(storeId, reference),
+    getOrdersByHour(storeId, reference),
+    getTopProducts(storeId, reference),
   ]);
   return { summary, byStatus, byHour, topProducts };
 }
