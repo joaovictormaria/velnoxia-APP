@@ -165,17 +165,13 @@ function OrderCard({
     >
       <article>
         <div className="flex items-baseline justify-between gap-2">
-          <span className="text-base font-bold text-neutral-900">
-            #{order.number}
+          <span className="min-w-0 truncate text-base font-bold text-neutral-900">
+            #{order.number} - {order.customerName}
           </span>
-          <span className="text-xs text-neutral-500">
+          <span className="shrink-0 text-xs text-neutral-500">
             {time.format(new Date(order.createdAt))}
           </span>
         </div>
-
-        <p className="mt-1 text-sm font-medium text-neutral-800">
-          {order.customerName}
-        </p>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <p className="text-sm font-bold text-neutral-900">
