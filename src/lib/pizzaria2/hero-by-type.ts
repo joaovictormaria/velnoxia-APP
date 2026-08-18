@@ -20,6 +20,14 @@ export type HeroContent = {
    * business. Icon names map to lucide components in the storefront.
    */
   careItems: { icon: string; label: string }[];
+  /** Icon drawn faintly behind the WhatsApp call-to-action. */
+  markIcon: string;
+  /** Heading of that call-to-action — it names the food, so it is per trade. */
+  ctaTitle: string;
+  /** Blurb next to the ingredients photo in the full menu picker. */
+  pickerBlurb: string;
+  /** Line under "Veja o cardápio completo". */
+  fullMenuTeaser: string;
 };
 
 const HERO_BY_TYPE: Record<string, HeroContent> = {
@@ -39,6 +47,10 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       { icon: "Flame", label: "Forno à lenha (sabor único)" },
       { icon: "Truck", label: "Entrega rápida e segura" },
     ],
+    markIcon: "Pizza",
+    ctaTitle: "Deu vontade de pizza? 🍕",
+    pickerBlurb: "Massa fresca, molho artesanal e muito mais sabor para sua pizza perfeita.",
+    fullMenuTeaser: "Mais sabores incríveis esperam por você!",
   },
   hamburgueria: {
     photos: ["/catalogo-inicial/hamburgueria/hero-burger.jpg"],
@@ -56,6 +68,10 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       { icon: "Wheat", label: "Pão artesanal" },
       { icon: "Truck", label: "Entrega rápida e segura" },
     ],
+    markIcon: "Sandwich",
+    ctaTitle: "Bateu a fome? 🍔",
+    pickerBlurb: "Pão macio, carne na chapa e ingredientes frescos em cada lanche.",
+    fullMenuTeaser: "Tem muito mais lanche esperando por você!",
   },
   acai: {
     photos: ["/catalogo-inicial/acai/hero-acai.jpg"],
@@ -73,6 +89,10 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       { icon: "Cherry", label: "Complementos à sua escolha" },
       { icon: "Truck", label: "Entrega rápida e segura" },
     ],
+    markIcon: "GlassWater",
+    ctaTitle: "Deu vontade de açaí? 🍧",
+    pickerBlurb: "Polpa selecionada, batida na hora, com os complementos que você escolher.",
+    fullMenuTeaser: "Tem muito mais combinação esperando por você!",
   },
   japones: {
     photos: ["/catalogo-inicial/japones/hero-sushi.jpg"],
@@ -90,6 +110,10 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       { icon: "Leaf", label: "Montado na hora do pedido" },
       { icon: "Truck", label: "Entrega rápida e segura" },
     ],
+    markIcon: "Fish",
+    ctaTitle: "Deu vontade de sushi? 🍣",
+    pickerBlurb: "Peixe fresco do dia, arroz temperado na medida e montagem na hora.",
+    fullMenuTeaser: "Tem muito mais combinado esperando por você!",
   },
 };
 

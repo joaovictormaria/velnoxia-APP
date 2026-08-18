@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Camera, ChevronLeft, ChevronRight } from "lucide-react";
-import { useStore } from "@/lib/pizzaria2/store-provider";
+import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const { whatsappHref } = useStore();
+  const goToCardapio = useGoToCardapio();
 
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
@@ -84,14 +84,13 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     )}
                   </div>
 
-                  <a
-                    href={whatsappHref(`Olá! Quero aproveitar a promoção ${slide.title}`)}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={goToCardapio}
                     className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-mozzarella px-6 py-3 text-sm font-semibold text-tomato shadow-sm transition-transform hover:scale-[1.03]"
                   >
-                    Pedir pelo WhatsApp →
-                  </a>
+                    Faça um pedido →
+                  </button>
                 </div>
 
                 {/* Dashed placeholder only until the owner uploads a photo —

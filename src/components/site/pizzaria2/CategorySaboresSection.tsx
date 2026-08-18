@@ -8,6 +8,7 @@ import { useCart } from "@/lib/pizzaria2/cart";
 import { sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { useStore } from "@/lib/pizzaria2/store-provider";
+import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 
 export const categoryBadges: Record<string, string> = {
   tradicionais: "Sabores que todo mundo ama",
@@ -80,7 +81,8 @@ export function CategorySaboresSection({
 }) {
   const { addLine } = useCart();
   const { categories, products, categoryBySlug, productsByCategory } = useMenu();
-  const { slug: storeSlug } = useStore();
+  const { slug: storeSlug, businessType } = useStore();
+  const { fullMenuTeaser } = heroFor(businessType);
 
   // The opening tab comes from the data, never a fixed slug: the admin can
   // rename, reorder, deactivate or delete any category, and whichever one the
@@ -155,7 +157,7 @@ export function CategorySaboresSection({
             <span className="min-w-0 flex-1">
               <span className="block text-base font-bold leading-tight">Veja o cardápio completo</span>
               <span className="mt-1 block text-sm leading-tight text-[color:var(--on-primary-muted)]">
-                Mais sabores incríveis esperam por você!
+                {fullMenuTeaser}
               </span>
             </span>
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[color:var(--on-primary)] text-[color:var(--primary)] transition-transform group-hover:translate-x-0.5">

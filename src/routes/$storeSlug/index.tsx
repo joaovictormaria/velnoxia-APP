@@ -7,9 +7,11 @@ import {
   Clock,
   Fish,
   Flame,
+  GlassWater,
   Leaf,
   MapPin,
   Pizza,
+  Sandwich,
   Snowflake,
   Truck,
   Wheat,
@@ -30,7 +32,7 @@ import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 
 /** The trade config names its icons, so they are resolved here. */
-const CARE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+const CARE_ICONS: Record<string, ComponentType<{ className?: string; strokeWidth?: number }>> = {
   Leaf,
   Wheat,
   Flame,
@@ -38,6 +40,9 @@ const CARE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   Snowflake,
   Cherry,
   Fish,
+  Pizza,
+  Sandwich,
+  GlassWater,
 };
 
 export const Route = createFileRoute("/$storeSlug/")({
@@ -89,7 +94,10 @@ function PizzariaInicio() {
     cravings: heroCravings,
     subtitle: heroSubtitle,
     careItems,
+    markIcon,
+    ctaTitle,
   } = heroFor(businessType);
+  const MarkIcon = CARE_ICONS[markIcon] ?? Pizza;
   const [activePhoto, setActivePhoto] = useState(0);
   const [hasSwitchedPhoto, setHasSwitchedPhoto] = useState(false);
   useEffect(() => {
@@ -429,7 +437,8 @@ function PizzariaInicio() {
           className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] bg-tomato px-6 py-8 shadow-[0_20px_50px_-30px_rgba(233,75,44,0.55)] sm:px-10 sm:py-9"
         >
           <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-[color:var(--on-primary)]/10 blur-2xl" />
-          <Pizza
+          {/* Faint mark behind the call-to-action, matching the trade. */}
+          <MarkIcon
             strokeWidth={1}
             className="pointer-events-none absolute -bottom-8 right-4 h-28 w-28 rotate-12 text-[color:var(--on-primary)]/10 sm:right-8 sm:h-32 sm:w-32"
           />
@@ -437,7 +446,7 @@ function PizzariaInicio() {
           <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-display text-xl font-extrabold text-[color:var(--on-primary)] sm:text-2xl">
-                Deu vontade de pizza? 🍕
+                {ctaTitle}
               </h2>
               <p className="mt-1.5 text-sm text-[color:var(--on-primary-muted)] sm:text-base">
                 Peça agora pelo WhatsApp e fale diretamente com a gente.

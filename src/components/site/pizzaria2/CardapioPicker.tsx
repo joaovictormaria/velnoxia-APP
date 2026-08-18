@@ -6,6 +6,7 @@ import { ProductCard } from "./ProductCard";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { useStore } from "@/lib/pizzaria2/store-provider";
+import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 import {
   formatCurrency,
   sizePrice,
@@ -41,7 +42,8 @@ export function CardapioPicker({
   onSelectPizza: (slug: string) => void;
 }) {
   const { addLine, itemCount, total } = useCart();
-  const { storeName: businessName, whatsappHref, slug: storeSlug } = useStore();
+  const { storeName: businessName, whatsappHref, slug: storeSlug, businessType } = useStore();
+  const { pickerBlurb } = heroFor(businessType);
   const { categories, products: allProducts, productsByCategory } = useMenu();
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(
     categories[0]?.slug ?? "tradicionais",
@@ -132,7 +134,7 @@ export function CardapioPicker({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-tomato">Ingredientes selecionados</p>
             <p className="mt-0.5 text-xs leading-relaxed text-charcoal/60">
-              Massa fresca, molho artesanal e muito mais sabor para sua pizza perfeita.
+              {pickerBlurb}
             </p>
           </div>
           <img
