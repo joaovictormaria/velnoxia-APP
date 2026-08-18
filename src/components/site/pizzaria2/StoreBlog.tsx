@@ -1,29 +1,17 @@
 import { useEffect, useState } from "react";
-import { Heart } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 import { getVisitorId } from "@/lib/pizzaria2/visitor-id";
 import { useStore } from "@/lib/pizzaria2/store-provider";
-import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import {
   listLikedPostsFn,
   togglePostLikeFn,
 } from "@/server/functions/post-likes.fn";
-import { cn } from "@/lib/utils";
+import { PostCard, type Post } from "./PostCard";
+import { Marquee } from "./Marquee";
 
-type Post = {
-  id: string;
-  title: string;
-  body: string;
-  imageUrl: string | null;
-  publishedAt: string | Date;
-  likeCount?: number;
-};
-
-const dateFormat = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "long",
-  year: "numeric",
-});
+/** Above this many, the grid stops fitting on one desktop row and the strip
+ *  takes over. On a phone the strip is used from two posts on. */
+const DESKTOP_GRID_MAX = 4;
 
 /**
  * The store's own updates. A store with nothing to say shows nothing — an empty
@@ -36,7 +24,6 @@ export function StoreBlog({ posts }: { posts: Post[] }) {
 
 function Blog({ posts }: { posts: Post[] }) {
   const { storeName, slug: storeSlug } = useStore();
-  const goToCardapio = useGoToCardapio();
   const [visitorId, setVisitorId] = useState("");
   const [counts, setCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(posts.map((p) => [p.id, p.likeCount ?? 0])),
@@ -82,6 +69,45 @@ function Blog({ posts }: { posts: Post[] }) {
     }
   }
 
+  const card = (post: Post) => (
+    <PostCard
+      post={post}
+      likeCount={counts[post.id] ?? 0}
+      liked={!!liked[post.id]}
+      onLike={() => like(post.id)}
+      canLike={!!visitorId}
+    />
+  );
+
+  const strip = (className?: string) => (
+    <Marquee
+      items={posts}
+      keyOf={(p) => p.id}
+      label={`Novidades de ${storeName}`}
+      className={className}
+      itemClassName="w-75 sm:w-85"
+      renderItem={card}
+    />
+  );
+
+  const grid = (className: string) => (
+    <div className={className}>
+      {posts.map((post, i) => (
+        <Reveal key={post.id} variant="up" delay={Math.min(i * 60, 300)}>
+          {card(post)}
+        </Reveal>
+      ))}
+    </div>
+  );
+
+  /**
+   * One post has nothing to slide past, so it stays put on every screen. From
+   * two on, a phone always gets the strip. A desktop keeps the grid while the
+   * posts still fit one row, and switches to the strip past that.
+   */
+  const single = posts.length === 1;
+  const alwaysStrip = posts.length > DESKTOP_GRID_MAX;
+
   return (
     <section
       id="novidades"
@@ -98,66 +124,20 @@ function Blog({ posts }: { posts: Post[] }) {
           </h2>
         </Reveal>
 
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {posts.map((post, i) => (
-            <Reveal key={post.id} variant="up" delay={Math.min(i * 60, 300)}>
-              <article className="flex h-full flex-col overflow-hidden rounded-[24px] border border-charcoal/8 bg-mozzarella shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]">
-                {post.imageUrl && (
-                  <img
-                    src={post.imageUrl}
-                    alt={post.title}
-                    className="aspect-video w-full object-cover"
-                  />
-                )}
-                <div className="flex flex-1 flex-col p-4 sm:p-5">
-                  <p className="text-xs text-charcoal/45">
-                    {dateFormat.format(new Date(post.publishedAt))}
-                  </p>
-                  <h3 className="mt-2 font-display text-base font-bold leading-snug text-charcoal">
-                    {post.title}
-                  </h3>
-                  {/* whitespace-pre-line keeps the paragraph breaks the owner
-                      typed in the panel, without accepting any markup. */}
-                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-charcoal/65">
-                    {post.body}
-                  </p>
-
-                  {/* mt-auto pins the row to the bottom, so cards of different
-                      text lengths still line their buttons up. */}
-                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
-                    <button
-                      type="button"
-                      onClick={goToCardapio}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-tomato px-4 py-1.5 text-xs font-semibold text-[color:var(--on-primary)] shadow-sm transition-transform hover:scale-[1.04]"
-                    >
-                      Comprar o meu →
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => like(post.id)}
-                      disabled={!visitorId}
-                      aria-pressed={!!liked[post.id]}
-                      className={cn(
-                        "inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                        liked[post.id]
-                          ? "border-tomato/30 bg-tomato/10 text-tomato"
-                          : "border-charcoal/12 text-charcoal/55 hover:border-tomato/30 hover:text-tomato",
-                      )}
-                    >
-                      <Heart
-                        className={cn(
-                          "h-3.5 w-3.5",
-                          liked[post.id] && "fill-tomato",
-                        )}
-                      />
-                      {(counts[post.id] ?? 0) > 0 ? counts[post.id] : "Curtir"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            </Reveal>
-          ))}
+        <div className="mt-8">
+          {single ? (
+            grid("grid grid-cols-1 gap-5 sm:max-w-md")
+          ) : alwaysStrip ? (
+            strip()
+          ) : (
+            <>
+              {/* Two layouts, one of them hidden by CSS rather than by a media
+                  query in JS — the server has no window to measure, and guessing
+                  would make the first paint jump. */}
+              {strip("lg:hidden")}
+              {grid("hidden gap-5 lg:grid lg:grid-cols-3 xl:grid-cols-4")}
+            </>
+          )}
         </div>
       </div>
     </section>
