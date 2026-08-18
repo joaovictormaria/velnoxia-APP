@@ -33,13 +33,25 @@ export function brandTheme(primaryColor: string): BrandTheme {
   const color = parseHex(primaryColor) ? primaryColor : FALLBACK;
   const light = luminance(color) > 0.55;
 
+  const glow = `color-mix(in oklab, ${color} 82%, white)`;
+  const deep = `color-mix(in oklab, ${color} 78%, black)`;
+
   return {
     "--tomato": color,
     "--primary": color,
     // Gradient ends derived from the one colour, so the owner never has to
     // pick three that work together.
-    "--primary-glow": `color-mix(in oklab, ${color} 82%, white)`,
-    "--primary-deep": `color-mix(in oklab, ${color} 78%, black)`,
+    "--primary-glow": glow,
+    "--primary-deep": deep,
+    /*
+     * The composed gradients have to be restated, not just their ingredients.
+     * A custom property containing var() is substituted where it is declared —
+     * --gradient-accent lives on :root, so its var(--primary-glow) resolves
+     * against :root and descendants inherit an already-red value. Overriding
+     * the ingredients further down never reaches it.
+     */
+    "--gradient-accent": `linear-gradient(135deg, ${glow}, ${deep})`,
+    "--gradient-ember": `radial-gradient(60% 60% at 30% 20%, color-mix(in oklab, ${color} 22%, transparent), transparent 70%)`,
     // Text drawn over the brand colour. A pale brand needs dark type; the
     // highlight follows so the animated line never vanishes either.
     "--on-primary": light ? "#171717" : "#fffdf8",
