@@ -42,8 +42,8 @@ function AvaliacoesPage() {
       <header>
         <h1 className="text-3xl font-bold text-neutral-900">Avaliações</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          O texto da seção &ldquo;Nosso restaurante&rdquo;, suas novidades e o que os clientes
-          escreveram.
+          O texto da seção &ldquo;Nosso restaurante&rdquo;, suas novidades e o
+          que os clientes escreveram.
         </p>
       </header>
 
@@ -76,7 +76,10 @@ function AvaliacoesPage() {
 
 function AboutTab() {
   const queryClient = useQueryClient();
-  const { data, isPending } = useQuery({ queryKey: ["about"], queryFn: () => getAboutFn() });
+  const { data, isPending } = useQuery({
+    queryKey: ["about"],
+    queryFn: () => getAboutFn(),
+  });
   const [form, setForm] = useState({
     aboutEyebrow: "",
     aboutTitle: "",
@@ -114,7 +117,8 @@ function AboutTab() {
     },
   });
 
-  if (isPending) return <p className="text-sm text-neutral-500">Carregando...</p>;
+  if (isPending)
+    return <p className="text-sm text-neutral-500">Carregando...</p>;
 
   return (
     <form
@@ -189,6 +193,16 @@ type PostDraft = {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** How long this publication still has. Reads from createdAt because that is
+ *  what the two-day life is counted from, not the date typed in the form. */
+function timeLeft(createdAt: string | Date) {
+  const endsAt = new Date(createdAt).getTime() + 2 * 24 * 60 * 60 * 1000;
+  const hours = Math.floor((endsAt - Date.now()) / (60 * 60 * 1000));
+  if (hours <= 0) return "expira em instantes";
+  if (hours < 24) return `expira em ${hours}h`;
+  return `expira em ${Math.floor(hours / 24)}d ${hours % 24}h`;
+}
+
 const EMPTY_POST: PostDraft = {
   id: null,
   title: "",
@@ -203,8 +217,12 @@ function BlogTab() {
   const [draft, setDraft] = useState<PostDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { data, isPending } = useQuery({ queryKey: ["posts"], queryFn: () => listPostsFn() });
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["posts"] });
+  const { data, isPending } = useQuery({
+    queryKey: ["posts"],
+    queryFn: () => listPostsFn(),
+  });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["posts"] });
 
   const save = useMutation({
     mutationFn: (d: PostDraft) =>
@@ -239,9 +257,16 @@ function BlogTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-neutral-500">
-          Cada publicação aparece na seção &ldquo;Novidades&rdquo; do seu cardápio.
-        </p>
+        <div className="max-w-xl space-y-1">
+          <p className="text-sm text-neutral-700">
+            Poste momentos de clientes e alegrias do estabelecimento — a chapa
+            cheia, o bolo de aniversário na mesa, o time novo, a fila na porta.
+          </p>
+          <p className="text-sm text-neutral-500">
+            Aparecem na seção &ldquo;Novidades&rdquo; do seu cardápio e somem
+            sozinhas depois de 2 dias.
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => {
@@ -258,7 +283,11 @@ function BlogTab() {
       {error && (
         <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
           {error}
-          <button type="button" onClick={() => setError(null)} aria-label="Fechar">
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Fechar"
+          >
             <X className="size-4" />
           </button>
         </div>
@@ -291,7 +320,9 @@ function BlogTab() {
                 <input
                   type="date"
                   value={draft.publishedAt}
-                  onChange={(e) => setDraft({ ...draft, publishedAt: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, publishedAt: e.target.value })
+                  }
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
                 />
               </Field>
@@ -312,7 +343,9 @@ function BlogTab() {
             <input
               type="checkbox"
               checked={draft.isPublished}
-              onChange={(e) => setDraft({ ...draft, isPublished: e.target.checked })}
+              onChange={(e) =>
+                setDraft({ ...draft, isPublished: e.target.checked })
+              }
               className="size-4 accent-[#E11D2E]"
             />
             <span className="text-sm text-neutral-700">Publicada no site</span>
@@ -341,8 +374,8 @@ function BlogTab() {
         <p className="text-sm text-neutral-500">Carregando...</p>
       ) : !data?.length ? (
         <p className="rounded-2xl border border-dashed border-neutral-300 p-8 text-center text-sm text-neutral-500">
-          Nenhuma publicação ainda. Sem elas, a seção &ldquo;Novidades&rdquo; não aparece no
-          cardápio.
+          Nenhuma publicação ainda. Sem elas, a seção &ldquo;Novidades&rdquo;
+          não aparece no cardápio.
         </p>
       ) : (
         <div className="space-y-2">
@@ -353,10 +386,13 @@ function BlogTab() {
             >
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-neutral-500">
-                  {dateFormat.format(new Date(p.publishedAt))}
+                  {dateFormat.format(new Date(p.publishedAt))} ·{" "}
+                  {timeLeft(p.createdAt)}
                 </p>
                 <p className="font-semibold text-neutral-900">{p.title}</p>
-                <p className="line-clamp-2 text-sm text-neutral-600">{p.body}</p>
+                <p className="line-clamp-2 text-sm text-neutral-600">
+                  {p.body}
+                </p>
               </div>
               {!p.isPublished && (
                 <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-500">
@@ -372,7 +408,9 @@ function BlogTab() {
                     body: p.body,
                     imageUrl: p.imageUrl,
                     isPublished: p.isPublished,
-                    publishedAt: new Date(p.publishedAt).toISOString().slice(0, 10),
+                    publishedAt: new Date(p.publishedAt)
+                      .toISOString()
+                      .slice(0, 10),
                   })
                 }
                 className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-100"
@@ -406,10 +444,12 @@ function ReviewsTab() {
     queryKey: ["admin-reviews"],
     queryFn: () => listReviewsForAdminFn(),
   });
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
 
   const respond = useMutation({
-    mutationFn: (v: { id: string; response: string }) => respondToReviewFn({ data: v }),
+    mutationFn: (v: { id: string; response: string }) =>
+      respondToReviewFn({ data: v }),
     onSuccess: () => {
       invalidate();
       setReplyTo(null);
@@ -418,17 +458,19 @@ function ReviewsTab() {
   });
 
   const setHidden = useMutation({
-    mutationFn: (v: { id: string; isHidden: boolean }) => setReviewHiddenFn({ data: v }),
+    mutationFn: (v: { id: string; isHidden: boolean }) =>
+      setReviewHiddenFn({ data: v }),
     onSuccess: invalidate,
   });
 
-  if (isPending) return <p className="text-sm text-neutral-500">Carregando...</p>;
+  if (isPending)
+    return <p className="text-sm text-neutral-500">Carregando...</p>;
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-        O que o cliente escreveu não pode ser alterado — nem por você, nem por nós. Você pode
-        responder publicamente ou ocultar uma avaliação abusiva.
+        O que o cliente escreveu não pode ser alterado — nem por você, nem por
+        nós. Você pode responder publicamente ou ocultar uma avaliação abusiva.
       </div>
 
       {data && data.summary.total > 0 && (
@@ -451,7 +493,8 @@ function ReviewsTab() {
               ))}
             </div>
             <p className="mt-0.5 text-xs text-neutral-500">
-              {data.summary.total} {data.summary.total === 1 ? "avaliação" : "avaliações"}
+              {data.summary.total}{" "}
+              {data.summary.total === 1 ? "avaliação" : "avaliações"}
             </p>
           </div>
         </div>
@@ -463,10 +506,15 @@ function ReviewsTab() {
         </p>
       ) : (
         data.reviews.map((r) => (
-          <div key={r.id} className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <div
+            key={r.id}
+            className="rounded-2xl border border-neutral-200 bg-white p-5"
+          >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="font-semibold text-neutral-900">{r.customerNameSnapshot}</p>
+                <p className="font-semibold text-neutral-900">
+                  {r.customerNameSnapshot}
+                </p>
                 <p className="text-xs text-neutral-500">
                   {dateFormat.format(new Date(r.createdAt))}
                 </p>
@@ -482,7 +530,9 @@ function ReviewsTab() {
                       key={i}
                       className={
                         "size-4 " +
-                        (i <= r.rating ? "fill-amber-400 text-amber-400" : "text-neutral-300")
+                        (i <= r.rating
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-neutral-300")
                       }
                     />
                   ))}
@@ -551,10 +601,16 @@ function ReviewsTab() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setHidden.mutate({ id: r.id, isHidden: !r.isHidden })}
+                  onClick={() =>
+                    setHidden.mutate({ id: r.id, isHidden: !r.isHidden })
+                  }
                   className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-100"
                 >
-                  {r.isHidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+                  {r.isHidden ? (
+                    <Eye className="size-3.5" />
+                  ) : (
+                    <EyeOff className="size-3.5" />
+                  )}
                   {r.isHidden ? "Mostrar no site" : "Ocultar do site"}
                 </button>
                 {r.isHidden && (
