@@ -72,6 +72,7 @@ export type MenuPayload = {
     body: string;
     imageUrl: string | null;
     publishedAt: string | Date;
+    likeCount?: number;
   }[];
 };
 
