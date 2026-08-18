@@ -64,6 +64,7 @@ export type MenuPayload = {
     discount: string | null;
     price: number | null;
     originalPrice: number | null;
+    imageUrl: string | null;
   }[];
 };
 

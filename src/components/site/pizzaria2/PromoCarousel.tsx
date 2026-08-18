@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { useStore } from "@/lib/pizzaria2/store-provider";
+import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { cn } from "@/lib/utils";
 
 type PromoSlide = {
@@ -12,6 +13,7 @@ type PromoSlide = {
   discount?: string | null;
   price?: number | null;
   originalPrice?: number | null;
+  imageUrl?: string | null;
 };
 
 
@@ -72,11 +74,11 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                       <span className="flex items-baseline gap-2">
                         {slide.originalPrice && (
                           <span className="text-sm text-[color:var(--on-primary)]/55 line-through">
-                            {slide.originalPrice}
+                            {formatCurrency(slide.originalPrice)}
                           </span>
                         )}
                         <span className="font-display text-xl font-bold text-[color:var(--on-primary)]">
-                          {slide.price}
+                          {formatCurrency(slide.price)}
                         </span>
                       </span>
                     )}
@@ -92,11 +94,21 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                   </a>
                 </div>
 
+                {/* Dashed placeholder only until the owner uploads a photo —
+                    once there is one it fills the frame. */}
                 <div className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-dashed border-[color:var(--on-primary)]/30 bg-[color:var(--on-primary)]/10 md:aspect-4/3">
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[color:var(--on-primary-muted)]">
-                    <Camera className="h-8 w-8" strokeWidth={1.5} />
-                    <span className="text-xs font-medium">Imagem da promoção em breve</span>
-                  </div>
+                  {slide.imageUrl ? (
+                    <img
+                      src={slide.imageUrl}
+                      alt={slide.title}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[color:var(--on-primary-muted)]">
+                      <Camera className="h-8 w-8" strokeWidth={1.5} />
+                      <span className="text-xs font-medium">Imagem da promoção em breve</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
+import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
 import {
   deletePromotionFn,
   listPromotionsFn,
@@ -20,6 +21,7 @@ type Draft = {
   discount: string;
   price: string;
   originalPrice: string;
+  imageUrl: string | null;
   sortOrder: number;
   isActive: boolean;
 };
@@ -32,6 +34,7 @@ const EMPTY: Draft = {
   discount: "",
   price: "",
   originalPrice: "",
+  imageUrl: null,
   sortOrder: 0,
   isActive: true,
 };
@@ -63,6 +66,7 @@ function PromotionsPage() {
             discount: d.discount || null,
             price: toNumber(d.price),
             originalPrice: toNumber(d.originalPrice),
+            imageUrl: d.imageUrl,
             sortOrder: d.sortOrder,
             isActive: d.isActive,
           },
@@ -140,15 +144,23 @@ function PromotionsPage() {
             </Field>
           </div>
 
-          <Field label="Descrição">
-            <textarea
-              value={draft.description}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-              required
-              rows={2}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+          <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+            <ImageUploadField
+              kind="product"
+              label="Foto da promoção"
+              value={draft.imageUrl}
+              onChange={(url) => setDraft({ ...draft, imageUrl: url })}
             />
-          </Field>
+            <Field label="Descrição">
+              <textarea
+                value={draft.description}
+                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                required
+                rows={4}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+              />
+            </Field>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
             <Field label="Selo" hint='Texto livre: "-20%", "Leve 3 pague 2".'>
@@ -251,6 +263,7 @@ function PromotionsPage() {
                     discount: p.discount ?? "",
                     price: p.price?.toString() ?? "",
                     originalPrice: p.originalPrice?.toString() ?? "",
+                    imageUrl: p.imageUrl,
                     sortOrder: p.sortOrder,
                     isActive: p.isActive,
                   })
