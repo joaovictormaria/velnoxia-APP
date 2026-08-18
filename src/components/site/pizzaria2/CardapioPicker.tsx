@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { Clock, Gift, Search, ShoppingCart } from "lucide-react";
 import { categoryDescriptions } from "./CategorySaboresSection";
 import { ProductRow } from "./ProductRow";
-import { ProductModal } from "./ProductModal";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { useStore } from "@/lib/pizzaria2/store-provider";
@@ -55,7 +54,6 @@ export function CardapioPicker({
     categories[0]?.slug ?? "tradicionais",
   );
   const [query, setQuery] = useState("");
-  const [openSlug, setOpenSlug] = useState<string | null>(null);
 
   const activeCategory = categories.find((c) => c.slug === activeSlug);
 
@@ -218,7 +216,6 @@ export function CardapioPicker({
                   key={product.slug}
                   product={product}
                   price={sizePrice(product, "media")}
-                  onOpen={() => setOpenSlug(product.slug)}
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
@@ -244,48 +241,6 @@ export function CardapioPicker({
           )}
         </div>
       </div>
-
-      {(() => {
-        // Resolved from the slug rather than held as an object, so the modal
-        // always reads the current product instead of a stale copy.
-        const open = openSlug
-          ? allProducts.find((p) => p.slug === openSlug)
-          : undefined;
-        if (!open) return null;
-        const openCategory = categories.find(
-          (c) => c.slug === open.categorySlug,
-        );
-        const openIsPizza = openCategory?.kind === "pizza";
-        const openCustomizable = openIsPizza || hasExtras;
-        return (
-          <ProductModal
-            product={open}
-            price={sizePrice(open, "media")}
-            tags={productTags(open, openCategory)}
-            linkToCustomize={openCustomizable}
-            customizeLabel={
-              openIsPizza ? "Montar do meu jeito →" : "Escolher extras →"
-            }
-            onCustomize={
-              openIsPizza ? () => onSelectPizza(open.slug) : undefined
-            }
-            onAdd={() =>
-              addLine({
-                name: open.name,
-                sizeLabel: openIsPizza ? "Média" : undefined,
-                image: open.image,
-                icon: open.icon,
-                unitPrice: sizePrice(open, "media"),
-                extras: [],
-                qty: 1,
-                productSlug: open.slug,
-                sizeKey: openIsPizza ? "media" : undefined,
-              })
-            }
-            onClose={() => setOpenSlug(null)}
-          />
-        );
-      })()}
 
       {/* Floating cart button */}
       {itemCount > 0 && (

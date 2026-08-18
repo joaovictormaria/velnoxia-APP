@@ -1,4 +1,6 @@
+import { Link } from "@tanstack/react-router";
 import { Flame, Plus } from "lucide-react";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 import { formatCurrency, type Product } from "@/lib/pizzaria2/menu";
 
 /**
@@ -11,21 +13,23 @@ import { formatCurrency, type Product } from "@/lib/pizzaria2/menu";
 export function ProductRow({
   product,
   price,
-  onOpen,
   onQuickAdd,
 }: {
   product: Product;
   price: number;
-  onOpen: () => void;
   onQuickAdd: () => void;
 }) {
+  const { slug: storeSlug } = useStore();
   const Icon = product.icon;
 
   return (
     <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-charcoal/8 bg-mozzarella p-2.5 transition-colors hover:border-tomato/25">
-      <button
-        type="button"
-        onClick={onOpen}
+      {/* The row opens the produto screen, where sizes, extras and the note
+          live. The "+" beside it is a sibling so it can add straight to the
+          cart without going through that screen. */}
+      <Link
+        to="/$storeSlug/produto/$slug"
+        params={{ storeSlug, slug: product.slug }}
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
         <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-tomato/8">
@@ -57,7 +61,7 @@ export function ProductRow({
             {formatCurrency(price)}
           </span>
         </span>
-      </button>
+      </Link>
 
       <button
         type="button"

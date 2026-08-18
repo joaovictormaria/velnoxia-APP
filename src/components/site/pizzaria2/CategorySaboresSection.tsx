@@ -12,7 +12,6 @@ import { Reveal } from "@/components/site/Reveal";
 import { CategoryTabs } from "./CategoryTabs";
 import { ProductCard } from "./ProductCard";
 import { ProductRow } from "./ProductRow";
-import { ProductModal } from "./ProductModal";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
@@ -120,7 +119,6 @@ export function CategorySaboresSection({
       : fallbackSlug;
 
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(initialSlug);
-  const [openSlug, setOpenSlug] = useState<string | null>(null);
   // A category can disappear while the page is open (deactivated in the admin),
   // so fall back rather than blanking the whole section.
   const category = categoryBySlug(activeSlug) ?? categoryBySlug(fallbackSlug);
@@ -233,7 +231,6 @@ export function CategorySaboresSection({
                 key={product.slug}
                 product={product}
                 price={sizePrice(product, "media")}
-                onOpen={() => setOpenSlug(product.slug)}
                 onQuickAdd={() => addProduct(product)}
               />
             ))}
@@ -248,8 +245,8 @@ export function CategorySaboresSection({
               >
                 <ProductCard
                   product={product}
-                  linkToCustomize={category.kind === "pizza" || hasExtras}
-                  ctaQuickAdd={category.kind !== "pizza"}
+                  linkToCustomize
+                  ctaQuickAdd
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
@@ -270,27 +267,6 @@ export function CategorySaboresSection({
           </div>
         </div>
       </div>
-
-      {(() => {
-        const open = openSlug
-          ? items.find((p) => p.slug === openSlug)
-          : undefined;
-        if (!open) return null;
-        return (
-          <ProductModal
-            product={open}
-            price={sizePrice(open, "media")}
-            linkToCustomize={category.kind === "pizza" || hasExtras}
-            customizeLabel={
-              category.kind === "pizza"
-                ? "Montar do meu jeito →"
-                : "Escolher extras →"
-            }
-            onAdd={() => addProduct(open)}
-            onClose={() => setOpenSlug(null)}
-          />
-        );
-      })()}
 
       <div className="mt-14 flex items-center justify-center gap-2.5 text-base font-medium text-tomato">
         <ChevronDown className="h-5 w-5 animate-bounce" />
