@@ -222,6 +222,9 @@ function OrderCard({
           <button
             type="button"
             onClick={(e) => {
+              // O cartao e uma ancora de verdade: parar a propagacao impede o
+              // handler do Link, mas nao o navegador de seguir o href.
+              e.preventDefault();
               e.stopPropagation();
               onAdvance(order, next.status);
             }}
