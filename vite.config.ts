@@ -19,10 +19,31 @@ export default defineConfig({
       ignored: ["**/velnox-landing/**"],
     },
   },
+  environments: {
+    ssr: {
+      build: {
+        rollupOptions: {
+          output: {
+            /**
+             * Without this the SSR bundle splits createCsrfMiddleware into a
+             * chunk that imports the main server chunk back, while that chunk
+             * calls the function during module evaluation — the binding is
+             * still in its temporal dead zone and every request dies with
+             * "createCsrfMiddleware is not a function". One server chunk
+             * removes the cycle; only the ssr environment, so the browser
+             * bundle keeps its code splitting.
+             */
+            manualChunks: () => "server",
+          },
+        },
+      },
+    },
+  },
   plugins: [
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart(),
+    // node-server preset: Railway runs a persistent Node process, not serverless functions.
     // node-server preset: Railway runs a persistent Node process, not serverless functions.
     nitro({ config: { preset: "node-server" } }),
     viteReact(),
