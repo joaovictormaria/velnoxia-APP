@@ -10,6 +10,10 @@ import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 
+/** Cards shown per category on the Home. The rest is behind "Veja o cardápio
+ *  completo", which sits right next to this grid. */
+const HOME_PREVIEW = 3;
+
 export const categoryBadges: Record<string, string> = {
   tradicionais: "Sabores que todo mundo ama",
   especiais: "Para ocasiões especiais",
@@ -94,7 +98,8 @@ export function CategorySaboresSection({
   // A category can disappear while the page is open (deactivated in the admin),
   // so fall back rather than blanking the whole section.
   const category = categoryBySlug(activeSlug) ?? categoryBySlug(fallbackSlug);
-  const items = category ? productsByCategory(category.slug) : [];
+  const allItems = category ? productsByCategory(category.slug) : [];
+  const items = allItems.slice(0, HOME_PREVIEW);
 
   if (!category) return null;
 
@@ -173,7 +178,7 @@ export function CategorySaboresSection({
         <div>
           <CategoryTabs activeSlug={category.slug} onSelect={setActiveSlug} />
 
-          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3">
+          <div className="mt-6 grid max-w-[920px] grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((product, i) => (
               <Reveal key={product.slug} variant="up" delay={Math.min(i * 40, 320)}>
                 <ProductCard
