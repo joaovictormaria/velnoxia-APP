@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, DollarSign, ExternalLink, ShoppingBag, Star, Wallet } from "lucide-react";
+import { CalendarDays, Clock, DollarSign, ExternalLink, ShoppingBag, Star, Wallet } from "lucide-react";
 import { KpiCard } from "@/components/admin/dashboard/KpiCard";
 import { OrdersByHourChart } from "@/components/admin/dashboard/OrdersByHourChart";
 import { OrdersByStatusCard } from "@/components/admin/dashboard/OrdersByStatusCard";
@@ -17,6 +17,7 @@ const todayLabel = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "lo
 
 function DashboardPage() {
   const { admin } = Route.useRouteContext();
+  const trial = admin?.store.status === "TRIAL" ? trialCountdown(admin.store.trialEndsAt) : null;
   const { data, isPending } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => getDashboardFn(),
@@ -25,6 +26,31 @@ function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Only while the store is on trial: an ACTIVE store has nothing to count
+          down, and a permanent banner would just become noise. */}
+      {trial && (
+        <div
+          className={
+            trial.days <= 3
+              ? "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+              : "flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
+          }
+        >
+          <p className={trial.days <= 3 ? "text-sm text-[#E11D2E]" : "text-sm text-amber-800"}>
+            <Clock className="mr-1.5 inline size-4 align-text-bottom" />
+            <strong>Período de teste</strong> — {trial.label}
+          </p>
+          <a
+            href="https://wa.me/5511999999999"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg bg-[#E11D2E] px-4 py-2 text-xs font-semibold text-white hover:bg-[#c4172a]"
+          >
+            Assinar agora
+          </a>
+        </div>
+      )}
+
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900">Olá, {admin?.name}! 👋</h1>
@@ -113,4 +139,18 @@ function DashboardPage() {
       )}
     </div>
   );
+}
+
+/**
+ * Days left in the trial. Counts whole days remaining rather than rounding,
+ * so the banner never promises a day that has already run out.
+ */
+function trialCountdown(endsAt: Date | string | null) {
+  if (!endsAt) return { days: 14, label: "14 dias grátis para testar." };
+  const ms = new Date(endsAt).getTime() - Date.now();
+  const days = Math.max(0, Math.floor(ms / 86_400_000));
+  if (ms <= 0) return { days: 0, label: "seu teste terminou." };
+  if (days === 0) return { days: 0, label: "termina hoje." };
+  if (days === 1) return { days: 1, label: "resta 1 dia." };
+  return { days, label: `restam ${days} dias.` };
 }
