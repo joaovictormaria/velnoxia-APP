@@ -8,6 +8,7 @@ export function Footer() {
   const goToCardapio = useGoToCardapio();
   const {
     storeName,
+    slug: storeSlug,
     description,
     logoUrl,
     whatsappNumber,
@@ -65,7 +66,7 @@ export function Footer() {
             <ul className="mt-4 space-y-2.5">
               <li>
                 <Link
-                  to="/pizzaria-2"
+                  to="/$storeSlug" params={{ storeSlug }}
                   activeOptions={{ exact: true }}
                   className="text-sm text-charcoal/60 transition-colors hover:text-tomato"
                   activeProps={{ className: "!text-tomato" }}
@@ -75,7 +76,7 @@ export function Footer() {
               </li>
               <li>
                 <a
-                  href="/pizzaria-2#cardapio"
+                  href="/$storeSlug#cardapio"
                   onClick={goToCardapio}
                   className="text-sm text-charcoal/60 transition-colors hover:text-tomato"
                 >

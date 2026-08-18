@@ -20,7 +20,7 @@ import {
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/pizzaria-2/produto/$slug")({
+export const Route = createFileRoute("/$storeSlug/produto/$slug")({
   validateSearch: (search: Record<string, unknown>): { view?: "cardapio" } => ({
     view: search.view === "cardapio" ? "cardapio" : undefined,
   }),

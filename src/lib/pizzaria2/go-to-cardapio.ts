@@ -1,7 +1,8 @@
 import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useStore } from "./store-provider";
 import type { MouseEvent } from "react";
 
-const HOME_PATH = "/pizzaria-2";
+const HOME_PATH = "/$storeSlug";
 const CARDAPIO_SECTION_ID = "cardapio";
 
 function scrollToCardapio() {
@@ -24,7 +25,9 @@ function scrollToCardapio() {
 export function useGoToCardapio() {
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname });
-  const isHome = pathname === HOME_PATH || pathname === `${HOME_PATH}/`;
+  const { slug: storeSlug } = useStore();
+  const home = `/${storeSlug}`;
+  const isHome = pathname === home || pathname === `${home}/`;
 
   return function goToCardapio(e?: Pick<MouseEvent, "preventDefault">) {
     e?.preventDefault?.();
@@ -32,7 +35,7 @@ export function useGoToCardapio() {
       scrollToCardapio();
       return;
     }
-    navigate({ to: HOME_PATH }).then(() => {
+    navigate({ to: HOME_PATH, params: { storeSlug } }).then(() => {
       // Wait for the Home route to mount and paint before measuring its layout.
       requestAnimationFrame(() => requestAnimationFrame(scrollToCardapio));
     });

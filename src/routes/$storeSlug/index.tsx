@@ -18,7 +18,7 @@ const title = "Pizzaria — Cardápio online e entrega rápida | velnox.ia";
 const description =
   "Cardápio completo, entrega rápida e pedido online. Pizzas tradicionais, especiais e doces feitas com carinho.";
 
-export const Route = createFileRoute("/pizzaria-2/")({
+export const Route = createFileRoute("/$storeSlug/")({
   head: () => ({
     meta: [
       { title },

@@ -10,17 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StoreSlugRouteRouteImport } from './routes/$storeSlug/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as CriarSiteRouteImport } from './routes/criar-site'
-import { Route as Pizzaria2RouteRouteImport } from './routes/pizzaria-2/route'
 import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as StoreSlugIndexRouteImport } from './routes/$storeSlug/index'
+import { Route as StoreSlugCarrinhoRouteImport } from './routes/$storeSlug/carrinho'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCadastroRouteImport } from './routes/admin/cadastro'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
-import { Route as Pizzaria2IndexRouteImport } from './routes/pizzaria-2/index'
-import { Route as Pizzaria2CarrinhoRouteImport } from './routes/pizzaria-2/carrinho'
+import { Route as StoreSlugProdutoSlugRouteImport } from './routes/$storeSlug/produto/$slug'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
 import { Route as AdminCardapioIndexRouteImport } from './routes/admin/cardapio/index'
 import { Route as AdminCardapioProductIdRouteImport } from './routes/admin/cardapio/$productId'
@@ -34,11 +35,15 @@ import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/in
 import { Route as AdminPedidosOrderIdRouteImport } from './routes/admin/pedidos/$orderId'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
-import { Route as Pizzaria2ProdutoSlugRouteImport } from './routes/pizzaria-2/produto/$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoreSlugRouteRoute = StoreSlugRouteRouteImport.update({
+  id: '/$storeSlug',
+  path: '/$storeSlug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRouteRoute = AdminRouteRouteImport.update({
@@ -56,15 +61,20 @@ const CriarSiteRoute = CriarSiteRouteImport.update({
   path: '/criar-site',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Pizzaria2RouteRoute = Pizzaria2RouteRouteImport.update({
-  id: '/pizzaria-2',
-  path: '/pizzaria-2',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PreviewRoute = PreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
   getParentRoute: () => rootRouteImport,
+} as any)
+const StoreSlugIndexRoute = StoreSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StoreSlugRouteRoute,
+} as any)
+const StoreSlugCarrinhoRoute = StoreSlugCarrinhoRouteImport.update({
+  id: '/carrinho',
+  path: '/carrinho',
+  getParentRoute: () => StoreSlugRouteRoute,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
@@ -86,15 +96,10 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Pizzaria2IndexRoute = Pizzaria2IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => Pizzaria2RouteRoute,
-} as any)
-const Pizzaria2CarrinhoRoute = Pizzaria2CarrinhoRouteImport.update({
-  id: '/carrinho',
-  path: '/carrinho',
-  getParentRoute: () => Pizzaria2RouteRoute,
+const StoreSlugProdutoSlugRoute = StoreSlugProdutoSlugRouteImport.update({
+  id: '/produto/$slug',
+  path: '/produto/$slug',
+  getParentRoute: () => StoreSlugRouteRoute,
 } as any)
 const AdminAvaliacoesIndexRoute = AdminAvaliacoesIndexRouteImport.update({
   id: '/avaliacoes/',
@@ -161,32 +166,27 @@ const AdminRelatoriosProdutosRoute = AdminRelatoriosProdutosRouteImport.update({
   path: '/relatorios/produtos',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const Pizzaria2ProdutoSlugRoute = Pizzaria2ProdutoSlugRouteImport.update({
-  id: '/produto/$slug',
-  path: '/produto/$slug',
-  getParentRoute: () => Pizzaria2RouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$storeSlug': typeof StoreSlugRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
-  '/pizzaria-2': typeof Pizzaria2RouteRouteWithChildren
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
-  '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
+  '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
-  '/pizzaria-2/': typeof Pizzaria2IndexRoute
+  '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
-  '/pizzaria-2/produto/$slug': typeof Pizzaria2ProdutoSlugRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
@@ -200,19 +200,19 @@ export interface FileRoutesByTo {
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
-  '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
+  '/$storeSlug': typeof StoreSlugIndexRoute
   '/admin': typeof AdminIndexRoute
-  '/pizzaria-2': typeof Pizzaria2IndexRoute
+  '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
-  '/pizzaria-2/produto/$slug': typeof Pizzaria2ProdutoSlugRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio': typeof AdminCardapioIndexRoute
   '/admin/clientes': typeof AdminClientesIndexRoute
@@ -224,24 +224,24 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$storeSlug': typeof StoreSlugRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
-  '/pizzaria-2': typeof Pizzaria2RouteRouteWithChildren
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
-  '/pizzaria-2/carrinho': typeof Pizzaria2CarrinhoRoute
+  '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
-  '/pizzaria-2/': typeof Pizzaria2IndexRoute
+  '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
-  '/pizzaria-2/produto/$slug': typeof Pizzaria2ProdutoSlugRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
@@ -254,24 +254,24 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$storeSlug'
     | '/admin'
-    | '/pizzaria-2'
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/$storeSlug/carrinho'
     | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
-    | '/pizzaria-2/carrinho'
+    | '/$storeSlug/'
     | '/admin/'
-    | '/pizzaria-2/'
+    | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/produtos'
-    | '/pizzaria-2/produto/$slug'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
     | '/admin/clientes/'
@@ -285,19 +285,19 @@ export interface FileRouteTypes {
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/$storeSlug/carrinho'
     | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
-    | '/pizzaria-2/carrinho'
+    | '/$storeSlug'
     | '/admin'
-    | '/pizzaria-2'
+    | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/produtos'
-    | '/pizzaria-2/produto/$slug'
     | '/admin/avaliacoes'
     | '/admin/cardapio'
     | '/admin/clientes'
@@ -308,24 +308,24 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/$storeSlug'
     | '/admin'
-    | '/pizzaria-2'
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/$storeSlug/carrinho'
     | '/admin/cadastro'
     | '/admin/login'
     | '/api/health'
-    | '/pizzaria-2/carrinho'
+    | '/$storeSlug/'
     | '/admin/'
-    | '/pizzaria-2/'
+    | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/produtos'
-    | '/pizzaria-2/produto/$slug'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
     | '/admin/clientes/'
@@ -337,8 +337,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  StoreSlugRouteRoute: typeof StoreSlugRouteRouteWithChildren
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
-  Pizzaria2RouteRoute: typeof Pizzaria2RouteRouteWithChildren
   AnaliseRoute: typeof AnaliseRoute
   CriarSiteRoute: typeof CriarSiteRoute
   PreviewRoute: typeof PreviewRoute
@@ -352,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$storeSlug': {
+      id: '/$storeSlug'
+      path: '/$storeSlug'
+      fullPath: '/$storeSlug'
+      preLoaderRoute: typeof StoreSlugRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -375,19 +382,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CriarSiteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pizzaria-2': {
-      id: '/pizzaria-2'
-      path: '/pizzaria-2'
-      fullPath: '/pizzaria-2'
-      preLoaderRoute: typeof Pizzaria2RouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/preview': {
       id: '/preview'
       path: '/preview'
       fullPath: '/preview'
       preLoaderRoute: typeof PreviewRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/$storeSlug/': {
+      id: '/$storeSlug/'
+      path: '/'
+      fullPath: '/$storeSlug/'
+      preLoaderRoute: typeof StoreSlugIndexRouteImport
+      parentRoute: typeof StoreSlugRouteRoute
+    }
+    '/$storeSlug/carrinho': {
+      id: '/$storeSlug/carrinho'
+      path: '/carrinho'
+      fullPath: '/$storeSlug/carrinho'
+      preLoaderRoute: typeof StoreSlugCarrinhoRouteImport
+      parentRoute: typeof StoreSlugRouteRoute
     }
     '/admin/': {
       id: '/admin/'
@@ -417,19 +431,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/pizzaria-2/': {
-      id: '/pizzaria-2/'
-      path: '/'
-      fullPath: '/pizzaria-2/'
-      preLoaderRoute: typeof Pizzaria2IndexRouteImport
-      parentRoute: typeof Pizzaria2RouteRoute
-    }
-    '/pizzaria-2/carrinho': {
-      id: '/pizzaria-2/carrinho'
-      path: '/carrinho'
-      fullPath: '/pizzaria-2/carrinho'
-      preLoaderRoute: typeof Pizzaria2CarrinhoRouteImport
-      parentRoute: typeof Pizzaria2RouteRoute
+    '/$storeSlug/produto/$slug': {
+      id: '/$storeSlug/produto/$slug'
+      path: '/produto/$slug'
+      fullPath: '/$storeSlug/produto/$slug'
+      preLoaderRoute: typeof StoreSlugProdutoSlugRouteImport
+      parentRoute: typeof StoreSlugRouteRoute
     }
     '/admin/avaliacoes/': {
       id: '/admin/avaliacoes/'
@@ -522,15 +529,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosProdutosRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/pizzaria-2/produto/$slug': {
-      id: '/pizzaria-2/produto/$slug'
-      path: '/produto/$slug'
-      fullPath: '/pizzaria-2/produto/$slug'
-      preLoaderRoute: typeof Pizzaria2ProdutoSlugRouteImport
-      parentRoute: typeof Pizzaria2RouteRoute
-    }
   }
 }
+
+interface StoreSlugRouteRouteChildren {
+  StoreSlugCarrinhoRoute: typeof StoreSlugCarrinhoRoute
+  StoreSlugIndexRoute: typeof StoreSlugIndexRoute
+  StoreSlugProdutoSlugRoute: typeof StoreSlugProdutoSlugRoute
+}
+
+const StoreSlugRouteRouteChildren: StoreSlugRouteRouteChildren = {
+  StoreSlugCarrinhoRoute: StoreSlugCarrinhoRoute,
+  StoreSlugIndexRoute: StoreSlugIndexRoute,
+  StoreSlugProdutoSlugRoute: StoreSlugProdutoSlugRoute,
+}
+
+const StoreSlugRouteRouteWithChildren = StoreSlugRouteRoute._addFileChildren(
+  StoreSlugRouteRouteChildren,
+)
 
 interface AdminRouteRouteChildren {
   AdminCadastroRoute: typeof AdminCadastroRoute
@@ -574,26 +590,10 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
-interface Pizzaria2RouteRouteChildren {
-  Pizzaria2CarrinhoRoute: typeof Pizzaria2CarrinhoRoute
-  Pizzaria2IndexRoute: typeof Pizzaria2IndexRoute
-  Pizzaria2ProdutoSlugRoute: typeof Pizzaria2ProdutoSlugRoute
-}
-
-const Pizzaria2RouteRouteChildren: Pizzaria2RouteRouteChildren = {
-  Pizzaria2CarrinhoRoute: Pizzaria2CarrinhoRoute,
-  Pizzaria2IndexRoute: Pizzaria2IndexRoute,
-  Pizzaria2ProdutoSlugRoute: Pizzaria2ProdutoSlugRoute,
-}
-
-const Pizzaria2RouteRouteWithChildren = Pizzaria2RouteRoute._addFileChildren(
-  Pizzaria2RouteRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  StoreSlugRouteRoute: StoreSlugRouteRouteWithChildren,
   AdminRouteRoute: AdminRouteRouteWithChildren,
-  Pizzaria2RouteRoute: Pizzaria2RouteRouteWithChildren,
   AnaliseRoute: AnaliseRoute,
   CriarSiteRoute: CriarSiteRoute,
   PreviewRoute: PreviewRoute,

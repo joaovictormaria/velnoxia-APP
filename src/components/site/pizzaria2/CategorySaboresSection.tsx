@@ -7,6 +7,7 @@ import { ProductCard } from "./ProductCard";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 
 export const categoryBadges: Record<string, string> = {
   tradicionais: "Sabores que todo mundo ama",
@@ -79,6 +80,7 @@ export function CategorySaboresSection({
 }) {
   const { addLine } = useCart();
   const { categories, products, categoryBySlug, productsByCategory } = useMenu();
+  const { slug: storeSlug } = useStore();
 
   // The opening tab comes from the data, never a fixed slug: the admin can
   // rename, reorder, deactivate or delete any category, and whichever one the
@@ -137,8 +139,8 @@ export function CategorySaboresSection({
           )}
 
           <Link
-            to="/pizzaria-2/produto/$slug"
-            params={{ slug: ctaProductSlug }}
+            to="/$storeSlug/produto/$slug"
+            params={{ storeSlug, slug: ctaProductSlug }}
             search={{ view: "cardapio" }}
             className="group mt-7 flex items-center gap-4 rounded-4xl bg-linear-to-br from-tomato to-[#b8341c] p-6 text-mozzarella shadow-[0_20px_40px_-24px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
           >

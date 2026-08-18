@@ -41,7 +41,7 @@ export function CardapioPicker({
   onSelectPizza: (slug: string) => void;
 }) {
   const { addLine, itemCount, total } = useCart();
-  const { storeName: businessName, whatsappHref } = useStore();
+  const { storeName: businessName, whatsappHref, slug: storeSlug } = useStore();
   const { categories, products: allProducts, productsByCategory } = useMenu();
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(
     categories[0]?.slug ?? "tradicionais",
@@ -91,7 +91,8 @@ export function CardapioPicker({
           </span>
         </div>
         <Link
-          to="/pizzaria-2/carrinho"
+          to="/$storeSlug/carrinho"
+          params={{ storeSlug }}
           className="flex items-center gap-2 rounded-full bg-tomato px-4 py-2 text-sm font-bold text-mozzarella transition-colors hover:bg-tomato/90"
         >
           <span className="relative">
@@ -252,7 +253,8 @@ export function CardapioPicker({
       {/* Floating cart button */}
       {itemCount > 0 && (
         <Link
-          to="/pizzaria-2/carrinho"
+          to="/$storeSlug/carrinho"
+          params={{ storeSlug }}
           className="fixed bottom-6 right-6 z-20 flex items-center gap-2 rounded-full bg-tomato px-5 py-3.5 text-sm font-bold text-mozzarella shadow-[0_20px_40px_-16px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
         >
           <span className="relative">

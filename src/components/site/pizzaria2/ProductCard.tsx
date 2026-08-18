@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react";
+import { useStore } from "@/lib/pizzaria2/store-provider";
 import { Link } from "@tanstack/react-router";
 import { Flame, Heart, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ export function ProductCard({
   favorited?: boolean;
   onToggleFavorite?: () => void;
 }) {
+  const { slug: storeSlug } = useStore();
   const Icon = product.icon;
 
   function handleQuickAdd(e: MouseEvent) {
@@ -104,8 +106,8 @@ export function ProductCard({
         </button>
       ) : linkToCustomize ? (
         <Link
-          to="/pizzaria-2/produto/$slug"
-          params={{ slug: product.slug }}
+          to="/$storeSlug/produto/$slug"
+          params={{ storeSlug, slug: product.slug }}
           className="flex flex-col text-left"
         >
           {media}
@@ -125,7 +127,7 @@ export function ProductCard({
             <Plus className="h-4.5 w-4.5" /> Adicionar
           </button>
         ) : linkToCustomize ? (
-          <Link to="/pizzaria-2/produto/$slug" params={{ slug: product.slug }} className={ctaClassName}>
+          <Link to="/$storeSlug/produto/$slug" params={{ storeSlug, slug: product.slug }} className={ctaClassName}>
             <Plus className="h-4.5 w-4.5" /> Adicionar
           </Link>
         ) : (

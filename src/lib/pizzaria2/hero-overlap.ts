@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "@tanstack/react-router";
 
-const HOME_PATH = "/pizzaria-2";
+const HOME_PATH = "/$storeSlug";
 export const HERO_BOUNDARY_ID = "pizzaria2-hero-boundary";
 const HEADER_HEIGHT = 67;
 

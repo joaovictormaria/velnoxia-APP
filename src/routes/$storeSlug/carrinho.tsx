@@ -11,7 +11,7 @@ import { formatCurrency, suggestedDrinkSlugs } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 
-export const Route = createFileRoute("/pizzaria-2/carrinho")({
+export const Route = createFileRoute("/$storeSlug/carrinho")({
   component: PizzariaCarrinho,
 });
 
@@ -66,8 +66,8 @@ function PizzariaCarrinho() {
             className="mt-5 rounded-full bg-tomato text-mozzarella shadow-none hover:bg-tomato/90"
           >
             <Link
-              to="/pizzaria-2/produto/$slug"
-              params={{ slug: cardapioAnchorSlug }}
+              to="/$storeSlug/produto/$slug"
+              params={{ storeSlug: store.slug, slug: cardapioAnchorSlug }}
               search={{ view: "cardapio" }}
             >
               Ver cardápio
@@ -150,8 +150,8 @@ function PizzariaCarrinho() {
             className="rounded-full border-charcoal/20 bg-mozzarella text-charcoal hover:bg-charcoal/5"
           >
             <Link
-              to="/pizzaria-2/produto/$slug"
-              params={{ slug: cardapioAnchorSlug }}
+              to="/$storeSlug/produto/$slug"
+              params={{ storeSlug: store.slug, slug: cardapioAnchorSlug }}
               search={{ view: "cardapio" }}
             >
               ← Continuar comprando
