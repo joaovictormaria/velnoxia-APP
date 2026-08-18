@@ -59,6 +59,9 @@ export async function listKanbanOrders(options: { date?: string; search?: string
             items: {
               select: { productNameSnapshot: true, quantity: true, sizeLabel: true },
             },
+            // The card shows the discount, so it needs to know which coupon was
+            // used and how much it took off.
+            coupon: { select: { code: true } },
           },
         }),
         prisma.order.count({ where: { ...where, status } }),

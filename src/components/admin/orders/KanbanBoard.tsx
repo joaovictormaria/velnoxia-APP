@@ -57,6 +57,8 @@ export type KanbanOrder = {
   total: number;
   type: "DELIVERY" | "PICKUP";
   items: { productNameSnapshot: string; quantity: number; sizeLabel: string | null }[];
+  discount: number;
+  coupon: { code: string } | null;
 };
 
 export type KanbanColumnData = {
@@ -169,7 +171,17 @@ function OrderCard({
         )}
       </ul>
 
-      <p className="mt-2 text-sm font-bold text-neutral-900">{currency.format(order.total)}</p>
+      <div className="mt-2 flex flex-wrap items-baseline gap-2">
+        <p className="text-sm font-bold text-neutral-900">{currency.format(order.total)}</p>
+        {/* The kitchen needs to know a discount was applied, and which code did
+            it, before questioning the amount that arrives. */}
+        {order.discount > 0 && (
+          <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+            {order.coupon ? order.coupon.code + " · " : ""}
+            -{currency.format(order.discount)}
+          </span>
+        )}
+      </div>
 
       <div className="mt-2 flex items-center justify-between gap-2">
         <span className={`rounded-md px-2 py-1 text-xs font-medium ${badge}`}>
