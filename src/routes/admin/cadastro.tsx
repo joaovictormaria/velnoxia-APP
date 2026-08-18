@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Check, Loader2, UtensilsCrossed, X } from "lucide-react";
+import { useState } from "react";
+import { UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { checkSlugFn, createStoreAccountFn } from "@/server/functions/signup.fn";
+import { createStoreAccountFn } from "@/server/functions/signup.fn";
 
 export const Route = createFileRoute("/admin/cadastro")({
   component: SignupPage,
@@ -13,11 +13,6 @@ export const Route = createFileRoute("/admin/cadastro")({
 function SignupPage() {
   const router = useRouter();
   const [storeName, setStoreName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [slugState, setSlugState] = useState<
-    { status: "idle" | "checking" } | { status: "ok"; slug: string } | { status: "error"; error: string }
-  >({ status: "idle" });
   const [adminName, setAdminName] = useState("");
   const [email, setEmail] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
@@ -25,26 +20,9 @@ function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  // Until the person edits the address themselves, it follows the store name.
-  const effectiveSlug = slugTouched ? slug : localSlugify(storeName);
-
-  useEffect(() => {
-    if (!effectiveSlug) {
-      setSlugState({ status: "idle" });
-      return;
-    }
-    setSlugState({ status: "checking" });
-    // Debounced so typing doesn't fire a request per keystroke.
-    const timer = window.setTimeout(async () => {
-      const result = await checkSlugFn({ data: { slug: effectiveSlug } });
-      setSlugState(
-        result.ok
-          ? { status: "ok", slug: result.slug }
-          : { status: "error", error: result.error },
-      );
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, [effectiveSlug]);
+  // Preview only. The real address is built on the server, which appends the
+  // verifier code — so this shows the shape, never a promise of the final URL.
+  const slugPreview = localSlugify(storeName);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -52,7 +30,7 @@ function SignupPage() {
     setError(null);
 
     const result = await createStoreAccountFn({
-      data: { storeName, slug: effectiveSlug, adminName, email, password, whatsappNumber },
+      data: { storeName, adminName, email, password, whatsappNumber },
     });
 
     if (!result.ok) {
@@ -94,34 +72,19 @@ function SignupPage() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="slug">Endereço do seu cardápio</Label>
-            <div className="flex items-center rounded-lg border border-neutral-300 px-3 focus-within:border-neutral-400">
-              <span className="shrink-0 text-sm text-neutral-500">velnox.app/</span>
-              <input
-                id="slug"
-                value={effectiveSlug}
-                onChange={(e) => {
-                  setSlugTouched(true);
-                  setSlug(e.target.value);
-                }}
-                required
-                className="w-full bg-transparent py-2 text-sm text-neutral-900 outline-none"
-                placeholder="lanche-do-ze"
-              />
-              {slugState.status === "checking" && (
-                <Loader2 className="size-4 shrink-0 animate-spin text-neutral-400" />
-              )}
-              {slugState.status === "ok" && <Check className="size-4 shrink-0 text-emerald-600" />}
-              {slugState.status === "error" && <X className="size-4 shrink-0 text-[#E11D2E]" />}
+          {slugPreview && (
+            <div className="rounded-lg bg-neutral-100 px-3 py-2.5">
+              <p className="text-xs text-neutral-500">Endereço do seu cardápio</p>
+              <p className="mt-0.5 font-mono text-sm text-neutral-800">
+                velnox.app/{slugPreview}-<span className="text-neutral-400">••••</span>
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Criado automaticamente a partir do nome, com um código só seu — assim
+                duas lanchonetes com o mesmo nome nunca se confundem. Você vê o
+                endereço completo assim que a conta for criada.
+              </p>
             </div>
-            {slugState.status === "error" && (
-              <p className="text-xs text-[#E11D2E]">{slugState.error}</p>
-            )}
-            {slugState.status === "ok" && (
-              <p className="text-xs text-emerald-700">Endereço disponível.</p>
-            )}
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="whatsappNumber">WhatsApp da loja</Label>
@@ -177,7 +140,7 @@ function SignupPage() {
 
           <Button
             type="submit"
-            disabled={pending || slugState.status !== "ok"}
+            disabled={pending}
             className="w-full bg-[#E11D2E] text-white hover:bg-[#c4172a]"
           >
             {pending ? "Criando sua loja..." : "Criar conta grátis"}
