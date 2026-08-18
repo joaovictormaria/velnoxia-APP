@@ -116,8 +116,8 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
   }
 
   return (
-    <section id="avaliacoes" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24">
-      <div className="mx-auto max-w-[1200px]">
+    <div id="avaliacoes" className="scroll-mt-24 border-t border-charcoal/8 pt-10 lg:border-t-0 lg:pt-0">
+      <div>
         <Reveal variant="up">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -145,11 +145,11 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
           </div>
         </Reveal>
 
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[380px_1fr]">
+        <div className="mt-6 space-y-5">
           <Reveal variant="left">
             <form
               onSubmit={submit}
-              className="rounded-[24px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]"
+              className="rounded-[24px] border border-charcoal/8 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]"
             >
               <p className="font-display text-lg font-bold text-charcoal">Deixe sua avaliação</p>
               <p className="mt-1 text-sm text-charcoal/55">Conte o que achou da loja e do site.</p>
@@ -220,7 +220,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
             ) : (
               reviews.map((r, i) => (
                 <Reveal key={r.id} variant="up" delay={Math.min(i * 40, 240)}>
-                  <article className="rounded-[24px] border border-charcoal/8 bg-mozzarella p-5 sm:p-6">
+                  <article className="rounded-[24px] border border-charcoal/8 bg-white p-5 sm:p-6">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-display text-sm font-bold text-charcoal">
@@ -266,6 +266,6 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

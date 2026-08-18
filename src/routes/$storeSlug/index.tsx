@@ -330,11 +330,12 @@ function PizzariaInicio() {
         </div>
       </section>
 
-      <section id="restaurante" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24">
-        <div className="mx-auto max-w-[1200px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)] sm:p-10">
-          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
+      <section id="restaurante" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10">
+        <div className="mx-auto max-w-[1800px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)] sm:p-10 xl:px-14">
+          <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
+            <div>
             <Reveal variant="left">
-              <div className="relative aspect-4/3 w-full overflow-hidden rounded-[24px] border border-dashed border-charcoal/15 bg-charcoal/[0.03] sm:aspect-4/5">
+              <div className="relative mx-auto aspect-4/3 w-full max-w-[300px] overflow-hidden rounded-[24px] border border-dashed border-charcoal/15 bg-charcoal/[0.03] sm:mx-0">
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
                   <Camera className="h-9 w-9" strokeWidth={1.5} />
                   <span className="text-xs font-medium">Foto do restaurante em breve</span>
@@ -342,7 +343,7 @@ function PizzariaInicio() {
               </div>
             </Reveal>
 
-            <Reveal variant="right">
+            <Reveal variant="up" className="mt-8">
               <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
                 <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
                 {aboutEyebrow || "Nosso restaurante"}
@@ -396,13 +397,14 @@ function PizzariaInicio() {
                 </div>
               </div>
             </Reveal>
+            </div>
+
+            <ReviewsSection storeSlug={storeSlug} />
           </div>
         </div>
       </section>
 
       <StoreBlog posts={posts} />
-
-      <ReviewsSection storeSlug={storeSlug} />
 
       <section className="relative overflow-hidden py-16 sm:py-24">
         <div className="pointer-events-none absolute -left-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-tomato/10 blur-3xl" />
