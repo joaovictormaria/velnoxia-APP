@@ -125,6 +125,7 @@ export function ProductCard({
         <Link
           to="/$storeSlug/produto/$slug"
           params={{ storeSlug, slug: product.slug }}
+          search={{}}
           className="flex flex-col text-left"
         >
           {media}
@@ -162,6 +163,7 @@ export function ProductCard({
           <Link
             to="/$storeSlug/produto/$slug"
             params={{ storeSlug, slug: product.slug }}
+            search={{}}
             className={ctaClassName}
           >
             <Plus className="h-4.5 w-4.5" /> Adicionar

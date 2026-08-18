@@ -26,10 +26,14 @@ export function ProductRow({
     <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-charcoal/8 bg-mozzarella p-2.5 transition-colors hover:border-tomato/25">
       {/* The row opens the produto screen, where sizes, extras and the note
           live. The "+" beside it is a sibling so it can add straight to the
-          cart without going through that screen. */}
+          cart without going through that screen.
+          search={{}} clears view=cardapio: this link is often clicked from the
+          full cardapio, which lives on this same route, and keeping the param
+          would reopen the list instead of showing the product. */}
       <Link
         to="/$storeSlug/produto/$slug"
         params={{ storeSlug, slug: product.slug }}
+        search={{}}
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
       >
         <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-tomato/8">
