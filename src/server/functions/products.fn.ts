@@ -40,10 +40,10 @@ export const listProductsFn = createServerFn({ method: "GET" })
     z.object({ categoryId: z.string().optional(), search: z.string().optional() }).optional(),
   )
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     const [products, categories] = await Promise.all([
-      listProducts(data),
-      listActiveCategories(),
+      listProducts(storeId, data),
+      listActiveCategories(storeId),
     ]);
     return { products, categories };
   });
@@ -51,41 +51,41 @@ export const listProductsFn = createServerFn({ method: "GET" })
 export const getProductFn = createServerFn({ method: "GET" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     const [product, categories] = await Promise.all([
-      getProductById(data.id),
-      listActiveCategories(),
+      getProductById(storeId, data.id),
+      listActiveCategories(storeId),
     ]);
     return { product, categories };
   });
 
 export const getProductFormOptionsFn = createServerFn({ method: "GET" }).handler(async () => {
-  await requireAdminSession();
-  return { categories: await listActiveCategories() };
+  const { storeId } = await requireAdminSession();
+  return { categories: await listActiveCategories(storeId) };
 });
 
 export const saveProductFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: productSchema }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     const product = data.id
-      ? await updateProduct(data.id, data.data)
-      : await createProduct(data.data);
+      ? await updateProduct(storeId, data.id, data.data)
+      : await createProduct(storeId, data.data);
     return { ok: true as const, product };
   });
 
 export const setProductActiveFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), isActive: z.boolean() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-    await setProductActive(data.id, data.isActive);
+    const { storeId } = await requireAdminSession();
+    await setProductActive(storeId, data.id, data.isActive);
     return { ok: true as const };
   });
 
 export const deleteProductFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-    await deleteProduct(data.id);
+    const { storeId } = await requireAdminSession();
+    await deleteProduct(storeId, data.id);
     return { ok: true as const };
   });

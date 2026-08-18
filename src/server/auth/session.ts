@@ -28,6 +28,17 @@ export type CurrentAdmin = {
   name: string;
   email: string;
   role: "OWNER" | "MANAGER";
+  /** Tenant scope. Every admin query must be filtered by this. */
+  storeId: string;
+  store: {
+    id: string;
+    slug: string;
+    name: string;
+    status: "TRIAL" | "ACTIVE" | "SUSPENDED";
+    trialEndsAt: Date | null;
+    /** True when the trial window has passed — the account still exists. */
+    trialExpired: boolean;
+  };
 };
 
 export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
@@ -38,16 +49,50 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
   // Re-read from DB so a deactivated user loses access even with a valid cookie.
   const admin = await prisma.adminUser.findUnique({
     where: { id: adminUserId },
-    select: { id: true, name: true, email: true, role: true, isActive: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      isActive: true,
+      storeId: true,
+      store: {
+        select: { id: true, slug: true, name: true, status: true, trialEndsAt: true },
+      },
+    },
   });
   if (!admin || !admin.isActive) return null;
 
-  return { id: admin.id, name: admin.name, email: admin.email, role: admin.role };
+  return {
+    id: admin.id,
+    name: admin.name,
+    email: admin.email,
+    role: admin.role,
+    storeId: admin.storeId,
+    store: {
+      ...admin.store,
+      trialExpired:
+        admin.store.status === "TRIAL" &&
+        admin.store.trialEndsAt !== null &&
+        admin.store.trialEndsAt.getTime() < Date.now(),
+    },
+  };
+}
+
+/** Thrown separately from UNAUTHORIZED so the UI can offer to reactivate
+ *  instead of bouncing the owner back to the login form. */
+export class StoreInactiveError extends Error {
+  constructor(public reason: "SUSPENDED" | "TRIAL_EXPIRED") {
+    super(reason);
+    this.name = "StoreInactiveError";
+  }
 }
 
 export async function requireAdminSession(): Promise<CurrentAdmin> {
   const admin = await getCurrentAdmin();
   if (!admin) throw new Error("UNAUTHORIZED");
+  if (admin.store.status === "SUSPENDED") throw new StoreInactiveError("SUSPENDED");
+  if (admin.store.trialExpired) throw new StoreInactiveError("TRIAL_EXPIRED");
   return admin;
 }
 
@@ -64,7 +109,13 @@ export async function loginAdmin(email: string, password: string): Promise<Curre
     data: { lastLoginAt: new Date() },
   });
 
-  return { id: admin.id, name: admin.name, email: admin.email, role: admin.role };
+  // Re-read through getCurrentAdmin so the store payload is built in one place.
+  return getCurrentAdmin();
+}
+
+/** Establishes the session for a freshly created account (signup flow). */
+export async function startSessionFor(adminUserId: string): Promise<void> {
+  await updateSession<AdminSessionData>(sessionConfig(), { adminUserId });
 }
 
 export async function logoutAdmin(): Promise<void> {

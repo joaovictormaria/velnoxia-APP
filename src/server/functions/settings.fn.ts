@@ -70,14 +70,14 @@ const openingHoursSchema = z.array(
 );
 
 export const getStoreSettingsFn = createServerFn({ method: "GET" }).handler(async () => {
-  await requireAdminSession();
-  return getStoreSettings();
+  const { storeId } = await requireAdminSession();
+  return getStoreSettings(storeId);
 });
 
 export const saveStoreSettingsFn = createServerFn({ method: "POST" })
   .validator(settingsSchema)
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     // Ranges are validated here rather than in the schema so the message can
     // name the offending pair instead of a generic field error.
     if (data.estimatedDeliveryMinMax < data.estimatedDeliveryMinMin) {
@@ -89,14 +89,14 @@ export const saveStoreSettingsFn = createServerFn({ method: "POST" })
     if (!data.acceptsDelivery && !data.acceptsPickup) {
       return { ok: false as const, error: "A loja precisa aceitar entrega ou retirada." };
     }
-    const settings = await updateStoreSettings(data);
+    const settings = await updateStoreSettings(storeId, data);
     return { ok: true as const, settings };
   });
 
 export const saveOpeningHoursFn = createServerFn({ method: "POST" })
   .validator(openingHoursSchema)
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     const invalid = data.find((h) => h.isOpen && h.closesAt <= h.opensAt);
     if (invalid) {
       return {
@@ -104,22 +104,22 @@ export const saveOpeningHoursFn = createServerFn({ method: "POST" })
         error: "O horário de fechamento precisa ser depois do de abertura.",
       };
     }
-    await replaceOpeningHours(data);
+    await replaceOpeningHours(storeId, data);
     return { ok: true as const };
   });
 
 export const addRestaurantPhotoFn = createServerFn({ method: "POST" })
   .validator(z.object({ url: z.string().min(1), caption: z.string().nullish() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-    const photo = await addRestaurantPhoto(data);
+    const { storeId } = await requireAdminSession();
+    const photo = await addRestaurantPhoto(storeId, data);
     return { ok: true as const, photo };
   });
 
 export const deleteRestaurantPhotoFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
-    await deleteRestaurantPhoto(data.id);
+    const { storeId } = await requireAdminSession();
+    await deleteRestaurantPhoto(storeId, data.id);
     return { ok: true as const };
   });

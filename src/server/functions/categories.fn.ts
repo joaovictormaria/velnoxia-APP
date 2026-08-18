@@ -23,32 +23,32 @@ const categorySchema = z.object({
 });
 
 export const listCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {
-  await requireAdminSession();
-  return listCategories();
+  const { storeId } = await requireAdminSession();
+  return listCategories(storeId);
 });
 
 export const saveCategoryFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: categorySchema }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     const category = data.id
-      ? await updateCategory(data.id, data.data)
-      : await createCategory(data.data);
+      ? await updateCategory(storeId, data.id, data.data)
+      : await createCategory(storeId, data.data);
     return { ok: true as const, category };
   });
 
 export const deleteCategoryFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    await requireAdminSession();
+    const { storeId } = await requireAdminSession();
     // Products cascade-delete with the category, so refuse while any exist.
-    const count = await countProductsInCategory(data.id);
+    const count = await countProductsInCategory(storeId, data.id);
     if (count > 0) {
       return {
         ok: false as const,
         error: `Esta categoria tem ${count} produto(s). Mova ou exclua os produtos antes.`,
       };
     }
-    await deleteCategory(data.id);
+    await deleteCategory(storeId, data.id);
     return { ok: true as const };
   });

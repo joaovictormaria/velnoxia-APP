@@ -22,9 +22,13 @@ export type ProductInput = {
   sizes: ProductSizeInput[];
 };
 
-export function listProducts(filters?: { categoryId?: string; search?: string }) {
+export function listProducts(
+  storeId: string,
+  filters?: { categoryId?: string; search?: string },
+) {
   return prisma.product.findMany({
     where: {
+      storeId,
       categoryId: filters?.categoryId,
       name: filters?.search
         ? { contains: filters.search, mode: "insensitive" }
@@ -38,23 +42,33 @@ export function listProducts(filters?: { categoryId?: string; search?: string })
   });
 }
 
-export function getProductById(id: string) {
-  return prisma.product.findUnique({
-    where: { id },
+export function getProductById(storeId: string, id: string) {
+  return prisma.product.findFirst({
+    where: { id, storeId },
     include: { sizes: true },
   });
 }
 
-export async function createProduct({ sizes, ...data }: ProductInput) {
+export async function createProduct(storeId: string, { sizes, ...data }: ProductInput) {
+  // The category is re-checked against the store so a forged categoryId cannot
+  // attach a product to someone else's category.
+  await assertCategoryBelongsToStore(storeId, data.categoryId);
   return prisma.product.create({
-    data: { ...data, sizes: { create: sizes } },
+    data: { ...data, storeId, sizes: { create: sizes } },
     include: { sizes: true },
   });
 }
 
 /** Sizes are replaced wholesale — the form always submits the complete set. */
-export async function updateProduct(id: string, { sizes, ...data }: ProductInput) {
+export async function updateProduct(
+  storeId: string,
+  id: string,
+  { sizes, ...data }: ProductInput,
+) {
+  await assertCategoryBelongsToStore(storeId, data.categoryId);
   return prisma.$transaction(async (tx) => {
+    const owned = await tx.product.findFirst({ where: { id, storeId }, select: { id: true } });
+    if (!owned) throw new Error("NOT_FOUND");
     await tx.productSize.deleteMany({ where: { productId: id } });
     return tx.product.update({
       where: { id },
@@ -64,18 +78,18 @@ export async function updateProduct(id: string, { sizes, ...data }: ProductInput
   });
 }
 
-export function setProductActive(id: string, isActive: boolean) {
-  return prisma.product.update({ where: { id }, data: { isActive } });
+export function setProductActive(storeId: string, id: string, isActive: boolean) {
+  return prisma.product.update({ where: { id, storeId }, data: { isActive } });
 }
 
-export function deleteProduct(id: string) {
-  return prisma.product.delete({ where: { id } });
+export function deleteProduct(storeId: string, id: string) {
+  return prisma.product.delete({ where: { id, storeId } });
 }
 
 /** Public menu for the storefront: only active products in active categories. */
-export function listMenuForStorefront() {
+export function listMenuForStorefront(storeId: string) {
   return prisma.category.findMany({
-    where: { isActive: true },
+    where: { storeId, isActive: true },
     orderBy: { sortOrder: "asc" },
     include: {
       products: {
@@ -87,12 +101,20 @@ export function listMenuForStorefront() {
   });
 }
 
-export function getProductBySlug(slug: string) {
+export function getProductBySlug(storeId: string, slug: string) {
   return prisma.product.findUnique({
-    where: { slug },
+    where: { storeId_slug: { storeId, slug } },
     include: {
       category: true,
       sizes: { where: { isAvailable: true }, orderBy: { price: "asc" } },
     },
   });
+}
+
+async function assertCategoryBelongsToStore(storeId: string, categoryId: string) {
+  const category = await prisma.category.findFirst({
+    where: { id: categoryId, storeId },
+    select: { id: true },
+  });
+  if (!category) throw new Error("CATEGORY_NOT_FOUND");
 }

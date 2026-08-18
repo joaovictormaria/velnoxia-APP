@@ -6,22 +6,26 @@ export type ExtraInput = {
   isActive: boolean;
 };
 
-export function listExtras() {
-  return prisma.extra.findMany({ orderBy: { name: "asc" } });
+export function listExtras(storeId: string) {
+  return prisma.extra.findMany({ where: { storeId }, orderBy: { name: "asc" } });
 }
 
-export function listActiveExtras() {
-  return prisma.extra.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
+export function listActiveExtras(storeId: string) {
+  return prisma.extra.findMany({
+    where: { storeId, isActive: true },
+    orderBy: { name: "asc" },
+  });
 }
 
-export function createExtra(data: ExtraInput) {
-  return prisma.extra.create({ data });
+export function createExtra(storeId: string, data: ExtraInput) {
+  return prisma.extra.create({ data: { ...data, storeId } });
 }
 
-export function updateExtra(id: string, data: Partial<ExtraInput>) {
-  return prisma.extra.update({ where: { id }, data });
+/** storeId is part of the filter so an id from another store matches nothing. */
+export function updateExtra(storeId: string, id: string, data: Partial<ExtraInput>) {
+  return prisma.extra.update({ where: { id, storeId }, data });
 }
 
-export function deleteExtra(id: string) {
-  return prisma.extra.delete({ where: { id } });
+export function deleteExtra(storeId: string, id: string) {
+  return prisma.extra.delete({ where: { id, storeId } });
 }
