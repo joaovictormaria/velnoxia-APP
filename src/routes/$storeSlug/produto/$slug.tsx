@@ -24,8 +24,27 @@ export const Route = createFileRoute("/$storeSlug/produto/$slug")({
   validateSearch: (search: Record<string, unknown>): { view?: "cardapio" } => ({
     view: search.view === "cardapio" ? "cardapio" : undefined,
   }),
-  component: PizzariaPersonalizacao,
+  component: ProdutoRoute,
 });
+
+/**
+ * Remounts the screen whenever the address changes.
+ *
+ * Everything below lives in local state seeded from the route: which product is
+ * open, whether the list or the product is showing, the chosen size and extras.
+ * That was written for the in-page picker, which swaps products without
+ * navigating. The cards navigate now, and navigating inside the same route does
+ * not remount — the address changed and the screen kept its old state, so a
+ * click seemed to do nothing while a reload worked.
+ *
+ * The key ties that state to the address. It also stops a product from
+ * inheriting the extras and the quantity picked on the previous one.
+ */
+function ProdutoRoute() {
+  const { slug } = Route.useParams();
+  const { view } = Route.useSearch();
+  return <PizzariaPersonalizacao key={slug + ":" + (view ?? "")} />;
+}
 
 function PizzariaPersonalizacao() {
   const { slug } = Route.useParams();
