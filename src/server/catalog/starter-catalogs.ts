@@ -19,6 +19,7 @@ export type StarterProduct = {
   basePrice: number;
   tag?: string;
   allowHalfAndHalf?: boolean;
+  imageUrl?: string;
   sizes?: { size: SizeLabel; price: number }[];
 };
 
@@ -60,9 +61,9 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "Pizza",
         kind: "PIZZA",
         products: [
-          { name: "Mussarela", description: "Molho de tomate, mussarela e orégano.", basePrice: 39.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(29.9, 39.9, 49.9, 59.9), tag: "Mais pedida" },
-          { name: "Calabresa", description: "Calabresa fatiada, cebola e mussarela.", basePrice: 42.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(32.9, 42.9, 52.9, 62.9) },
-          { name: "Portuguesa", description: "Presunto, ovo, cebola, azeitona e mussarela.", basePrice: 45.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(35.9, 45.9, 55.9, 65.9) },
+          { name: "Mussarela", description: "Molho de tomate, mussarela e orégano.", basePrice: 39.9, imageUrl: "/catalogo-inicial/pizzaria/mussarela.jpg", allowHalfAndHalf: true, sizes: PIZZA_SIZES(29.9, 39.9, 49.9, 59.9), tag: "Mais pedida" },
+          { name: "Calabresa", description: "Calabresa fatiada, cebola e mussarela.", basePrice: 42.9, imageUrl: "/catalogo-inicial/pizzaria/calabresa.jpg", allowHalfAndHalf: true, sizes: PIZZA_SIZES(32.9, 42.9, 52.9, 62.9) },
+          { name: "Portuguesa", description: "Presunto, ovo, cebola, azeitona e mussarela.", basePrice: 45.9, imageUrl: "/catalogo-inicial/pizzaria/portuguesa.jpg", allowHalfAndHalf: true, sizes: PIZZA_SIZES(35.9, 45.9, 55.9, 65.9) },
           { name: "Frango com Catupiry", description: "Frango desfiado com catupiry cremoso.", basePrice: 46.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(36.9, 46.9, 56.9, 66.9) },
         ],
       },
@@ -72,7 +73,7 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "Star",
         kind: "PIZZA",
         products: [
-          { name: "Quatro Queijos", description: "Mussarela, provolone, gorgonzola e parmesão.", basePrice: 52.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(42.9, 52.9, 62.9, 72.9) },
+          { name: "Quatro Queijos", description: "Mussarela, provolone, gorgonzola e parmesão.", basePrice: 52.9, imageUrl: "/catalogo-inicial/pizzaria/quatro-queijos.jpg", allowHalfAndHalf: true, sizes: PIZZA_SIZES(42.9, 52.9, 62.9, 72.9) },
           { name: "Pepperoni", description: "Pepperoni italiano e mussarela.", basePrice: 54.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(44.9, 54.9, 64.9, 74.9) },
         ],
       },
@@ -114,8 +115,8 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "Sandwich",
         kind: "SIMPLE",
         products: [
-          { name: "X-Salada", description: "Hambúrguer, queijo, alface, tomate e maionese.", basePrice: 24.9, tag: "Mais pedido" },
-          { name: "X-Bacon", description: "Hambúrguer, queijo, bacon crocante e cebola.", basePrice: 29.9 },
+          { name: "X-Salada", description: "Hambúrguer, queijo, alface, tomate e maionese.", basePrice: 24.9, imageUrl: "/catalogo-inicial/hamburgueria/x-salada.jpg", tag: "Mais pedido" },
+          { name: "X-Bacon", description: "Hambúrguer, queijo, bacon crocante e cebola.", basePrice: 29.9, imageUrl: "/catalogo-inicial/hamburgueria/x-bacon.jpg" },
           { name: "X-Tudo", description: "Dois hambúrgueres, ovo, bacon, queijo e salada.", basePrice: 36.9 },
           { name: "Smash Duplo", description: "Dois smash burgers, queijo cheddar e picles.", basePrice: 34.9 },
         ],
@@ -126,7 +127,7 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "UtensilsCrossed",
         kind: "SIMPLE",
         products: [
-          { name: "Batata Frita", description: "Porção individual, crocante e sequinha.", basePrice: 16.9 },
+          { name: "Batata Frita", description: "Porção individual, crocante e sequinha.", basePrice: 16.9, imageUrl: "/catalogo-inicial/hamburgueria/batata-frita.jpg" },
           { name: "Batata com Cheddar e Bacon", description: "Batata coberta com cheddar e bacon.", basePrice: 24.9 },
           { name: "Nuggets (10 un.)", description: "Acompanha molho da casa.", basePrice: 19.9 },
         ],
@@ -138,7 +139,7 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         kind: "SIMPLE",
         products: [
           { name: "Refrigerante Lata", description: "Coca-Cola, Guaraná ou Fanta.", basePrice: 6.9 },
-          { name: "Milkshake 400ml", description: "Chocolate, morango ou ovomaltine.", basePrice: 18.9 },
+          { name: "Milkshake 400ml", description: "Chocolate, morango ou ovomaltine.", basePrice: 18.9, imageUrl: "/catalogo-inicial/hamburgueria/milkshake.jpg" },
         ],
       },
     ],
@@ -160,8 +161,8 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "GlassWater",
         kind: "SIMPLE",
         products: [
-          { name: "Açaí 300ml", description: "Açaí puro batido na hora.", basePrice: 14.9 },
-          { name: "Açaí 500ml", description: "Açaí puro batido na hora.", basePrice: 19.9, tag: "Mais pedido" },
+          { name: "Açaí 300ml", description: "Açaí puro batido na hora.", basePrice: 14.9, imageUrl: "/catalogo-inicial/acai/acai-300-copo.jpg" },
+          { name: "Açaí 500ml", description: "Açaí puro batido na hora.", basePrice: 19.9, imageUrl: "/catalogo-inicial/acai/acai-500-tigela.png", tag: "Mais pedido" },
           { name: "Açaí 700ml", description: "Açaí puro batido na hora.", basePrice: 26.9 },
         ],
       },
@@ -171,8 +172,8 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "Star",
         kind: "SIMPLE",
         products: [
-          { name: "Combo Casal 1L", description: "Açaí 1L com quatro complementos à escolha.", basePrice: 39.9 },
-          { name: "Barca de Açaí", description: "Açaí, frutas, granola e leite condensado.", basePrice: 44.9 },
+          { name: "Combo Casal 1L", description: "Açaí 1L com quatro complementos à escolha.", basePrice: 39.9, imageUrl: "/catalogo-inicial/acai/acai-combo-casal.jpg" },
+          { name: "Barca de Açaí", description: "Açaí, frutas, granola e leite condensado.", basePrice: 44.9, imageUrl: "/catalogo-inicial/acai/acai-barca.jpg" },
         ],
       },
       {
@@ -205,7 +206,7 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "UtensilsCrossed",
         kind: "SIMPLE",
         products: [
-          { name: "Combinado 20 peças", description: "Sushis e sashimis variados.", basePrice: 59.9, tag: "Mais pedido" },
+          { name: "Combinado 20 peças", description: "Sushis e sashimis variados.", basePrice: 59.9, imageUrl: "/catalogo-inicial/japones/combinado.jpg", tag: "Mais pedido" },
           { name: "Combinado 40 peças", description: "Ideal para dividir entre duas pessoas.", basePrice: 109.9 },
         ],
       },
@@ -215,7 +216,7 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "Drumstick",
         kind: "SIMPLE",
         products: [
-          { name: "Temaki Salmão", description: "Salmão fresco, arroz e cebolinha.", basePrice: 32.9 },
+          { name: "Temaki Salmão", description: "Salmão fresco, arroz e cebolinha.", basePrice: 32.9, imageUrl: "/catalogo-inicial/japones/temaki.jpg" },
           { name: "Temaki Atum", description: "Atum, arroz e cream cheese.", basePrice: 34.9 },
           { name: "Temaki Califórnia", description: "Kani, manga e pepino.", basePrice: 28.9 },
         ],
@@ -226,7 +227,7 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "UtensilsCrossed",
         kind: "SIMPLE",
         products: [
-          { name: "Yakisoba de Frango", description: "Macarrão, legumes e frango no shoyu.", basePrice: 38.9 },
+          { name: "Yakisoba de Frango", description: "Macarrão, legumes e frango no shoyu.", basePrice: 38.9, imageUrl: "/catalogo-inicial/japones/yakisoba.jpg" },
           { name: "Gyoza (6 un.)", description: "Pastéis japoneses grelhados.", basePrice: 24.9 },
         ],
       },
