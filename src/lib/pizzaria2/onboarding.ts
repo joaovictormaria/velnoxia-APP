@@ -23,7 +23,7 @@ const defaults: OnboardingData = {
 
 /** Reads the business info the client entered in the "Criar meu site" onboarding
  * form (stored client-side in sessionStorage), falling back to the demo defaults
- * when someone opens /pizzaria-2 directly without going through that flow. */
+ * when someone opens /$storeSlug directly without going through that flow. */
 export function usePizzariaOnboarding(): OnboardingData {
   const [data, setData] = useState<OnboardingData>(defaults);
 

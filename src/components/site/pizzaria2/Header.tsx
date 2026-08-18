@@ -9,13 +9,13 @@ import { useHeaderOverHero } from "@/lib/pizzaria2/hero-overlap";
 export function Header() {
   const [open, setOpen] = useState(false);
   const goToCardapio = useGoToCardapio();
-  const { storeName, tagline, logoUrl } = useStore();
+  const { storeName, tagline, logoUrl, slug: storeSlug } = useStore();
   const overHero = useHeaderOverHero();
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-charcoal/8 backdrop-blur">
       <div className="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
-        <Link to="/pizzaria-2" className="flex items-center gap-2">
+        <Link to="/$storeSlug" params={{ storeSlug }} className="flex items-center gap-2">
           {logoUrl ? (
             <img
               src={logoUrl}
@@ -51,7 +51,7 @@ export function Header() {
 
         <nav className="hidden items-center gap-6 md:flex">
           <Link
-            to="/pizzaria-2"
+            to="/$storeSlug" params={{ storeSlug }}
             activeOptions={{ exact: true }}
             className={cn(
               "text-sm font-medium transition-colors",
@@ -62,7 +62,7 @@ export function Header() {
             Início
           </Link>
           <a
-            href="/pizzaria-2#cardapio"
+            href="/$storeSlug#cardapio"
             onClick={goToCardapio}
             className={cn(
               "text-sm font-medium transition-colors",
@@ -109,7 +109,7 @@ export function Header() {
           <ul className="flex flex-col">
             <li>
               <Link
-                to="/pizzaria-2"
+                to="/$storeSlug" params={{ storeSlug }}
                 activeOptions={{ exact: true }}
                 onClick={() => setOpen(false)}
                 className={cn("block border-b border-charcoal/8 py-3 text-sm font-medium text-charcoal/70")}
@@ -120,7 +120,7 @@ export function Header() {
             </li>
             <li>
               <a
-                href="/pizzaria-2#cardapio"
+                href="/$storeSlug#cardapio"
                 onClick={(e) => {
                   setOpen(false);
                   goToCardapio(e);

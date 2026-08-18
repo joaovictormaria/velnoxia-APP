@@ -1,3 +1,4 @@
+import { DEMO_STORE_SLUG } from "@/lib/demo-store";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -79,7 +80,12 @@ export function AiAssistant() {
     );
 
     if (selected === "Pizzaria") {
-      navigate({ to: "/pizzaria-2", viewTransition: { types: ["slide"] } });
+      // Landing demo — outside any store context, so the showcase store is named here.
+      navigate({
+        to: "/$storeSlug",
+        params: { storeSlug: DEMO_STORE_SLUG },
+        viewTransition: { types: ["slide"] },
+      });
       return;
     }
 
