@@ -139,6 +139,7 @@ model Store {
   orders        Order[]
   reviews       Review[]
   posts                Post[]
+  courierInvites       CourierInvite[]
   promotions    Promotion[]
   notifications Notification[]
 
@@ -585,4 +586,23 @@ model PostLike {
 
   @@unique([postId, visitorId])
   @@index([postId])
+}
+
+/// Convite para um entregador criar a própria conta. O dono gera, entrega o
+/// código por fora, e o motoboy o usa uma única vez para definir sua senha.
+/// Assim o dono nunca sabe a senha do funcionário, e o entregador não precisa
+/// descobrir quais lojas existem: sem código, não há como entrar.
+model CourierInvite {
+  id         String    @id @default(cuid())
+  storeId    String
+  store      Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /// Guardado como hash: quem ler o banco não consegue usar o convite.
+  codeHash   String    @unique
+  name       String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  usedById   String?
+  createdAt  DateTime  @default(now())
+
+  @@index([storeId, usedAt])
 }
