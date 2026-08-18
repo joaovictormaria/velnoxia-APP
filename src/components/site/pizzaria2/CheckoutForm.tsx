@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 import { loadCustomerDetails, saveCustomerDetails } from "@/lib/pizzaria2/customer-details";
+import { formatCep, isCompleteCep, lookupCep, normalizeCep } from "@/lib/pizzaria2/cep-lookup";
 
 const PAYMENT_LABEL: Record<string, string> = {
   PIX: "Pix",
@@ -29,6 +30,9 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [complement, setComplement] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [cep, setCep] = useState("");
+  const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "notfound">("idle");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [couponCode, setCouponCode] = useState("");
   const [note, setNote] = useState("");
@@ -50,6 +54,8 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
     setComplement(saved.complement);
     setNeighborhood(saved.neighborhood);
     setCity(saved.city);
+    setState(saved.state);
+    setCep(saved.cep);
     if (storeInfo.acceptedPaymentMethods.includes(saved.paymentMethod)) {
       setPaymentMethod(saved.paymentMethod);
     }
@@ -70,6 +76,33 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
     }
     return null;
   }
+
+  // Fires when the CEP is complete. Aborts the previous request so a fast
+  // typist does not have an earlier answer overwrite a later one.
+  useEffect(() => {
+    if (!isCompleteCep(cep)) {
+      setCepStatus("idle");
+      return;
+    }
+    const controller = new AbortController();
+    setCepStatus("loading");
+    lookupCep(cep, controller.signal).then((address) => {
+      if (controller.signal.aborted) return;
+      if (!address) {
+        setCepStatus("notfound");
+        return;
+      }
+      setCepStatus("idle");
+      // Only fills what the lookup actually returned: some CEPs cover a whole
+      // city and come back without a street, and blanking a line the person
+      // already typed would be worse than leaving it alone.
+      if (address.street) setStreet(address.street);
+      if (address.neighborhood) setNeighborhood(address.neighborhood);
+      if (address.city) setCity(address.city);
+      if (address.state) setState(address.state);
+    });
+    return () => controller.abort();
+  }, [cep]);
 
   const submit = useMutation({
     mutationFn: () =>
@@ -92,7 +125,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           customerNote: note.trim() || undefined,
           delivery:
             type === "DELIVERY"
-              ? { street, number, complement, neighborhood, city }
+              ? { street, number, complement, neighborhood, city, state, zipCode: normalizeCep(cep) }
               : undefined,
         },
       }),
@@ -105,7 +138,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
       // Saved only after the order is accepted, so a rejected attempt never
       // becomes the address suggested next time.
       saveCustomerDetails(storeInfo.slug, {
-        name, phone, street, number, complement, neighborhood, city, type, paymentMethod,
+        name, phone, street, number, complement, neighborhood, city, state, cep, type, paymentMethod,
       });
       setPlaced({ number: res.orderNumber, total: res.total });
       clearCart();
@@ -205,6 +238,26 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
 
         {type === "DELIVERY" && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-6">
+            <div className="sm:col-span-3">
+              <Field label="CEP">
+                <input
+                  value={formatCep(cep)}
+                  onChange={(e) => setCep(normalizeCep(e.target.value))}
+                  inputMode="numeric"
+                  placeholder="00000-000"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                />
+                {cepStatus === "loading" && (
+                  <span className="mt-1 block text-xs text-charcoal/50">Buscando endereço...</span>
+                )}
+                {cepStatus === "notfound" && (
+                  <span className="mt-1 block text-xs text-tomato">
+                    CEP não encontrado. Preencha o endereço manualmente.
+                  </span>
+                )}
+              </Field>
+            </div>
+            <div className="sm:col-span-3" />
             <div className="sm:col-span-4">
               <Field label="Rua">
                 <input
@@ -243,12 +296,22 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                 />
               </Field>
             </div>
-            <div className="sm:col-span-6">
+            <div className="sm:col-span-5">
               <Field label="Cidade">
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                />
+              </Field>
+            </div>
+            <div className="sm:col-span-1">
+              <Field label="UF">
+                <input
+                  value={state}
+                  onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
+                  maxLength={2}
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm uppercase text-charcoal"
                 />
               </Field>
             </div>
