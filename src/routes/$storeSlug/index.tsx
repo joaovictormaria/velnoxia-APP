@@ -90,6 +90,7 @@ function PizzariaInicio() {
     aboutTitle,
     aboutBody,
     aboutImageUrl,
+    heroSubtitle,
     deliveryFee,
     estimatedDeliveryMinMax,
   } = useStore();
@@ -100,7 +101,7 @@ function PizzariaInicio() {
   const {
     photos: heroPhotos,
     cravings: heroCravings,
-    subtitle: heroSubtitle,
+    subtitle: tradeHeroSubtitle,
     careItems,
     markIcon,
     ctaTitle,
@@ -244,7 +245,7 @@ function PizzariaInicio() {
                 </span>
               </h1>
               <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[color:var(--on-primary-muted)]">
-                {heroSubtitle}
+                {heroSubtitle || tradeHeroSubtitle}
               </p>
               <div className="relative mt-8 inline-flex w-fit">
                 <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-[color:var(--on-primary)]/40" />

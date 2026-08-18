@@ -46,6 +46,7 @@ type Draft = {
   storeName: string;
   tagline: string;
   description: string;
+  heroSubtitle: string;
   logoUrl: string | null;
   primaryColor: string;
   colorMode: "SOLID" | "GRADIENT";
@@ -110,6 +111,7 @@ function SettingsPage() {
       storeName: data.storeName,
       tagline: data.tagline ?? "",
       description: data.description ?? "",
+      heroSubtitle: data.heroSubtitle ?? "",
       logoUrl: data.logoUrl,
       primaryColor: data.primaryColor,
       colorMode: data.colorMode === "SOLID" ? "SOLID" : "GRADIENT",
@@ -170,6 +172,7 @@ function SettingsPage() {
           tertiaryColor:
             draft.colorMode === "GRADIENT" ? draft.tertiaryColor : null,
           description: draft.description || null,
+          heroSubtitle: draft.heroSubtitle || null,
           email: draft.email || null,
           instagramUrl: draft.instagramUrl || null,
           facebookUrl: draft.facebookUrl || null,
@@ -305,6 +308,17 @@ function SettingsPage() {
               <Input
                 value={draft.tagline}
                 onChange={(v) => set("tagline", v)}
+              />
+            </Field>
+            <Field
+              label="Frase do topo"
+              hint="Aparece logo abaixo do título grande do cardápio. Ex.: Hambúrguer artesanal, pão fresquinho e ingredientes selecionados todos os dias. Deixe vazio para usar a frase padrão do seu ramo."
+            >
+              <textarea
+                value={draft.heroSubtitle}
+                onChange={(e) => set("heroSubtitle", e.target.value)}
+                rows={2}
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
               />
             </Field>
             <Field

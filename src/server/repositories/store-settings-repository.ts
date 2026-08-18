@@ -17,6 +17,7 @@ export const WEEKDAYS: Weekday[] = [
 export type StoreSettingsInput = {
   storeName: string;
   tagline?: string | null;
+  heroSubtitle?: string | null;
   aboutEyebrow?: string | null;
   aboutTitle?: string | null;
   aboutBody?: string | null;
@@ -102,6 +103,7 @@ export async function getPublicStoreSettings(storeId: string) {
     businessType: store.businessType,
     storeName: settings.storeName,
     tagline: settings.tagline,
+    heroSubtitle: settings.heroSubtitle,
     aboutEyebrow: settings.aboutEyebrow,
     aboutTitle: settings.aboutTitle,
     aboutBody: settings.aboutBody,

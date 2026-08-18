@@ -30,13 +30,20 @@ const settingsSchema = z.object({
   storeName: z.string().trim().min(1, "Informe o nome da loja."),
   tagline: optionalText,
   description: optionalText,
+  heroSubtitle: optionalText,
   logoUrl: optionalText,
   primaryColor: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, "Use uma cor no formato #RRGGBB."),
   colorMode: z.enum(["SOLID", "GRADIENT"]),
-  secondaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
-  tertiaryColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
+  secondaryColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullish(),
+  tertiaryColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .nullish(),
   whatsappNumber: z.string().trim().min(1, "Informe o WhatsApp."),
   email: optionalText,
   instagramUrl: optionalText,
@@ -72,10 +79,12 @@ const openingHoursSchema = z.array(
   }),
 );
 
-export const getStoreSettingsFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
-  return getStoreSettings(storeId);
-});
+export const getStoreSettingsFn = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { storeId } = await requireAdminSession();
+    return getStoreSettings(storeId);
+  },
+);
 
 export const saveStoreSettingsFn = createServerFn({ method: "POST" })
   .validator(settingsSchema)
@@ -84,13 +93,22 @@ export const saveStoreSettingsFn = createServerFn({ method: "POST" })
     // Ranges are validated here rather than in the schema so the message can
     // name the offending pair instead of a generic field error.
     if (data.estimatedDeliveryMinMax < data.estimatedDeliveryMinMin) {
-      return { ok: false as const, error: "O tempo máximo de entrega não pode ser menor que o mínimo." };
+      return {
+        ok: false as const,
+        error: "O tempo máximo de entrega não pode ser menor que o mínimo.",
+      };
     }
     if (data.estimatedPickupMinMax < data.estimatedPickupMinMin) {
-      return { ok: false as const, error: "O tempo máximo de retirada não pode ser menor que o mínimo." };
+      return {
+        ok: false as const,
+        error: "O tempo máximo de retirada não pode ser menor que o mínimo.",
+      };
     }
     if (!data.acceptsDelivery && !data.acceptsPickup) {
-      return { ok: false as const, error: "A loja precisa aceitar entrega ou retirada." };
+      return {
+        ok: false as const,
+        error: "A loja precisa aceitar entrega ou retirada.",
+      };
     }
     const settings = await updateStoreSettings(storeId, data);
     return { ok: true as const, settings };
@@ -112,7 +130,9 @@ export const saveOpeningHoursFn = createServerFn({ method: "POST" })
   });
 
 export const addRestaurantPhotoFn = createServerFn({ method: "POST" })
-  .validator(z.object({ url: z.string().min(1), caption: z.string().nullish() }))
+  .validator(
+    z.object({ url: z.string().min(1), caption: z.string().nullish() }),
+  )
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     const photo = await addRestaurantPhoto(storeId, data);
