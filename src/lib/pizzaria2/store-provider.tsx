@@ -19,6 +19,8 @@ export type Weekday =
 export type StorePayload = {
   /** URL segment of this store — the checkout sends it back to scope the order. */
   slug: string;
+  /** Drives the hero photo and its rotating cravings. */
+  businessType: string;
   storeName: string;
   tagline: string | null;
   description: string | null;

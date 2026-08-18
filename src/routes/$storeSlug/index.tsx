@@ -11,8 +11,7 @@ import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { HERO_BOUNDARY_ID } from "@/lib/pizzaria2/hero-overlap";
 import { cn } from "@/lib/utils";
-import heroPizzaPhoto from "@/assets/fotos de pizza/pizza-hero.jpg";
-import heroPizzaPhotoOven from "@/assets/fotos de pizza/pizza-hero.jpeg";
+import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 
 const title = "Pizzaria — Cardápio online e entrega rápida | velnox.ia";
 const description =
@@ -41,23 +40,19 @@ const careItems = [
   { icon: Truck, label: "Entrega rápida e segura" },
 ];
 
-const heroPhotos = [heroPizzaPhoto, heroPizzaPhotoOven];
 
-const heroCravings = [
-  "queijo derretido?",
-  "massa crocante?",
-  "uma pizza saindo do forno?",
-  "uma borda douradinha?",
-  "uma pizza bem recheada?",
-  "um sabor irresistível?",
-  "comer bem?",
-];
 
 function PizzariaInicio() {
   const goToCardapio = useGoToCardapio();
-  const { storeName: businessName, whatsappHref: buildWhatsappHref } = useStore();
+  const {
+    storeName: businessName,
+    whatsappHref: buildWhatsappHref,
+    businessType,
+  } = useStore();
   const whatsappHref = buildWhatsappHref();
 
+  // Hero comes from the store business type — photo and copy travel together.
+  const { photos: heroPhotos, cravings: heroCravings } = heroFor(businessType);
   const [activePhoto, setActivePhoto] = useState(0);
   const [hasSwitchedPhoto, setHasSwitchedPhoto] = useState(false);
   useEffect(() => {
@@ -182,7 +177,7 @@ function PizzariaInicio() {
                 <img
                   key={photo}
                   src={photo}
-                  alt="Pizza de pepperoni com manjericão fresco"
+                  alt={businessName}
                   className={cn(
                     "absolute inset-0 h-full w-full object-cover",
                     "mask-[linear-gradient(to_top,transparent,black_35%)] [-webkit-mask-image:linear-gradient(to_top,transparent,black_35%)]",

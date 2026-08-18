@@ -85,7 +85,13 @@ export async function getStoreSettings(storeId: string) {
  */
 export async function getPublicStoreSettings(storeId: string) {
   const settings = await getStoreSettings(storeId);
+  const store = await prisma.store.findUniqueOrThrow({
+    where: { id: storeId },
+    select: { businessType: true },
+  });
   return {
+    /** Chooses the hero photo and its rotating cravings on the storefront. */
+    businessType: store.businessType,
     storeName: settings.storeName,
     tagline: settings.tagline,
     description: settings.description,
