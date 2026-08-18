@@ -96,6 +96,7 @@ function PizzariaInicio() {
     careItems,
     markIcon,
     ctaTitle,
+    ctaBlurb,
   } = heroFor(businessType);
   const MarkIcon = CARE_ICONS[markIcon] ?? Pizza;
   const [activePhoto, setActivePhoto] = useState(0);
@@ -307,18 +308,18 @@ function PizzariaInicio() {
         </div>
       </section>
 
+      <section id="promocoes" className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20">
+        <Reveal variant="up" className="mx-auto max-w-[1200px]">
+          <PromoCarousel slides={promotions} />
+        </Reveal>
+      </section>
+
       <section id="cardapio" className="relative scroll-mt-20 overflow-hidden">
         <div className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-tomato/10 blur-3xl" />
         <div className="pointer-events-none absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-olive/10 blur-3xl" />
         <div className="relative mx-auto max-w-[1800px] px-6 py-20 sm:px-10 sm:py-24 xl:px-16">
           <CategorySaboresSection />
         </div>
-      </section>
-
-      <section id="promocoes" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-20">
-        <Reveal variant="up" className="mx-auto max-w-[1200px]">
-          <PromoCarousel slides={promotions} />
-        </Reveal>
       </section>
 
       <section id="restaurante" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24">
@@ -449,19 +450,17 @@ function PizzariaInicio() {
                 {ctaTitle}
               </h2>
               <p className="mt-1.5 text-sm text-[color:var(--on-primary-muted)] sm:text-base">
-                Peça agora pelo WhatsApp e fale diretamente com a gente.
+                {ctaBlurb}
               </p>
             </div>
 
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={goToCardapio}
               className="inline-flex shrink-0 items-center gap-2 rounded-full bg-mozzarella px-6 py-3 text-sm font-semibold text-charcoal shadow-sm transition-transform hover:scale-[1.03] sm:text-base"
             >
-              <WhatsAppIcon className="h-4 w-4 text-tomato" />
-              Pedir pelo WhatsApp →
-            </a>
+              Faça um pedido →
+            </button>
           </div>
         </Reveal>
       </section>

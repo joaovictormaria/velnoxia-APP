@@ -21,7 +21,7 @@ export const categoryBadges: Record<string, string> = {
 export const categoryDescriptions: Record<string, [string, string]> = {
   tradicionais: [
     "Os clássicos que nunca saem de moda.",
-    "Qualidade, sabor e ingredientes selecionados para a pizza perfeita.",
+    "Qualidade, sabor e ingredientes selecionados em cada pedido.",
   ],
   especiais: [
     "Combinações autorais para quem quer sair do óbvio.",
@@ -29,10 +29,10 @@ export const categoryDescriptions: Record<string, [string, string]> = {
   ],
   doces: [
     "Pra fechar o pedido com um toque doce.",
-    "Recheios generosos e cobertura na medida certa, direto do forno.",
+    "Recheios generosos e cobertura na medida certa.",
   ],
   bebidas: [
-    "Pra acompanhar sua pizza geladinha.",
+    "Pra acompanhar seu pedido, bem geladinha.",
     "Sempre bem gelada, na hora que o pedido chega.",
   ],
   acompanhamentos: [
@@ -41,14 +41,11 @@ export const categoryDescriptions: Record<string, [string, string]> = {
   ],
 };
 
-const trustItems: { label: string; renderIcon: () => ReactNode }[] = [
-  {
-    label: "Ingredientes selecionados",
-    renderIcon: () => <Award className="h-5 w-5 animate-badge-shine" />,
-  },
-  {
-    label: "Entrega rápida",
-    renderIcon: () => (
+// Icons stay fixed — the wording is what changes by trade, and each icon
+// carries its own animation, so they are matched to labels by position.
+const trustIcons: (() => ReactNode)[] = [
+    () => <Award className="h-5 w-5 animate-badge-shine" />,
+    () => (
       <span className="relative flex h-5 w-5 items-center justify-center">
         <span className="pointer-events-none absolute -left-1 top-0 flex flex-col gap-0.5">
           <span className="h-1 w-1 rounded-full bg-olive/60 animate-truck-smoke" style={{ animationDelay: "0s" }} />
@@ -57,16 +54,12 @@ const trustItems: { label: string; renderIcon: () => ReactNode }[] = [
         <Truck className="h-5 w-5 animate-truck-drive" />
       </span>
     ),
-  },
-  {
-    label: "Compra segura",
-    renderIcon: () => (
+    () => (
       <span className="relative flex h-5 w-5 items-center justify-center">
         <span className="absolute inset-0 rounded-full bg-olive/40 animate-ping" />
         <ShieldCheck className="relative h-5 w-5" />
       </span>
     ),
-  },
 ];
 
 /**
@@ -82,7 +75,7 @@ export function CategorySaboresSection({
   const { addLine } = useCart();
   const { categories, products, categoryBySlug, productsByCategory } = useMenu();
   const { slug: storeSlug, businessType } = useStore();
-  const { fullMenuTeaser } = heroFor(businessType);
+  const { fullMenuTeaser, trustLabels, browseAllBlurb } = heroFor(businessType);
 
   // The opening tab comes from the data, never a fixed slug: the admin can
   // rename, reorder, deactivate or delete any category, and whichever one the
@@ -166,12 +159,12 @@ export function CategorySaboresSection({
           </Link>
 
           <div className="mt-7 grid grid-cols-3 gap-4">
-            {trustItems.map((item) => (
-              <div key={item.label} className="flex flex-col items-start gap-2.5">
+            {trustLabels.map((label, i) => (
+              <div key={label} className="flex flex-col items-start gap-2.5">
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-olive/10 text-olive">
-                  {item.renderIcon()}
+                  {trustIcons[i]?.()}
                 </span>
-                <span className="text-xs leading-tight text-charcoal/60">{item.label}</span>
+                <span className="text-xs leading-tight text-charcoal/60">{label}</span>
               </div>
             ))}
           </div>
@@ -208,7 +201,7 @@ export function CategorySaboresSection({
 
       <div className="mt-14 flex items-center justify-center gap-2.5 text-base font-medium text-tomato">
         <ChevronDown className="h-5 w-5 animate-bounce" />
-        Explore o cardápio completo e monte sua pizza favorita!
+        {browseAllBlurb}
       </div>
     </>
   );

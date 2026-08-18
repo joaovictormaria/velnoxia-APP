@@ -24,6 +24,11 @@ O identificador é o da URL de origem: `https://images.unsplash.com/photo-<id>`.
 | hamburgueria/x-bacon.jpg | 1594212699903-ec8a3eca50f5 |
 | hamburgueria/batata-frita.jpg | 1573080496219-bb080dd4f877 |
 | hamburgueria/milkshake.jpg | 1572490122747-3968b75cc699 |
+| hamburgueria/x-tudo.jpg | 1571091718767-18b5b1457add |
+| hamburgueria/smash-duplo.jpg | 1586190848861-99aa4a171e90 |
+| hamburgueria/batata-cheddar.jpg | 1585109649139-366815a0d713 |
+| hamburgueria/nuggets.jpg | 1562967914-608f82629710 |
+| hamburgueria/refrigerante-lata.jpg | 1554866585-cd94860890b7 |
 | acai/hero-acai.jpg | QyH-eSLaEr8 (foto de copo de açaí) |
 | japones/hero-sushi.jpg | 1579871494447-9811cf80d66c |
 | japones/combinado.jpg | 1583623025817-d180a2221d0a |

@@ -24,6 +24,9 @@ export type HeroContent = {
   markIcon: string;
   /** Heading of that call-to-action — it names the food, so it is per trade. */
   ctaTitle: string;
+  ctaBlurb: string;
+  trustLabels: [string, string, string];
+  browseAllBlurb: string;
   /** Blurb next to the ingredients photo in the full menu picker. */
   pickerBlurb: string;
   /** Line under "Veja o cardápio completo". */
@@ -49,6 +52,9 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     ],
     markIcon: "Pizza",
     ctaTitle: "Deu vontade de pizza? 🍕",
+    browseAllBlurb: "Explore o cardápio completo e monte sua pizza favorita!",
+    trustLabels: ["Ingredientes selecionados", "Entrega rápida", "Compra segura"],
+    ctaBlurb: "Monte sua pizza aqui mesmo e acompanhe o pedido pelo site.",
     pickerBlurb: "Massa fresca, molho artesanal e muito mais sabor para sua pizza perfeita.",
     fullMenuTeaser: "Mais sabores incríveis esperam por você!",
   },
@@ -70,6 +76,9 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     ],
     markIcon: "Sandwich",
     ctaTitle: "Bateu a fome? 🍔",
+    browseAllBlurb: "Explore o cardápio completo e monte seu lanche favorito!",
+    trustLabels: ["Carne fresca todo dia", "Entrega rápida", "Compra segura"],
+    ctaBlurb: "Monte seu lanche aqui mesmo e acompanhe o pedido pelo site.",
     pickerBlurb: "Pão macio, carne na chapa e ingredientes frescos em cada lanche.",
     fullMenuTeaser: "Tem muito mais lanche esperando por você!",
   },
@@ -91,6 +100,9 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     ],
     markIcon: "GlassWater",
     ctaTitle: "Deu vontade de açaí? 🍧",
+    browseAllBlurb: "Explore o cardápio completo e monte seu açaí do seu jeito!",
+    trustLabels: ["Polpa selecionada", "Entrega rápida", "Compra segura"],
+    ctaBlurb: "Monte seu açaí aqui mesmo e acompanhe o pedido pelo site.",
     pickerBlurb: "Polpa selecionada, batida na hora, com os complementos que você escolher.",
     fullMenuTeaser: "Tem muito mais combinação esperando por você!",
   },
@@ -112,6 +124,9 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
     ],
     markIcon: "Fish",
     ctaTitle: "Deu vontade de sushi? 🍣",
+    browseAllBlurb: "Explore o cardápio completo e monte seu combinado favorito!",
+    trustLabels: ["Peixe fresco do dia", "Entrega rápida", "Compra segura"],
+    ctaBlurb: "Monte seu combinado aqui mesmo e acompanhe o pedido pelo site.",
     pickerBlurb: "Peixe fresco do dia, arroz temperado na medida e montagem na hora.",
     fullMenuTeaser: "Tem muito mais combinado esperando por você!",
   },

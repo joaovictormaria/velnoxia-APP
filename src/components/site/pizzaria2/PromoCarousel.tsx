@@ -89,7 +89,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     onClick={goToCardapio}
                     className="mt-7 inline-flex items-center gap-1.5 rounded-full bg-mozzarella px-6 py-3 text-sm font-semibold text-tomato shadow-sm transition-transform hover:scale-[1.03]"
                   >
-                    Faça um pedido →
+                    Comprar combo →
                   </button>
                 </div>
 

@@ -143,8 +143,8 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         products: [
           { name: "X-Salada", description: "Hambúrguer, queijo, alface, tomate e maionese.", basePrice: 24.9, imageUrl: "/catalogo-inicial/hamburgueria/x-salada.jpg", tag: "Mais pedido" },
           { name: "X-Bacon", description: "Hambúrguer, queijo, bacon crocante e cebola.", basePrice: 29.9, imageUrl: "/catalogo-inicial/hamburgueria/x-bacon.jpg" },
-          { name: "X-Tudo", description: "Dois hambúrgueres, ovo, bacon, queijo e salada.", basePrice: 36.9 },
-          { name: "Smash Duplo", description: "Dois smash burgers, queijo cheddar e picles.", basePrice: 34.9 },
+          { name: "X-Tudo", description: "Dois hambúrgueres, ovo, bacon, queijo e salada.", basePrice: 36.9, imageUrl: "/catalogo-inicial/hamburgueria/x-tudo.jpg" },
+          { name: "Smash Duplo", description: "Dois smash burgers, queijo cheddar e picles.", basePrice: 34.9, imageUrl: "/catalogo-inicial/hamburgueria/smash-duplo.jpg" },
         ],
       },
       {
@@ -157,8 +157,8 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         kind: "SIMPLE",
         products: [
           { name: "Batata Frita", description: "Porção individual, crocante e sequinha.", basePrice: 16.9, imageUrl: "/catalogo-inicial/hamburgueria/batata-frita.jpg" },
-          { name: "Batata com Cheddar e Bacon", description: "Batata coberta com cheddar e bacon.", basePrice: 24.9 },
-          { name: "Nuggets (10 un.)", description: "Acompanha molho da casa.", basePrice: 19.9 },
+          { name: "Batata com Cheddar e Bacon", description: "Batata coberta com cheddar e bacon.", basePrice: 24.9, imageUrl: "/catalogo-inicial/hamburgueria/batata-cheddar.jpg" },
+          { name: "Nuggets (10 un.)", description: "Acompanha molho da casa.", basePrice: 19.9, imageUrl: "/catalogo-inicial/hamburgueria/nuggets.jpg" },
         ],
       },
       {
@@ -167,7 +167,7 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
         icon: "CupSoda",
         kind: "SIMPLE",
         products: [
-          { name: "Refrigerante Lata", description: "Coca-Cola, Guaraná ou Fanta.", basePrice: 6.9 },
+          { name: "Refrigerante Lata", description: "Coca-Cola, Guaraná ou Fanta.", basePrice: 6.9, imageUrl: "/catalogo-inicial/hamburgueria/refrigerante-lata.jpg" },
           { name: "Milkshake 400ml", description: "Chocolate, morango ou ovomaltine.", basePrice: 18.9, imageUrl: "/catalogo-inicial/hamburgueria/milkshake.jpg" },
         ],
       },
