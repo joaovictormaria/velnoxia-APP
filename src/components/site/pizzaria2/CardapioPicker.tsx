@@ -2,11 +2,11 @@ import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Clock, Gift, Search, ShoppingCart } from "lucide-react";
 import { categoryDescriptions } from "./CategorySaboresSection";
-import { ProductCard } from "./ProductCard";
+import { ProductRow } from "./ProductRow";
+import { ProductModal } from "./ProductModal";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { useStore } from "@/lib/pizzaria2/store-provider";
-import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 import {
   formatCurrency,
   sizePrice,
@@ -16,7 +16,6 @@ import {
 } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { cn } from "@/lib/utils";
-import ingredientsPhoto from "@/assets/fotos de pizza/mussarela.jpg";
 
 function productTags(product: Product, category?: Category): string[] {
   const tags: string[] = [];
@@ -42,14 +41,13 @@ export function CardapioPicker({
   onSelectPizza: (slug: string) => void;
 }) {
   const { addLine, itemCount, total } = useCart();
-  const { storeName: businessName, whatsappHref, slug: storeSlug, businessType } = useStore();
-  const { pickerBlurb } = heroFor(businessType);
+  const { storeName: businessName, whatsappHref, slug: storeSlug } = useStore();
   const { categories, products: allProducts, productsByCategory } = useMenu();
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(
     categories[0]?.slug ?? "tradicionais",
   );
   const [query, setQuery] = useState("");
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
 
   const activeCategory = categories.find((c) => c.slug === activeSlug);
 
@@ -57,20 +55,13 @@ export function CardapioPicker({
     const term = query.trim().toLowerCase();
     if (term) {
       return allProducts.filter(
-        (p) => p.name.toLowerCase().includes(term) || p.desc.toLowerCase().includes(term),
+        (p) =>
+          p.name.toLowerCase().includes(term) ||
+          p.desc.toLowerCase().includes(term),
       );
     }
     return productsByCategory(activeSlug);
   }, [query, activeSlug, allProducts, productsByCategory]);
-
-  function toggleFavorite(slug: string) {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(slug)) next.delete(slug);
-      else next.add(slug);
-      return next;
-    });
-  }
 
   return (
     <div className="relative">
@@ -113,7 +104,9 @@ export function CardapioPicker({
       <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato/10 text-tomato">
-            {activeCategory?.icon && <activeCategory.icon className="h-5 w-5" />}
+            {activeCategory?.icon && (
+              <activeCategory.icon className="h-5 w-5" />
+            )}
           </span>
           <div>
             <h2 className="font-display text-2xl font-extrabold text-charcoal sm:text-3xl">
@@ -125,23 +118,6 @@ export function CardapioPicker({
                 : categoryDescriptions[activeSlug]?.[0]}
             </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4 rounded-2xl border border-charcoal/8 bg-tomato/5 p-4 lg:max-w-sm">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato/10 text-tomato">
-            <Gift className="h-5 w-5" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-tomato">Ingredientes selecionados</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-charcoal/60">
-              {pickerBlurb}
-            </p>
-          </div>
-          <img
-            src={ingredientsPhoto}
-            alt=""
-            className="hidden h-16 w-16 shrink-0 rounded-xl object-cover sm:block"
-          />
         </div>
       </div>
 
@@ -165,7 +141,9 @@ export function CardapioPicker({
                     }}
                     className={cn(
                       "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition-colors",
-                      active ? "bg-tomato/10 text-tomato" : "text-charcoal/70 hover:bg-charcoal/5",
+                      active
+                        ? "bg-tomato/10 text-tomato"
+                        : "text-charcoal/70 hover:bg-charcoal/5",
                     )}
                   >
                     {cat.icon && <cat.icon className="h-4 w-4 shrink-0" />}
@@ -188,7 +166,9 @@ export function CardapioPicker({
               <Gift className="h-4 w-4 shrink-0 text-tomato" />
               <div>
                 <p className="text-sm font-bold text-tomato">Ganhe 10% OFF</p>
-                <p className="text-xs text-charcoal/55">No seu primeiro pedido!</p>
+                <p className="text-xs text-charcoal/55">
+                  No seu primeiro pedido!
+                </p>
               </div>
             </div>
             <span className="mt-3 block rounded-full border border-tomato/30 py-2 text-center text-xs font-bold text-tomato">
@@ -204,28 +184,33 @@ export function CardapioPicker({
           >
             <WhatsAppIcon className="h-5 w-5 shrink-0 text-olive" />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-charcoal">Precisa de ajuda?</span>
-              <span className="block text-xs text-charcoal/55">Fale com a gente no WhatsApp</span>
+              <span className="block text-sm font-semibold text-charcoal">
+                Precisa de ajuda?
+              </span>
+              <span className="block text-xs text-charcoal/55">
+                Fale com a gente no WhatsApp
+              </span>
             </span>
-            <span className="text-tomato transition-transform group-hover:translate-x-0.5">→</span>
+            <span className="text-tomato transition-transform group-hover:translate-x-0.5">
+              →
+            </span>
           </a>
         </aside>
 
         {/* Product grid */}
         <div>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {results.map((product) => {
-              const productCategory = categories.find((c) => c.slug === product.categorySlug);
+              const productCategory = categories.find(
+                (c) => c.slug === product.categorySlug,
+              );
               const isPizza = productCategory?.kind === "pizza";
               return (
-                <ProductCard
+                <ProductRow
                   key={product.slug}
                   product={product}
-                  linkToCustomize={isPizza}
-                  onSelect={isPizza ? () => onSelectPizza(product.slug) : undefined}
-                  tags={productTags(product, productCategory)}
-                  favorited={favorites.has(product.slug)}
-                  onToggleFavorite={() => toggleFavorite(product.slug)}
+                  price={sizePrice(product, "media")}
+                  onOpen={() => setOpenSlug(product.slug)}
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
@@ -251,6 +236,44 @@ export function CardapioPicker({
           )}
         </div>
       </div>
+
+      {(() => {
+        // Resolved from the slug rather than held as an object, so the modal
+        // always reads the current product instead of a stale copy.
+        const open = openSlug
+          ? allProducts.find((p) => p.slug === openSlug)
+          : undefined;
+        if (!open) return null;
+        const openCategory = categories.find(
+          (c) => c.slug === open.categorySlug,
+        );
+        const openIsPizza = openCategory?.kind === "pizza";
+        return (
+          <ProductModal
+            product={open}
+            price={sizePrice(open, "media")}
+            tags={productTags(open, openCategory)}
+            linkToCustomize={openIsPizza}
+            onCustomize={
+              openIsPizza ? () => onSelectPizza(open.slug) : undefined
+            }
+            onAdd={() =>
+              addLine({
+                name: open.name,
+                sizeLabel: openIsPizza ? "Média" : undefined,
+                image: open.image,
+                icon: open.icon,
+                unitPrice: sizePrice(open, "media"),
+                extras: [],
+                qty: 1,
+                productSlug: open.slug,
+                sizeKey: openIsPizza ? "media" : undefined,
+              })
+            }
+            onClose={() => setOpenSlug(null)}
+          />
+        );
+      })()}
 
       {/* Floating cart button */}
       {itemCount > 0 && (
