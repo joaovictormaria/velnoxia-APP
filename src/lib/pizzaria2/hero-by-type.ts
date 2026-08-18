@@ -11,6 +11,15 @@
 export type HeroContent = {
   photos: string[];
   cravings: string[];
+  /** Line under the hero heading. */
+  subtitle: string;
+  /**
+   * Selling points shown below the hero. These are claims about how the food
+   * is made, so they cannot be shared between trades — "forno à lenha" on an
+   * açaí shop is not a cosmetic slip, it is a false statement about the
+   * business. Icon names map to lucide components in the storefront.
+   */
+  careItems: { icon: string; label: string }[];
 };
 
 const HERO_BY_TYPE: Record<string, HeroContent> = {
@@ -23,6 +32,13 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       "uma borda douradinha?",
       "um sabor irresistível?",
     ],
+    subtitle: "Escolha seus sabores favoritos e peça agora.",
+    careItems: [
+      { icon: "Leaf", label: "Ingredientes selecionados" },
+      { icon: "Wheat", label: "Massa artesanal (fermentação natural)" },
+      { icon: "Flame", label: "Forno à lenha (sabor único)" },
+      { icon: "Truck", label: "Entrega rápida e segura" },
+    ],
   },
   hamburgueria: {
     photos: ["/catalogo-inicial/hamburgueria/hero-burger.jpg"],
@@ -32,6 +48,13 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       "pão na chapa?",
       "cheddar derretendo?",
       "batata bem sequinha?",
+    ],
+    subtitle: "Monte o seu lanche e peça agora.",
+    careItems: [
+      { icon: "Leaf", label: "Ingredientes frescos todo dia" },
+      { icon: "Flame", label: "Carne na chapa, na hora" },
+      { icon: "Wheat", label: "Pão artesanal" },
+      { icon: "Truck", label: "Entrega rápida e segura" },
     ],
   },
   acai: {
@@ -43,6 +66,13 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       "fruta fresca por cima?",
       "leite condensado a mais?",
     ],
+    subtitle: "Escolha o tamanho, os complementos e peça agora.",
+    careItems: [
+      { icon: "Leaf", label: "Polpa selecionada" },
+      { icon: "Snowflake", label: "Servido sempre gelado" },
+      { icon: "Cherry", label: "Complementos à sua escolha" },
+      { icon: "Truck", label: "Entrega rápida e segura" },
+    ],
   },
   japones: {
     photos: ["/catalogo-inicial/japones/hero-sushi.jpg"],
@@ -52,6 +82,13 @@ const HERO_BY_TYPE: Record<string, HeroContent> = {
       "temaki na hora?",
       "arroz no ponto certo?",
       "um yakisoba quentinho?",
+    ],
+    subtitle: "Escolha seu combinado e peça agora.",
+    careItems: [
+      { icon: "Fish", label: "Peixe fresco do dia" },
+      { icon: "Wheat", label: "Arroz temperado na medida" },
+      { icon: "Leaf", label: "Montado na hora do pedido" },
+      { icon: "Truck", label: "Entrega rápida e segura" },
     ],
   },
 };

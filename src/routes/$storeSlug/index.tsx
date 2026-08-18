@@ -1,6 +1,19 @@
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Camera, Circle, Clock, Flame, Leaf, MapPin, Pizza, Truck, Wheat } from "lucide-react";
+import {
+  Camera,
+  Cherry,
+  Circle,
+  Clock,
+  Fish,
+  Flame,
+  Leaf,
+  MapPin,
+  Pizza,
+  Snowflake,
+  Truck,
+  Wheat,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/site/Reveal";
 import { TypingText } from "@/components/site/TypingText";
@@ -11,34 +24,45 @@ import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { HERO_BOUNDARY_ID } from "@/lib/pizzaria2/hero-overlap";
 import { cn } from "@/lib/utils";
-import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 
-const title = "Pizzaria — Cardápio online e entrega rápida | velnox.ia";
-const description =
-  "Cardápio completo, entrega rápida e pedido online. Pizzas tradicionais, especiais e doces feitas com carinho.";
+import { heroFor } from "@/lib/pizzaria2/hero-by-type";
+import { formatCurrency } from "@/lib/pizzaria2/menu";
+
+/** The trade config names its icons, so they are resolved here. */
+const CARE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  Leaf,
+  Wheat,
+  Flame,
+  Truck,
+  Snowflake,
+  Cherry,
+  Fish,
+};
 
 export const Route = createFileRoute("/$storeSlug/")({
-  head: () => ({
-    meta: [
-      { title },
-      { name: "description", content: description },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-    ],
-  }),
+  // Built from the store's own name, since this title is what shows in the
+  // browser tab and in the link preview when the owner shares the menu.
+  head: ({ params }) => {
+    const name = params.storeSlug
+      .replace(/-[0-9a-z]{4}$/, "")
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+    const title = `${name} — Cardápio online e entrega rápida`;
+    const description = `Cardápio completo de ${name}, com pedido online e entrega rápida.`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+      ],
+    };
+  },
   component: PizzariaInicio,
 });
 
-const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-  "Av. das Palmeiras, 812 - Jardim das Flores",
-)}`;
 
-const careItems = [
-  { icon: Leaf, label: "Ingredientes selecionados" },
-  { icon: Wheat, label: "Massa artesanal (fermentação natural)" },
-  { icon: Flame, label: "Forno à lenha (sabor único)" },
-  { icon: Truck, label: "Entrega rápida e segura" },
-];
 
 
 
@@ -48,11 +72,22 @@ function PizzariaInicio() {
     storeName: businessName,
     whatsappHref: buildWhatsappHref,
     businessType,
+    addressLines,
+    hasAddress,
+    mapsHref,
+    openingHoursSummary,
+    deliveryFee,
+    estimatedDeliveryMinMax,
   } = useStore();
   const whatsappHref = buildWhatsappHref();
 
   // Hero comes from the store business type — photo and copy travel together.
-  const { photos: heroPhotos, cravings: heroCravings } = heroFor(businessType);
+  const {
+    photos: heroPhotos,
+    cravings: heroCravings,
+    subtitle: heroSubtitle,
+    careItems,
+  } = heroFor(businessType);
   const [activePhoto, setActivePhoto] = useState(0);
   const [hasSwitchedPhoto, setHasSwitchedPhoto] = useState(false);
   useEffect(() => {
@@ -79,7 +114,9 @@ function PizzariaInicio() {
       icon: Circle,
       tone: isOpen ? "olive" : "tomato",
       title: "Aberto agora",
-      detail: [isOpen ? "Fecha às 23:30" : "Abre às 18:00"],
+      // First line of the store's own schedule, instead of a fixed time that
+      // contradicts whatever the owner set in the panel.
+      detail: openingHoursSummary.slice(0, 1),
       badge: isOpen ? "Aberto" : "Fechado",
       renderIcon: () => (
         <span className="relative flex h-3 w-3">
@@ -96,8 +133,8 @@ function PizzariaInicio() {
     {
       icon: Truck,
       tone: "tomato",
-      title: "Entrega em até 40 min",
-      detail: ["Taxa a partir de R$ 6,00"],
+      title: `Entrega em até ${estimatedDeliveryMinMax} min`,
+      detail: [`Taxa a partir de ${formatCurrency(deliveryFee)}`],
       renderIcon: () => (
         <span className="relative flex h-5 w-5 items-center justify-center">
           <span className="pointer-events-none absolute -left-1 top-0 flex flex-col gap-0.5">
@@ -123,8 +160,10 @@ function PizzariaInicio() {
       iconClassName: "animate-bounce",
       tone: "tomato",
       title: "Endereço",
-      detail: ["Av. das Palmeiras, 812 —", "Jardim das Flores"],
-      action: { label: "Ver no mapa →", href: mapsHref },
+      detail: addressLines,
+      // No address on file means no map link — better an absent card than one
+      // pointing at a search for nothing.
+      action: mapsHref ? { label: "Ver no mapa →", href: mapsHref } : undefined,
     },
     {
       icon: WhatsAppIcon,
@@ -153,7 +192,7 @@ function PizzariaInicio() {
                 </span>
               </h1>
               <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-mozzarella/75">
-                Escolha seus sabores favoritos e peça agora.
+                {heroSubtitle}
               </p>
               <div className="relative mt-8 inline-flex w-fit">
                 <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-mozzarella/40" />
@@ -322,18 +361,20 @@ function PizzariaInicio() {
                   <div>
                     <p className="font-display text-sm font-bold text-charcoal">Localização</p>
                     <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
-                      Av. das Palmeiras, 812
-                      <br />
-                      Jardim das Flores — São Paulo
+                      {hasAddress
+                        ? addressLines.join(" — ")
+                        : "Endereço ainda não informado."}
                     </p>
-                    <a
-                      href={mapsHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 inline-flex items-center text-sm font-semibold text-tomato hover:underline"
-                    >
-                      Ver no mapa →
-                    </a>
+                    {mapsHref && (
+                      <a
+                        href={mapsHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center text-sm font-semibold text-tomato hover:underline"
+                      >
+                        Ver no mapa →
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -366,7 +407,10 @@ function PizzariaInicio() {
                 className="flex flex-col items-center gap-3 text-center"
               >
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-tomato/10 text-tomato">
-                  <item.icon className="h-5 w-5" />
+                  {(() => {
+                    const Icon = CARE_ICONS[item.icon] ?? Leaf;
+                    return <Icon className="h-5 w-5" />;
+                  })()}
                 </span>
                 <span className="text-xs font-medium text-charcoal/70 sm:text-sm">
                   {item.label}
