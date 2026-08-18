@@ -14,6 +14,8 @@ datasource db {
 enum AdminRole {
   OWNER
   MANAGER
+  /// Entregador. Conta criada pelo dono, nunca por autocadastro.
+  COURIER
 }
 
 enum Weekday {
@@ -155,6 +157,7 @@ model AdminUser {
   email        String    @unique
   passwordHash String
   role         AdminRole @default(OWNER)
+  deliveries   Order[]   @relation("OrderCourier")
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
@@ -406,6 +409,11 @@ model Order {
   /// Segredo do link publico de acompanhamento. Unico e nao adivinhavel: sem
   /// ele, trocar o numero do pedido mostraria o pedido de outra pessoa.
   trackingToken String? @unique
+
+  /// Quem leva. Opcional: o dono pode sair para entrega sem escolher
+  /// ninguem, e o pedido nao pode ficar preso por causa disso.
+  courierId     String?
+  courier       AdminUser? @relation("OrderCourier", fields: [courierId], references: [id], onDelete: SetNull)
 
   type   OrderType     @default(DELIVERY)
   status OrderStatus   @default(RECEIVED)
