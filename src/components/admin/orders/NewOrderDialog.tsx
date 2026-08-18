@@ -154,13 +154,21 @@ export function NewOrderDialog() {
                         </p>
                       )}
                       {item.extras.map((e) => (
-                        <p key={e.id} className="text-xs text-neutral-500">
-                          + {e.nameSnapshot}
+                        <p
+                          key={e.id}
+                          className="flex justify-between gap-2 text-xs text-neutral-500"
+                        >
+                          <span>+ {e.nameSnapshot}</span>
+                          <span>{currency.format(e.priceSnapshot)}</span>
                         </p>
                       ))}
                     </div>
                     <span className="shrink-0 text-sm text-neutral-700">
-                      {currency.format(item.unitPrice * item.quantity)}
+                      {currency.format(
+                        (item.unitPrice +
+                          item.extras.reduce((s, e) => s + e.priceSnapshot, 0)) *
+                          item.quantity,
+                      )}
                     </span>
                   </li>
                 ))}
