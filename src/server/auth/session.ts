@@ -27,7 +27,7 @@ export type CurrentAdmin = {
   id: string;
   name: string;
   email: string;
-  role: "OWNER" | "MANAGER";
+  role: "OWNER" | "MANAGER" | "COURIER";
   /** Tenant scope. Every admin query must be filtered by this. */
   storeId: string;
   store: {
