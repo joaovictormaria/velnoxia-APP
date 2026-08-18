@@ -328,7 +328,7 @@ export async function transitionOrderStatus(
   // not be found, not be moved.
   const order = await prisma.order.findFirst({
     where: { id: orderId, storeId },
-    select: { status: true, type: true },
+    select: { status: true, type: true, courierId: true },
   });
   if (!order) return { ok: false, error: "Pedido não encontrado." };
   if (order.status === status) return { ok: true };
@@ -343,6 +343,15 @@ export async function transitionOrderStatus(
   if (status === "OUT_FOR_DELIVERY" && order.type === "PICKUP") {
     return { ok: false, error: "Pedidos para retirada não saem para entrega." };
   }
+  /**
+   * Entrega sem entregador nao sai. Nao e so a tela que exige: qualquer
+   * caminho ate aqui — o botao do quadro, a tela do pedido — passa por esta
+   * checagem, entao um pedido nunca fica "na rua" sem alguem responsavel.
+   * Quem despacha usa dispatchOrder, que escolhe o entregador junto.
+   */
+  if (status === "OUT_FOR_DELIVERY" && order.type === "DELIVERY" && !order.courierId) {
+    return { ok: false, error: "Escolha quem vai levar antes de liberar a saída." };
+  }
 
   await prisma.$transaction([
     prisma.order.update({
@@ -351,6 +360,9 @@ export async function transitionOrderStatus(
         status,
         // Completing an order settles the payment for cash/on-delivery flows.
         ...(status === "COMPLETED" ? { paymentStatus: "PAID" as const } : {}),
+        // Sair do preparo encerra a espera de qualquer jeito: o pedido saiu,
+        // foi cancelado ou virou retirada, e nenhum deles ainda aguarda alguem.
+        awaitingCourierSince: null,
       },
     }),
     prisma.orderStatusHistory.create({
@@ -364,5 +376,92 @@ export async function transitionOrderStatus(
     }),
   ]);
 
+  return { ok: true };
+}
+
+/**
+ * Escolhe quem leva e libera a saída no mesmo passo.
+ *
+ * Os dois juntos de propósito: um pedido com entregador escolhido mas ainda no
+ * preparo, ou na rua sem ninguém, são estados que ninguém pediu e que a tela
+ * teria de explicar. Aqui a escolha é o que faz o pedido sair.
+ */
+export async function dispatchOrder(
+  storeId: string,
+  orderId: string,
+  courierId: string,
+  author: { authorType: StatusAuthorType; authorName?: string },
+): Promise<{ ok: true; courierName: string } | { ok: false; error: string }> {
+  // O entregador tem de ser desta loja: um id de outra lanchonete simplesmente
+  // não é encontrado, e uma conta desativada não recebe entrega nova.
+  const courier = await prisma.adminUser.findFirst({
+    where: { id: courierId, storeId, role: "COURIER", isActive: true },
+    select: { id: true, name: true },
+  });
+  if (!courier) return { ok: false, error: "Entregador não encontrado." };
+
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, storeId },
+    select: { status: true, type: true },
+  });
+  if (!order) return { ok: false, error: "Pedido não encontrado." };
+  if (order.type !== "DELIVERY") {
+    return { ok: false, error: "Este pedido é para retirada no balcão." };
+  }
+  if (order.status !== "PREPARING") {
+    return { ok: false, error: "Só um pedido em preparo pode sair para entrega." };
+  }
+
+  await prisma.$transaction([
+    prisma.order.update({
+      where: { id: orderId },
+      data: {
+        courierId: courier.id,
+        awaitingCourierSince: null,
+        status: "OUT_FOR_DELIVERY",
+      },
+    }),
+    prisma.orderStatusHistory.create({
+      data: {
+        orderId,
+        status: "OUT_FOR_DELIVERY",
+        authorType: author.authorType,
+        authorName: author.authorName ?? null,
+        note: `Entrega com ${courier.name}`,
+      },
+    }),
+  ]);
+
+  return { ok: true, courierName: courier.name };
+}
+
+/**
+ * Põe o pedido na lista de espera, ou o tira dela.
+ *
+ * A comida ficou pronta e não há quem leve. O status continua "em preparo" —
+ * mentir dizendo que saiu quebraria o acompanhamento do cliente — mas a marca
+ * de espera tira o pedido do meio dos que ainda estão no forno.
+ */
+export async function setOrderAwaitingCourier(
+  storeId: string,
+  orderId: string,
+  awaiting: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, storeId },
+    select: { status: true, type: true },
+  });
+  if (!order) return { ok: false, error: "Pedido não encontrado." };
+  if (order.type !== "DELIVERY") {
+    return { ok: false, error: "Só pedido de entrega espera por entregador." };
+  }
+  if (order.status !== "PREPARING") {
+    return { ok: false, error: "Só um pedido em preparo pode aguardar entregador." };
+  }
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { awaitingCourierSince: awaiting ? new Date() : null },
+  });
   return { ok: true };
 }

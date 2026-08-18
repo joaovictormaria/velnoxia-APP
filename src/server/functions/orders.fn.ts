@@ -9,7 +9,11 @@ import {
   listPendingOrderIds,
   updateOrderNotes,
 } from "../repositories/order-repository";
-import { transitionOrderStatus } from "../services/order-service";
+import {
+  dispatchOrder,
+  setOrderAwaitingCourier,
+  transitionOrderStatus,
+} from "../services/order-service";
 
 const ORDER_STATUS = z.enum([
   "RECEIVED",
@@ -23,11 +27,11 @@ export const listKanbanOrdersFn = createServerFn({ method: "GET" })
   .validator(z.object({ date: z.string().optional(), search: z.string().optional() }).optional())
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    const [columns, metrics] = await Promise.all([
+    const [board, metrics] = await Promise.all([
       listKanbanOrders(storeId, data ?? {}),
       getKanbanMetrics(storeId, data?.date),
     ]);
-    return { columns, metrics };
+    return { ...board, metrics };
   });
 
 export const getOrderFn = createServerFn({ method: "GET" })
@@ -81,4 +85,27 @@ export const markOrderNotificationsReadFn = createServerFn({ method: "POST" })
       data: { isRead: true },
     });
     return { ok: true as const };
+  });
+
+/**
+ * Escolhe o entregador e libera a saída. É a única porta para "saiu para
+ * entrega" num pedido de entrega — o botão simples do quadro é recusado sem
+ * entregador, e é aqui que a escolha acontece.
+ */
+export const dispatchOrderFn = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string(), courierId: z.string() }))
+  .handler(async ({ data }) => {
+    const admin = await requireAdminSession();
+    return dispatchOrder(admin.storeId, data.id, data.courierId, {
+      authorType: "ADMIN",
+      authorName: admin.name,
+    });
+  });
+
+/** Marca (ou desmarca) que o pedido está pronto esperando quem o leve. */
+export const setOrderAwaitingCourierFn = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string(), awaiting: z.boolean() }))
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+    return setOrderAwaitingCourier(storeId, data.id, data.awaiting);
   });

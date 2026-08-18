@@ -86,6 +86,8 @@ enum StatusAuthorType {
   ADMIN
   SYSTEM
   CUSTOMER
+  /// O entregador marcando a propria entrega como concluida.
+  COURIER
 }
 
 enum ReviewChannel {
@@ -159,6 +161,8 @@ model AdminUser {
   passwordHash String
   role         AdminRole @default(OWNER)
   deliveries   Order[]   @relation("OrderCourier")
+  /// Onde ele está agora — só a última posição, e só enquanto tem entrega.
+  location     CourierLocation?
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
@@ -416,6 +420,11 @@ model Order {
   courierId     String?
   courier       AdminUser? @relation("OrderCourier", fields: [courierId], references: [id], onDelete: SetNull)
 
+  /// Marcado quando a comida ficou pronta e nao havia entregador para levar.
+  /// E o que separa "ainda no forno" de "parado esperando alguem": sem isso a
+  /// lista de espera seria indistinguivel da coluna de preparo.
+  awaitingCourierSince DateTime?
+
   type   OrderType     @default(DELIVERY)
   status OrderStatus   @default(RECEIVED)
   source OrderSource   @default(SITE)
@@ -454,6 +463,8 @@ model Order {
 
   @@unique([storeId, number])
   @@index([storeId, status, createdAt])
+  /// A tela do entregador so pergunta pelas entregas dele.
+  @@index([courierId, status])
   @@index([storeId, createdAt])
   @@index([customerId])
 }
@@ -586,6 +597,25 @@ model PostLike {
 
   @@unique([postId, visitorId])
   @@index([postId])
+}
+
+/**
+ * Última posição conhecida do entregador, para o cliente saber a que distância
+ * o pedido está.
+ *
+ * Uma linha por entregador, sobrescrita a cada envio: não existe histórico de
+ * trajeto. Guardar o caminho de um trabalhador seria dado sensível sem nenhuma
+ * pergunta que ele responda — o cliente só quer saber a distância de agora. A
+ * linha é apagada quando a última entrega dele termina.
+ */
+model CourierLocation {
+  courierId String    @id
+  courier   AdminUser @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  latitude  Float
+  longitude Float
+  /// Raio de erro em metros que o aparelho reportou.
+  accuracy  Float?
+  updatedAt DateTime  @updatedAt
 }
 
 /// Convite para um entregador criar a própria conta. O dono gera, entrega o

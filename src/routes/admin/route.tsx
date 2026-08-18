@@ -13,6 +13,10 @@ export const Route = createFileRoute("/admin")({
     if (!admin) {
       throw redirect({ to: "/admin/login", search: { redirect: location.pathname } });
     }
+    // O entregador tem conta válida, e é justamente por isso que ele chegaria
+    // até aqui. As funções do painel já o recusam; mandá-lo para a tela dele
+    // evita um painel inteiro de erros.
+    if (admin.role === "COURIER") throw redirect({ to: "/entregador" });
     return { admin };
   },
   component: AdminLayout,

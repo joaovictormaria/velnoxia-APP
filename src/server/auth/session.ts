@@ -88,11 +88,39 @@ export class StoreInactiveError extends Error {
   }
 }
 
-export async function requireAdminSession(): Promise<CurrentAdmin> {
+/** Papel sem acesso ao painel: existe uma conta, mas nao e dela que o painel e. */
+export class WrongRoleError extends Error {
+  constructor(public role: CurrentAdmin["role"]) {
+    super("WRONG_ROLE");
+    this.name = "WrongRoleError";
+  }
+}
+
+/** Checagens comuns a qualquer sessao: existe, e a loja pode ser usada. */
+async function requireUsableSession(): Promise<CurrentAdmin> {
   const admin = await getCurrentAdmin();
   if (!admin) throw new Error("UNAUTHORIZED");
   if (admin.store.status === "SUSPENDED") throw new StoreInactiveError("SUSPENDED");
   if (admin.store.trialExpired) throw new StoreInactiveError("TRIAL_EXPIRED");
+  return admin;
+}
+
+/**
+ * Sessao do painel. Um entregador tem conta na mesma tabela e cookie do mesmo
+ * formato, entao sem esta recusa ele chamaria qualquer funcao do dono — ver
+ * faturamento, mexer no cardapio — so por estar logado. O papel dele tem sua
+ * propria porta em requireCourierSession.
+ */
+export async function requireAdminSession(): Promise<CurrentAdmin> {
+  const admin = await requireUsableSession();
+  if (admin.role === "COURIER") throw new WrongRoleError(admin.role);
+  return admin;
+}
+
+/** Sessao da tela de entregas: so o entregador, e so os pedidos dele. */
+export async function requireCourierSession(): Promise<CurrentAdmin> {
+  const admin = await requireUsableSession();
+  if (admin.role !== "COURIER") throw new WrongRoleError(admin.role);
   return admin;
 }
 

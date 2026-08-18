@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BarChart3,
+  Bike,
   Check,
   ClipboardList,
   Cog,
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { to: "/admin/cupons", label: "Descontos / Cupons", icon: Percent },
   { to: "/admin/avaliacoes", label: "Avaliações", icon: Star },
   { to: "/admin/clientes", label: "Clientes", icon: Users },
+  { to: "/admin/entregadores", label: "Entregadores", icon: Bike },
   { to: "/admin/relatorios", label: "Relatórios - Visão Geral", icon: FileBarChart },
   { to: "/admin/relatorios/produtos", label: "Relatórios - Produtos", icon: BarChart3 },
   { to: "/admin/configuracoes", label: "Configurações", icon: Cog },

@@ -22,6 +22,7 @@ import {
   updateOrderNotesFn,
   updateOrderStatusFn,
 } from "@/server/functions/orders.fn";
+import { DispatchDialog } from "@/components/admin/orders/DispatchDialog";
 
 export const Route = createFileRoute("/admin/pedidos/$orderId")({
   component: OrderDetailPage,
@@ -71,6 +72,7 @@ function OrderDetailPage() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [internalNote, setInternalNote] = useState<string | null>(null);
+  const [dispatching, setDispatching] = useState(false);
 
   const { data: order, isPending } = useQuery({
     queryKey: ["order", orderId],
@@ -114,10 +116,14 @@ function OrderDetailPage() {
       : order.status === "PREPARING"
         ? order.type === "PICKUP"
           ? { status: "COMPLETED" as OrderStatus, label: "Finalizar pedido" }
-          : { status: "OUT_FOR_DELIVERY" as OrderStatus, label: "Saiu para entrega" }
+          : null
         : order.status === "OUT_FOR_DELIVERY"
           ? { status: "COMPLETED" as OrderStatus, label: "Marcar como entregue" }
           : null;
+
+  // A saída para entrega não é um clique a mais na fila: é escolher quem leva.
+  // Sem entregador o servidor recusa, então o botão abre a escolha.
+  const podeDespachar = order.status === "PREPARING" && order.type === "DELIVERY";
 
   return (
     <div className="space-y-6">
@@ -182,14 +188,21 @@ function OrderDetailPage() {
           )}
         </div>
 
-        {next && (
+        {(next || podeDespachar) && (
           <button
             type="button"
             disabled={changeStatus.isPending}
-            onClick={() => changeStatus.mutate(next.status)}
+            onClick={() => {
+              if (podeDespachar) setDispatching(true);
+              else if (next) changeStatus.mutate(next.status);
+            }}
             className="ml-auto rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
           >
-            {next.label}
+            {podeDespachar
+              ? order.awaitingCourierSince
+                ? "Despachar agora"
+                : "Escolher entregador"
+              : next?.label}
           </button>
         )}
       </section>
@@ -231,6 +244,18 @@ function OrderDetailPage() {
                 <MapPin className="size-4" />
                 Ver no mapa
               </a>
+
+              {order.courier ? (
+                <p className="mt-3 flex items-center gap-2 border-t border-neutral-100 pt-3 text-sm text-neutral-800">
+                  <Bike className="size-4 text-blue-600" />
+                  Levando: <strong>{order.courier.name}</strong>
+                </p>
+              ) : order.awaitingCourierSince ? (
+                <p className="mt-3 flex items-center gap-2 border-t border-neutral-100 pt-3 text-sm font-medium text-orange-700">
+                  <Clock className="size-4" />
+                  Pronto, aguardando entregador
+                </p>
+              ) : null}
             </Card>
           ) : (
             <Card title="Retirada no balcão" icon={ShoppingBag}>
@@ -414,6 +439,17 @@ function OrderDetailPage() {
           )}
         </Card>
       </div>
+
+      {dispatching && (
+        <DispatchDialog
+          order={{
+            id: order.id,
+            number: order.number,
+            customerName: order.customerName,
+          }}
+          onClose={() => setDispatching(false)}
+        />
+      )}
     </div>
   );
 }

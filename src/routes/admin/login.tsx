@@ -33,6 +33,12 @@ function LoginPage() {
     }
 
     await router.invalidate();
+    // O mesmo formulário serve dono e entregador: o papel decide onde cada um
+    // cai, senão o motoboy aterrissaria num painel que não é dele.
+    if (result.admin.role === "COURIER") {
+      router.navigate({ to: "/entregador" });
+      return;
+    }
     router.navigate({ to: search.redirect ?? "/admin" });
   }
 
@@ -99,6 +105,13 @@ function LoginPage() {
             className="flex w-full items-center justify-center rounded-md border border-[#E11D2E] px-4 py-2 text-sm font-semibold text-[#E11D2E] transition-colors hover:bg-[#E11D2E]/5"
           >
             Criar conta da minha lanchonete
+          </Link>
+
+          <Link
+            to="/entregador/entrar"
+            className="block text-center text-sm text-neutral-500 hover:text-neutral-800"
+          >
+            Sou entregador e tenho um código
           </Link>
 
           {import.meta.env.DEV && (

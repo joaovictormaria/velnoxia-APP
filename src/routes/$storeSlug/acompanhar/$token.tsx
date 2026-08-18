@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check, Clock, CookingPot, Bike, PackageCheck, XCircle } from "lucide-react";
 import { trackOrderFn } from "@/server/functions/order-tracking.fn";
+import { DistanciaDoEntregador } from "@/components/site/pizzaria2/DistanciaDoEntregador";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { cn } from "@/lib/utils";
 
@@ -120,6 +121,8 @@ function TrackingPage() {
           })}
         </ol>
       )}
+
+      {order.status === "OUT_FOR_DELIVERY" && <DistanciaDoEntregador token={token} />}
 
       <div className="mt-8 rounded-2xl border border-charcoal/10 p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-charcoal/45">

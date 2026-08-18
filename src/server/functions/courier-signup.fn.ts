@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db/client";
 import { hashPassword } from "../auth/password";
 import { startSessionFor } from "../auth/session";
-import { hashInviteCode } from "./courier-invites.fn";
+import { hashInviteCode } from "../auth/invite-code";
 
 /**
  * Redeems an invite: the courier turns a code into their own account.

@@ -1,9 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Bike, CalendarDays, ChefHat, CircleCheck, Search, ShoppingBag } from "lucide-react";
+import {
+  Bike,
+  CalendarDays,
+  ChefHat,
+  CircleCheck,
+  Clock,
+  Search,
+  ShoppingBag,
+} from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
 import { KanbanBoard, type KanbanOrder } from "@/components/admin/orders/KanbanBoard";
+import {
+  DispatchDialog,
+  type DispatchTarget,
+} from "@/components/admin/orders/DispatchDialog";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
 import { listKanbanOrdersFn, updateOrderStatusFn } from "@/server/functions/orders.fn";
@@ -26,6 +38,9 @@ function KanbanPage() {
   const [date, setDate] = useState(todayISO());
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Pedido cuja saída está sendo decidida — a escolha do entregador é um passo
+  // próprio, não um clique que já muda o status.
+  const [dispatching, setDispatching] = useState<DispatchTarget | null>(null);
 
   const { data, isPending } = useQuery({
     queryKey: ["orders", "kanban", date, search],
@@ -52,6 +67,7 @@ function KanbanPage() {
   }
 
   const metrics = data?.metrics;
+  const awaiting = data?.awaiting ?? [];
 
   return (
     <div className="space-y-6">
@@ -94,10 +110,24 @@ function KanbanPage() {
         </p>
       )}
 
+      {awaiting.length > 0 && (
+        <WaitingList orders={awaiting} onPick={setDispatching} />
+      )}
+
       {isPending && !data ? (
         <p className="text-sm text-neutral-500">Carregando...</p>
       ) : (
-        <KanbanBoard columns={data?.columns ?? []} onAdvance={handleAdvance} />
+        <KanbanBoard
+          columns={data?.columns ?? []}
+          onAdvance={handleAdvance}
+          onDispatch={(order) =>
+            setDispatching({
+              id: order.id,
+              number: order.number,
+              customerName: order.customerName,
+            })
+          }
+        />
       )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -132,7 +162,79 @@ function KanbanPage() {
       </div>
 
       <NewOrderDialog />
+
+      {dispatching && (
+        <DispatchDialog order={dispatching} onClose={() => setDispatching(null)} />
+      )}
     </div>
+  );
+}
+
+/**
+ * Pedidos prontos parados por falta de quem leve.
+ *
+ * Fica acima do quadro, e não dentro da coluna de preparo, porque é a única
+ * fila em que o relógio corre contra a comida sem ninguém agindo: misturada
+ * aos pedidos que ainda estão no forno, ela some.
+ */
+function WaitingList({
+  orders,
+  onPick,
+}: {
+  orders: {
+    id: string;
+    number: number;
+    customerName: string;
+    total: number;
+    awaitingCourierSince: string | Date | null;
+    deliveryNeighborhood: string | null;
+  }[];
+  onPick: (order: DispatchTarget) => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-orange-200 bg-orange-50 p-5">
+      <h2 className="flex items-center gap-2 text-sm font-bold text-orange-800">
+        <Clock className="size-4" />
+        Aguardando entregador ({orders.length})
+      </h2>
+      <p className="mt-1 text-xs text-orange-700">
+        Prontos para sair assim que alguém puder levar.
+      </p>
+
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {orders.map((order) => {
+          const desde = order.awaitingCourierSince
+            ? Math.round((Date.now() - new Date(order.awaitingCourierSince).getTime()) / 60_000)
+            : 0;
+          return (
+            <li key={order.id}>
+              <button
+                type="button"
+                onClick={() =>
+                  onPick({
+                    id: order.id,
+                    number: order.number,
+                    customerName: order.customerName,
+                  })
+                }
+                className="flex items-center gap-3 rounded-xl border border-orange-300 bg-white px-4 py-2.5 text-left transition-colors hover:border-orange-500"
+              >
+                <span>
+                  <span className="block text-sm font-bold text-neutral-900">
+                    #{order.number} - {order.customerName}
+                  </span>
+                  <span className="block text-xs text-neutral-500">
+                    {order.deliveryNeighborhood ? order.deliveryNeighborhood + " · " : ""}
+                    esperando há {desde} min
+                  </span>
+                </span>
+                <Bike className="size-4 shrink-0 text-orange-600" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

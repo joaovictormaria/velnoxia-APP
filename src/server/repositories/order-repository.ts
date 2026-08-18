@@ -66,6 +66,9 @@ export async function listKanbanOrders(
             // The card shows the discount, so it needs to know which coupon was
             // used and how much it took off.
             coupon: { select: { code: true } },
+            // Depois de despachado o cartão mostra quem levou, senão o dono
+            // teria de abrir o pedido só para lembrar a quem entregou.
+            courier: { select: { name: true } },
           },
         }),
         prisma.order.count({ where: { ...where, status } }),
@@ -74,7 +77,25 @@ export async function listKanbanOrders(
     }),
   );
 
-  return columns;
+  /**
+   * Pedidos prontos parados por falta de entregador. Vêm fora das colunas e
+   * inteiros, sem a paginação de 8: é uma fila que precisa ser zerada, e um
+   * pedido escondido atrás de um "+ 3 pedidos" é justamente o que esfria.
+   */
+  const awaiting = await prisma.order.findMany({
+    where: { ...where, status: "PREPARING", awaitingCourierSince: { not: null } },
+    orderBy: { awaitingCourierSince: "asc" },
+    select: {
+      id: true,
+      number: true,
+      customerName: true,
+      total: true,
+      awaitingCourierSince: true,
+      deliveryNeighborhood: true,
+    },
+  });
+
+  return { columns, awaiting };
 }
 
 export function getOrderById(storeId: string, id: string) {
@@ -84,6 +105,7 @@ export function getOrderById(storeId: string, id: string) {
       items: { include: { extras: true, product: { select: { imageUrl: true } } } },
       statusHistory: { orderBy: { createdAt: "asc" } },
       coupon: { select: { code: true } },
+      courier: { select: { id: true, name: true } },
       customer: { select: { id: true, createdAt: true, _count: { select: { orders: true } } } },
     },
   });

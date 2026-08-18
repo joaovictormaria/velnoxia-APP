@@ -3,6 +3,7 @@ import {
   Bike,
   ChefHat,
   CircleCheck,
+  Clock,
   ShoppingBag,
   type LucideIcon,
 } from "lucide-react";
@@ -68,6 +69,9 @@ export type KanbanOrder = {
   }[];
   discount: number;
   coupon: { code: string } | null;
+  /** Preenchido quando o pedido está pronto e sem quem o leve. */
+  awaitingCourierSince: string | Date | null;
+  courier: { name: string } | null;
 };
 
 export type KanbanColumnData = {
@@ -79,9 +83,12 @@ export type KanbanColumnData = {
 export function KanbanBoard({
   columns,
   onAdvance,
+  onDispatch,
 }: {
   columns: KanbanColumnData[];
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
+  /** Entrega não avança sozinha: passa pela escolha de quem leva. */
+  onDispatch: (order: KanbanOrder) => void;
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -116,6 +123,7 @@ export function KanbanBoard({
                   badge={col.badge}
                   status={col.status}
                   onAdvance={onAdvance}
+                  onDispatch={onDispatch}
                 />
               ))}
 
@@ -145,17 +153,24 @@ function OrderCard({
   badge,
   status,
   onAdvance,
+  onDispatch,
 }: {
   order: KanbanOrder;
   badge: string;
   status: OrderStatus;
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
+  onDispatch: (order: KanbanOrder) => void;
 }) {
   // Pickup orders skip the delivery step entirely.
   const next =
     status === "PREPARING" && order.type === "PICKUP"
       ? { status: "COMPLETED" as OrderStatus, label: "Finalizar" }
       : NEXT_STATUS[status];
+
+  // Sair para entrega é escolher quem leva: o botão abre a escolha em vez de
+  // mudar o status, que o servidor recusaria sem entregador.
+  const precisaEscolherEntregador = status === "PREPARING" && order.type === "DELIVERY";
+  const esperando = Boolean(order.awaitingCourierSince);
 
   return (
     <Link
@@ -190,9 +205,21 @@ function OrderCard({
               {currency.format(order.discount)}
             </span>
           )}
+          {esperando && (
+            <span className="flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-semibold text-orange-700">
+              <Clock className="size-3" />
+              Aguardando entregador
+            </span>
+          )}
+          {order.courier && (
+            <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+              <Bike className="size-3" />
+              {order.courier.name}
+            </span>
+          )}
         </div>
 
-        {next && (
+        {(next || precisaEscolherEntregador) && (
           <button
             type="button"
             onClick={(e) => {
@@ -200,11 +227,20 @@ function OrderCard({
               // handler do Link, mas nao o navegador de seguir o href.
               e.preventDefault();
               e.stopPropagation();
-              onAdvance(order, next.status);
+              if (precisaEscolherEntregador) onDispatch(order);
+              else if (next) onAdvance(order, next.status);
             }}
-            className="mt-2 w-full rounded-lg border border-neutral-200 py-1.5 text-xs font-medium text-neutral-700 transition-colors hover:border-[#E11D2E] hover:text-[#E11D2E]"
+            className={`mt-2 w-full rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+              esperando
+                ? "border-orange-300 bg-orange-50 text-orange-700 hover:border-orange-500"
+                : "border-neutral-200 text-neutral-700 hover:border-[#E11D2E] hover:text-[#E11D2E]"
+            }`}
           >
-            {next.label}
+            {precisaEscolherEntregador
+              ? esperando
+                ? "Despachar agora"
+                : "Escolher entregador"
+              : next?.label}
           </button>
         )}
       </article>

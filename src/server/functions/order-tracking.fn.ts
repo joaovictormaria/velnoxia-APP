@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { prisma } from "../db/client";
+import { distanciaDoEntregador } from "../services/delivery-tracking-service";
 
 /** How long the link keeps answering after the order is finished, so whoever
  *  opens it right as the food arrives still sees the last state instead of a
@@ -84,3 +85,21 @@ export const trackOrderFn = createServerFn({ method: "GET" })
       },
     };
   });
+
+/**
+ * A que distância o entregador está do cliente.
+ *
+ * Público, autorizado pelo token do pedido — quem tem o link é quem fez a
+ * compra. A regra e a conta ficam na service; aqui é só a porta.
+ */
+export const getCourierDistanceFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      token: z.string().trim().min(10).max(64),
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+    }),
+  )
+  .handler(({ data }) =>
+    distanciaDoEntregador(data.token, { latitude: data.latitude, longitude: data.longitude }),
+  );

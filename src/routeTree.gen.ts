@@ -14,6 +14,7 @@ import { Route as StoreSlugRouteRouteImport } from './routes/$storeSlug/route'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as CriarSiteRouteImport } from './routes/criar-site'
+import { Route as EntregadorRouteRouteImport } from './routes/entregador/route'
 import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as StoreSlugIndexRouteImport } from './routes/$storeSlug/index'
 import { Route as StoreSlugCarrinhoRouteImport } from './routes/$storeSlug/carrinho'
@@ -22,6 +23,8 @@ import { Route as AdminCadastroRouteImport } from './routes/admin/cadastro'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
+import { Route as EntregadorIndexRouteImport } from './routes/entregador/index'
+import { Route as EntregadorEntrarRouteImport } from './routes/entregador/entrar'
 import { Route as StoreSlugAcompanharTokenRouteImport } from './routes/$storeSlug/acompanhar/$token'
 import { Route as StoreSlugProdutoSlugRouteImport } from './routes/$storeSlug/produto/$slug'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
@@ -33,6 +36,7 @@ import { Route as AdminCardapioNovoRouteImport } from './routes/admin/cardapio/n
 import { Route as AdminClientesIndexRouteImport } from './routes/admin/clientes/index'
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin/configuracoes/index'
 import { Route as AdminCuponsIndexRouteImport } from './routes/admin/cupons/index'
+import { Route as AdminEntregadoresIndexRouteImport } from './routes/admin/entregadores/index'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
 import { Route as AdminPedidosOrderIdRouteImport } from './routes/admin/pedidos/$orderId'
 import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoes/index'
@@ -62,6 +66,11 @@ const AnaliseRoute = AnaliseRouteImport.update({
 const CriarSiteRoute = CriarSiteRouteImport.update({
   id: '/criar-site',
   path: '/criar-site',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EntregadorRouteRoute = EntregadorRouteRouteImport.update({
+  id: '/entregador',
+  path: '/entregador',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PreviewRoute = PreviewRouteImport.update({
@@ -103,6 +112,16 @@ const ApiUploadRoute = ApiUploadRouteImport.update({
   id: '/api/upload',
   path: '/api/upload',
   getParentRoute: () => rootRouteImport,
+} as any)
+const EntregadorIndexRoute = EntregadorIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EntregadorRouteRoute,
+} as any)
+const EntregadorEntrarRoute = EntregadorEntrarRouteImport.update({
+  id: '/entrar',
+  path: '/entrar',
+  getParentRoute: () => EntregadorRouteRoute,
 } as any)
 const StoreSlugAcompanharTokenRoute =
   StoreSlugAcompanharTokenRouteImport.update({
@@ -160,6 +179,11 @@ const AdminCuponsIndexRoute = AdminCuponsIndexRouteImport.update({
   path: '/cupons/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminEntregadoresIndexRoute = AdminEntregadoresIndexRouteImport.update({
+  id: '/entregadores/',
+  path: '/entregadores/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -190,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$storeSlug': typeof StoreSlugRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
+  '/entregador': typeof EntregadorRouteRouteWithChildren
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
@@ -198,8 +223,10 @@ export interface FileRoutesByFullPath {
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/api/upload': typeof ApiUploadRoute
+  '/entregador/entrar': typeof EntregadorEntrarRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/entregador/': typeof EntregadorIndexRoute
   '/$storeSlug/acompanhar/$token': typeof StoreSlugAcompanharTokenRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
@@ -213,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons/': typeof AdminCuponsIndexRoute
+  '/admin/entregadores/': typeof AdminEntregadoresIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
@@ -227,8 +255,10 @@ export interface FileRoutesByTo {
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/api/upload': typeof ApiUploadRoute
+  '/entregador/entrar': typeof EntregadorEntrarRoute
   '/$storeSlug': typeof StoreSlugIndexRoute
   '/admin': typeof AdminIndexRoute
+  '/entregador': typeof EntregadorIndexRoute
   '/$storeSlug/acompanhar/$token': typeof StoreSlugAcompanharTokenRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
@@ -242,6 +272,7 @@ export interface FileRoutesByTo {
   '/admin/clientes': typeof AdminClientesIndexRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons': typeof AdminCuponsIndexRoute
+  '/admin/entregadores': typeof AdminEntregadoresIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/promocoes': typeof AdminPromocoesIndexRoute
   '/admin/relatorios': typeof AdminRelatoriosIndexRoute
@@ -251,6 +282,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$storeSlug': typeof StoreSlugRouteRouteWithChildren
   '/admin': typeof AdminRouteRouteWithChildren
+  '/entregador': typeof EntregadorRouteRouteWithChildren
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
@@ -259,8 +291,10 @@ export interface FileRoutesById {
   '/admin/login': typeof AdminLoginRoute
   '/api/health': typeof ApiHealthRoute
   '/api/upload': typeof ApiUploadRoute
+  '/entregador/entrar': typeof EntregadorEntrarRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
+  '/entregador/': typeof EntregadorIndexRoute
   '/$storeSlug/acompanhar/$token': typeof StoreSlugAcompanharTokenRoute
   '/$storeSlug/produto/$slug': typeof StoreSlugProdutoSlugRoute
   '/admin/cardapio/$productId': typeof AdminCardapioProductIdRoute
@@ -274,6 +308,7 @@ export interface FileRoutesById {
   '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons/': typeof AdminCuponsIndexRoute
+  '/admin/entregadores/': typeof AdminEntregadoresIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
@@ -284,6 +319,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$storeSlug'
     | '/admin'
+    | '/entregador'
     | '/analise'
     | '/criar-site'
     | '/preview'
@@ -292,8 +328,10 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/api/health'
     | '/api/upload'
+    | '/entregador/entrar'
     | '/$storeSlug/'
     | '/admin/'
+    | '/entregador/'
     | '/$storeSlug/acompanhar/$token'
     | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
@@ -307,6 +345,7 @@ export interface FileRouteTypes {
     | '/admin/clientes/'
     | '/admin/configuracoes/'
     | '/admin/cupons/'
+    | '/admin/entregadores/'
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
@@ -321,8 +360,10 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/api/health'
     | '/api/upload'
+    | '/entregador/entrar'
     | '/$storeSlug'
     | '/admin'
+    | '/entregador'
     | '/$storeSlug/acompanhar/$token'
     | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
@@ -336,6 +377,7 @@ export interface FileRouteTypes {
     | '/admin/clientes'
     | '/admin/configuracoes'
     | '/admin/cupons'
+    | '/admin/entregadores'
     | '/admin/pedidos'
     | '/admin/promocoes'
     | '/admin/relatorios'
@@ -344,6 +386,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$storeSlug'
     | '/admin'
+    | '/entregador'
     | '/analise'
     | '/criar-site'
     | '/preview'
@@ -352,8 +395,10 @@ export interface FileRouteTypes {
     | '/admin/login'
     | '/api/health'
     | '/api/upload'
+    | '/entregador/entrar'
     | '/$storeSlug/'
     | '/admin/'
+    | '/entregador/'
     | '/$storeSlug/acompanhar/$token'
     | '/$storeSlug/produto/$slug'
     | '/admin/cardapio/$productId'
@@ -367,6 +412,7 @@ export interface FileRouteTypes {
     | '/admin/clientes/'
     | '/admin/configuracoes/'
     | '/admin/cupons/'
+    | '/admin/entregadores/'
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
@@ -376,6 +422,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StoreSlugRouteRoute: typeof StoreSlugRouteRouteWithChildren
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  EntregadorRouteRoute: typeof EntregadorRouteRouteWithChildren
   AnaliseRoute: typeof AnaliseRoute
   CriarSiteRoute: typeof CriarSiteRoute
   PreviewRoute: typeof PreviewRoute
@@ -418,6 +465,13 @@ declare module '@tanstack/react-router' {
       path: '/criar-site'
       fullPath: '/criar-site'
       preLoaderRoute: typeof CriarSiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/entregador': {
+      id: '/entregador'
+      path: '/entregador'
+      fullPath: '/entregador'
+      preLoaderRoute: typeof EntregadorRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/preview': {
@@ -475,6 +529,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/upload'
       preLoaderRoute: typeof ApiUploadRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/entregador/': {
+      id: '/entregador/'
+      path: '/'
+      fullPath: '/entregador/'
+      preLoaderRoute: typeof EntregadorIndexRouteImport
+      parentRoute: typeof EntregadorRouteRoute
+    }
+    '/entregador/entrar': {
+      id: '/entregador/entrar'
+      path: '/entrar'
+      fullPath: '/entregador/entrar'
+      preLoaderRoute: typeof EntregadorEntrarRouteImport
+      parentRoute: typeof EntregadorRouteRoute
     }
     '/$storeSlug/acompanhar/$token': {
       id: '/$storeSlug/acompanhar/$token'
@@ -553,6 +621,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCuponsIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/entregadores/': {
+      id: '/admin/entregadores/'
+      path: '/entregadores'
+      fullPath: '/admin/entregadores/'
+      preLoaderRoute: typeof AdminEntregadoresIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -624,6 +699,7 @@ interface AdminRouteRouteChildren {
   AdminClientesIndexRoute: typeof AdminClientesIndexRoute
   AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
   AdminCuponsIndexRoute: typeof AdminCuponsIndexRoute
+  AdminEntregadoresIndexRoute: typeof AdminEntregadoresIndexRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
   AdminPromocoesIndexRoute: typeof AdminPromocoesIndexRoute
   AdminRelatoriosIndexRoute: typeof AdminRelatoriosIndexRoute
@@ -644,6 +720,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminClientesIndexRoute: AdminClientesIndexRoute,
   AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
   AdminCuponsIndexRoute: AdminCuponsIndexRoute,
+  AdminEntregadoresIndexRoute: AdminEntregadoresIndexRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
   AdminPromocoesIndexRoute: AdminPromocoesIndexRoute,
   AdminRelatoriosIndexRoute: AdminRelatoriosIndexRoute,
@@ -653,10 +730,25 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
+interface EntregadorRouteRouteChildren {
+  EntregadorEntrarRoute: typeof EntregadorEntrarRoute
+  EntregadorIndexRoute: typeof EntregadorIndexRoute
+}
+
+const EntregadorRouteRouteChildren: EntregadorRouteRouteChildren = {
+  EntregadorEntrarRoute: EntregadorEntrarRoute,
+  EntregadorIndexRoute: EntregadorIndexRoute,
+}
+
+const EntregadorRouteRouteWithChildren = EntregadorRouteRoute._addFileChildren(
+  EntregadorRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StoreSlugRouteRoute: StoreSlugRouteRouteWithChildren,
   AdminRouteRoute: AdminRouteRouteWithChildren,
+  EntregadorRouteRoute: EntregadorRouteRouteWithChildren,
   AnaliseRoute: AnaliseRoute,
   CriarSiteRoute: CriarSiteRoute,
   PreviewRoute: PreviewRoute,
