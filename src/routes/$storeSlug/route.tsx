@@ -30,7 +30,21 @@ function PizzariaLayout() {
     <StoreProvider payload={data.store}>
       <MenuProvider payload={data}>
         <CartProvider>
-          <div className="pizzaria2 flex min-h-screen flex-col bg-cream font-sans text-charcoal">
+          {/* The brand colour set in the admin overrides the palette tokens for
+              this store only. Inline rather than in the stylesheet because the
+              value is per tenant, and the gradient ends are derived from it so
+              a single choice restyles the whole storefront consistently. */}
+          <div
+            className="pizzaria2 flex min-h-screen flex-col bg-cream font-sans text-charcoal"
+            style={
+              {
+                "--tomato": data.store.primaryColor,
+                "--primary": data.store.primaryColor,
+                "--primary-glow": `color-mix(in oklab, ${data.store.primaryColor} 82%, white)`,
+                "--primary-deep": `color-mix(in oklab, ${data.store.primaryColor} 78%, black)`,
+              } as React.CSSProperties
+            }
+          >
             <Header />
             <div className="flex-1 pt-16.75">
               <Outlet />
