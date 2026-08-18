@@ -3,7 +3,11 @@ import { Heart } from "lucide-react";
 import { Reveal } from "@/components/site/Reveal";
 import { getVisitorId } from "@/lib/pizzaria2/visitor-id";
 import { useStore } from "@/lib/pizzaria2/store-provider";
-import { listLikedPostsFn, togglePostLikeFn } from "@/server/functions/post-likes.fn";
+import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
+import {
+  listLikedPostsFn,
+  togglePostLikeFn,
+} from "@/server/functions/post-likes.fn";
 import { cn } from "@/lib/utils";
 
 type Post = {
@@ -32,6 +36,7 @@ export function StoreBlog({ posts }: { posts: Post[] }) {
 
 function Blog({ posts }: { posts: Post[] }) {
   const { storeName, slug: storeSlug } = useStore();
+  const goToCardapio = useGoToCardapio();
   const [visitorId, setVisitorId] = useState("");
   const [counts, setCounts] = useState<Record<string, number>>(() =>
     Object.fromEntries(posts.map((p) => [p.id, p.likeCount ?? 0])),
@@ -45,7 +50,9 @@ function Blog({ posts }: { posts: Post[] }) {
     setVisitorId(id);
     if (!id) return;
     listLikedPostsFn({ data: { storeSlug, visitorId: id } })
-      .then((ids) => setLiked(Object.fromEntries(ids.map((postId) => [postId, true]))))
+      .then((ids) =>
+        setLiked(Object.fromEntries(ids.map((postId) => [postId, true]))),
+      )
       .catch(() => undefined);
   }, [storeSlug]);
 
@@ -61,7 +68,9 @@ function Blog({ posts }: { posts: Post[] }) {
     if (!visitorId) return;
     flip(postId);
     try {
-      const res = await togglePostLikeFn({ data: { storeSlug, postId, visitorId } });
+      const res = await togglePostLikeFn({
+        data: { storeSlug, postId, visitorId },
+      });
       if (res.ok) {
         setLiked((prev) => ({ ...prev, [postId]: res.likedByMe }));
         setCounts((prev) => ({ ...prev, [postId]: res.likeCount }));
@@ -74,7 +83,10 @@ function Blog({ posts }: { posts: Post[] }) {
   }
 
   return (
-    <section id="novidades" className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10">
+    <section
+      id="novidades"
+      className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10"
+    >
       <div className="mx-auto max-w-[1800px]">
         <Reveal variant="up">
           <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
@@ -110,23 +122,38 @@ function Blog({ posts }: { posts: Post[] }) {
                     {post.body}
                   </p>
 
-                  {/* mt-auto pins the heart to the bottom, so cards of different
+                  {/* mt-auto pins the row to the bottom, so cards of different
                       text lengths still line their buttons up. */}
-                  <button
-                    type="button"
-                    onClick={() => like(post.id)}
-                    disabled={!visitorId}
-                    aria-pressed={!!liked[post.id]}
-                    className={cn(
-                      "mt-auto inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                      liked[post.id]
-                        ? "border-tomato/30 bg-tomato/10 text-tomato"
-                        : "border-charcoal/12 text-charcoal/55 hover:border-tomato/30 hover:text-tomato",
-                    )}
-                  >
-                    <Heart className={cn("h-3.5 w-3.5", liked[post.id] && "fill-tomato")} />
-                    {(counts[post.id] ?? 0) > 0 ? counts[post.id] : "Curtir"}
-                  </button>
+                  <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
+                    <button
+                      type="button"
+                      onClick={goToCardapio}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-tomato px-4 py-1.5 text-xs font-semibold text-[color:var(--on-primary)] shadow-sm transition-transform hover:scale-[1.04]"
+                    >
+                      Comprar o meu →
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => like(post.id)}
+                      disabled={!visitorId}
+                      aria-pressed={!!liked[post.id]}
+                      className={cn(
+                        "inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                        liked[post.id]
+                          ? "border-tomato/30 bg-tomato/10 text-tomato"
+                          : "border-charcoal/12 text-charcoal/55 hover:border-tomato/30 hover:text-tomato",
+                      )}
+                    >
+                      <Heart
+                        className={cn(
+                          "h-3.5 w-3.5",
+                          liked[post.id] && "fill-tomato",
+                        )}
+                      />
+                      {(counts[post.id] ?? 0) > 0 ? counts[post.id] : "Curtir"}
+                    </button>
+                  </div>
                 </div>
               </article>
             </Reveal>
