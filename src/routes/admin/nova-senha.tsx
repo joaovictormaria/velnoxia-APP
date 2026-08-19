@@ -140,7 +140,7 @@ function NovaSenhaPage() {
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
           <UtensilsCrossed className="size-10 text-[#E11D2E]" />
           <div>
-            <h1 className="text-2xl font-bold text-white">velnox.ia</h1>
+            <h1 className="text-2xl font-bold text-white">Velnox.app</h1>
             <p className="text-[10px] font-semibold tracking-widest text-[#E11D2E]">
               NOVA SENHA
             </p>

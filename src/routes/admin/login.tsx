@@ -49,7 +49,7 @@ function LoginPage() {
           <UtensilsCrossed className="size-10 text-[#E11D2E]" />
           {/* Product name, not a store name: one login serves every lanchonete. */}
           <div>
-            <h1 className="text-2xl font-bold text-white">velnox.ia</h1>
+            <h1 className="text-2xl font-bold text-white">Velnox.app</h1>
             <p className="text-[10px] font-semibold tracking-widest text-[#E11D2E]">
               PAINEL DA SUA LANCHONETE
             </p>
