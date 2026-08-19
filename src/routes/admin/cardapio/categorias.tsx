@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SizePicker } from "@/components/admin/menu/SizePicker";
+import { getBusinessTypeFn } from "@/server/functions/settings.fn";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
@@ -59,6 +60,13 @@ function CategoriesPage() {
   const { data, isPending } = useQuery({
     queryKey: ["categories"],
     queryFn: () => listCategoriesFn(),
+  });
+
+  // O ramo decide quais tamanhos são sugeridos: uma marmitaria não deve ver
+  // "Brotinho" na lista.
+  const { data: businessType } = useQuery({
+    queryKey: ["business-type"],
+    queryFn: () => getBusinessTypeFn(),
   });
 
   const invalidate = () => {
@@ -212,6 +220,7 @@ function CategoriesPage() {
             <SizePicker
               value={draft.sizes}
               onChange={(sizes) => setDraft({ ...draft, sizes })}
+              businessType={businessType ?? ""}
             />
             <span className="mt-1 block text-xs text-neutral-500">
               Cada produto desta categoria recebe um preço por tamanho. Sem nenhum tamanho, a

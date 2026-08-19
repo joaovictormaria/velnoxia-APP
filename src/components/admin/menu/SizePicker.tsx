@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
+import { sugestoesDeTamanho } from "@/lib/size-suggestions";
 
 /**
  * Escolha dos tamanhos de uma categoria.
@@ -8,25 +9,22 @@ import { ArrowDown, ArrowUp, Plus, X } from "lucide-react";
  * no cardápio, e um "Média" com M minúsculo ou um "Grande " com espaço sobrando
  * viram tamanhos diferentes que ninguém nota até o preço sair errado.
  *
- * O campo livre continua existindo — nenhum conjunto de sugestões cobre todo
- * ramo —, mas fica em segundo plano, para ser a exceção.
+ * As sugestões são as do ramo da loja, e não todas de uma vez: uma marmitaria
+ * não tem nada a ver com "Brotinho". O campo livre continua ao lado para o que
+ * nenhuma lista cobre.
  */
-
-const SUGESTOES: { grupo: string; opcoes: string[] }[] = [
-  { grupo: "Pizza", opcoes: ["Brotinho", "Média", "Grande", "Gigante"] },
-  { grupo: "Letras", opcoes: ["P", "M", "G", "GG"] },
-  { grupo: "Por extenso", opcoes: ["Pequeno", "Médio", "Grande"] },
-  { grupo: "Volume", opcoes: ["300ml", "400ml", "500ml", "700ml", "1L"] },
-  { grupo: "Porção", opcoes: ["Individual", "Para dois", "Família"] },
-];
 
 export function SizePicker({
   value,
   onChange,
+  businessType,
 }: {
   value: string[];
   onChange: (sizes: string[]) => void;
+  /** Decide quais sugestões aparecem. */
+  businessType: string;
 }) {
+  const sugestoes = sugestoesDeTamanho(businessType);
   const [novo, setNovo] = useState("");
 
   const alterna = (label: string) =>
@@ -98,32 +96,28 @@ export function SizePicker({
         </ol>
       )}
 
-      <div className="space-y-2 rounded-xl border border-neutral-200 p-3">
-        {SUGESTOES.map(({ grupo, opcoes }) => (
-          <div key={grupo} className="flex flex-wrap items-center gap-1.5">
-            <span className="w-24 shrink-0 text-xs text-neutral-500">{grupo}</span>
-            {opcoes.map((label) => {
-              const escolhido = value.includes(label);
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => alterna(label)}
-                  className={
-                    escolhido
-                      ? "rounded-full bg-[#E11D2E] px-3 py-1 text-xs font-semibold text-white"
-                      : "rounded-full border border-neutral-300 px-3 py-1 text-xs text-neutral-700 hover:border-[#E11D2E] hover:text-[#E11D2E]"
-                  }
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+      <div className="space-y-2.5 rounded-xl border border-neutral-200 p-3">
+        <div className="flex flex-wrap gap-1.5">
+          {sugestoes.map((label) => {
+            const escolhido = value.includes(label);
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => alterna(label)}
+                className={
+                  escolhido
+                    ? "rounded-full bg-[#E11D2E] px-3.5 py-1.5 text-xs font-semibold text-white"
+                    : "rounded-full border border-neutral-300 px-3.5 py-1.5 text-xs text-neutral-700 hover:border-[#E11D2E] hover:text-[#E11D2E]"
+                }
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
 
-        <div className="flex items-center gap-2 border-t border-neutral-100 pt-2">
-          <span className="w-24 shrink-0 text-xs text-neutral-500">Outro</span>
+        <div className="flex items-center gap-2 border-t border-neutral-100 pt-2.5">
           <input
             value={novo}
             onChange={(e) => setNovo(e.target.value)}
