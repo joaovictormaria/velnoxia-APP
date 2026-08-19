@@ -33,13 +33,6 @@ enum CategoryKind {
   SIMPLE
 }
 
-enum SizeLabel {
-  BROTINHO
-  MEDIA
-  GRANDE
-  GIGANTE
-}
-
 enum HalfPizzaPricingRule {
   HIGHEST_PRICE
   AVERAGE_PRICE
@@ -272,6 +265,7 @@ model Category {
   updatedAt DateTime     @updatedAt
 
   products Product[]
+  sizes      CategorySize[]
 
   @@unique([storeId, slug])
   @@index([storeId, sortOrder])
@@ -304,15 +298,39 @@ model Product {
   @@index([storeId, isActive])
 }
 
-model ProductSize {
-  id          String    @id @default(cuid())
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  size        SizeLabel
-  price       Float
-  isAvailable Boolean   @default(true)
+/// Os tamanhos que uma categoria oferece, com o nome que o dono escolher:
+/// "Brotinho/Média/Grande/Gigante" numa pizzaria, "P/M/G" numa marmitaria,
+/// "300ml/500ml" numa açaiteria.
+///
+/// Pertencem à categoria, e não ao produto, por causa da meia a meia: o preço
+/// de uma pizza metade A metade B procura o mesmo tamanho nos dois sabores. Se
+/// cada produto nomeasse os seus, "Grande" e "grande" seriam tamanhos
+/// diferentes e a conta sairia errada sem ninguém perceber.
+model CategorySize {
+  id         String        @id @default(cuid())
+  categoryId String
+  category   Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /// O que o cliente lê. Livre de propósito — cada ramo chama do seu jeito.
+  label      String
+  sortOrder  Int           @default(0)
+  prices     ProductSize[]
 
-  @@unique([productId, size])
+  @@unique([categoryId, label])
+  @@index([categoryId, sortOrder])
+}
+
+/// Quanto um produto custa em cada tamanho da categoria dele.
+model ProductSize {
+  id             String       @id @default(cuid())
+  productId      String
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  categorySizeId String
+  categorySize   CategorySize @relation(fields: [categorySizeId], references: [id], onDelete: Cascade)
+  price          Float
+  isAvailable    Boolean      @default(true)
+
+  @@unique([productId, categorySizeId])
+  @@index([categorySizeId])
 }
 
 model Extra {
@@ -478,7 +496,7 @@ model OrderItem {
   productId          String?
   product            Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productNameSnapshot String
-  sizeLabel           SizeLabel?
+  sizeLabel           String?
 
   isHalfAndHalf              Boolean @default(false)
   secondProductId             String?

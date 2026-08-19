@@ -31,7 +31,7 @@ function EditProductPage() {
     halfPizzaPricingRule: p.halfPizzaPricingRule,
     sortOrder: p.sortOrder,
     sizes: p.sizes.map((s) => ({
-      size: s.size,
+      categorySizeId: s.categorySizeId,
       price: s.price,
       isAvailable: s.isAvailable,
     })),

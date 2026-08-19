@@ -1,4 +1,4 @@
-import { PIZZA_SIZES, type StarterCatalog } from "./catalog-types";
+import { NOMES_DE_PIZZA, PIZZA_SIZES, type StarterCatalog } from "./catalog-types";
 import {
   BAR,
   CAFETERIA,
@@ -39,6 +39,7 @@ const MENUS_ORIGINAIS: Record<string, StarterCatalog> = {
         subhead: "Ingredientes selecionados para a pizza perfeita.",
         icon: "Pizza",
         kind: "PIZZA",
+        sizes: NOMES_DE_PIZZA,
         products: [
           { name: "Mussarela", description: "Molho de tomate, mussarela e orégano.", basePrice: 39.9, imageUrl: "/catalogo-inicial/pizzaria/mussarela.jpg", allowHalfAndHalf: true, sizes: PIZZA_SIZES(29.9, 39.9, 49.9, 59.9), tag: "Mais pedida" },
           { name: "Calabresa", description: "Calabresa fatiada, cebola e mussarela.", basePrice: 42.9, imageUrl: "/catalogo-inicial/pizzaria/calabresa.jpg", allowHalfAndHalf: true, sizes: PIZZA_SIZES(32.9, 42.9, 52.9, 62.9) },
@@ -54,6 +55,7 @@ const MENUS_ORIGINAIS: Record<string, StarterCatalog> = {
         subhead: "Receitas exclusivas, feitas para impressionar.",
         icon: "Star",
         kind: "PIZZA",
+        sizes: NOMES_DE_PIZZA,
         products: [
           { name: "Quatro Queijos", description: "Mussarela, provolone, gorgonzola e parmesão.", basePrice: 52.9, imageUrl: "/catalogo-inicial/pizzaria/quatro-queijos.jpg", allowHalfAndHalf: true, sizes: PIZZA_SIZES(42.9, 52.9, 62.9, 72.9) },
           { name: "Pepperoni", description: "Pepperoni italiano e mussarela.", basePrice: 54.9, allowHalfAndHalf: true, sizes: PIZZA_SIZES(44.9, 54.9, 64.9, 74.9) },
@@ -67,6 +69,7 @@ const MENUS_ORIGINAIS: Record<string, StarterCatalog> = {
         subhead: "Recheio generoso e cobertura na medida certa.",
         icon: "Cake",
         kind: "PIZZA",
+        sizes: NOMES_DE_PIZZA,
         products: [
           { name: "Chocolate com Morango", description: "Chocolate ao leite e morangos frescos.", basePrice: 44.9, sizes: PIZZA_SIZES(34.9, 44.9, 54.9, 64.9) },
         ],

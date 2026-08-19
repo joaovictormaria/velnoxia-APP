@@ -12,7 +12,8 @@ import {
 import { listActiveCategories } from "../repositories/category-repository";
 
 const sizeSchema = z.object({
-  size: z.enum(["BROTINHO", "MEDIA", "GRANDE", "GIGANTE"]),
+  /** Aponta para um tamanho da categoria; o repositório confere se é dela. */
+  categorySizeId: z.string().min(1),
   price: z.number().nonnegative(),
   isAvailable: z.boolean(),
 });

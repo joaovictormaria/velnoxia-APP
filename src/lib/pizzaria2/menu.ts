@@ -23,9 +23,14 @@ export type Category = {
   kind: "pizza" | "simple";
 };
 
-export type SizeKey = "broto" | "media" | "grande" | "gigante";
-
-export type ProductSize = { key: SizeKey; price: number };
+/**
+ * Um tamanho oferecido, já com o nome que o dono escolheu.
+ *
+ * O id é o do tamanho da categoria: é ele que vai no carrinho e no checkout,
+ * porque o servidor reconfere o preço por ele. O nome viaja junto só para a
+ * tela ter o que mostrar sem uma segunda consulta.
+ */
+export type ProductSize = { id: string; label: string; price: number };
 
 export type Product = {
   slug: string;
@@ -44,28 +49,29 @@ export type Product = {
 
 export type Extra = { id: string; label: string; price: number };
 
-export const sizeBlocks: { key: SizeKey; label: string }[] = [
-  { key: "broto", label: "Brotinho" },
-  { key: "media", label: "Média" },
-  { key: "grande", label: "Grande" },
-  { key: "gigante", label: "Gigante" },
-];
-
 /**
- * Price for a given size. Sizes carry absolute prices from the admin panel,
- * so this is a lookup with the base price as fallback for size-less products.
+ * Preço num tamanho. Cai no preço base quando o produto não tem tamanhos —
+ * bebidas e porções são vendidas assim.
  */
-export function sizePrice(product: Product, size: SizeKey): number {
-  const match = product.sizes?.find((s) => s.key === size);
-  return match ? match.price : product.price;
+export function sizePrice(product: Product, sizeId?: string): number {
+  if (!sizeId) return defaultSize(product)?.price ?? product.price;
+  return product.sizes?.find((s) => s.id === sizeId)?.price ?? product.price;
 }
 
-/** Sizes actually offered for a product, in menu order. */
-export function availableSizes(product: Product): { key: SizeKey; label: string; price: number }[] {
-  if (!product.sizes?.length) return [];
-  return sizeBlocks
-    .filter((b) => product.sizes!.some((s) => s.key === b.key))
-    .map((b) => ({ ...b, price: sizePrice(product, b.key) }));
+/** Tamanhos oferecidos, na ordem em que a categoria os define. */
+export function availableSizes(product: Product): ProductSize[] {
+  return product.sizes ?? [];
+}
+
+/**
+ * O tamanho que o "adicionar rápido" do cardápio usa.
+ *
+ * É o primeiro da categoria, e não um nome fixo: antes o código pedia "media",
+ * o que só existia numa pizzaria. Numa marmitaria de P/M/G isso não resolveria
+ * para nada e o produto entraria no carrinho pelo preço base.
+ */
+export function defaultSize(product: Product): ProductSize | null {
+  return product.sizes?.[0] ?? null;
 }
 
 export function formatCurrency(value: number): string {

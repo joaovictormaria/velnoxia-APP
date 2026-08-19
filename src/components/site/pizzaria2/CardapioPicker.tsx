@@ -8,6 +8,7 @@ import { useCart } from "@/lib/pizzaria2/cart";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import {
   formatCurrency,
+  defaultSize,
   sizePrice,
   type Category,
   type CategorySlug,
@@ -215,18 +216,18 @@ export function CardapioPicker({
                 <ProductRow
                   key={product.slug}
                   product={product}
-                  price={sizePrice(product, "media")}
+                  price={sizePrice(product)}
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
                       sizeLabel: isPizza ? "Média" : undefined,
                       image: product.image,
                       icon: product.icon,
-                      unitPrice: sizePrice(product, "media"),
+                      unitPrice: sizePrice(product),
                       extras: [],
                       qty: 1,
                       productSlug: product.slug,
-                      sizeKey: isPizza ? "media" : undefined,
+                      sizeId: defaultSize(product)?.id,
                     })
                   }
                 />

@@ -13,7 +13,7 @@ import { CategoryTabs } from "./CategoryTabs";
 import { ProductCard } from "./ProductCard";
 import { ProductRow } from "./ProductRow";
 import { useCart } from "@/lib/pizzaria2/cart";
-import { sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
+import { defaultSize, sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { heroFor } from "@/lib/pizzaria2/hero-by-type";
@@ -141,11 +141,11 @@ export function CategorySaboresSection({
       sizeLabel: isPizza ? "Média" : undefined,
       image: product.image,
       icon: product.icon,
-      unitPrice: sizePrice(product, "media"),
+      unitPrice: sizePrice(product),
       extras: [],
       qty: 1,
       productSlug: product.slug,
-      sizeKey: isPizza ? "media" : undefined,
+      sizeId: defaultSize(product)?.id,
     });
   }
   const firstLine = category.headline ?? fallbackFirst;
@@ -230,7 +230,7 @@ export function CategorySaboresSection({
               <ProductRow
                 key={product.slug}
                 product={product}
-                price={sizePrice(product, "media")}
+                price={sizePrice(product)}
                 onQuickAdd={() => addProduct(product)}
               />
             ))}
@@ -254,11 +254,11 @@ export function CategorySaboresSection({
                         category.kind === "pizza" ? "Média" : undefined,
                       image: product.image,
                       icon: product.icon,
-                      unitPrice: sizePrice(product, "media"),
+                      unitPrice: sizePrice(product),
                       extras: [],
                       qty: 1,
                       productSlug: product.slug,
-                      sizeKey: category.kind === "pizza" ? "media" : undefined,
+                      sizeId: defaultSize(product)?.id,
                     })
                   }
                 />

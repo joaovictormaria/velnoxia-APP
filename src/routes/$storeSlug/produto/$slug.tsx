@@ -15,7 +15,6 @@ import {
   formatCurrency,
   sizePrice,
   suggestedDrinkSlugs,
-  type SizeKey,
 } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { cn } from "@/lib/utils";
@@ -75,7 +74,9 @@ function PizzariaPersonalizacao() {
   const product = productBySlug(activeSlug);
 
   const [mode, setMode] = useState<"inteira" | "meia">("inteira");
-  const [size, setSize] = useState<SizeKey>("media");
+  // Guarda o id do tamanho, não um nome fixo: "media" só existia numa
+  // pizzaria, e o efeito abaixo escolhe o primeiro assim que o produto carrega.
+  const [size, setSize] = useState<string>("");
   const [half2Slug, setHalf2Slug] = useState<string>(
     pizzaProducts.find((p) => p.slug !== activeSlug)?.slug ?? activeSlug,
   );
@@ -93,8 +94,8 @@ function PizzariaPersonalizacao() {
   // Keep the selected size valid when switching to a product that offers
   // a different set of sizes.
   useEffect(() => {
-    if (sizeOptions.length && !sizeOptions.some((s) => s.key === size)) {
-      setSize(sizeOptions[0].key);
+    if (sizeOptions.length && !sizeOptions.some((s) => s.id === size)) {
+      setSize(sizeOptions[0].id);
     }
   }, [sizeOptions, size]);
 
@@ -128,7 +129,7 @@ function PizzariaPersonalizacao() {
   }
 
   const category = categoryBySlug(product.categorySlug);
-  const sizeLabel = sizeOptions.find((s) => s.key === size)?.label ?? "Média";
+  const sizeLabel = sizeOptions.find((s) => s.id === size)?.label;
 
   function toggleExtra(id: string) {
     setSelectedExtras((prev) =>
@@ -160,7 +161,7 @@ function PizzariaPersonalizacao() {
       note: note.trim() || undefined,
       qty,
       productSlug: product.slug,
-      sizeKey: sizeOptions.length ? size : undefined,
+      sizeId: sizeOptions.length ? size : undefined,
       secondProductSlug: mode === "meia" ? half2?.slug : undefined,
     });
     goToScreen("cardapio");
@@ -335,12 +336,12 @@ function PizzariaPersonalizacao() {
                   <div className="mt-3 grid grid-cols-3 gap-2.5">
                     {sizeOptions.map((block) => (
                       <button
-                        key={block.key}
+                        key={block.id}
                         type="button"
-                        onClick={() => setSize(block.key)}
+                        onClick={() => setSize(block.id)}
                         className={cn(
                           "rounded-xl border px-3 py-2.5 text-center transition-colors",
-                          size === block.key
+                          size === block.id
                             ? "border-tomato bg-tomato text-mozzarella"
                             : "border-charcoal/15 text-charcoal hover:border-charcoal/30",
                         )}
@@ -351,7 +352,7 @@ function PizzariaPersonalizacao() {
                         <span
                           className={cn(
                             "block text-xs",
-                            size === block.key
+                            size === block.id
                               ? "text-mozzarella/85"
                               : "text-charcoal/50",
                           )}

@@ -1,4 +1,4 @@
-import type { CategoryKind, SizeLabel } from "@prisma/client";
+import type { CategoryKind } from "@prisma/client";
 
 /**
  * Shape of what a store gets the moment it signs up.
@@ -15,7 +15,8 @@ export type StarterProduct = {
   tag?: string;
   allowHalfAndHalf?: boolean;
   imageUrl?: string;
-  sizes?: { size: SizeLabel; price: number }[];
+  /** Preço em cada tamanho, casado pelo nome com os da categoria. */
+  sizes?: { label: string; price: number }[];
 };
 
 export type StarterCategory = {
@@ -28,6 +29,8 @@ export type StarterCategory = {
   slug: string;
   icon: string;
   kind: CategoryKind;
+  /** Tamanhos oferecidos, na ordem. Ausente quando a categoria não usa. */
+  sizes?: string[];
   products: StarterProduct[];
 };
 
@@ -44,9 +47,9 @@ export type StarterCatalog = {
   promotions: { eyebrow: string; title: string; description: string; discount?: string }[];
 };
 
-export const PIZZA_SIZES = (broto: number, media: number, grande: number, gigante: number) => [
-  { size: "BROTINHO" as SizeLabel, price: broto },
-  { size: "MEDIA" as SizeLabel, price: media },
-  { size: "GRANDE" as SizeLabel, price: grande },
-  { size: "GIGANTE" as SizeLabel, price: gigante },
-];
+/** Os nomes que uma pizzaria usa. Ficam aqui para categoria e produto não
+ *  divergirem — o preço é casado pelo nome. */
+export const NOMES_DE_PIZZA = ["Brotinho", "Média", "Grande", "Gigante"];
+
+export const PIZZA_SIZES = (broto: number, media: number, grande: number, gigante: number) =>
+  NOMES_DE_PIZZA.map((label, i) => ({ label, price: [broto, media, grande, gigante][i] }));

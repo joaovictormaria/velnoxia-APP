@@ -10,7 +10,7 @@ import {
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import type { Category, Extra, Product, SizeKey } from "./menu";
+import type { Category, Extra, Product } from "./menu";
 
 /** Categories store an icon by name; this maps those names to components. */
 const ICONS: Record<string, LucideIcon> = {
@@ -22,13 +22,6 @@ const ICONS: Record<string, LucideIcon> = {
   Sandwich,
   Drumstick,
   UtensilsCrossed,
-};
-
-const SIZE_KEY_BY_LABEL: Record<string, SizeKey> = {
-  BROTINHO: "broto",
-  MEDIA: "media",
-  GRANDE: "grande",
-  GIGANTE: "gigante",
 };
 
 /** Shape returned by getStorefrontMenuFn. */
@@ -52,7 +45,7 @@ export type MenuPayload = {
       imageUrl: string | null;
       tag: string | null;
       allowHalfAndHalf: boolean;
-      sizes: { size: string; price: number }[];
+      sizes: { categorySize: { id: string; label: string }; price: number }[];
     }[];
   }[];
   extras: { id: string; name: string; price: number }[];
@@ -113,9 +106,11 @@ function adapt(payload: MenuPayload): MenuApi {
       categorySlug: c.slug,
       tag: p.tag ?? undefined,
       allowHalfAndHalf: p.allowHalfAndHalf,
-      sizes: p.sizes
-        .map((s) => ({ key: SIZE_KEY_BY_LABEL[s.size], price: s.price }))
-        .filter((s) => s.key),
+      sizes: p.sizes.map((s) => ({
+        id: s.categorySize.id,
+        label: s.categorySize.label,
+        price: s.price,
+      })),
     })),
   );
 

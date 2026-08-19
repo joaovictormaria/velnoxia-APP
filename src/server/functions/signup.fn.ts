@@ -64,7 +64,13 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
         // Starter menu, in the same transaction: a store whose catalog failed
         // halfway would show a broken cardápio on its very first visit.
         for (const [i, category] of catalog.categories.entries()) {
-          await tx.category.create({
+          /**
+           * A categoria e seus tamanhos nascem primeiro: o preço de cada
+           * produto aponta para um tamanho da categoria, então eles precisam
+           * existir antes — e é isso que garante que dois sabores de pizza
+           * compartilhem exatamente o mesmo "Grande".
+           */
+          const created = await tx.category.create({
             data: {
               storeId: store.id,
               name: category.name,
@@ -75,21 +81,42 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
               icon: category.icon,
               kind: category.kind,
               sortOrder: i + 1,
-              products: {
-                create: category.products.map((product, j) => ({
-                  storeId: store.id,
-                  name: product.name,
-                  slug: slugifyProduct(product.name),
-                  description: product.description,
-                  basePrice: product.basePrice,
-                  tag: product.tag ?? null,
-                  allowHalfAndHalf: product.allowHalfAndHalf ?? false,
-                  sortOrder: j + 1,
-                  sizes: product.sizes ? { create: product.sizes } : undefined,
-                })),
-              },
+              sizes: category.sizes
+                ? {
+                    create: category.sizes.map((label, k) => ({ label, sortOrder: k + 1 })),
+                  }
+                : undefined,
             },
+            include: { sizes: true },
           });
+
+          const sizeIdByLabel = new Map(created.sizes.map((s) => [s.label, s.id]));
+
+          for (const [j, product] of category.products.entries()) {
+            await tx.product.create({
+              data: {
+                storeId: store.id,
+                categoryId: created.id,
+                name: product.name,
+                slug: slugifyProduct(product.name),
+                description: product.description,
+                basePrice: product.basePrice,
+                tag: product.tag ?? null,
+                allowHalfAndHalf: product.allowHalfAndHalf ?? false,
+                sortOrder: j + 1,
+                sizes: product.sizes
+                  ? {
+                      create: product.sizes.flatMap((s) => {
+                        const categorySizeId = sizeIdByLabel.get(s.label);
+                        // Preço de um tamanho que a categoria não oferece é
+                        // erro de catálogo; ignorar é melhor que gravar órfão.
+                        return categorySizeId ? [{ categorySizeId, price: s.price }] : [];
+                      }),
+                    }
+                  : undefined,
+              },
+            });
+          }
         }
 
         if (catalog.promotions.length) {

@@ -2,7 +2,6 @@ import type {
   OrderStatus,
   OrderType,
   PaymentMethod,
-  SizeLabel,
   StatusAuthorType,
 } from "@prisma/client";
 import { randomBytes } from "node:crypto";
@@ -17,16 +16,10 @@ function newTrackingToken() {
   return randomBytes(24).toString("base64url");
 }
 
-const SIZE_BY_KEY: Record<string, SizeLabel> = {
-  broto: "BROTINHO",
-  media: "MEDIA",
-  grande: "GRANDE",
-  gigante: "GIGANTE",
-};
-
 export type CheckoutItem = {
   productSlug: string;
-  sizeKey?: string;
+  /** Id do tamanho da categoria; ausente quando o produto não tem tamanhos. */
+  sizeId?: string;
   secondProductSlug?: string;
   extraIds: string[];
   quantity: number;
@@ -56,13 +49,19 @@ export type CheckoutResult =
   | { ok: true; orderId: string; orderNumber: number; total: number; trackingToken: string | null }
   | { ok: false; error: string };
 
-/** Price of one product at a given size — falls back to the base price. */
+/**
+ * Preço de um produto num tamanho.
+ *
+ * Devolve null quando o produto não tem preço para aquele tamanho, em vez de
+ * cair no preço base: numa meia a meia isso cobraria o preço de uma pizza
+ * pequena por uma gigante, e o erro só apareceria no fim do mês.
+ */
 function priceForSize(
-  product: { basePrice: number; sizes: { size: SizeLabel; price: number }[] },
-  sizeLabel: SizeLabel | null,
-): number {
-  if (!sizeLabel) return product.basePrice;
-  return product.sizes.find((s) => s.size === sizeLabel)?.price ?? product.basePrice;
+  product: { basePrice: number; sizes: { categorySizeId: string; price: number }[] },
+  sizeId: string | null,
+): number | null {
+  if (!sizeId) return product.basePrice;
+  return product.sizes.find((s) => s.categorySizeId === sizeId)?.price ?? null;
 }
 
 /**
@@ -101,6 +100,17 @@ export async function createOrderFromCheckout(
   });
   const productBySlug = new Map(products.map((p) => [p.slug, p]));
 
+  /**
+   * Os tamanhos que estes produtos podem usar, lidos do banco e não do que o
+   * navegador mandou. É o que impede um id de tamanho de outra loja de entrar
+   * no pedido, e é onde sai o nome gravado no item.
+   */
+  const sizes = await prisma.categorySize.findMany({
+    where: { categoryId: { in: [...new Set(products.map((p) => p.categoryId))] } },
+    select: { id: true, label: true },
+  });
+  const sizesById = new Map(sizes.map((s) => [s.id, s]));
+
   const extraIds = [...new Set(input.items.flatMap((i) => i.extraIds))];
   const extras = extraIds.length
     ? await prisma.extra.findMany({ where: { storeId, id: { in: extraIds }, isActive: true } })
@@ -110,7 +120,7 @@ export async function createOrderFromCheckout(
   const lines: {
     productId: string;
     productNameSnapshot: string;
-    sizeLabel: SizeLabel | null;
+    sizeLabel: string | null;
     isHalfAndHalf: boolean;
     secondProductId: string | null;
     secondProductNameSnapshot: string | null;
@@ -129,8 +139,9 @@ export async function createOrderFromCheckout(
     }
     if (item.quantity < 1) return { ok: false, error: "Quantidade inválida." };
 
-    const sizeLabel = item.sizeKey ? (SIZE_BY_KEY[item.sizeKey] ?? null) : null;
-    if (sizeLabel && !product.sizes.some((s) => s.size === sizeLabel)) {
+    const sizeId = item.sizeId ?? null;
+    const tamanho = sizeId ? sizesById.get(sizeId) : null;
+    if (sizeId && !tamanho) {
       return { ok: false, error: `O tamanho escolhido para "${product.name}" não está disponível.` };
     }
 
@@ -142,9 +153,26 @@ export async function createOrderFromCheckout(
       return { ok: false, error: `"${product.name}" não aceita meia-pizza.` };
     }
 
-    let unitPrice = priceForSize(product, sizeLabel);
+    const primeiroPreco = priceForSize(product, sizeId);
+    if (primeiroPreco === null) {
+      return { ok: false, error: `O tamanho escolhido para "${product.name}" não está disponível.` };
+    }
+
+    let unitPrice = primeiroPreco;
     if (second) {
-      const secondPrice = priceForSize(second, sizeLabel);
+      /**
+       * Os dois sabores precisam do mesmo tamanho, e o tamanho pertence à
+       * categoria — então isto só falha se um dos sabores não tiver preço
+       * cadastrado ali. Antes essa falta virava o preço base em silêncio: uma
+       * gigante saía pelo preço de uma broto.
+       */
+      const secondPrice = priceForSize(second, sizeId);
+      if (secondPrice === null) {
+        return {
+          ok: false,
+          error: `"${second.name}" não tem preço nesse tamanho. Escolha outro sabor ou outro tamanho.`,
+        };
+      }
       unitPrice =
         product.halfPizzaPricingRule === "AVERAGE_PRICE"
           ? (unitPrice + secondPrice) / 2
@@ -168,7 +196,7 @@ export async function createOrderFromCheckout(
     lines.push({
       productId: product.id,
       productNameSnapshot: product.name,
-      sizeLabel,
+      sizeLabel: tamanho?.label ?? null,
       isHalfAndHalf: Boolean(second),
       secondProductId: second?.id ?? null,
       secondProductNameSnapshot: second?.name ?? null,

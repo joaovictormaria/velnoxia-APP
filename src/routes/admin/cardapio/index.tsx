@@ -14,13 +14,6 @@ export const Route = createFileRoute("/admin/cardapio/")({
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-const SIZE_SHORT: Record<string, string> = {
-  BROTINHO: "B",
-  MEDIA: "M",
-  GRANDE: "G",
-  GIGANTE: "GG",
-};
-
 function ProductsPage() {
   const queryClient = useQueryClient();
   const [categoryId, setCategoryId] = useState<string>("");
@@ -135,7 +128,7 @@ function ProductsPage() {
                 <td className="px-5 py-3 text-neutral-600">
                   {p.sizes.length === 0
                     ? "-"
-                    : p.sizes.map((s) => SIZE_SHORT[s.size]).join(", ")}
+                    : p.sizes.map((s) => s.categorySize.label).join(", ")}
                 </td>
                 <td className="px-5 py-3">
                   <button

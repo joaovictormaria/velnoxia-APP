@@ -1,8 +1,9 @@
-import type { HalfPizzaPricingRule, SizeLabel } from "@prisma/client";
+import type { HalfPizzaPricingRule } from "@prisma/client";
 import { prisma } from "../db/client";
 
+/** Um preço para um tamanho que a categoria do produto oferece. */
 export type ProductSizeInput = {
-  size: SizeLabel;
+  categorySizeId: string;
   price: number;
   isAvailable: boolean;
 };
@@ -37,7 +38,13 @@ export function listProducts(
     orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }],
     include: {
       category: { select: { id: true, name: true } },
-      sizes: { where: { isAvailable: true }, orderBy: { price: "asc" } },
+      // O nome do tamanho vem junto: a listagem mostra "Brotinho, Grande" e
+      // não teria como saber disso só com o id.
+      sizes: {
+        where: { isAvailable: true },
+        orderBy: { categorySize: { sortOrder: "asc" } },
+        include: { categorySize: { select: { id: true, label: true, sortOrder: true } } },
+      },
     },
   });
 }
@@ -45,7 +52,9 @@ export function listProducts(
 export function getProductById(storeId: string, id: string) {
   return prisma.product.findFirst({
     where: { id, storeId },
-    include: { sizes: true },
+    include: {
+      sizes: { include: { categorySize: { select: { id: true, label: true, sortOrder: true } } } },
+    },
   });
 }
 
@@ -53,6 +62,7 @@ export async function createProduct(storeId: string, { sizes, ...data }: Product
   // The category is re-checked against the store so a forged categoryId cannot
   // attach a product to someone else's category.
   await assertCategoryBelongsToStore(storeId, data.categoryId);
+  await assertSizesBelongToCategory(data.categoryId, sizes);
   return prisma.product.create({
     data: { ...data, storeId, sizes: { create: sizes } },
     include: { sizes: true },
@@ -66,6 +76,7 @@ export async function updateProduct(
   { sizes, ...data }: ProductInput,
 ) {
   await assertCategoryBelongsToStore(storeId, data.categoryId);
+  await assertSizesBelongToCategory(data.categoryId, sizes);
   return prisma.$transaction(async (tx) => {
     const owned = await tx.product.findFirst({ where: { id, storeId }, select: { id: true } });
     if (!owned) throw new Error("NOT_FOUND");
@@ -76,6 +87,23 @@ export async function updateProduct(
       include: { sizes: true },
     });
   });
+}
+
+/**
+ * Os preços só podem apontar para tamanhos da categoria do próprio produto.
+ *
+ * Sem isso, um categorySizeId de outra categoria — ou de outra loja — entraria
+ * pelo formulário e o produto passaria a ter um tamanho que a vitrine dele nem
+ * mostra, cobrando um preço que ninguém consegue explicar.
+ */
+async function assertSizesBelongToCategory(categoryId: string, sizes: ProductSizeInput[]) {
+  if (sizes.length === 0) return;
+  const validos = await prisma.categorySize.count({
+    where: { categoryId, id: { in: sizes.map((s) => s.categorySizeId) } },
+  });
+  if (validos !== new Set(sizes.map((s) => s.categorySizeId)).size) {
+    throw new Error("SIZE_NOT_IN_CATEGORY");
+  }
 }
 
 export function setProductActive(storeId: string, id: string, isActive: boolean) {
@@ -95,7 +123,13 @@ export function listMenuForStorefront(storeId: string) {
       products: {
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
-        include: { sizes: { where: { isAvailable: true }, orderBy: { price: "asc" } } },
+        include: {
+          sizes: {
+            where: { isAvailable: true },
+            orderBy: { categorySize: { sortOrder: "asc" } },
+            include: { categorySize: { select: { id: true, label: true } } },
+          },
+        },
       },
     },
   });
@@ -106,7 +140,11 @@ export function getProductBySlug(storeId: string, slug: string) {
     where: { storeId_slug: { storeId, slug } },
     include: {
       category: true,
-      sizes: { where: { isAvailable: true }, orderBy: { price: "asc" } },
+      sizes: {
+        where: { isAvailable: true },
+        orderBy: { categorySize: { sortOrder: "asc" } },
+        include: { categorySize: { select: { id: true, label: true } } },
+      },
     },
   });
 }

@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import type { SizeKey } from "./menu";
 
 export type CartLineExtra = { id: string; label: string; price: number };
 
@@ -27,7 +26,7 @@ export type CartLine = {
    * from the database — the displayed unitPrice above is never trusted.
    */
   productSlug: string;
-  sizeKey?: SizeKey;
+  sizeId?: string;
   secondProductSlug?: string;
 };
 

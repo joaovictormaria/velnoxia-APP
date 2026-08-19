@@ -21,6 +21,8 @@ type Draft = {
   headline: string;
   subhead: string;
   kind: "PIZZA" | "SIMPLE";
+  /** Digitado como texto separado por vírgula; vira lista ao salvar. */
+  sizes: string;
   sortOrder: number;
   isActive: boolean;
 };
@@ -34,6 +36,7 @@ const EMPTY: Draft = {
   headline: "",
   subhead: "",
   kind: "SIMPLE",
+  sizes: "",
   sortOrder: 0,
   isActive: true,
 };
@@ -75,6 +78,10 @@ function CategoriesPage() {
             headline: d.headline || null,
             subhead: d.subhead || null,
             kind: d.kind,
+            sizes: d.sizes
+              .split(",")
+              .map((t) => t.trim())
+              .filter(Boolean),
             sortOrder: d.sortOrder,
             isActive: d.isActive,
           },
@@ -200,6 +207,22 @@ function CategoriesPage() {
               <option value="SIMPLE">Simples (com ícone)</option>
             </select>
           </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1.5 block text-sm font-medium text-neutral-700">
+              Tamanhos
+            </span>
+            <input
+              value={draft.sizes}
+              onChange={(e) => setDraft({ ...draft, sizes: e.target.value })}
+              placeholder="Ex.: P, M, G — ou deixe vazio"
+              className="w-full rounded-xl border border-neutral-200 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400"
+            />
+            <span className="mt-1 block text-xs text-neutral-500">
+              Separe por vírgula, na ordem que devem aparecer. Cada produto desta categoria
+              recebe um preço por tamanho. Deixe vazio para vender pelo preço único — o normal
+              em bebidas e porções. Apagar um tamanho apaga os preços dele em todos os produtos.
+            </span>
+          </label>
 
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Ordem</span>
@@ -282,6 +305,7 @@ function CategoriesPage() {
                           headline: c.headline ?? "",
                           subhead: c.subhead ?? "",
                           kind: c.kind,
+                          sizes: c.sizes.map((t) => t.label).join(", "),
                           sortOrder: c.sortOrder,
                           isActive: c.isActive,
                         });

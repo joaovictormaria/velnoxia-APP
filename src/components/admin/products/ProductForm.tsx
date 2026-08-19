@@ -5,15 +5,6 @@ import { ArrowLeft } from "lucide-react";
 import { ImageUploadField } from "./ImageUploadField";
 import { saveProductFn } from "@/server/functions/products.fn";
 
-const SIZES = [
-  { key: "BROTINHO", label: "Brotinho" },
-  { key: "MEDIA", label: "Média" },
-  { key: "GRANDE", label: "Grande" },
-  { key: "GIGANTE", label: "Gigante" },
-] as const;
-
-type SizeKey = (typeof SIZES)[number]["key"];
-
 export type ProductFormValues = {
   name: string;
   slug: string;
@@ -26,7 +17,7 @@ export type ProductFormValues = {
   allowHalfAndHalf: boolean;
   halfPizzaPricingRule: "HIGHEST_PRICE" | "AVERAGE_PRICE";
   sortOrder: number;
-  sizes: { size: SizeKey; price: number; isAvailable: boolean }[];
+  sizes: { categorySizeId: string; price: number; isAvailable: boolean }[];
 };
 
 function slugify(value: string): string {
@@ -45,7 +36,7 @@ export function ProductForm({
 }: {
   productId: string | null;
   initial: ProductFormValues;
-  categories: { id: string; name: string }[];
+  categories: { id: string; name: string; sizes: { id: string; label: string }[] }[];
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -55,26 +46,40 @@ export function ProductForm({
   const [error, setError] = useState<string | null>(null);
 
   function set<K extends keyof ProductFormValues>(key: K, value: ProductFormValues[K]) {
-    setValues((v) => ({ ...v, [key]: value }));
+    // Mudar de categoria zera os preços por tamanho: eles apontam para
+    // tamanhos da categoria antiga, que a nova nem oferece.
+    setValues((v) =>
+      key === "categoryId" && value !== v.categoryId
+        ? { ...v, [key]: value, sizes: [] }
+        : { ...v, [key]: value },
+    );
   }
 
-  function sizeFor(key: SizeKey) {
-    return values.sizes.find((s) => s.size === key);
+/**
+   * Os tamanhos oferecidos são os da categoria escolhida agora, não uma lista
+   * fixa. Trocar a categoria troca o que aparece aqui — e os preços da
+   * categoria anterior deixam de valer, por isso são descartados no set().
+   */
+  const tamanhosDaCategoria =
+    categories.find((c) => c.id === values.categoryId)?.sizes ?? [];
+
+  function sizeFor(categorySizeId: string) {
+    return values.sizes.find((s) => s.categorySizeId === categorySizeId);
   }
 
-  function toggleSize(key: SizeKey, enabled: boolean) {
+  function toggleSize(categorySizeId: string, enabled: boolean) {
     setValues((v) => ({
       ...v,
       sizes: enabled
-        ? [...v.sizes, { size: key, price: v.basePrice, isAvailable: true }]
-        : v.sizes.filter((s) => s.size !== key),
+        ? [...v.sizes, { categorySizeId, price: v.basePrice, isAvailable: true }]
+        : v.sizes.filter((s) => s.categorySizeId !== categorySizeId),
     }));
   }
 
-  function setSizePrice(key: SizeKey, price: number) {
+  function setSizePrice(categorySizeId: string, price: number) {
     setValues((v) => ({
       ...v,
-      sizes: v.sizes.map((s) => (s.size === key ? { ...s, price } : s)),
+      sizes: v.sizes.map((s) => (s.categorySizeId === categorySizeId ? { ...s, price } : s)),
     }));
   }
 
@@ -213,37 +218,48 @@ export function ProductForm({
 
           <div>
             <p className="mb-2 text-sm font-medium text-neutral-900">Tamanhos disponíveis</p>
-            <div className="space-y-2">
-              {SIZES.map(({ key, label }) => {
-                const size = sizeFor(key);
-                return (
-                  <div key={key} className="flex items-center gap-3">
-                    <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(size)}
-                        onChange={(e) => toggleSize(key, e.target.checked)}
-                        className="size-4 accent-[#E11D2E]"
-                      />
-                      {label}
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      disabled={!size}
-                      value={size?.price ?? ""}
-                      onChange={(e) => setSizePrice(key, Number(e.target.value))}
-                      placeholder="—"
-                      className="w-28 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
-                    />
-                  </div>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-neutral-500">
-              Sem tamanhos marcados, o produto é vendido pelo preço base (bebidas, porções).
-            </p>
+
+            {tamanhosDaCategoria.length === 0 ? (
+              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
+                A categoria escolhida não tem tamanhos. Este produto é vendido pelo preço base —
+                o normal para bebidas e porções. Para vender por tamanho (P/M/G, 300ml/500ml),
+                cadastre os tamanhos na tela de Categorias.
+              </p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {tamanhosDaCategoria.map(({ id, label }) => {
+                    const size = sizeFor(id);
+                    return (
+                      <div key={id} className="flex items-center gap-3">
+                        <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(size)}
+                            onChange={(e) => toggleSize(id, e.target.checked)}
+                            className="size-4 accent-[#E11D2E]"
+                          />
+                          {label}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          disabled={!size}
+                          value={size?.price ?? ""}
+                          onChange={(e) => setSizePrice(id, Number(e.target.value))}
+                          placeholder="—"
+                          className="w-28 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-neutral-500">
+                  Sem tamanhos marcados, o produto é vendido pelo preço base.
+                </p>
+              </>
+            )}
           </div>
         </div>
 

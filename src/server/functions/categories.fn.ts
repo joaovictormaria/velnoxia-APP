@@ -23,6 +23,15 @@ const categorySchema = z.object({
   kind: z.enum(["PIZZA", "SIMPLE"]),
   sortOrder: z.number().int().default(0),
   isActive: z.boolean(),
+  /**
+   * Os tamanhos que a categoria oferece, na ordem. Ficam aqui e não no
+   * produto porque a meia a meia procura o mesmo tamanho em dois sabores —
+   * se cada produto nomeasse os seus, "Grande" e "grande" seriam diferentes.
+   */
+  sizes: z
+    .array(z.string().trim().min(1, "O tamanho precisa de um nome.").max(24))
+    .max(8, "No máximo 8 tamanhos por categoria.")
+    .optional(),
 });
 
 export const listCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {
