@@ -4,8 +4,18 @@ import { getCurrentAdminFn, logoutFn } from "@/server/functions/auth.fn";
 
 export const Route = createFileRoute("/admin")({
   beforeLoad: async ({ location }) => {
-    // Both render inside this layout but without the shell, and without a session.
-    if (location.pathname === "/admin/login" || location.pathname === "/admin/cadastro") {
+    /**
+     * Rotas que renderizam dentro deste layout mas sem a moldura e sem sessão.
+     * As de senha entram aqui pelo motivo mais óbvio: quem vai redefinir a
+     * senha é exatamente quem não consegue entrar.
+     */
+    const PUBLICAS = [
+      "/admin/login",
+      "/admin/cadastro",
+      "/admin/esqueci-senha",
+      "/admin/nova-senha",
+    ];
+    if (PUBLICAS.includes(location.pathname)) {
       return { admin: null };
     }
 

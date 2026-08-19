@@ -169,6 +169,7 @@ model AdminUser {
   updatedAt    DateTime  @updatedAt
 
   respondedReviews Review[] @relation("ReviewRespondedBy")
+  passwordResets   PasswordResetToken[]
 
   @@index([storeId])
 }
@@ -635,4 +636,19 @@ model CourierInvite {
   createdAt  DateTime  @default(now())
 
   @@index([storeId, usedAt])
+}
+
+/// Pedido de nova senha. O token vai por e-mail e só o hash fica guardado:
+/// quem ler o banco não consegue trocar a senha de ninguém. Uso único e vida
+/// curta, porque um link de redefinição é, enquanto vale, a própria senha.
+model PasswordResetToken {
+  id           String    @id @default(cuid())
+  adminUserId  String
+  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([adminUserId, usedAt])
 }

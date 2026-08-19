@@ -20,7 +20,9 @@ import { Route as StoreSlugIndexRouteImport } from './routes/$storeSlug/index'
 import { Route as StoreSlugCarrinhoRouteImport } from './routes/$storeSlug/carrinho'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminCadastroRouteImport } from './routes/admin/cadastro'
+import { Route as AdminEsqueciSenhaRouteImport } from './routes/admin/esqueci-senha'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
+import { Route as AdminNovaSenhaRouteImport } from './routes/admin/nova-senha'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as EntregadorIndexRouteImport } from './routes/entregador/index'
@@ -98,9 +100,19 @@ const AdminCadastroRoute = AdminCadastroRouteImport.update({
   path: '/cadastro',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminEsqueciSenhaRoute = AdminEsqueciSenhaRouteImport.update({
+  id: '/esqueci-senha',
+  path: '/esqueci-senha',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminNovaSenhaRoute = AdminNovaSenhaRouteImport.update({
+  id: '/nova-senha',
+  path: '/nova-senha',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -220,7 +232,9 @@ export interface FileRoutesByFullPath {
   '/preview': typeof PreviewRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/cadastro': typeof AdminCadastroRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/nova-senha': typeof AdminNovaSenhaRoute
   '/api/health': typeof ApiHealthRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
@@ -252,7 +266,9 @@ export interface FileRoutesByTo {
   '/preview': typeof PreviewRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/cadastro': typeof AdminCadastroRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/nova-senha': typeof AdminNovaSenhaRoute
   '/api/health': typeof ApiHealthRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
@@ -288,7 +304,9 @@ export interface FileRoutesById {
   '/preview': typeof PreviewRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/cadastro': typeof AdminCadastroRoute
+  '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
+  '/admin/nova-senha': typeof AdminNovaSenhaRoute
   '/api/health': typeof ApiHealthRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
@@ -325,7 +343,9 @@ export interface FileRouteTypes {
     | '/preview'
     | '/$storeSlug/carrinho'
     | '/admin/cadastro'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/nova-senha'
     | '/api/health'
     | '/api/upload'
     | '/entregador/entrar'
@@ -357,7 +377,9 @@ export interface FileRouteTypes {
     | '/preview'
     | '/$storeSlug/carrinho'
     | '/admin/cadastro'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/nova-senha'
     | '/api/health'
     | '/api/upload'
     | '/entregador/entrar'
@@ -392,7 +414,9 @@ export interface FileRouteTypes {
     | '/preview'
     | '/$storeSlug/carrinho'
     | '/admin/cadastro'
+    | '/admin/esqueci-senha'
     | '/admin/login'
+    | '/admin/nova-senha'
     | '/api/health'
     | '/api/upload'
     | '/entregador/entrar'
@@ -509,11 +533,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCadastroRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/esqueci-senha': {
+      id: '/admin/esqueci-senha'
+      path: '/esqueci-senha'
+      fullPath: '/admin/esqueci-senha'
+      preLoaderRoute: typeof AdminEsqueciSenhaRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/login': {
       id: '/admin/login'
       path: '/login'
       fullPath: '/admin/login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/nova-senha': {
+      id: '/admin/nova-senha'
+      path: '/nova-senha'
+      fullPath: '/admin/nova-senha'
+      preLoaderRoute: typeof AdminNovaSenhaRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/api/health': {
@@ -686,7 +724,9 @@ const StoreSlugRouteRouteWithChildren = StoreSlugRouteRoute._addFileChildren(
 
 interface AdminRouteRouteChildren {
   AdminCadastroRoute: typeof AdminCadastroRoute
+  AdminEsqueciSenhaRoute: typeof AdminEsqueciSenhaRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  AdminNovaSenhaRoute: typeof AdminNovaSenhaRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminCardapioProductIdRoute: typeof AdminCardapioProductIdRoute
   AdminCardapioCategoriasRoute: typeof AdminCardapioCategoriasRoute
@@ -707,7 +747,9 @@ interface AdminRouteRouteChildren {
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCadastroRoute: AdminCadastroRoute,
+  AdminEsqueciSenhaRoute: AdminEsqueciSenhaRoute,
   AdminLoginRoute: AdminLoginRoute,
+  AdminNovaSenhaRoute: AdminNovaSenhaRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminCardapioProductIdRoute: AdminCardapioProductIdRoute,
   AdminCardapioCategoriasRoute: AdminCardapioCategoriasRoute,

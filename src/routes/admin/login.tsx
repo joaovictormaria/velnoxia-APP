@@ -84,6 +84,15 @@ function LoginPage() {
             />
           </div>
 
+          <div className="text-right">
+            <Link
+              to="/admin/esqueci-senha"
+              className="text-sm text-neutral-500 hover:text-[#E11D2E]"
+            >
+              Esqueci minha senha
+            </Link>
+          </div>
+
           {error && <p className="text-sm text-[#E11D2E]">{error}</p>}
 
           <Button
