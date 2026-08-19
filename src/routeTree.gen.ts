@@ -19,11 +19,13 @@ import { Route as PreviewRouteImport } from './routes/preview'
 import { Route as StoreSlugIndexRouteImport } from './routes/$storeSlug/index'
 import { Route as StoreSlugCarrinhoRouteImport } from './routes/$storeSlug/carrinho'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAssinaturaRouteImport } from './routes/admin/assinatura'
 import { Route as AdminCadastroRouteImport } from './routes/admin/cadastro'
 import { Route as AdminEsqueciSenhaRouteImport } from './routes/admin/esqueci-senha'
 import { Route as AdminLoginRouteImport } from './routes/admin/login'
 import { Route as AdminNovaSenhaRouteImport } from './routes/admin/nova-senha'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe-webhook'
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as EntregadorIndexRouteImport } from './routes/entregador/index'
 import { Route as EntregadorEntrarRouteImport } from './routes/entregador/entrar'
@@ -95,6 +97,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminAssinaturaRoute = AdminAssinaturaRouteImport.update({
+  id: '/assinatura',
+  path: '/assinatura',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminCadastroRoute = AdminCadastroRouteImport.update({
   id: '/cadastro',
   path: '/cadastro',
@@ -118,6 +125,11 @@ const AdminNovaSenhaRoute = AdminNovaSenhaRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe-webhook',
+  path: '/api/stripe-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiUploadRoute = ApiUploadRouteImport.update({
@@ -231,11 +243,13 @@ export interface FileRoutesByFullPath {
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/nova-senha': typeof AdminNovaSenhaRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
@@ -265,11 +279,13 @@ export interface FileRoutesByTo {
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/nova-senha': typeof AdminNovaSenhaRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
   '/$storeSlug': typeof StoreSlugIndexRoute
@@ -303,11 +319,13 @@ export interface FileRoutesById {
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
+  '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/cadastro': typeof AdminCadastroRoute
   '/admin/esqueci-senha': typeof AdminEsqueciSenhaRoute
   '/admin/login': typeof AdminLoginRoute
   '/admin/nova-senha': typeof AdminNovaSenhaRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
@@ -342,11 +360,13 @@ export interface FileRouteTypes {
     | '/criar-site'
     | '/preview'
     | '/$storeSlug/carrinho'
+    | '/admin/assinatura'
     | '/admin/cadastro'
     | '/admin/esqueci-senha'
     | '/admin/login'
     | '/admin/nova-senha'
     | '/api/health'
+    | '/api/stripe-webhook'
     | '/api/upload'
     | '/entregador/entrar'
     | '/$storeSlug/'
@@ -376,11 +396,13 @@ export interface FileRouteTypes {
     | '/criar-site'
     | '/preview'
     | '/$storeSlug/carrinho'
+    | '/admin/assinatura'
     | '/admin/cadastro'
     | '/admin/esqueci-senha'
     | '/admin/login'
     | '/admin/nova-senha'
     | '/api/health'
+    | '/api/stripe-webhook'
     | '/api/upload'
     | '/entregador/entrar'
     | '/$storeSlug'
@@ -413,11 +435,13 @@ export interface FileRouteTypes {
     | '/criar-site'
     | '/preview'
     | '/$storeSlug/carrinho'
+    | '/admin/assinatura'
     | '/admin/cadastro'
     | '/admin/esqueci-senha'
     | '/admin/login'
     | '/admin/nova-senha'
     | '/api/health'
+    | '/api/stripe-webhook'
     | '/api/upload'
     | '/entregador/entrar'
     | '/$storeSlug/'
@@ -451,6 +475,7 @@ export interface RootRouteChildren {
   CriarSiteRoute: typeof CriarSiteRoute
   PreviewRoute: typeof PreviewRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiUploadRoute: typeof ApiUploadRoute
 }
 
@@ -526,6 +551,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/assinatura': {
+      id: '/admin/assinatura'
+      path: '/assinatura'
+      fullPath: '/admin/assinatura'
+      preLoaderRoute: typeof AdminAssinaturaRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/cadastro': {
       id: '/admin/cadastro'
       path: '/cadastro'
@@ -559,6 +591,13 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/stripe-webhook': {
+      id: '/api/stripe-webhook'
+      path: '/api/stripe-webhook'
+      fullPath: '/api/stripe-webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/upload': {
@@ -723,6 +762,7 @@ const StoreSlugRouteRouteWithChildren = StoreSlugRouteRoute._addFileChildren(
 )
 
 interface AdminRouteRouteChildren {
+  AdminAssinaturaRoute: typeof AdminAssinaturaRoute
   AdminCadastroRoute: typeof AdminCadastroRoute
   AdminEsqueciSenhaRoute: typeof AdminEsqueciSenhaRoute
   AdminLoginRoute: typeof AdminLoginRoute
@@ -746,6 +786,7 @@ interface AdminRouteRouteChildren {
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminAssinaturaRoute: AdminAssinaturaRoute,
   AdminCadastroRoute: AdminCadastroRoute,
   AdminEsqueciSenhaRoute: AdminEsqueciSenhaRoute,
   AdminLoginRoute: AdminLoginRoute,
@@ -795,6 +836,7 @@ const rootRouteChildren: RootRouteChildren = {
   CriarSiteRoute: CriarSiteRoute,
   PreviewRoute: PreviewRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiUploadRoute: ApiUploadRoute,
 }
 export const routeTree = rootRouteImport

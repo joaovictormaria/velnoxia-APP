@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { prisma } from "../db/client";
+import { contaLiberada, type EstadoDaConta } from "../billing/access";
 
 /**
  * Slugs a store may never take, because a store lives at the URL root
@@ -108,14 +109,23 @@ export function isEmailTaken(email: string) {
     .then(Boolean);
 }
 
-/** A store is only servable to customers while it is paid up or in trial. */
+/**
+ * O cardápio só fica no ar enquanto a conta está paga ou em teste.
+ *
+ * Usa a mesma regra do painel de propósito: se as duas divergissem, existiria
+ * o caso pior de todos — o dono entra no painel, vê tudo normal, e o cliente
+ * dele encontra a loja fora do ar.
+ */
 export function isStoreServable(store: {
   status: string;
   trialEndsAt: Date | null;
+  paidUntil?: Date | null;
+  subscriptionStatus?: string | null;
 }): boolean {
-  if (store.status === "SUSPENDED") return false;
-  if (store.status === "TRIAL" && store.trialEndsAt && store.trialEndsAt.getTime() < Date.now()) {
-    return false;
-  }
-  return true;
+  return contaLiberada({
+    status: store.status as EstadoDaConta["status"],
+    trialEndsAt: store.trialEndsAt,
+    paidUntil: store.paidUntil ?? null,
+    subscriptionStatus: store.subscriptionStatus ?? null,
+  });
 }

@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ClipboardList,
   Cog,
+  CreditCard,
   Inbox,
   LayoutGrid,
   LogOut,
@@ -93,6 +94,7 @@ const MENU: (Item | Grupo)[] = [
       { to: "/admin/relatorios/produtos", label: "Produtos", icon: BarChart3 },
     ],
   },
+  { to: "/admin/assinatura", label: "Assinatura", icon: CreditCard },
   { to: "/admin/configuracoes", label: "Configurações", icon: Cog },
 ];
 

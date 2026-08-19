@@ -1,5 +1,6 @@
 import { clearSession, getSession, updateSession } from "@tanstack/react-start/server";
 import { prisma } from "../db/client";
+import { conferirAcesso, type Veredito } from "../billing/access";
 import { verifyPassword } from "./password";
 
 type AdminSessionData = {
@@ -36,6 +37,16 @@ export type CurrentAdmin = {
     name: string;
     status: "TRIAL" | "ACTIVE" | "SUSPENDED";
     trialEndsAt: Date | null;
+    /** Até quando está pago. Null numa loja liberada na mão. */
+    paidUntil: Date | null;
+    subscriptionStatus: string | null;
+    cancelAtPeriodEnd: boolean;
+    /**
+     * Por que a conta está (ou não está) liberada. Substitui o antigo
+     * trialExpired: agora existe mais de um jeito de a loja cair, e a tela
+     * precisa dizer qual foi para oferecer a saída certa.
+     */
+    acesso: Veredito;
     /** True when the trial window has passed — the account still exists. */
     trialExpired: boolean;
     /** A logo que o dono subiu. Null enquanto ele não subir nenhuma. */
@@ -65,6 +76,9 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
           name: true,
           status: true,
           trialEndsAt: true,
+          paidUntil: true,
+          subscriptionStatus: true,
+          cancelAtPeriodEnd: true,
           settings: { select: { logoUrl: true } },
         },
       },
@@ -83,6 +97,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
       // A logo é do painel também, não só da vitrine: o dono se reconhece
       // no canto da tela em vez de ver o ícone genérico do sistema.
       logoUrl: admin.store.settings?.logoUrl ?? null,
+      acesso: conferirAcesso(admin.store),
       trialExpired:
         admin.store.status === "TRIAL" &&
         admin.store.trialEndsAt !== null &&
@@ -94,7 +109,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
 /** Thrown separately from UNAUTHORIZED so the UI can offer to reactivate
  *  instead of bouncing the owner back to the login form. */
 export class StoreInactiveError extends Error {
-  constructor(public reason: "SUSPENDED" | "TRIAL_EXPIRED") {
+  constructor(public reason: Extract<Veredito, { liberado: false }>["motivo"]) {
     super(reason);
     this.name = "StoreInactiveError";
   }
@@ -112,8 +127,9 @@ export class WrongRoleError extends Error {
 async function requireUsableSession(): Promise<CurrentAdmin> {
   const admin = await getCurrentAdmin();
   if (!admin) throw new Error("UNAUTHORIZED");
-  if (admin.store.status === "SUSPENDED") throw new StoreInactiveError("SUSPENDED");
-  if (admin.store.trialExpired) throw new StoreInactiveError("TRIAL_EXPIRED");
+  // Uma regra só decide: teste, pago, tolerância do cartão e suspensão saem
+  // todos daqui, e a tela do painel lê o mesmo veredito.
+  if (!admin.store.acesso.liberado) throw new StoreInactiveError(admin.store.acesso.motivo);
   return admin;
 }
 

@@ -1,7 +1,15 @@
-import { Outlet, createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import {
+  Link,
+  Outlet,
+  createFileRoute,
+  redirect,
+  useRouter,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
 import { registrarPainelInstalavel } from "@/lib/painel-instalavel";
+import { precoEscrito } from "@/lib/plano";
 import { getCurrentAdminFn, logoutFn } from "@/server/functions/auth.fn";
 
 export const Route = createFileRoute("/admin")({
@@ -64,6 +72,8 @@ function AdminLayout() {
     registrarPainelInstalavel();
   }, []);
 
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
   // The login route renders inside this layout but without the shell.
   if (!admin) return <Outlet />;
 
@@ -75,10 +85,16 @@ function AdminLayout() {
   // A suspended or expired store keeps its data and its login — every server
   // function already refuses it, so showing the panel would only produce
   // errors on each click. This explains the state instead.
-  if (admin.store.status === "SUSPENDED" || admin.store.trialExpired) {
+  /**
+   * Conta bloqueada mostra o aviso no lugar do painel — menos na tela de
+   * assinatura, que é a saída. Ela precisa abrir justamente quando a conta
+   * caiu, e continuar aberta na volta do pagamento, enquanto o webhook do
+   * Stripe ainda não chegou para liberar.
+   */
+  if (!admin.store.acesso.liberado && pathname !== "/admin/assinatura") {
     return (
       <StoreInactiveScreen
-        suspended={admin.store.status === "SUSPENDED"}
+        motivo={admin.store.acesso.motivo}
         storeName={admin.store.name}
         onLogout={handleLogout}
       />
@@ -104,38 +120,64 @@ function AdminLayout() {
   );
 }
 
-/** Shown instead of the panel when the store cannot be used. */
+/**
+ * Mostrada no lugar do painel quando a conta não pode ser usada.
+ *
+ * O botão principal muda com o motivo: quem venceu tem como resolver sozinho,
+ * pagando; quem foi suspenso não tem — suspensão é decisão nossa, e mandá-lo
+ * para o pagamento só criaria a expectativa errada.
+ */
 function StoreInactiveScreen({
-  suspended,
+  motivo,
   storeName,
   onLogout,
 }: {
-  suspended: boolean;
+  motivo: "suspensa" | "trial-vencido" | "assinatura-vencida";
   storeName: string;
   onLogout: () => void;
 }) {
+  const texto = {
+    suspensa: {
+      titulo: "Conta suspensa",
+      corpo: `A conta de ${storeName} está suspensa. Fale com a gente para reativar.`,
+    },
+    "trial-vencido": {
+      titulo: "Seu período de teste terminou",
+      corpo: `Os 14 dias de teste de ${storeName} acabaram. Seus dados continuam salvos — é só assinar para voltar a receber pedidos.`,
+    },
+    "assinatura-vencida": {
+      titulo: "Sua assinatura venceu",
+      corpo: `Não conseguimos renovar a assinatura de ${storeName}. Seus dados continuam salvos — regularize para voltar ao ar.`,
+    },
+  }[motivo];
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4">
       <div className="admin-theme w-full max-w-md rounded-2xl bg-white p-8 text-center text-neutral-900 shadow-xl">
-        <h1 className="text-xl font-bold">
-          {suspended ? "Conta suspensa" : "Seu período de teste terminou"}
-        </h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          {suspended
-            ? `A conta de ${storeName} está suspensa. Fale com a gente para reativar.`
-            : `Os 14 dias de teste de ${storeName} acabaram. Seus dados continuam salvos — é só reativar para voltar a receber pedidos.`}
-        </p>
+        <h1 className="text-xl font-bold">{texto.titulo}</h1>
+        <p className="mt-2 text-sm text-neutral-600">{texto.corpo}</p>
         <p className="mt-4 rounded-lg bg-neutral-100 px-3 py-2 text-xs text-neutral-600">
           Enquanto isso, seu cardápio fica fora do ar para os clientes.
         </p>
-        <a
-          href="https://wa.me/5511999999999"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 block rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a]"
-        >
-          Falar com o suporte
-        </a>
+
+        {motivo === "suspensa" ? (
+          <a
+            href="https://wa.me/5511999999999"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 block rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a]"
+          >
+            Falar com o suporte
+          </a>
+        ) : (
+          <Link
+            to="/admin/assinatura"
+            className="mt-5 block rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a]"
+          >
+            Assinar por {precoEscrito()} por mês
+          </Link>
+        )}
+
         <button
           type="button"
           onClick={onLogout}

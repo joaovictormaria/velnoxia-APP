@@ -121,6 +121,22 @@ model Store {
   name        String
   status      StoreStatus @default(TRIAL)
   trialEndsAt DateTime?
+
+  /// O cliente no Stripe. Criado na primeira tentativa de assinar e reusado
+  /// depois, para o dono não virar dois clientes com dois cartões.
+  stripeCustomerId     String? @unique
+  /// A assinatura corrente. Null enquanto ele nunca assinou.
+  stripeSubscriptionId String? @unique
+  /// O texto cru que o Stripe usa ("active", "past_due", "canceled"). Guardado
+  /// para a tela explicar o porquê em vez de só dizer que caiu.
+  subscriptionStatus   String?
+  /// Até quando o acesso está pago. Null numa loja liberada na mão, que então
+  /// não expira. É esta data, e não o status, que decide o corte.
+  paidUntil            DateTime?
+  /// Marcada quando o dono pede cancelamento: ele continua usando até o fim
+  /// do período que já pagou, e a tela precisa dizer isso.
+  cancelAtPeriodEnd    Boolean @default(false)
+
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
