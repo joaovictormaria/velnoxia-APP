@@ -152,9 +152,20 @@ export async function getPublicStoreSettings(storeId: string) {
   };
 }
 
+/**
+ * O nome vive em dois lugares: Store.name identifica a loja no sistema e
+ * storeName é o que o cliente lê na vitrine. O cadastro nasce com os dois
+ * iguais e é assim que devem continuar — só que esta tela editava apenas o
+ * segundo, e o primeiro ficava congelado no nome do dia do cadastro. Quem
+ * pagava a conta era a legenda do QR Code impresso, que sai de Store.name.
+ */
 export async function updateStoreSettings(storeId: string, data: StoreSettingsInput) {
   const settings = await getStoreSettings(storeId);
-  return prisma.storeSettings.update({ where: { id: settings.id }, data });
+  const [atualizado] = await prisma.$transaction([
+    prisma.storeSettings.update({ where: { id: settings.id }, data }),
+    prisma.store.update({ where: { id: storeId }, data: { name: data.storeName } }),
+  ]);
+  return atualizado;
 }
 
 /** Upserts one row per weekday so the unique (store, weekday) pair is preserved. */
