@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { ImageUploadField } from "./ImageUploadField";
 import { saveProductFn } from "@/server/functions/products.fn";
+import { getBusinessTypeFn } from "@/server/functions/settings.fn";
 
 export type ProductFormValues = {
   name: string;
@@ -44,6 +45,15 @@ export function ProductForm({
   // Only auto-derive the slug for new products; editing keeps the public URL stable.
   const [slugTouched, setSlugTouched] = useState(productId !== null);
   const [error, setError] = useState<string | null>(null);
+
+  // Meia a meia é a divisão física do disco de pizza, com regra de preço entre
+  // dois sabores. Numa hamburgueria a pergunta não existe — e oferecê-la só
+  // gera a dúvida de para que serve, ou um pedido impossível de montar.
+  const { data: businessType } = useQuery({
+    queryKey: ["business-type"],
+    queryFn: () => getBusinessTypeFn(),
+  });
+  const aceitaMeioAMeio = businessType === "pizzaria";
 
   function set<K extends keyof ProductFormValues>(key: K, value: ProductFormValues[K]) {
     // Mudar de categoria zera os preços por tamanho: eles apontam para
@@ -277,29 +287,41 @@ export function ProductForm({
             onChange={(v) => set("isActive", v)}
           />
 
-          <Toggle
-            label="Permitir meia-pizza (2 sabores)"
-            checked={values.allowHalfAndHalf}
-            onChange={(v) => set("allowHalfAndHalf", v)}
-          />
+          {aceitaMeioAMeio && (
+            <>
+              <Toggle
+                label="Permitir meia a meia (2 sabores)"
+                checked={values.allowHalfAndHalf}
+                onChange={(v) => set("allowHalfAndHalf", v)}
+              />
 
-          <Field label="Regra de preço meia-pizza">
-            <select
-              value={values.halfPizzaPricingRule}
-              disabled={!values.allowHalfAndHalf}
-              onChange={(e) =>
-                set("halfPizzaPricingRule", e.target.value as ProductFormValues["halfPizzaPricingRule"])
-              }
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
-            >
-              <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
-              <option value="AVERAGE_PRICE">Média entre os sabores</option>
-            </select>
-          </Field>
+              {values.allowHalfAndHalf && (
+                <>
+                  <Field label="Regra de preço">
+                    <select
+                      value={values.halfPizzaPricingRule}
+                      onChange={(e) =>
+                        set(
+                          "halfPizzaPricingRule",
+                          e.target.value as ProductFormValues["halfPizzaPricingRule"],
+                        )
+                      }
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
+                    >
+                      <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
+                      <option value="AVERAGE_PRICE">Média entre os sabores</option>
+                    </select>
+                  </Field>
 
-          <p className="text-xs text-neutral-500">
-            O preço da meia-pizza será baseado no sabor mais caro selecionado.
-          </p>
+                  <p className="text-xs text-neutral-500">
+                    {values.halfPizzaPricingRule === "HIGHEST_PRICE"
+                      ? "A pizza sai pelo preço do sabor mais caro dos dois."
+                      : "A pizza sai pela média dos preços dos dois sabores."}
+                  </p>
+                </>
+              )}
+            </>
+          )}
 
           <Field label="Ordem de exibição">
             <input
