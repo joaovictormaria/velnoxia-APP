@@ -10,6 +10,7 @@ const checkoutSchema = z.object({
       z.object({
         productSlug: z.string().min(1),
         sizeId: z.string().optional(),
+        optionIds: z.array(z.string()).max(30).optional(),
         secondProductSlug: z.string().optional(),
         extraIds: z.array(z.string()).default([]),
         quantity: z.number().int().min(1).max(50),

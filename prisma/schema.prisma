@@ -266,6 +266,7 @@ model Category {
 
   products Product[]
   sizes      CategorySize[]
+  optionGroups OptionGroup[]
 
   @@unique([storeId, slug])
   @@index([storeId, sortOrder])
@@ -317,6 +318,51 @@ model CategorySize {
 
   @@unique([categoryId, label])
   @@index([categoryId, sortOrder])
+}
+
+/// Uma escolha que o cliente faz ao pedir: o sabor do shake, o ponto da
+/// carne, os complementos do açaí, a borda da pizza.
+///
+/// Mora na categoria pelo mesmo motivo dos tamanhos: é uma característica do
+/// tipo de produto, não de cada item. A categoria "Shakes" pergunta o sabor
+/// uma vez, e todos os shakes herdam a pergunta.
+///
+/// As três regras cobrem o que cada ramo precisa sem inventar um campo por
+/// caso: "escolha 1 obrigatório" é min=1/max=1, "até 3 grátis depois paga" é
+/// free=3, e o adicional solto de sempre é min=0 sem limite.
+model OptionGroup {
+  id          String       @id @default(cuid())
+  categoryId  String
+  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /// O que a pergunta diz na tela: "Sabor", "Ponto da carne", "Complementos".
+  name        String
+  /// Zero deixa a pergunta opcional; 1 ou mais a torna obrigatória.
+  minChoices  Int          @default(0)
+  /// Quantas opções cabem. 1 vira botão de escolha única na vitrine.
+  maxChoices  Int          @default(1)
+  /// Quantas escolhas não são cobradas, contando da primeira.
+  freeChoices Int          @default(0)
+  sortOrder   Int          @default(0)
+  options     OptionItem[]
+
+  @@index([categoryId, sortOrder])
+}
+
+/// Uma opção dentro do grupo, com o preço que ela acrescenta.
+model OptionItem {
+  id          String      @id @default(cuid())
+  groupId     String
+  group       OptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name        String
+  /// Acréscimo. Zero nas escolhas que não custam, como o sabor.
+  price       Float       @default(0)
+  isAvailable Boolean     @default(true)
+  sortOrder   Int         @default(0)
+
+  chosen OrderItemExtra[]
+
+  @@unique([groupId, name])
+  @@index([groupId, sortOrder])
 }
 
 /// Quanto um produto custa em cada tamanho da categoria dele.
@@ -517,6 +563,14 @@ model OrderItemExtra {
   orderItem    OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
   extraId      String?
   extra        Extra?    @relation(fields: [extraId], references: [id], onDelete: SetNull)
+  /// Preenchido quando a linha veio de um grupo de opções, e não da lista
+  /// solta de adicionais. Os dois convivem na mesma tabela porque, para o
+  /// pedido, ambos são "algo que o cliente escolheu e entrou na conta".
+  optionItemId String?
+  optionItem   OptionItem? @relation(fields: [optionItemId], references: [id], onDelete: SetNull)
+  /// O nome do grupo no momento da compra, para o pedido dizer
+  /// "Sabor: Chocolate" e não só "Chocolate".
+  groupNameSnapshot String?
   nameSnapshot String
   priceSnapshot Float
 }

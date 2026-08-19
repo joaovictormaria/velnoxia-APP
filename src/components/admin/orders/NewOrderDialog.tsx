@@ -151,7 +151,14 @@ export function NewOrderDialog() {
                           key={e.id}
                           className="flex justify-between gap-2 text-xs text-neutral-500"
                         >
-                          <span>+ {e.nameSnapshot}</span>
+                          {/* O grupo antes do nome: na cozinha, um sabor
+                              obrigatório e um adicional pago são coisas
+                              diferentes, e "+ Morango" não distingue as duas. */}
+                          <span>
+                            {e.groupNameSnapshot
+                              ? e.groupNameSnapshot + ": " + e.nameSnapshot
+                              : "+ " + e.nameSnapshot}
+                          </span>
                           <span>{currency.format(e.priceSnapshot)}</span>
                         </p>
                       ))}

@@ -21,6 +21,8 @@ export type Category = {
   image?: string;
   icon?: LucideIcon;
   kind: "pizza" | "simple";
+  /** Perguntas feitas a qualquer produto desta categoria. */
+  optionGroups: OptionGroup[];
 };
 
 /**
@@ -48,6 +50,20 @@ export type Product = {
 };
 
 export type Extra = { id: string; label: string; price: number };
+
+/**
+ * Uma pergunta que o cardápio faz antes de o item ir para o carrinho: o sabor
+ * do shake, o ponto da carne, os complementos do açaí.
+ */
+export type OptionGroup = {
+  id: string;
+  name: string;
+  min: number;
+  max: number;
+  /** Quantas escolhas não são cobradas, contando das mais caras. */
+  free: number;
+  options: { id: string; name: string; price: number }[];
+};
 
 /**
  * Preço num tamanho. Cai no preço base quando o produto não tem tamanhos —

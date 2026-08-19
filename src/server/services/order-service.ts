@@ -6,6 +6,7 @@ import type {
 } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { prisma } from "../db/client";
+import { conferirOpcoes } from "./option-pricing";
 
 /**
  * Secret for the tracking link the customer gets. Generated with crypto rather
@@ -22,6 +23,8 @@ export type CheckoutItem = {
   sizeId?: string;
   secondProductSlug?: string;
   extraIds: string[];
+  /** Ids das opções escolhidas nos grupos da categoria. */
+  optionIds?: string[];
   quantity: number;
   note?: string;
 };
@@ -111,6 +114,16 @@ export async function createOrderFromCheckout(
   });
   const sizesById = new Map(sizes.map((s) => [s.id, s]));
 
+  /**
+   * Os grupos das categorias envolvidas. Lidos do banco e não do que o
+   * navegador mandou: é aqui que se sabe o que é obrigatório, o que cabe e
+   * quanto custa — o cliente pode mandar qualquer coisa.
+   */
+  const gruposPorCategoria = new Map<string, Awaited<ReturnType<typeof buscarGrupos>>>();
+  for (const categoryId of new Set(products.map((p) => p.categoryId))) {
+    gruposPorCategoria.set(categoryId, await buscarGrupos(categoryId));
+  }
+
   const extraIds = [...new Set(input.items.flatMap((i) => i.extraIds))];
   const extras = extraIds.length
     ? await prisma.extra.findMany({ where: { storeId, id: { in: extraIds }, isActive: true } })
@@ -127,7 +140,13 @@ export async function createOrderFromCheckout(
     unitPrice: number;
     quantity: number;
     note: string | null;
-    extras: { extraId: string; nameSnapshot: string; priceSnapshot: number }[];
+    extras: {
+      extraId: string | null;
+      optionItemId: string | null;
+      groupNameSnapshot: string | null;
+      nameSnapshot: string;
+      priceSnapshot: number;
+    }[];
   }[] = [];
 
   let subtotal = 0;
@@ -179,18 +198,47 @@ export async function createOrderFromCheckout(
           : Math.max(unitPrice, secondPrice);
     }
 
+    const opcoes = conferirOpcoes(
+      gruposPorCategoria.get(product.categoryId) ?? [],
+      item.optionIds ?? [],
+    );
+    if (!opcoes.ok) return { ok: false, error: opcoes.error };
+
     const lineExtras = item.extraIds.map((id) => {
       const extra = extraById.get(id);
       return extra
-        ? { extraId: extra.id, nameSnapshot: extra.name, priceSnapshot: extra.price }
+        ? {
+            extraId: extra.id,
+            optionItemId: null,
+            groupNameSnapshot: null,
+            nameSnapshot: extra.name,
+            priceSnapshot: extra.price,
+          }
         : null;
     });
     if (lineExtras.some((e) => e === null)) {
       return { ok: false, error: "Um dos adicionais não está mais disponível." };
     }
-    const resolvedExtras = lineExtras as { extraId: string; nameSnapshot: string; priceSnapshot: number }[];
+    const resolvedExtras = lineExtras as {
+      extraId: string | null;
+      optionItemId: string | null;
+      groupNameSnapshot: string | null;
+      nameSnapshot: string;
+      priceSnapshot: number;
+    }[];
 
-    const extrasTotal = resolvedExtras.reduce((s, e) => s + e.priceSnapshot, 0);
+    // As escolhas dos grupos entram na mesma lista dos adicionais: para o
+    // pedido, ambos são "algo que o cliente escolheu e entrou na conta".
+    const escolhas = opcoes.escolhas.map((e) => ({
+      extraId: null,
+      optionItemId: e.optionItemId,
+      groupNameSnapshot: e.groupName,
+      nameSnapshot: e.name,
+      priceSnapshot: e.price,
+    }));
+
+    const todosAdicionais = [...resolvedExtras, ...escolhas];
+    const extrasTotal = todosAdicionais.reduce((s, e) => s + e.priceSnapshot, 0);
     subtotal += (unitPrice + extrasTotal) * item.quantity;
 
     lines.push({
@@ -203,7 +251,7 @@ export async function createOrderFromCheckout(
       unitPrice: Math.round(unitPrice * 100) / 100,
       quantity: item.quantity,
       note: item.note?.trim() || null,
-      extras: resolvedExtras,
+      extras: todosAdicionais,
     });
   }
 
@@ -336,6 +384,26 @@ export async function createOrderFromCheckout(
     total: order.total,
     trackingToken: order.trackingToken,
   };
+}
+
+/** Grupos e opções disponíveis de uma categoria, na ordem da tela. */
+function buscarGrupos(categoryId: string) {
+  return prisma.optionGroup.findMany({
+    where: { categoryId },
+    orderBy: { sortOrder: "asc" },
+    select: {
+      id: true,
+      name: true,
+      minChoices: true,
+      maxChoices: true,
+      freeChoices: true,
+      options: {
+        where: { isAvailable: true },
+        orderBy: { sortOrder: "asc" },
+        select: { id: true, name: true, price: true },
+      },
+    },
+  });
 }
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {

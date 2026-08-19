@@ -27,6 +27,7 @@ export type CartLine = {
    */
   productSlug: string;
   sizeId?: string;
+  optionIds?: string[];
   secondProductSlug?: string;
 };
 

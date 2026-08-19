@@ -120,6 +120,15 @@ export function listMenuForStorefront(storeId: string) {
     where: { storeId, isActive: true },
     orderBy: { sortOrder: "asc" },
     include: {
+      optionGroups: {
+        orderBy: { sortOrder: "asc" },
+        include: {
+          options: {
+            where: { isAvailable: true },
+            orderBy: { sortOrder: "asc" },
+          },
+        },
+      },
       products: {
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },

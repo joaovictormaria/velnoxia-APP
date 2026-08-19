@@ -18,6 +18,7 @@ import {
 } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { cn } from "@/lib/utils";
+import { OptionGroups } from "@/components/site/pizzaria2/OptionGroups";
 
 export const Route = createFileRoute("/$storeSlug/produto/$slug")({
   validateSearch: (search: Record<string, unknown>): { view?: "cardapio" } => ({
@@ -81,6 +82,7 @@ function PizzariaPersonalizacao() {
     pizzaProducts.find((p) => p.slug !== activeSlug)?.slug ?? activeSlug,
   );
   const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [qty, setQty] = useState(1);
 
@@ -107,11 +109,57 @@ function PizzariaPersonalizacao() {
     if (mode === "inteira" || !half2) return own;
     return Math.max(own, sizePrice(half2, size));
   }, [product, half2, mode, size]);
+  const optionGroups = product
+    ? (categoryBySlug(product.categorySlug)?.optionGroups ?? [])
+    : [];
+
+  /**
+   * Trocar de produto pode trocar de categoria, e as escolhas antigas
+   * apontariam para grupos que a nova nem tem — some com elas em vez de mandar
+   * ao servidor um id que ele vai recusar.
+   */
+  useEffect(() => {
+    setSelectedOptions((atuais) => {
+      const validos = new Set(optionGroups.flatMap((g) => g.options.map((o) => o.id)));
+      const filtrados = atuais.filter((id) => validos.has(id));
+      return filtrados.length === atuais.length ? atuais : filtrados;
+    });
+    // A lista de grupos é derivada; comparar pelos ids evita rodar a cada render.
+  }, [optionGroups.map((g) => g.id).join(",")]);
+
+  /**
+   * A cota grátis vale para as mais caras, igual ao servidor — se a tela
+   * somasse de outro jeito, o cliente veria um total e pagaria outro.
+   */
+  const optionsTotal = optionGroups.reduce((soma, grupo) => {
+    const escolhidas = grupo.options
+      .filter((o) => selectedOptions.includes(o.id))
+      .sort((a, b) => b.price - a.price);
+    return soma + escolhidas.slice(grupo.free).reduce((s, o) => s + o.price, 0);
+  }, 0);
+
+  const faltando = optionGroups.find(
+    (g) => g.options.filter((o) => selectedOptions.includes(o.id)).length < g.min,
+  );
+
+  function toggleOption(grupo: { id: string; max: number; options: { id: string }[] }, optionId: string) {
+    setSelectedOptions((atuais) => {
+      if (atuais.includes(optionId)) return atuais.filter((id) => id !== optionId);
+      // Escolha única troca em vez de acumular: o cliente clica no segundo
+      // sabor esperando trocar, não receber um aviso de limite.
+      if (grupo.max === 1) {
+        const doGrupo = new Set(grupo.options.map((o) => o.id));
+        return [...atuais.filter((id) => !doGrupo.has(id)), optionId];
+      }
+      return [...atuais, optionId];
+    });
+  }
+
   const extrasTotal = selectedExtras.reduce((sum, id) => {
     const extra = extrasCatalog.find((e) => e.id === id);
     return sum + (extra?.price ?? 0);
   }, 0);
-  const total = (unitPrice + extrasTotal) * qty;
+  const total = (unitPrice + extrasTotal + optionsTotal) * qty;
 
   if (!product) {
     return (
@@ -162,6 +210,7 @@ function PizzariaPersonalizacao() {
       qty,
       productSlug: product.slug,
       sizeId: sizeOptions.length ? size : undefined,
+      optionIds: selectedOptions.length ? selectedOptions : undefined,
       secondProductSlug: mode === "meia" ? half2?.slug : undefined,
     });
     goToScreen("cardapio");
@@ -366,6 +415,16 @@ function PizzariaPersonalizacao() {
               )}
 
               <div className="rounded-2xl border border-charcoal/8 bg-mozzarella p-5">
+                {optionGroups.length > 0 && (
+                  <div className="mb-6">
+                    <OptionGroups
+                      groups={optionGroups}
+                      selected={selectedOptions}
+                      onToggle={toggleOption}
+                    />
+                  </div>
+                )}
+
                 <h2 className="font-display text-base font-bold text-charcoal">
                   Adicione extras
                 </h2>
@@ -413,11 +472,16 @@ function PizzariaPersonalizacao() {
                   />
                 </div>
 
+                {/* Bloqueia antes de o servidor recusar: dizer o que falta na
+                    tela é melhor que devolver um erro depois do clique. */}
                 <Button
                   onClick={handleAddToCart}
-                  className="mt-6 w-full rounded-full bg-tomato py-6 text-base font-semibold text-mozzarella shadow-none hover:bg-tomato/90"
+                  disabled={Boolean(faltando)}
+                  className="mt-6 w-full rounded-full bg-tomato py-6 text-base font-semibold text-mozzarella shadow-none hover:bg-tomato/90 disabled:opacity-50"
                 >
-                  Adicionar ao carrinho — {formatCurrency(total)}
+                  {faltando
+                    ? `Escolha: ${faltando.name}`
+                    : `Adicionar ao carrinho — ${formatCurrency(total)}`}
                 </Button>
               </div>
 

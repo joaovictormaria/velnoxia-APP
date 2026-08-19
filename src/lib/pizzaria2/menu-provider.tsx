@@ -10,7 +10,7 @@ import {
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import type { Category, Extra, Product } from "./menu";
+import type { Category, Extra, OptionGroup, Product } from "./menu";
 
 /** Categories store an icon by name; this maps those names to components. */
 const ICONS: Record<string, LucideIcon> = {
@@ -36,6 +36,14 @@ export type MenuPayload = {
     icon: string | null;
     imageUrl: string | null;
     kind: "PIZZA" | "SIMPLE";
+    optionGroups: {
+      id: string;
+      name: string;
+      minChoices: number;
+      maxChoices: number;
+      freeChoices: number;
+      options: { id: string; name: string; price: number }[];
+    }[];
     products: {
       id: string;
       name: string;
@@ -93,6 +101,16 @@ function adapt(payload: MenuPayload): MenuApi {
     subhead: c.subhead ?? undefined,
     icon: c.icon ? ICONS[c.icon] : undefined,
     kind: c.kind === "PIZZA" ? "pizza" : "simple",
+    optionGroups: (c.optionGroups ?? []).map(
+      (g): OptionGroup => ({
+        id: g.id,
+        name: g.name,
+        min: g.minChoices,
+        max: g.maxChoices,
+        free: g.freeChoices,
+        options: g.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
+      }),
+    ),
   }));
 
   const products: Product[] = payload.categories.flatMap((c) =>

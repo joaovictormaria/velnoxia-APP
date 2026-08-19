@@ -141,6 +141,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           items: lines.map((l) => ({
             productSlug: l.productSlug,
             sizeId: l.sizeId,
+            optionIds: l.optionIds,
             secondProductSlug: l.secondProductSlug,
             extraIds: l.extras.map((e) => e.id),
             quantity: l.qty,

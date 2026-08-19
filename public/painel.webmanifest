@@ -1,0 +1,53 @@
+{
+  "id": "/admin",
+  "name": "Velnox.app Painel",
+  "short_name": "Painel",
+  "description": "Pedidos, cardápio e entregas da sua loja.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "start_url": "/admin",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "categories": ["business", "food", "productivity"],
+  "icons": [
+    {
+      "src": "/icones/painel-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/painel-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icones/painel-mascara-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icones/painel-mascara-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Pedidos",
+      "url": "/admin/pedidos",
+      "icons": [{ "src": "/icones/painel-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cardápio",
+      "url": "/admin/cardapio",
+      "icons": [{ "src": "/icones/painel-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

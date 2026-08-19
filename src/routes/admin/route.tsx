@@ -1,5 +1,7 @@
 import { Outlet, createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
+import { registrarPainelInstalavel } from "@/lib/painel-instalavel";
 import { getCurrentAdminFn, logoutFn } from "@/server/functions/auth.fn";
 
 export const Route = createFileRoute("/admin")({
@@ -29,12 +31,38 @@ export const Route = createFileRoute("/admin")({
     if (admin.role === "COURIER") throw redirect({ to: "/entregador" });
     return { admin };
   },
+  /**
+   * O manifesto fica nesta rota, e não na raiz, porque só o painel é
+   * instalável. Os sites das lojas são da marca do cliente — oferecer
+   * "instalar Velnox.app Painel" para quem está pedindo um lanche seria
+   * oferecer a ferramenta errada para a pessoa errada.
+   */
+  head: () => ({
+    meta: [
+      { title: "Velnox.app Painel" },
+      { name: "theme-color", content: "#0A0A0A" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Painel" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+    ],
+    links: [
+      { rel: "manifest", href: "/painel.webmanifest" },
+      { rel: "apple-touch-icon", href: "/icones/painel-apple-180.png", sizes: "180x180" },
+    ],
+  }),
   component: AdminLayout,
 });
 
 function AdminLayout() {
   const { admin } = Route.useRouteContext();
   const router = useRouter();
+
+  // Fica antes do retorno antecipado abaixo porque o login também precisa
+  // registrar: é justamente na tela de login que o navegador oferece instalar.
+  useEffect(() => {
+    registrarPainelInstalavel();
+  }, []);
 
   // The login route renders inside this layout but without the shell.
   if (!admin) return <Outlet />;
