@@ -25,7 +25,7 @@ function corpoDoEmail(nome: string, link: string) {
   const texto = [
     `Olá, ${nome}.`,
     "",
-    "Recebemos um pedido para redefinir a senha da sua conta no velnox.ia.",
+    "Recebemos um pedido para redefinir a senha da sua conta no velnox.app.br — Área do Administrador.",
     "Abra o endereço abaixo para escolher uma nova senha:",
     "",
     link,
@@ -37,7 +37,7 @@ function corpoDoEmail(nome: string, link: string) {
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#111;line-height:1.6">
       <p>Olá, ${nome}.</p>
-      <p>Recebemos um pedido para redefinir a senha da sua conta no velnox.ia.</p>
+      <p>Recebemos um pedido para redefinir a senha da sua conta no velnox.app.br — Área do Administrador.</p>
       <p>
         <a href="${link}" style="display:inline-block;background:#E11D2E;color:#fff;
            padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">
