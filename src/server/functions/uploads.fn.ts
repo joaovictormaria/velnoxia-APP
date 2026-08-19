@@ -11,6 +11,8 @@ export const createUploadUrlFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    await requireAdminSession();
-    return createUploadUrl(data.kind, data.contentType);
+    // A loja sai da sessão, nunca do que o navegador manda: assim ninguém
+    // consegue pedir uma URL que grave na pasta de outra lanchonete.
+    const { storeId } = await requireAdminSession();
+    return createUploadUrl(storeId, data.kind, data.contentType);
   });

@@ -21,8 +21,14 @@ export function localPublicUrl(key: string) {
  * instead of being sanitised. Anything with "..", a leading slash, a drive
  * letter or an unexpected extension simply fails to match.
  */
-const KEY_PATTERN = /^(products|categories|logos|restaurant)\/[0-9a-f-]{36}\.(jpg|png|webp|avif)$/;
+const KEY_PATTERN =
+  /^stores\/([A-Za-z0-9_-]{1,64})\/(products|categories|logos|restaurant)\/[0-9a-f-]{36}\.(jpg|png|webp|avif)$/;
 
 export function isSafeUploadKey(key: string) {
   return KEY_PATTERN.test(key);
+}
+
+/** A loja dona da chave, para o endpoint conferir contra a sessão de quem envia. */
+export function storeIdFromUploadKey(key: string): string | null {
+  return KEY_PATTERN.exec(key)?.[1] ?? null;
 }

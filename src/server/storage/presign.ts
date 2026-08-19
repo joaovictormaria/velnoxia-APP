@@ -26,7 +26,18 @@ export type PresignResult =
   | { ok: true; uploadUrl: string; publicUrl: string }
   | { ok: false; error: string };
 
+/**
+ * Gera a chave e a URL de envio.
+ *
+ * A loja entra no caminho — `stores/<storeId>/products/<uuid>.jpg` — e não
+ * porque o UUID fosse inseguro: ele já basta para ninguém adivinhar nem
+ * sobrescrever a imagem de outro. O prefixo existe para o que o UUID sozinho
+ * não responde: quanto cada lanchonete ocupa, e quais arquivos apagar quando
+ * ela sai. Sem ele, as fotos de um cliente cancelado viram lixo permanente
+ * que ninguém consegue nem localizar.
+ */
 export async function createUploadUrl(
+  storeId: string,
   kind: UploadKind,
   contentType: string,
 ): Promise<PresignResult> {
@@ -34,7 +45,7 @@ export async function createUploadUrl(
     return { ok: false, error: "Formato não suportado. Use JPG, PNG, WEBP ou AVIF." };
   }
 
-  const key = `${FOLDER_BY_KIND[kind]}/${randomUUID()}.${EXTENSION_BY_TYPE[contentType]}`;
+  const key = `stores/${storeId}/${FOLDER_BY_KIND[kind]}/${randomUUID()}.${EXTENSION_BY_TYPE[contentType]}`;
 
   const config = getR2Config();
   if (!config) {
