@@ -59,3 +59,48 @@ pode aparecer suavizada em telas grandes.
 Os arquivos foram baixados sem inspeção visual: verificou-se que são JPEG
 válidos e do tamanho esperado, não que a foto corresponda ao prato indicado
 pelo nome. **Revise antes de ligá-las ao catálogo.**
+
+## Ramos novos (2026-08-19)
+
+Ao contrário do aviso acima, **estas foram vistas uma a uma antes de entrar**:
+cada arquivo foi aberto e conferido contra o ramo a que se destina. Também se
+descartou tudo que vinha de `plus.unsplash.com/premium_photo-` — esses são do
+Unsplash+ pago e não valem sob a licença gratuita, apesar de aparecerem
+misturados na mesma busca.
+
+| Arquivo | ID Unsplash | O que mostra |
+|---|---|---|
+| churrascaria/hero-churrasco.jpg | 1748864222743-c3f47f0fc19d | Picanha no espeto sendo fatiada |
+| churrascaria/hero-churrasco-2.jpg | 1755437103545-6aca71afa6b7 | Espetos sobre a brasa |
+| churrascaria/hero-churrasco-3.jpg | 1586058584825-c1e87ed735b4 | Grelha com fogo e fumaça |
+| hot-dog/hero-dog.jpg | 1638368593249-7cadb261e8b3 | Cachorro-quente montado, com fritas |
+| hot-dog/hero-dog-2.jpg | 1619538189873-3f511db5fec6 | Tábua com vários dogs e molhos |
+| hot-dog/hero-dog-3.jpg | 1612392062093-b07f9f626f0c | Fileira de dogs em tábua de madeira |
+
+Todas em retrato 800x1200, o mesmo formato dos ramos antigos — a capa corta em
+coluna vertical e foto deitada fica estranha ali.
+
+**Ressalva do hot dog:** as fotos mostram o cachorro-quente americano (mostarda
+e picles), enquanto o cardápio inicial descreve o brasileiro (purê, milho,
+batata palha). É a mesma comida, não outro ramo, mas o dono provavelmente vai
+querer trocar pelas dele.
+
+## Ramos ainda sem foto
+
+`restaurante`, `cafeteria`, `bar`, `saudavel` e `sorvetes` estão com
+`photos: []` em hero-by-type.ts. **Isso é uma escolha, não uma pendência
+quebrada:** sem foto a capa vira só texto sobre o gradiente da marca e a coluna
+da imagem sai do layout, o que parece decidido. Emprestar a foto de outro ramo
+seria pior — uma churrascaria anunciando pizza.
+
+O caso de `restaurante` é o mais difícil e cobre quatro ramos (restaurante,
+comida caseira, comida brasileira, marmitaria). Quatro buscas no Unsplash não
+acharam prato feito brasileiro: vieram pratos asiáticos, comida fusion, uma mesa
+com o cardápio de outro restaurante à mostra e um prato com bandeirinha do
+Brasil espetada num hambúrguer. Arroz, feijão e bife acebolado praticamente não
+existem no acervo — é um banco internacional, e comida caseira brasileira é o
+nicho que falta nele. Foto de cliente real resolveria melhor que qualquer banco.
+
+Para acrescentar: salve em `public/catalogo-inicial/<ramo>/`, em retrato
+800x1200, e preencha o `photos` do ramo em
+`src/lib/pizzaria2/hero-by-type.ts`.

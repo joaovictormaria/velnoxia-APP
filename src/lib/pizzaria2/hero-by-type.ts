@@ -184,7 +184,11 @@ const HERO_ORIGINAIS: Record<string, HeroContent> = {
  */
 const HERO_NOVOS: Record<string, HeroContent> = {
   "hot-dog": {
-    photos: [],
+    photos: [
+      "/catalogo-inicial/hot-dog/hero-dog.jpg",
+      "/catalogo-inicial/hot-dog/hero-dog-2.jpg",
+      "/catalogo-inicial/hot-dog/hero-dog-3.jpg",
+    ],
     cravings: [
       "um dog bem servido?",
       "purê cremoso por cima?",
@@ -238,7 +242,11 @@ const HERO_NOVOS: Record<string, HeroContent> = {
     fullMenuTeaser: "Tem muito mais prato esperando por você!",
   },
   churrascaria: {
-    photos: [],
+    photos: [
+      "/catalogo-inicial/churrascaria/hero-churrasco.jpg",
+      "/catalogo-inicial/churrascaria/hero-churrasco-2.jpg",
+      "/catalogo-inicial/churrascaria/hero-churrasco-3.jpg",
+    ],
     cravings: [
       "carne na brasa?",
       "picanha no ponto?",
