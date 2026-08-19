@@ -14,10 +14,13 @@ export function ProductRow({
   product,
   price,
   onQuickAdd,
+  exigeEscolha,
 }: {
   product: Product;
   price: number;
   onQuickAdd: () => void;
+  /** Tem pergunta obrigatória: o "+" abre a tela em vez de ir ao carrinho. */
+  exigeEscolha?: boolean;
 }) {
   const { slug: storeSlug } = useStore();
   const Icon = product.icon;
@@ -67,14 +70,29 @@ export function ProductRow({
         </span>
       </Link>
 
-      <button
-        type="button"
-        onClick={onQuickAdd}
-        aria-label={`Adicionar ${product.name} ao carrinho`}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
-      >
-        <Plus className="h-4 w-4" />
-      </button>
+      {/* Sem pergunta obrigatória o "+" vai direto ao carrinho. Com ela, o
+          item não teria como ser montado aqui: abre a tela do produto, onde a
+          pergunta é feita. */}
+      {exigeEscolha ? (
+        <Link
+          to="/$storeSlug/produto/$slug"
+          params={{ storeSlug, slug: product.slug }}
+          search={{}}
+          aria-label={`Escolher opções de ${product.name}`}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+        >
+          <Plus className="h-4 w-4" />
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onQuickAdd}
+          aria-label={`Adicionar ${product.name} ao carrinho`}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+        >
+          <Plus className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }

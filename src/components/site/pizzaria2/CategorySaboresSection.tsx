@@ -13,7 +13,7 @@ import { CategoryTabs } from "./CategoryTabs";
 import { ProductCard } from "./ProductCard";
 import { ProductRow } from "./ProductRow";
 import { useCart } from "@/lib/pizzaria2/cart";
-import { defaultSize, sizePrice, type CategorySlug } from "@/lib/pizzaria2/menu";
+import { defaultSize, sizePrice, type CategorySlug, exigeEscolha } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { heroFor } from "@/lib/pizzaria2/hero-by-type";
@@ -233,6 +233,7 @@ export function CategorySaboresSection({
                 key={product.slug}
                 product={product}
                 price={sizePrice(product)}
+                exigeEscolha={exigeEscolha(product, category)}
                 onQuickAdd={() => addProduct(product)}
               />
             ))}
@@ -248,7 +249,7 @@ export function CategorySaboresSection({
                 <ProductCard
                   product={product}
                   linkToCustomize
-                  ctaQuickAdd
+                  ctaQuickAdd={!exigeEscolha(product, category)}
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,

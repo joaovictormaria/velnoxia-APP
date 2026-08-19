@@ -9,6 +9,7 @@ import { useStore } from "@/lib/pizzaria2/store-provider";
 import {
   formatCurrency,
   defaultSize,
+  exigeEscolha,
   sizePrice,
   type Category,
   type CategorySlug,
@@ -47,6 +48,7 @@ export function CardapioPicker({
     products: allProducts,
     extras,
     productsByCategory,
+    categoryBySlug,
   } = useMenu();
   /** See CategorySaboresSection: the produto screen opens whenever there is a
    *  size or an extra to pick, not only for pizza. */
@@ -213,6 +215,7 @@ export function CardapioPicker({
                   key={product.slug}
                   product={product}
                   price={sizePrice(product)}
+                  exigeEscolha={exigeEscolha(product, categoryBySlug(product.categorySlug))}
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
