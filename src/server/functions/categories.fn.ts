@@ -8,6 +8,7 @@ import {
   listCategories,
   updateCategory,
 } from "../repositories/category-repository";
+import { optionGroupsSchema } from "../validation/option-group-schema";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Informe o nome."),
@@ -32,32 +33,8 @@ const categorySchema = z.object({
     .array(z.string().trim().min(1, "O tamanho precisa de um nome.").max(24))
     .max(8, "No máximo 8 tamanhos por categoria.")
     .optional(),
-  /**
-   * As perguntas feitas ao pedir: sabor, ponto da carne, complementos.
-   *
-   * min/max/free cobrem o que cada ramo precisa sem um campo por caso:
-   * obrigatório é min>=1, escolha única é max=1, e "3 grátis depois paga"
-   * é free=3.
-   */
-  optionGroups: z
-    .array(
-      z.object({
-        name: z.string().trim().min(1, "O grupo precisa de um nome.").max(40),
-        minChoices: z.number().int().min(0).max(20),
-        maxChoices: z.number().int().min(1).max(20),
-        freeChoices: z.number().int().min(0).max(20),
-        options: z
-          .array(
-            z.object({
-              name: z.string().trim().min(1, "A opção precisa de um nome.").max(40),
-              price: z.number().nonnegative(),
-            }),
-          )
-          .max(40),
-      }),
-    )
-    .max(6, "No máximo 6 grupos por categoria.")
-    .optional(),
+  /** Valem para todos os produtos da categoria. */
+  optionGroups: optionGroupsSchema,
 });
 
 export const listCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {

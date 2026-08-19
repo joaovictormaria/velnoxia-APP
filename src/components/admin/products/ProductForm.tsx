@@ -3,6 +3,10 @@ import { Link, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { ImageUploadField } from "./ImageUploadField";
+import {
+  OptionGroupEditor,
+  type GrupoRascunho,
+} from "@/components/admin/menu/OptionGroupEditor";
 import { saveProductFn } from "@/server/functions/products.fn";
 import { getBusinessTypeFn } from "@/server/functions/settings.fn";
 
@@ -19,6 +23,8 @@ export type ProductFormValues = {
   halfPizzaPricingRule: "HIGHEST_PRICE" | "AVERAGE_PRICE";
   sortOrder: number;
   sizes: { categorySizeId: string; price: number; isAvailable: boolean }[];
+  /** Perguntas só deste produto, além das que a categoria já faz. */
+  optionGroups: GrupoRascunho[];
 };
 
 function slugify(value: string): string {
@@ -37,7 +43,12 @@ export function ProductForm({
 }: {
   productId: string | null;
   initial: ProductFormValues;
-  categories: { id: string; name: string; sizes: { id: string; label: string }[] }[];
+  categories: {
+    id: string;
+    name: string;
+    sizes: { id: string; label: string }[];
+    optionGroups: { id: string; name: string }[];
+  }[];
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -70,8 +81,8 @@ export function ProductForm({
    * fixa. Trocar a categoria troca o que aparece aqui — e os preços da
    * categoria anterior deixam de valer, por isso são descartados no set().
    */
-  const tamanhosDaCategoria =
-    categories.find((c) => c.id === values.categoryId)?.sizes ?? [];
+  const categoriaEscolhida = categories.find((c) => c.id === values.categoryId);
+  const tamanhosDaCategoria = categoriaEscolhida?.sizes ?? [];
 
   function sizeFor(categorySizeId: string) {
     return values.sizes.find((s) => s.categorySizeId === categorySizeId);
@@ -275,6 +286,38 @@ export function ProductForm({
                 </p>
               </>
             )}
+          </div>
+
+          {/* Perguntas do produto, separadas das da categoria.
+              "Bebidas" tem refrigerante e suco: os sabores de um não são os do
+              outro, e uma pergunta na categoria obrigaria os dois à mesma
+              lista. Aqui o dono pergunta só do item que está editando. */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+            <p className="text-sm font-semibold text-neutral-900">
+              Perguntas só deste produto
+            </p>
+            <p className="mt-1 text-xs text-neutral-500">
+              O que o cliente escolhe antes de adicionar ao carrinho — o sabor do suco, o
+              tipo de pão. Vale só para este produto.
+            </p>
+
+            {categoriaEscolhida && categoriaEscolhida.optionGroups.length > 0 && (
+              <p className="mt-2.5 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                A categoria {categoriaEscolhida.name} já pergunta{" "}
+                <span className="font-semibold">
+                  {categoriaEscolhida.optionGroups.map((g) => g.name).join(", ")}
+                </span>{" "}
+                em todos os produtos dela. Não precisa repetir aqui.
+              </p>
+            )}
+
+            <div className="mt-3">
+              <OptionGroupEditor
+                value={values.optionGroups}
+                onChange={(optionGroups) => set("optionGroups", optionGroups)}
+                businessType={businessType ?? ""}
+              />
+            </div>
           </div>
         </div>
 

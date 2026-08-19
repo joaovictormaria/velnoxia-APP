@@ -20,6 +20,7 @@ const EMPTY: ProductFormValues = {
   halfPizzaPricingRule: "HIGHEST_PRICE",
   sortOrder: 0,
   sizes: [],
+  optionGroups: [],
 };
 
 function NewProductPage() {

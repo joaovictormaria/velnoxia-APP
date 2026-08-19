@@ -1,13 +1,12 @@
 import type { CategoryKind } from "@prisma/client";
 import { prisma } from "../db/client";
+import {
+  criarGrupos,
+  sincronizarGrupos,
+  type OptionGroupInput,
+} from "./option-group-sync";
 
-export type OptionGroupInput = {
-  name: string;
-  minChoices: number;
-  maxChoices: number;
-  freeChoices: number;
-  options: { name: string; price: number }[];
-};
+export type { OptionGroupInput };
 
 export type CategoryInput = {
   /** Nomes dos tamanhos, na ordem. Lista vazia = categoria sem tamanhos. */
@@ -44,9 +43,14 @@ export function listActiveCategories(storeId: string) {
   return prisma.category.findMany({
     where: { storeId, isActive: true },
     orderBy: { sortOrder: "asc" },
-    // Os tamanhos vêm junto porque o formulário de produto precisa deles para
-    // saber o que oferecer: é a categoria que decide se existe "P/M/G".
-    include: { sizes: { orderBy: { sortOrder: "asc" } } },
+    // Tamanhos e perguntas vêm junto porque o formulário de produto precisa dos
+    // dois: é a categoria que decide se existe "P/M/G", e é ela que já pode
+    // estar perguntando algo — o dono precisa ver isso antes de repetir a
+    // mesma pergunta no produto.
+    include: {
+      sizes: { orderBy: { sortOrder: "asc" } },
+      optionGroups: { orderBy: { sortOrder: "asc" }, select: { id: true, name: true } },
+    },
   });
 }
 
@@ -63,18 +67,7 @@ export function createCategory(
       ...data,
       storeId,
       sizes: { create: (sizes ?? []).map((label, i) => ({ label, sortOrder: i + 1 })) },
-      optionGroups: {
-        create: (optionGroups ?? []).map((g, i) => ({
-          name: g.name,
-          minChoices: g.minChoices,
-          maxChoices: g.maxChoices,
-          freeChoices: g.freeChoices,
-          sortOrder: i + 1,
-          options: {
-            create: g.options.map((o, j) => ({ name: o.name, price: o.price, sortOrder: j + 1 })),
-          },
-        })),
-      },
+      optionGroups: criarGrupos(optionGroups ?? []),
     },
   });
 }
@@ -116,61 +109,7 @@ export async function updateCategory(
       }
     }
 
-    if (optionGroups) {
-      /**
-       * Conciliado pelo nome, como os tamanhos: apagar e recriar geraria ids
-       * novos a cada salvamento, e um pedido em aberto perderia a ligação com
-       * a opção que o cliente escolheu.
-       */
-      const atuais = await tx.optionGroup.findMany({
-        where: { categoryId: id },
-        include: { options: true },
-      });
-      const querAgora = new Set(optionGroups.map((g) => g.name));
-
-      const removidos = atuais.filter((g) => !querAgora.has(g.name)).map((g) => g.id);
-      if (removidos.length) {
-        await tx.optionGroup.deleteMany({ where: { id: { in: removidos } } });
-      }
-
-      for (const [i, grupo] of optionGroups.entries()) {
-        const existente = atuais.find((g) => g.name === grupo.name);
-        const dados = {
-          name: grupo.name,
-          minChoices: grupo.minChoices,
-          maxChoices: grupo.maxChoices,
-          freeChoices: grupo.freeChoices,
-          sortOrder: i + 1,
-        };
-
-        const groupId = existente
-          ? (await tx.optionGroup.update({ where: { id: existente.id }, data: dados })).id
-          : (await tx.optionGroup.create({ data: { ...dados, categoryId: id } })).id;
-
-        const opcoesAtuais = existente?.options ?? [];
-        const querOpcoes = new Set(grupo.options.map((o) => o.name));
-        const opcoesRemovidas = opcoesAtuais
-          .filter((o) => !querOpcoes.has(o.name))
-          .map((o) => o.id);
-        if (opcoesRemovidas.length) {
-          await tx.optionItem.deleteMany({ where: { id: { in: opcoesRemovidas } } });
-        }
-
-        for (const [j, opcao] of grupo.options.entries()) {
-          const jaTem = opcoesAtuais.find((o) => o.name === opcao.name);
-          if (jaTem) {
-            await tx.optionItem.update({
-              where: { id: jaTem.id },
-              data: { price: opcao.price, sortOrder: j + 1 },
-            });
-          } else {
-            await tx.optionItem.create({
-              data: { groupId, name: opcao.name, price: opcao.price, sortOrder: j + 1 },
-            });
-          }
-        }
-      }
-    }
+    if (optionGroups) await sincronizarGrupos(tx, { categoryId: id }, optionGroups);
 
     return tx.category.update({ where: { id }, data });
   });

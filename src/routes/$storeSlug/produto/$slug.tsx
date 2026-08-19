@@ -109,8 +109,17 @@ function PizzariaPersonalizacao() {
     if (mode === "inteira" || !half2) return own;
     return Math.max(own, sizePrice(half2, size));
   }, [product, half2, mode, size]);
+  /**
+   * Primeiro as perguntas da categoria, depois as do próprio produto — a mesma
+   * ordem que o servidor usa ao conferir o pedido. Uma categoria pergunta o
+   * que vale para tudo dentro dela; o produto pergunta o que só ele tem, como
+   * o sabor do suco que o refrigerante ao lado não compartilha.
+   */
   const optionGroups = product
-    ? (categoryBySlug(product.categorySlug)?.optionGroups ?? [])
+    ? [
+        ...(categoryBySlug(product.categorySlug)?.optionGroups ?? []),
+        ...product.optionGroups,
+      ]
     : [];
 
   /**

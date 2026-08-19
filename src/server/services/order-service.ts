@@ -115,13 +115,21 @@ export async function createOrderFromCheckout(
   const sizesById = new Map(sizes.map((s) => [s.id, s]));
 
   /**
-   * Os grupos das categorias envolvidas. Lidos do banco e não do que o
-   * navegador mandou: é aqui que se sabe o que é obrigatório, o que cabe e
-   * quanto custa — o cliente pode mandar qualquer coisa.
+   * As perguntas de cada produto: as da categoria dele mais as dele próprio.
+   * Lidas do banco e não do que o navegador mandou — é aqui que se sabe o que
+   * é obrigatório, o que cabe e quanto custa, e o cliente pode mandar
+   * qualquer coisa.
+   *
+   * As da categoria vêm primeiro porque é a ordem em que a vitrine pergunta:
+   * primeiro o que vale para tudo da categoria, depois o que é só daquele
+   * item.
    */
-  const gruposPorCategoria = new Map<string, Awaited<ReturnType<typeof buscarGrupos>>>();
-  for (const categoryId of new Set(products.map((p) => p.categoryId))) {
-    gruposPorCategoria.set(categoryId, await buscarGrupos(categoryId));
+  const gruposPorProduto = new Map<string, Awaited<ReturnType<typeof buscarGrupos>>>();
+  for (const produto of products) {
+    gruposPorProduto.set(produto.id, [
+      ...(await buscarGrupos({ categoryId: produto.categoryId })),
+      ...(await buscarGrupos({ productId: produto.id })),
+    ]);
   }
 
   const extraIds = [...new Set(input.items.flatMap((i) => i.extraIds))];
@@ -198,10 +206,7 @@ export async function createOrderFromCheckout(
           : Math.max(unitPrice, secondPrice);
     }
 
-    const opcoes = conferirOpcoes(
-      gruposPorCategoria.get(product.categoryId) ?? [],
-      item.optionIds ?? [],
-    );
+    const opcoes = conferirOpcoes(gruposPorProduto.get(product.id) ?? [], item.optionIds ?? []);
     if (!opcoes.ok) return { ok: false, error: opcoes.error };
 
     const lineExtras = item.extraIds.map((id) => {
@@ -386,10 +391,10 @@ export async function createOrderFromCheckout(
   };
 }
 
-/** Grupos e opções disponíveis de uma categoria, na ordem da tela. */
-function buscarGrupos(categoryId: string) {
+/** Grupos e opções de um dono — categoria ou produto — na ordem da tela. */
+function buscarGrupos(dono: { categoryId: string } | { productId: string }) {
   return prisma.optionGroup.findMany({
-    where: { categoryId },
+    where: dono,
     orderBy: { sortOrder: "asc" },
     select: {
       id: true,

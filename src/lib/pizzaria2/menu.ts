@@ -9,6 +9,22 @@ import type { LucideIcon } from "lucide-react";
 
 export type CategorySlug = string;
 
+/**
+ * Se o produto tem alguma pergunta obrigatória — dele ou da categoria.
+ *
+ * O botão "Adicionar" do card monta o item sem passar pela tela do produto, e
+ * portanto sem responder nada. Um shake que exige sabor entraria no carrinho
+ * sem sabor e só seria recusado no fim do checkout, com o cliente achando que
+ * o site quebrou. Quando há pergunta obrigatória, o botão leva à tela em vez
+ * de adicionar.
+ */
+export function exigeEscolha(
+  product: { optionGroups: OptionGroup[] },
+  category: { optionGroups: OptionGroup[] } | undefined,
+): boolean {
+  return [...(category?.optionGroups ?? []), ...product.optionGroups].some((g) => g.min > 0);
+}
+
 export type Category = {
   slug: CategorySlug;
   name: string;
@@ -38,6 +54,11 @@ export type Product = {
   slug: string;
   name: string;
   desc: string;
+  /**
+   * Perguntas só deste produto, além das da categoria. É o que deixa o suco
+   * perguntar laranja ou maracujá sem o refrigerante ao lado herdar a lista.
+   */
+  optionGroups: OptionGroup[];
   /** Reference price — the base price, used when the product has no sizes. */
   price: number;
   image?: string;

@@ -2,6 +2,29 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { ICONES_DE_CATEGORIA as ICONS } from "@/lib/category-icons";
 import type { Category, Extra, OptionGroup, Product } from "./menu";
 
+/** O mesmo formato de pergunta, venha ela da categoria ou do produto. */
+function paraGrupos(
+  grupos:
+    | {
+        id: string;
+        name: string;
+        minChoices: number;
+        maxChoices: number;
+        freeChoices: number;
+        options: { id: string; name: string; price: number }[];
+      }[]
+    | undefined,
+): OptionGroup[] {
+  return (grupos ?? []).map((g) => ({
+    id: g.id,
+    name: g.name,
+    min: g.minChoices,
+    max: g.maxChoices,
+    free: g.freeChoices,
+    options: g.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
+  }));
+}
+
 /** Shape returned by getStorefrontMenuFn. */
 export type MenuPayload = {
   categories: {
@@ -31,6 +54,14 @@ export type MenuPayload = {
       imageUrl: string | null;
       tag: string | null;
       allowHalfAndHalf: boolean;
+      optionGroups: {
+        id: string;
+        name: string;
+        minChoices: number;
+        maxChoices: number;
+        freeChoices: number;
+        options: { id: string; name: string; price: number }[];
+      }[];
       sizes: { categorySize: { id: string; label: string }; price: number }[];
     }[];
   }[];
@@ -79,16 +110,7 @@ function adapt(payload: MenuPayload): MenuApi {
     subhead: c.subhead ?? undefined,
     icon: c.icon ? ICONS[c.icon] : undefined,
     kind: c.kind === "PIZZA" ? "pizza" : "simple",
-    optionGroups: (c.optionGroups ?? []).map(
-      (g): OptionGroup => ({
-        id: g.id,
-        name: g.name,
-        min: g.minChoices,
-        max: g.maxChoices,
-        free: g.freeChoices,
-        options: g.options.map((o) => ({ id: o.id, name: o.name, price: o.price })),
-      }),
-    ),
+    optionGroups: paraGrupos(c.optionGroups),
   }));
 
   const products: Product[] = payload.categories.flatMap((c) =>
@@ -102,6 +124,7 @@ function adapt(payload: MenuPayload): MenuApi {
       categorySlug: c.slug,
       tag: p.tag ?? undefined,
       allowHalfAndHalf: p.allowHalfAndHalf,
+      optionGroups: paraGrupos(p.optionGroups),
       sizes: p.sizes.map((s) => ({
         id: s.categorySize.id,
         label: s.categorySize.label,

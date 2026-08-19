@@ -1,5 +1,10 @@
 import type { HalfPizzaPricingRule } from "@prisma/client";
 import { prisma } from "../db/client";
+import {
+  criarGrupos,
+  sincronizarGrupos,
+  type OptionGroupInput,
+} from "./option-group-sync";
 
 /** Um preço para um tamanho que a categoria do produto oferece. */
 export type ProductSizeInput = {
@@ -21,6 +26,12 @@ export type ProductInput = {
   halfPizzaPricingRule: HalfPizzaPricingRule;
   sortOrder: number;
   sizes: ProductSizeInput[];
+  /**
+   * Perguntas só deste produto, ao lado das que a categoria já faz. É o que
+   * permite o suco perguntar laranja ou maracujá sem obrigar o refrigerante da
+   * mesma categoria a oferecer a mesma lista.
+   */
+  optionGroups?: OptionGroupInput[];
 };
 
 export function listProducts(
@@ -54,17 +65,29 @@ export function getProductById(storeId: string, id: string) {
     where: { id, storeId },
     include: {
       sizes: { include: { categorySize: { select: { id: true, label: true, sortOrder: true } } } },
+      optionGroups: {
+        orderBy: { sortOrder: "asc" },
+        include: { options: { orderBy: { sortOrder: "asc" } } },
+      },
     },
   });
 }
 
-export async function createProduct(storeId: string, { sizes, ...data }: ProductInput) {
+export async function createProduct(
+  storeId: string,
+  { sizes, optionGroups, ...data }: ProductInput,
+) {
   // The category is re-checked against the store so a forged categoryId cannot
   // attach a product to someone else's category.
   await assertCategoryBelongsToStore(storeId, data.categoryId);
   await assertSizesBelongToCategory(data.categoryId, sizes);
   return prisma.product.create({
-    data: { ...data, storeId, sizes: { create: sizes } },
+    data: {
+      ...data,
+      storeId,
+      sizes: { create: sizes },
+      optionGroups: criarGrupos(optionGroups ?? []),
+    },
     include: { sizes: true },
   });
 }
@@ -73,7 +96,7 @@ export async function createProduct(storeId: string, { sizes, ...data }: Product
 export async function updateProduct(
   storeId: string,
   id: string,
-  { sizes, ...data }: ProductInput,
+  { sizes, optionGroups, ...data }: ProductInput,
 ) {
   await assertCategoryBelongsToStore(storeId, data.categoryId);
   await assertSizesBelongToCategory(data.categoryId, sizes);
@@ -81,6 +104,9 @@ export async function updateProduct(
     const owned = await tx.product.findFirst({ where: { id, storeId }, select: { id: true } });
     if (!owned) throw new Error("NOT_FOUND");
     await tx.productSize.deleteMany({ where: { productId: id } });
+    // Os tamanhos podem ser recriados porque ninguém guarda o id deles; as
+    // perguntas, não — um pedido em aberto aponta para a opção escolhida.
+    if (optionGroups) await sincronizarGrupos(tx, { productId: id }, optionGroups);
     return tx.product.update({
       where: { id },
       data: { ...data, sizes: { create: sizes } },
@@ -133,6 +159,12 @@ export function listMenuForStorefront(storeId: string) {
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
         include: {
+          optionGroups: {
+            orderBy: { sortOrder: "asc" },
+            include: {
+              options: { where: { isAvailable: true }, orderBy: { sortOrder: "asc" } },
+            },
+          },
           sizes: {
             where: { isAvailable: true },
             orderBy: { categorySize: { sortOrder: "asc" } },

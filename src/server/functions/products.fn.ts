@@ -10,6 +10,7 @@ import {
   updateProduct,
 } from "../repositories/product-repository";
 import { listActiveCategories } from "../repositories/category-repository";
+import { optionGroupsSchema } from "../validation/option-group-schema";
 
 const sizeSchema = z.object({
   /** Aponta para um tamanho da categoria; o repositório confere se é dela. */
@@ -34,6 +35,12 @@ const productSchema = z.object({
   halfPizzaPricingRule: z.enum(["HIGHEST_PRICE", "AVERAGE_PRICE"]),
   sortOrder: z.number().int().default(0),
   sizes: z.array(sizeSchema).default([]),
+  /**
+   * Perguntas só deste produto, somadas às que a categoria já faz. É o que
+   * deixa o suco perguntar laranja ou maracujá sem obrigar o refrigerante da
+   * mesma categoria a oferecer a mesma lista.
+   */
+  optionGroups: optionGroupsSchema,
 });
 
 export const listProductsFn = createServerFn({ method: "GET" })

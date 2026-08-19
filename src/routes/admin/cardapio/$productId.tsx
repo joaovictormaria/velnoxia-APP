@@ -35,6 +35,13 @@ function EditProductPage() {
       price: s.price,
       isAvailable: s.isAvailable,
     })),
+    optionGroups: p.optionGroups.map((g) => ({
+      name: g.name,
+      minChoices: g.minChoices,
+      maxChoices: g.maxChoices,
+      freeChoices: g.freeChoices,
+      options: g.options.map((o) => ({ name: o.name, price: o.price })),
+    })),
   };
 
   return <ProductForm productId={p.id} initial={initial} categories={data.categories} />;
