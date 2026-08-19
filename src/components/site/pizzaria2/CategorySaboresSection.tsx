@@ -135,10 +135,9 @@ export function CategorySaboresSection({
   ] ?? ["", ""];
 
   function addProduct(product: (typeof items)[number]) {
-    const isPizza = category?.kind === "pizza";
     addLine({
       name: product.name,
-      sizeLabel: isPizza ? "Média" : undefined,
+      sizeLabel: defaultSize(product)?.label,
       image: product.image,
       icon: product.icon,
       unitPrice: sizePrice(product),
@@ -250,8 +249,7 @@ export function CategorySaboresSection({
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
-                      sizeLabel:
-                        category.kind === "pizza" ? "Média" : undefined,
+                      sizeLabel: defaultSize(product)?.label,
                       image: product.image,
                       icon: product.icon,
                       unitPrice: sizePrice(product),

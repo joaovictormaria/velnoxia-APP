@@ -219,11 +219,16 @@ export function ProductForm({
           <div>
             <p className="mb-2 text-sm font-medium text-neutral-900">Tamanhos disponíveis</p>
 
-            {tamanhosDaCategoria.length === 0 ? (
+            {!values.categoryId ? (
               <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
-                A categoria escolhida não tem tamanhos. Este produto é vendido pelo preço base —
-                o normal para bebidas e porções. Para vender por tamanho (P/M/G, 300ml/500ml),
-                cadastre os tamanhos na tela de Categorias.
+                Escolha uma categoria acima. São os tamanhos dela que aparecem aqui.
+              </p>
+            ) : tamanhosDaCategoria.length === 0 ? (
+              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
+                A categoria escolhida não tem tamanhos, então este produto é vendido pelo preço
+                base — o normal para bebidas e porções. Para vender por tamanho (P/M/G,
+                300ml/500ml, Brotinho/Grande), cadastre os tamanhos dela em Cardápio →
+                Categorias.
               </p>
             ) : (
               <>

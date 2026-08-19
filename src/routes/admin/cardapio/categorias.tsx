@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SizePicker } from "@/components/admin/menu/SizePicker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
@@ -21,8 +22,8 @@ type Draft = {
   headline: string;
   subhead: string;
   kind: "PIZZA" | "SIMPLE";
-  /** Digitado como texto separado por vírgula; vira lista ao salvar. */
-  sizes: string;
+  /** Nomes dos tamanhos, na ordem em que o cliente os vê. */
+  sizes: string[];
   sortOrder: number;
   isActive: boolean;
 };
@@ -36,7 +37,7 @@ const EMPTY: Draft = {
   headline: "",
   subhead: "",
   kind: "SIMPLE",
-  sizes: "",
+  sizes: [],
   sortOrder: 0,
   isActive: true,
 };
@@ -78,10 +79,7 @@ function CategoriesPage() {
             headline: d.headline || null,
             subhead: d.subhead || null,
             kind: d.kind,
-            sizes: d.sizes
-              .split(",")
-              .map((t) => t.trim())
-              .filter(Boolean),
+            sizes: d.sizes,
             sortOrder: d.sortOrder,
             isActive: d.isActive,
           },
@@ -197,32 +195,30 @@ function CategoriesPage() {
           </label>
 
           <label className="space-y-1.5">
-            <span className="text-sm font-medium text-neutral-900">Tipo</span>
+            <span className="text-sm font-medium text-neutral-900">Como aparece na vitrine</span>
             <select
               value={draft.kind}
               onChange={(e) => setDraft({ ...draft, kind: e.target.value as Draft["kind"] })}
               className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
             >
-              <option value="PIZZA">Pizza (com foto)</option>
-              <option value="SIMPLE">Simples (com ícone)</option>
+              <option value="PIZZA">Com foto da categoria</option>
+              <option value="SIMPLE">Com ícone</option>
             </select>
           </label>
-          <label className="block sm:col-span-2">
+          <div className="block sm:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-neutral-700">
               Tamanhos
             </span>
-            <input
+            <SizePicker
               value={draft.sizes}
-              onChange={(e) => setDraft({ ...draft, sizes: e.target.value })}
-              placeholder="Ex.: P, M, G — ou deixe vazio"
-              className="w-full rounded-xl border border-neutral-200 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400"
+              onChange={(sizes) => setDraft({ ...draft, sizes })}
             />
             <span className="mt-1 block text-xs text-neutral-500">
-              Separe por vírgula, na ordem que devem aparecer. Cada produto desta categoria
-              recebe um preço por tamanho. Deixe vazio para vender pelo preço único — o normal
-              em bebidas e porções. Apagar um tamanho apaga os preços dele em todos os produtos.
+              Cada produto desta categoria recebe um preço por tamanho. Sem nenhum tamanho, a
+              categoria vende pelo preço único — o normal em bebidas e porções. Apagar um
+              tamanho apaga os preços dele em todos os produtos.
             </span>
-          </label>
+          </div>
 
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Ordem</span>
@@ -305,7 +301,7 @@ function CategoriesPage() {
                           headline: c.headline ?? "",
                           subhead: c.subhead ?? "",
                           kind: c.kind,
-                          sizes: c.sizes.map((t) => t.label).join(", "),
+                          sizes: c.sizes.map((t) => t.label),
                           sortOrder: c.sortOrder,
                           isActive: c.isActive,
                         });

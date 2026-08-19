@@ -12,13 +12,6 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const day = new Intl.DateTimeFormat("pt-BR");
 
-const SIZE_LABEL: Record<string, string> = {
-  BROTINHO: "Brotinho",
-  MEDIA: "Média",
-  GRANDE: "Grande",
-  GIGANTE: "Gigante",
-};
-
 const STORAGE_KEY = "velnoxia:seen-orders";
 
 function readSeen(): string[] {
@@ -146,7 +139,7 @@ export function NewOrderDialog() {
                       <p className="text-sm font-medium text-neutral-900">
                         <span className="text-[#E11D2E]">{item.quantity}x</span>{" "}
                         {item.productNameSnapshot}
-                        {item.sizeLabel ? ` ${SIZE_LABEL[item.sizeLabel]}` : ""}
+                        {item.sizeLabel ? ` ${item.sizeLabel}` : ""}
                       </p>
                       {item.isHalfAndHalf && item.secondProductNameSnapshot && (
                         <p className="text-xs text-neutral-500">

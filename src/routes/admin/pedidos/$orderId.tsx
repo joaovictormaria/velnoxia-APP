@@ -38,13 +38,6 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", {
 });
 const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-const SIZE_LABEL: Record<string, string> = {
-  BROTINHO: "Brotinho",
-  MEDIA: "Média",
-  GRANDE: "Grande",
-  GIGANTE: "Gigante",
-};
-
 const PAYMENT_LABEL: Record<string, string> = {
   PIX: "Pix",
   CREDIT_CARD: "Cartão de crédito",
@@ -301,7 +294,7 @@ function OrderDetailPage() {
                         {item.isHalfAndHalf && item.secondProductNameSnapshot
                           ? `Meia ${item.productNameSnapshot} / ${item.secondProductNameSnapshot}`
                           : item.productNameSnapshot}
-                        {item.sizeLabel ? ` ${SIZE_LABEL[item.sizeLabel]}` : ""}
+                        {item.sizeLabel ? ` ${item.sizeLabel}` : ""}
                       </p>
                       {item.extras.map((e) => (
                         <p

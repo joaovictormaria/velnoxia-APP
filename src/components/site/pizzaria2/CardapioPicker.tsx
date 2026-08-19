@@ -208,10 +208,6 @@ export function CardapioPicker({
         <div>
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
             {results.map((product) => {
-              const productCategory = categories.find(
-                (c) => c.slug === product.categorySlug,
-              );
-              const isPizza = productCategory?.kind === "pizza";
               return (
                 <ProductRow
                   key={product.slug}
@@ -220,7 +216,7 @@ export function CardapioPicker({
                   onQuickAdd={() =>
                     addLine({
                       name: product.name,
-                      sizeLabel: isPizza ? "Média" : undefined,
+                      sizeLabel: defaultSize(product)?.label,
                       image: product.image,
                       icon: product.icon,
                       unitPrice: sizePrice(product),
