@@ -4,6 +4,8 @@ node_modules
 .tanstack
 .env
 .env.local
+.env.prod
+.env.*.local
 
 # build output
 dist
