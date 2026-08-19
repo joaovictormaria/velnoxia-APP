@@ -1,28 +1,6 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import {
-  Cake,
-  CupSoda,
-  Drumstick,
-  GlassWater,
-  Pizza,
-  Sandwich,
-  Star,
-  UtensilsCrossed,
-  type LucideIcon,
-} from "lucide-react";
+import { ICONES_DE_CATEGORIA as ICONS } from "@/lib/category-icons";
 import type { Category, Extra, OptionGroup, Product } from "./menu";
-
-/** Categories store an icon by name; this maps those names to components. */
-const ICONS: Record<string, LucideIcon> = {
-  Pizza,
-  Star,
-  Cake,
-  CupSoda,
-  GlassWater,
-  Sandwich,
-  Drumstick,
-  UtensilsCrossed,
-};
 
 /** Shape returned by getStorefrontMenuFn. */
 export type MenuPayload = {

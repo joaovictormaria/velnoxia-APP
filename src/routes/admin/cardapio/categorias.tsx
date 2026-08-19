@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SizePicker } from "@/components/admin/menu/SizePicker";
+import { IconPicker } from "@/components/admin/menu/IconPicker";
 import {
   OptionGroupEditor,
   type GrupoRascunho,
@@ -177,20 +178,11 @@ function CategoriesPage() {
             />
           </label>
 
-          <label className="space-y-1.5">
-            <span className="text-sm font-medium text-neutral-900">Ícone (lucide)</span>
-            <input
-              value={draft.icon}
-              onChange={(e) => setDraft({ ...draft, icon: e.target.value })}
-              placeholder="Pizza, CupSoda..."
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
-            />
-          </label>
-
-          {/* Copy shown above and under this category's title on the menu.
-              Optional: left blank, the storefront falls back to the category
-              name rather than rendering an empty pill. */}
-          <label className="space-y-1.5">
+          {/* A frase da pílula acima do nome da categoria na vitrine. É texto de
+              venda, não rótulo: cabe uma frase inteira, e por isso ocupa a
+              linha em vez de dividir espaço com o nome. Em branco, a vitrine
+              cai no nome da categoria e não fica pílula vazia. */}
+          <label className="space-y-1.5 md:col-span-3">
             <span className="text-sm font-medium text-neutral-900">Selo</span>
             <input
               value={draft.badge}
@@ -199,6 +191,19 @@ function CategoriesPage() {
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
             />
           </label>
+
+          <div className="space-y-1.5 md:col-span-5">
+            <span className="block text-sm font-medium text-neutral-900">Ícone</span>
+            <IconPicker
+              value={draft.icon}
+              onChange={(icon) => setDraft({ ...draft, icon })}
+              businessType={businessType ?? ""}
+            />
+            <span className="block text-xs text-neutral-500">
+              Aparece ao lado do selo e no lugar da foto, nos produtos desta categoria que
+              ainda não têm imagem. Clique de novo para tirar.
+            </span>
+          </div>
 
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Descrição — 1ª linha</span>
