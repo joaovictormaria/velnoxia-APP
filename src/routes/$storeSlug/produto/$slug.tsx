@@ -280,17 +280,6 @@ function PizzariaPersonalizacao() {
                   className="aspect-square w-full object-cover"
                 />
               </div>
-              <h1 className="mt-5 font-display text-2xl font-extrabold text-charcoal sm:text-3xl">
-                {product.name}
-              </h1>
-              <p className="mt-2 text-sm leading-relaxed text-charcoal/55">
-                {product.desc}
-              </p>
-              {category && (
-                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-charcoal/35">
-                  {category.name}
-                </p>
-              )}
             </div>
 
             <div className="flex flex-col gap-8">
@@ -415,6 +404,26 @@ function PizzariaPersonalizacao() {
               )}
 
               <div className="rounded-2xl border border-charcoal/8 bg-mozzarella p-5">
+                {/* O nome abre o card das escolhas em vez de ficar sob a foto:
+                    no computador a foto fica de um lado e o que se preenche do
+                    outro, e o título solto na coluna esquerda deixava o card
+                    da direita começando sem dizer de que produto se trata. */}
+                <div className="mb-5 border-b border-charcoal/8 pb-4">
+                  {category && (
+                    <p className="text-xs font-medium uppercase tracking-wide text-charcoal/35">
+                      {category.name}
+                    </p>
+                  )}
+                  <h1 className="mt-1 font-display text-2xl font-extrabold text-charcoal sm:text-3xl">
+                    {product.name}
+                  </h1>
+                  {product.desc && (
+                    <p className="mt-2 text-sm leading-relaxed text-charcoal/55">
+                      {product.desc}
+                    </p>
+                  )}
+                </div>
+
                 {optionGroups.length > 0 && (
                   <div className="mb-6">
                     <OptionGroups

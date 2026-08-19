@@ -267,10 +267,14 @@ function PizzariaInicio() {
               </p>
               <div className="relative mt-8 inline-flex w-fit">
                 <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-[color:var(--on-primary)]/40" />
+                {/* O fundo precisa ser repetido no hover. Sem isso vale o
+                    hover:bg-primary/90 que vem da variante padrão do Button, e
+                    o botão fica com o fundo na mesma cor do próprio texto — ou
+                    seja, some ao passar o mouse, em qualquer paleta de loja. */}
                 <Button
                   size="xl"
                   onClick={goToCardapio}
-                  className="rounded-full bg-[color:var(--on-primary)] px-10 text-lg font-semibold text-[color:var(--primary)] shadow-none hover:opacity-90"
+                  className="rounded-full bg-[color:var(--on-primary)] px-10 text-lg font-semibold text-[color:var(--primary)] shadow-none hover:bg-[color:var(--on-primary)] hover:opacity-90"
                 >
                   Ver cardápio →
                 </Button>

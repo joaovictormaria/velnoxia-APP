@@ -72,12 +72,16 @@ export function ProductCard({
     </div>
   );
 
+  /* Nome em uma linha, descrição em duas, com altura reservada mesmo quando o
+     texto é curto. Sem isso, um produto de nome comprido empurrava o preço
+     para baixo e a fileira de cards ficava em degraus — cada card terminando
+     numa altura diferente do vizinho. */
   const info = (
     <div className="flex flex-col p-5 sm:p-6">
-      <h3 className="font-display text-xl font-bold text-charcoal">
+      <h3 className="line-clamp-1 font-display text-xl font-bold text-charcoal">
         {product.name}
       </h3>
-      <p className="mt-1.5 text-base leading-snug text-charcoal/55">
+      <p className="mt-1.5 line-clamp-2 min-h-11 text-base leading-snug text-charcoal/55">
         {product.desc}
       </p>
       {tags && tags.length > 0 && (

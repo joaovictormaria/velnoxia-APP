@@ -207,9 +207,12 @@ export function CategorySaboresSection({
             </span>
           </Link>
 
+          {/* Alinhados ao centro da própria coluna, não à esquerda: o botão
+              acima ocupa a largura toda, e selos encostados à esquerda com
+              texto de tamanhos diferentes deixavam a fileira torta. */}
           <div className="mt-7 grid grid-cols-3 gap-4">
             {trustLabels.map((label, i) => (
-              <div key={label} className="flex flex-col items-start gap-2.5">
+              <div key={label} className="flex flex-col items-center gap-2.5 text-center">
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-olive/10 text-olive">
                   {trustIcons[i]?.()}
                 </span>
