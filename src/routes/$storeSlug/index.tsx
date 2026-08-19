@@ -1,19 +1,28 @@
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import {
+  Beef,
+  Beer,
+  CakeSlice,
   Camera,
   Cherry,
   Circle,
   Clock,
+  Coffee,
   Fish,
   Flame,
   GlassWater,
+  IceCreamCone,
   Leaf,
   MapPin,
+  Milk,
   Pizza,
+  Salad,
   Sandwich,
   Snowflake,
   Truck,
+  Utensils,
+  UtensilsCrossed,
   Wheat,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,6 +59,15 @@ const CARE_ICONS: Record<
   Pizza,
   Sandwich,
   GlassWater,
+  Beef,
+  Coffee,
+  Beer,
+  Salad,
+  IceCreamCone,
+  CakeSlice,
+  Utensils,
+  UtensilsCrossed,
+  Milk,
 };
 
 export const Route = createFileRoute("/$storeSlug/")({
@@ -262,7 +280,13 @@ function PizzariaInicio() {
 
           {/* Photo — always on the right from md up, full-width above the text on small screens.
               Its own edge fades out (mask, not an overlay) so the shared gradient behind it
-              shows through with no seam — the photo dissolves into the red, not cut by it. */}
+              shows through with no seam — the photo dissolves into the red, not cut by it.
+
+              Sem foto nenhuma a coluna inteira sai, em vez de reservar um bloco
+              vazio: ramos novos ainda não têm banco de imagens, e a capa só de
+              texto sobre o gradiente parece decidida, não quebrada. Assim que o
+              dono sobe as fotos dele, elas assumem — ownPhotos vem antes. */}
+          {slides.length > 0 && (
           <div className="relative order-1 h-72 sm:h-96 md:order-2 md:h-auto">
             <Reveal variant="scale" className="relative h-full w-full">
               {slides.map((photo, i) => (
@@ -286,6 +310,7 @@ function PizzariaInicio() {
               ))}
             </Reveal>
           </div>
+          )}
         </div>
 
         {/* Marks where the red gradient ends, so the fixed header knows when to

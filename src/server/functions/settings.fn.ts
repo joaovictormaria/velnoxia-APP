@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
+import { prisma } from "../db/client";
+import { STARTER_CATALOGS } from "../catalog/starter-catalogs";
 import {
   addRestaurantPhoto,
   deleteRestaurantPhoto,
@@ -144,5 +146,42 @@ export const deleteRestaurantPhotoFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     await deleteRestaurantPhoto(storeId, data.id);
+    return { ok: true as const };
+  });
+
+/**
+ * O ramo da loja, que decide os textos e a capa do cardápio digital.
+ *
+ * Fica fora de saveStoreSettingsFn porque mora noutra tabela — é do Store, não
+ * do StoreSettings — e porque é uma mudança de natureza diferente: mexe em como
+ * a loja se apresenta, nunca no que ela vende.
+ */
+export const getBusinessTypeFn = createServerFn({ method: "GET" }).handler(async () => {
+  const { storeId } = await requireAdminSession();
+  const store = await prisma.store.findUniqueOrThrow({
+    where: { id: storeId },
+    select: { businessType: true },
+  });
+  return store.businessType;
+});
+
+export const saveBusinessTypeFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      businessType: z.enum(Object.keys(STARTER_CATALOGS) as [string, ...string[]]),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+    /**
+     * Troca só o ramo. O cardápio inicial não é semeado de novo: ele existe
+     * para a loja não nascer vazia, e reaplicá-lo aqui apagaria ou duplicaria
+     * os produtos que o dono já cadastrou — o oposto do que ele pediu ao
+     * corrigir o ramo.
+     */
+    await prisma.store.update({
+      where: { id: storeId },
+      data: { businessType: data.businessType },
+    });
     return { ok: true as const };
   });

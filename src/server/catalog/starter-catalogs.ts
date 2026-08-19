@@ -1,4 +1,15 @@
-import type { CategoryKind, SizeLabel } from "@prisma/client";
+import { PIZZA_SIZES, type StarterCatalog } from "./catalog-types";
+import {
+  BAR,
+  CAFETERIA,
+  CHURRASCARIA,
+  HOT_DOG,
+  RESTAURANTE,
+  SAUDAVEL,
+  SORVETES,
+} from "./menus";
+
+export type { StarterProduct, StarterCategory, StarterCatalog } from "./catalog-types";
 
 /**
  * What a store gets the moment it signs up.
@@ -8,55 +19,13 @@ import type { CategoryKind, SizeLabel } from "@prisma/client";
  * cardápio and assumes the signup failed. Everything here is a starting point
  * the owner edits in the admin; nothing is fixed.
  *
- * Photos are deliberately absent for now: the storefront falls back to the
- * category icon when imageUrl is null, so a fresh store looks intentional
- * rather than broken while the licensed image set is put together.
+ * Photos are deliberately absent for the newer trades: the storefront falls
+ * back to the category icon when imageUrl is null, so a fresh store looks
+ * intentional rather than broken while the licensed image set is put together.
  */
 
-export type StarterProduct = {
-  name: string;
-  description: string;
-  basePrice: number;
-  tag?: string;
-  allowHalfAndHalf?: boolean;
-  imageUrl?: string;
-  sizes?: { size: SizeLabel; price: number }[];
-};
-
-export type StarterCategory = {
-  name: string;
-  /** Pill above the title on the storefront. */
-  badge?: string;
-  /** Two lines under the title. */
-  headline?: string;
-  subhead?: string;
-  slug: string;
-  icon: string;
-  kind: CategoryKind;
-  products: StarterProduct[];
-};
-
-export type StarterCatalog = {
-  /** Shown in the business-type selector at signup. */
-  label: string;
-  /** Short line under the store name in the storefront header. */
-  tagline: string;
-  /** Footer paragraph. */
-  description: string;
-  categories: StarterCategory[];
-  extras: { name: string; price: number }[];
-  /** Carousel slides the store opens with; the owner edits them in the panel. */
-  promotions: { eyebrow: string; title: string; description: string; discount?: string }[];
-};
-
-const PIZZA_SIZES = (broto: number, media: number, grande: number, gigante: number) => [
-  { size: "BROTINHO" as SizeLabel, price: broto },
-  { size: "MEDIA" as SizeLabel, price: media },
-  { size: "GRANDE" as SizeLabel, price: grande },
-  { size: "GIGANTE" as SizeLabel, price: gigante },
-];
-
-export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
+/** Os quatro ramos que têm cardápio e fotos próprios desde o começo. */
+const MENUS_ORIGINAIS: Record<string, StarterCatalog> = {
   pizzaria: {
     label: "Pizzaria",
     tagline: "Pizzaria",
@@ -304,6 +273,68 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
       { eyebrow: "Toda quinta", title: "Temaki Day", description: "Todos os temakis com preço promocional." },
     ],
   },
+
+};
+
+/**
+ * Um ramo que come do cardápio de outro, trocando só como ele se apresenta.
+ *
+ * Uma marmitaria e um restaurante de prato feito servem quase a mesma coisa; o
+ * que muda é o nome na porta. Duplicar o cardápio para cada um seria manter a
+ * mesma comida escrita em quatro lugares, e a primeira correção de preço já
+ * sairia diferente entre eles.
+ */
+function derivar(
+  base: StarterCatalog,
+  o: { label: string; tagline?: string; description?: string },
+): StarterCatalog {
+  return {
+    ...base,
+    label: o.label,
+    tagline: o.tagline ?? o.label,
+    description: o.description ?? base.description,
+  };
+}
+
+/**
+ * Todos os ramos oferecidos no cadastro, na ordem em que aparecem.
+ *
+ * A ordem é a do que mais se vê na rua, não alfabética: quem abre a lista
+ * encontra o próprio ramo nas primeiras linhas em vez de percorrer dezesseis.
+ */
+export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
+  pizzaria: MENUS_ORIGINAIS.pizzaria,
+  hamburgueria: MENUS_ORIGINAIS.hamburgueria,
+  "fast-food": derivar(MENUS_ORIGINAIS.hamburgueria, {
+    label: "Fast Food",
+    description: "Lanche rápido, feito na hora, do jeito que você gosta.",
+  }),
+  "hot-dog": HOT_DOG,
+  restaurante: RESTAURANTE,
+  "comida-caseira": derivar(RESTAURANTE, {
+    label: "Comida caseira",
+    description: "Comida de casa, feita todo dia, com tempero de família.",
+  }),
+  "comida-brasileira": derivar(RESTAURANTE, {
+    label: "Comida brasileira",
+    description: "O prato brasileiro de sempre, feito na hora e bem servido.",
+  }),
+  marmitaria: derivar(RESTAURANTE, {
+    label: "Marmitaria",
+    description: "Marmita quentinha, montada na hora e entregue no seu horário.",
+  }),
+  churrascaria: CHURRASCARIA,
+  japones: MENUS_ORIGINAIS.japones,
+  acai: MENUS_ORIGINAIS.acai,
+  sorvetes: SORVETES,
+  cafeteria: CAFETERIA,
+  confeitaria: derivar(CAFETERIA, {
+    label: "Confeitaria / Doceria",
+    tagline: "Confeitaria",
+    description: "Doce feito na casa, do bolo de todo dia ao pedido especial.",
+  }),
+  bar: BAR,
+  saudavel: SAUDAVEL,
 };
 
 export const DEFAULT_BUSINESS_TYPE = "pizzaria";

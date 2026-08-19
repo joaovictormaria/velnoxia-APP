@@ -9,10 +9,13 @@ import {
   lookupCep,
 } from "@/lib/pizzaria2/cep-lookup";
 import {
+  getBusinessTypeFn,
   getStoreSettingsFn,
+  saveBusinessTypeFn,
   saveOpeningHoursFn,
   saveStoreSettingsFn,
 } from "@/server/functions/settings.fn";
+import { BUSINESS_TYPE_OPTIONS } from "@/server/catalog/starter-catalogs";
 
 export const Route = createFileRoute("/admin/configuracoes/")({
   component: SettingsPage,
@@ -105,6 +108,8 @@ function SettingsPage() {
   const [tab, setTab] = useState<TabId>("identidade");
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "notfound">("idle");
   const cepRequest = useRef<AbortController | null>(null);
+  // O ramo vive noutra tabela e não entra no rascunho das configurações.
+  const [businessType, setBusinessType] = useState<string | null>(null);
 
   // Sair da tela no meio de uma busca não deve deixar um retorno tardio
   // tentando escrever num formulário que já não existe.
@@ -114,6 +119,15 @@ function SettingsPage() {
     queryKey: ["store-settings"],
     queryFn: () => getStoreSettingsFn(),
   });
+
+  const { data: ramoSalvo } = useQuery({
+    queryKey: ["business-type"],
+    queryFn: () => getBusinessTypeFn(),
+  });
+
+  useEffect(() => {
+    if (ramoSalvo && businessType === null) setBusinessType(ramoSalvo);
+  }, [ramoSalvo, businessType]);
 
   // Seed the editable copy once the server payload lands.
   useEffect(() => {
@@ -250,11 +264,18 @@ function SettingsPage() {
         data: WEEKDAYS.map((d) => ({ weekday: d, ...hours[d] })),
       });
       if (!hoursRes.ok) throw new Error(hoursRes.error);
+
+      // Só quando mudou de fato: é outra tabela, e uma escrita por salvamento
+      // que não muda nada é ruído no banco.
+      if (businessType && businessType !== ramoSalvo) {
+        await saveBusinessTypeFn({ data: { businessType } });
+      }
     },
     onSuccess: () => {
       setError(null);
       setSaved(true);
       queryClient.invalidateQueries({ queryKey: ["store-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["business-type"] });
       window.setTimeout(() => setSaved(false), 2500);
     },
     onError: (e: Error) => {
@@ -357,6 +378,23 @@ function SettingsPage() {
                 onChange={(v) => set("storeName", v)}
                 required
               />
+            </Field>
+            <Field
+              label="Ramo do seu negócio"
+              hint="Define os textos e a capa do seu cardápio digital. Não mexe no que você já cadastrou: produtos, categorias e preços continuam como estão."
+            >
+              <select
+                value={businessType ?? ""}
+                onChange={(e) => setBusinessType(e.target.value)}
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900"
+              >
+                {businessType === null && <option value="">Carregando...</option>}
+                {BUSINESS_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field
               label="Subtítulo"
