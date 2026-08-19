@@ -38,6 +38,8 @@ export type CurrentAdmin = {
     trialEndsAt: Date | null;
     /** True when the trial window has passed — the account still exists. */
     trialExpired: boolean;
+    /** A logo que o dono subiu. Null enquanto ele não subir nenhuma. */
+    logoUrl: string | null;
   };
 };
 
@@ -57,7 +59,14 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
       isActive: true,
       storeId: true,
       store: {
-        select: { id: true, slug: true, name: true, status: true, trialEndsAt: true },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          status: true,
+          trialEndsAt: true,
+          settings: { select: { logoUrl: true } },
+        },
       },
     },
   });
@@ -71,6 +80,9 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
     storeId: admin.storeId,
     store: {
       ...admin.store,
+      // A logo é do painel também, não só da vitrine: o dono se reconhece
+      // no canto da tela em vez de ver o ícone genérico do sistema.
+      logoUrl: admin.store.settings?.logoUrl ?? null,
       trialExpired:
         admin.store.status === "TRIAL" &&
         admin.store.trialEndsAt !== null &&

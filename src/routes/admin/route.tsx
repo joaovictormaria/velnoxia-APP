@@ -86,10 +86,16 @@ function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-neutral-950">
-      {/* The store name comes from the session — this panel serves every tenant. */}
-      <AdminSidebar storeName={admin.store.name} onLogout={handleLogout} />
-      <main className="flex-1 overflow-x-hidden p-4">
+    // No celular a barra do menu fica em cima do conteúdo, empilhada; a
+    // partir de lg vira coluna ao lado. Por isso o flex só entra em lg.
+    <div className="min-h-screen bg-neutral-950 lg:flex">
+      {/* Nome e logo vêm da sessão — este painel atende todas as lojas. */}
+      <AdminSidebar
+        storeName={admin.store.name}
+        logoUrl={admin.store.logoUrl}
+        onLogout={handleLogout}
+      />
+      <main className="min-w-0 flex-1 overflow-x-hidden p-4">
         <div className="admin-theme min-h-full rounded-2xl bg-[#FAF9F7] p-8 text-neutral-900">
           <Outlet />
         </div>
