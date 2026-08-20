@@ -170,7 +170,7 @@ export function ProductForm({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         {/* Topo à direita, como na tela de categorias: os campos ficam ao lado
             e a prévia acompanha o que se digita sem sair do campo de visão. */}
-        <div className="lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1">
+        <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1 lg:block">
           {/* O produto no meio do cardápio, como o cliente o encontra: foto,
               etiqueta, descrição e preço já no lugar. É a resposta para "como isso
               vai ficar", que antes exigia salvar e abrir a loja noutra aba. */}

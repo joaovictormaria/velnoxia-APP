@@ -20,6 +20,29 @@ import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
  */
 const LARGURA_PADRAO = 1800;
 
+/** O `lg` do Tailwind, que é onde o formulário abre espaço para a prévia. */
+const TELA_LARGA = "(min-width: 64rem)";
+
+/**
+ * Se há espaço para a prévia ao lado do formulário.
+ *
+ * Começa em `false` de propósito: no servidor não existe largura de janela, e
+ * assumir que cabe faria o celular renderizar a vitrine inteira antes de a
+ * hidratação desmentir. Errar para o lado de esconder não custa nada — em tela
+ * larga ela aparece no primeiro efeito, sem piscar layout.
+ */
+function useTelaLarga() {
+  const [larga, setLarga] = useState(false);
+  useEffect(() => {
+    const consulta = window.matchMedia(TELA_LARGA);
+    const acompanhar = () => setLarga(consulta.matches);
+    acompanhar();
+    consulta.addEventListener("change", acompanhar);
+    return () => consulta.removeEventListener("change", acompanhar);
+  }, []);
+  return larga;
+}
+
 
 /**
  * A vitrine de verdade dentro do painel, refletindo o que ainda não foi salvo.
@@ -61,6 +84,7 @@ export function PreviaDaVitrine({
   children: ReactNode;
 }) {
   const [ampliada, setAmpliada] = useState(false);
+  const telaLarga = useTelaLarga();
 
   const { data, isPending } = useQuery({
     queryKey: ["previa-da-vitrine", storeSlug],
@@ -68,7 +92,16 @@ export function PreviaDaVitrine({
     // O cardápio salvo muda pouco durante uma edição; o que muda a cada tecla
     // é o rascunho, aplicado por cima sem ir ao servidor.
     staleTime: 30_000,
+    // Num celular a prévia nem aparece; buscar o cardápio ali seria gastar
+    // dados do lojista para desenhar algo que ele não vai ver.
+    enabled: telaLarga,
   });
+
+  // Numa tela estreita a prévia não cabe: a vitrine é montada a 1800px e
+  // encolhida, então em 360px ela viraria uma miniatura ilegível empurrando o
+  // primeiro campo para fora da tela. Some por inteiro, e o formulário fica
+  // com a largura toda.
+  if (!telaLarga) return null;
 
   const desenhar = (preencher: boolean, teto?: number) =>
     isPending || !data ? (

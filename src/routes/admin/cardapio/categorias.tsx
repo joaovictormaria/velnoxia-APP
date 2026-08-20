@@ -167,7 +167,7 @@ function CategoriesPage() {
             setError(null);
             save.mutate(draft);
           }}
-          className="grid grid-cols-1 gap-4 rounded-2xl border border-neutral-200 bg-white p-5 md:grid-cols-5"
+          className="grid grid-cols-1 gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
         >
           {/* Canto superior direito, ocupando as três primeiras linhas: os campos
               de identidade ficam ao lado dela, e o resto do formulário corre
@@ -175,7 +175,7 @@ function CategoriesPage() {
               admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
               precisa da guarda para não depender dessa suposição. */}
           {admin && (
-            <div className="md:col-span-2 md:col-start-4 md:row-span-3 md:row-start-1">
+            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
               <PreviaDaVitrine
                 storeSlug={admin.store.slug}
                 altura={360}

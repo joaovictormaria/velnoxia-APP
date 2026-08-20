@@ -70,7 +70,7 @@ function ExtrasPage() {
               tela do produto, nunca no cardápio — é a resposta para quem
               cadastra "Bacon extra" e não vê nada mudar na loja. */}
           {admin && (
-            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1">
+            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1 lg:block">
               <PreviaDaVitrine
                 storeSlug={admin.store.slug}
                 foco={foco}

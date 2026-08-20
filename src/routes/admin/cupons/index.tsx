@@ -138,7 +138,7 @@ function CouponsPage() {
               loja: o cliente digita o código no fechamento do pedido. Então a
               prévia mostra o que ele vê ali, e quanto o desconto tira. */}
           {admin && (
-            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1">
+            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
               <PreviaDaVitrine storeSlug={admin.store.slug} foco={foco} largura={720}>
                 <CupomDaPrevia cupom={draft} />
               </PreviaDaVitrine>

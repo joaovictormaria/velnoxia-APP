@@ -139,7 +139,7 @@ function AboutTab() {
           embaixo na página da loja, e quem escreve o texto aqui não faz ideia
           de como ele vai cair ao lado da foto. */}
       {admin && (
-        <div className="lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1">
+        <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
           <PreviaDaVitrine
             storeSlug={admin.store.slug}
             foco={foco}
@@ -337,7 +337,7 @@ function BlogTab() {
               quando não há publicação nenhuma, e a em edição já entra na lista:
               quem escreve a primeira precisa vê-la nascer. */}
           {admin && (
-            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1">
+            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
               <PreviaDaVitrine
                 storeSlug={admin.store.slug}
                 foco={foco}

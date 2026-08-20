@@ -381,7 +381,7 @@ function SettingsPage() {
               rende: a cor é escolhida por um código hexadecimal, e sem ver o
               resultado a lojista salva, abre a loja, volta e corrige. */}
           {admin && (
-            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1">
+            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1 lg:block">
               <PreviaDaVitrine
                 storeSlug={admin.store.slug}
                 foco={foco}
