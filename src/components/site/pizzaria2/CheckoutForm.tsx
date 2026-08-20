@@ -19,6 +19,7 @@ import {
   previewEmployeeBenefitFn,
 } from "@/server/functions/employee-benefit.fn";
 import { loadCustomerDetails, saveCustomerDetails } from "@/lib/pizzaria2/customer-details";
+import { salvarPedidoEmAndamento } from "@/lib/pizzaria2/pedido-em-andamento";
 import { formatCep, isCompleteCep, lookupCep, normalizeCep } from "@/lib/pizzaria2/cep-lookup";
 
 const PAYMENT_LABEL: Record<string, string> = {
@@ -289,6 +290,14 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
       saveCustomerDetails(storeInfo.slug, {
         name, phone, street, number, complement, neighborhood, city, state, cep, type, paymentMethod,
       });
+      // Guarda o link no aparelho: o token só existe nesta resposta, e sem ele
+      // quem fechasse a aba agora perderia o acompanhamento para sempre.
+      if (res.trackingToken) {
+        salvarPedidoEmAndamento(storeInfo.slug, {
+          token: res.trackingToken,
+          number: res.orderNumber,
+        });
+      }
       setPlaced({
         number: res.orderNumber,
         total: res.total,

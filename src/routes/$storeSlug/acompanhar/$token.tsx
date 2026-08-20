@@ -4,6 +4,10 @@ import { Check, Clock, CookingPot, Bike, PackageCheck, XCircle } from "lucide-re
 import { trackOrderFn } from "@/server/functions/order-tracking.fn";
 import { DistanciaDoEntregador } from "@/components/site/pizzaria2/DistanciaDoEntregador";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
+import {
+  esquecerPedidoEmAndamento,
+  salvarPedidoEmAndamento,
+} from "@/lib/pizzaria2/pedido-em-andamento";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/$storeSlug/acompanhar/$token")({
@@ -33,7 +37,18 @@ function TrackingPage() {
     let vivo = true;
     const buscar = () =>
       trackOrderFn({ data: { token } })
-        .then((r) => vivo && setData(r))
+        .then((r) => {
+          if (!vivo) return;
+          setData(r);
+          /*
+           * O atalho do rodapé vive enquanto o pedido vive. Ele sai daqui, e
+           * não de um relógio: quem sabe que o pedido terminou é o servidor,
+           * e é esta resposta que traz a notícia — o pedido entregue ou
+           * cancelado, ou o link que já parou de responder.
+           */
+          if (!r.ok || r.order.finished) esquecerPedidoEmAndamento(storeSlug);
+          else salvarPedidoEmAndamento(storeSlug, { token, number: r.order.number });
+        })
         .catch(() => undefined);
     buscar();
     const id = window.setInterval(buscar, 15_000);
@@ -41,7 +56,7 @@ function TrackingPage() {
       vivo = false;
       window.clearInterval(id);
     };
-  }, [token]);
+  }, [token, storeSlug]);
 
   if (!data) {
     return <Aviso titulo="Carregando..." texto="Buscando seu pedido." storeSlug={storeSlug} />;
