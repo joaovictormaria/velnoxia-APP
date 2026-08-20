@@ -246,7 +246,9 @@ function Palco({
       (alvo.clientHeight * 0.66) / r.height,
     );
     setAmpliacao(Math.min(4, Math.max(1, cabe)));
-  }, [foco, escala, largura, children]);
+    // children está fora de propósito: é um elemento novo a cada renderização,
+    // e a cada letra digitada isto recalcularia a ampliação.
+  }, [foco, escala, largura]);
 
   /**
    * Põe no centro o ponto focado — ou o meio da vitrine, quando não há foco.
@@ -283,7 +285,18 @@ function Palco({
       }
     });
     return () => cancelAnimationFrame(id);
-  }, [foco, ampliacao, escala, largura, children]);
+    /*
+     * Sem children nas dependências.
+     *
+     * Ele muda de identidade a cada renderização, então cada letra digitada
+     * reiniciava a rolagem suave: a prévia saía do lugar e voltava, tremendo
+     * enquanto a lojista escrevia — justamente quando ela precisa olhar.
+     *
+     * O enquadre só se refaz quando o campo focado muda, ou quando a escala
+     * muda. Se o texto crescer e empurrar o alvo alguns pixels, a vista fica
+     * onde está, o que é melhor do que persegui-lo a cada tecla.
+     */
+  }, [foco, ampliacao, escala, largura]);
 
   return (
     <div
