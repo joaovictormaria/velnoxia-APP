@@ -78,6 +78,7 @@ export function HeroDaVitrine() {
     return () => clearInterval(id);
   }, [slides.length]);
   const currentPhoto = slides.length > 0 ? activePhoto % slides.length : 0;
+  const temFoto = slides.length > 0;
 
   const isOpen = true; // "Aberto agora" — flip to preview the closed (blinking red) state.
 
@@ -164,11 +165,24 @@ export function HeroDaVitrine() {
     <section className="relative -mt-16.75 flex flex-col overflow-hidden min-h-screen min-h-dvh">
       {/* Text + photo row — grows to fill the hero, but never shrinks below its own content,
           so the info card below can never climb up and overlap it. */}
-      <div className="flex flex-1 flex-col bg-gradient-accent md:grid md:grid-cols-2 md:grid-rows-[1fr]">
+      {/* Duas colunas só quando existe foto. Sem ela a grade continuava com as
+          duas, o texto ficava na primeira e a segunda sobrava como um bloco
+          chapado da cor da marca — parecia imagem que não carregou. Nove dos
+          dezesseis ramos ainda não têm banco de imagens, então este é o caso
+          comum, não a exceção. */}
+      <div
+        className={cn(
+          "flex flex-1 flex-col bg-gradient-accent md:grid md:grid-rows-[1fr]",
+          temFoto ? "md:grid-cols-2" : "md:grid-cols-1",
+        )}
+      >
         {/* Text panel — sits on the shared accent gradient (bg lives on the row above),
             so the photo's masked edge blends into the exact same gradient with no seam. */}
         <div className="relative z-10 order-2 flex items-center justify-center px-4 py-10 sm:px-6 md:order-1">
-          <Reveal variant="up" className="mx-auto max-w-xl text-center">
+          <Reveal
+            variant="up"
+            className={cn("mx-auto text-center", temFoto ? "max-w-xl" : "max-w-3xl")}
+          >
             <h1 className="font-display text-[7vw] font-extrabold leading-[1.1] sm:text-5xl md:text-4xl lg:text-5xl">
               <span className="block whitespace-nowrap text-[color:var(--on-primary)]">
                 Bateu aquela vontade de
