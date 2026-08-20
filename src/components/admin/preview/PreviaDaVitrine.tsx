@@ -47,14 +47,14 @@ export function PreviaDaVitrine({
     staleTime: 30_000,
   });
 
-  const conteudo =
+  const desenhar = (preencher: boolean) =>
     isPending || !data ? (
-      <div className="flex h-full items-center justify-center gap-2 text-sm text-neutral-500">
+      <div className="flex h-40 items-center justify-center gap-2 text-sm text-neutral-500">
         <Loader2 className="size-4 animate-spin" />
         Carregando a prévia...
       </div>
     ) : (
-      <Palco data={data} aplicar={aplicar}>
+      <Palco data={data} aplicar={aplicar} preencher={preencher}>
         {children}
       </Palco>
     );
@@ -76,12 +76,18 @@ export function PreviaDaVitrine({
           </button>
         </header>
 
-        <div className="bg-[#FDF8F3]" style={{ height: altura }}>
-          {conteudo}
+        {/* Sem altura fixa: com zoom o elemento já ocupa o espaço reduzido no
+            layout, então a caixa se ajusta ao tamanho da seção. A altura vira
+            teto, para uma seção comprida não empurrar o formulário inteiro
+            para fora da tela. */}
+        <div className="overflow-hidden bg-[#FDF8F3]" style={{ maxHeight: altura }}>
+          {desenhar(false)}
         </div>
       </section>
 
-      {ampliada && <ModalDaPrevia onFechar={() => setAmpliada(false)}>{conteudo}</ModalDaPrevia>}
+      {ampliada && (
+        <ModalDaPrevia onFechar={() => setAmpliada(false)}>{desenhar(true)}</ModalDaPrevia>
+      )}
     </>
   );
 }
@@ -139,10 +145,13 @@ function ModalDaPrevia({ onFechar, children }: { onFechar: () => void; children:
 function Palco({
   data,
   aplicar,
+  preencher,
   children,
 }: {
   data: MenuPayload & { store: StorePayload };
   aplicar: (p: MenuPayload) => MenuPayload;
+  /** No modal a vitrine se centra na altura toda; encaixada, ela a define. */
+  preencher: boolean;
   children: ReactNode;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
@@ -180,7 +189,12 @@ function Palco({
      * pointer-events desligado porque isto é uma imagem, não a loja. Sem isso,
      * clicar num produto tiraria a lojista do formulário no meio da edição.
      */
-    <div ref={caixa} className="flex h-full w-full items-center justify-center overflow-hidden">
+    <div
+      ref={caixa}
+      className={
+        "flex w-full items-center justify-center overflow-hidden " + (preencher ? "h-full" : "")
+      }
+    >
       <div
         aria-hidden
         className="pointer-events-none select-none"
