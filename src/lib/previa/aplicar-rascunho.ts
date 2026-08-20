@@ -108,3 +108,88 @@ function ordenar(
   const posicao = Math.max(0, Math.min(demais.length, rascunho.sortOrder - 1));
   return [...demais.slice(0, posicao), emEdicao, ...demais.slice(posicao)];
 }
+
+/** O que a tela de Produtos tem em mãos enquanto a lojista edita. */
+export type RascunhoDeProduto = {
+  /** Null enquanto é um produto novo, ainda sem id. */
+  id: string | null;
+  name: string;
+  slug: string;
+  description: string;
+  categoryId: string;
+  basePrice: number;
+  imageUrl: string | null;
+  tag: string | null;
+  isActive: boolean;
+  allowHalfAndHalf: boolean;
+  sortOrder: number;
+  /** Já com o rótulo do tamanho, que o formulário conhece e o payload exige. */
+  sizes: { categorySizeId: string; label: string; price: number; isAvailable: boolean }[];
+};
+
+type ProdutoDoPayload = MenuPayload["categories"][number]["products"][number];
+
+/** Um endereço temporário para o produto que ainda não existe no banco. */
+export const SLUG_DO_NOVO_PRODUTO = "__previa-produto-novo";
+
+/**
+ * Aplica o rascunho do produto e devolve o cardápio que a prévia deve mostrar.
+ *
+ * O produto é tirado de todas as categorias antes de ser posto na escolhida.
+ * Sem isso, trocar a categoria no formulário faria ele aparecer nas duas ao
+ * mesmo tempo — e a lojista veria um cardápio que o banco nunca vai ter.
+ */
+export function aplicarRascunhoDeProduto(
+  payload: MenuPayload,
+  rascunho: RascunhoDeProduto | null,
+): MenuPayload {
+  if (!rascunho) return payload;
+
+  const semEle = payload.categories.map((c) => ({
+    ...c,
+    products: c.products.filter((p) => !rascunho.id || p.id !== rascunho.id),
+  }));
+
+  // Produto desativado some da vitrine, e a prévia mostra isso.
+  if (!rascunho.isActive) return { ...payload, categories: semEle };
+
+  const antigo = payload.categories
+    .flatMap((c) => c.products)
+    .find((p) => rascunho.id && p.id === rascunho.id);
+
+  const atualizado: ProdutoDoPayload = {
+    ...(antigo ?? ({ id: rascunho.id ?? SLUG_DO_NOVO_PRODUTO } as unknown as ProdutoDoPayload)),
+    name: rascunho.name,
+    // Slug vazio no meio da digitação ganharia o mesmo endereço de outro
+    // produto, e a vitrine trataria os dois como um só.
+    slug: rascunho.slug || antigo?.slug || SLUG_DO_NOVO_PRODUTO,
+    description: rascunho.description,
+    basePrice: rascunho.basePrice,
+    imageUrl: rascunho.imageUrl,
+    tag: rascunho.tag,
+    allowHalfAndHalf: rascunho.allowHalfAndHalf,
+    optionGroups: antigo?.optionGroups ?? [],
+    sizes: rascunho.sizes
+      .filter((s) => s.isAvailable)
+      .map((s) => ({ categorySize: { id: s.categorySizeId, label: s.label }, price: s.price })),
+  };
+
+  return {
+    ...payload,
+    categories: semEle.map((c) =>
+      c.id === rascunho.categoryId
+        ? { ...c, products: posicionar(c.products, atualizado, rascunho.sortOrder) }
+        : c,
+    ),
+  };
+}
+
+/** Põe o produto na posição que o campo "Ordem de exibição" pede. */
+function posicionar(
+  produtos: ProdutoDoPayload[],
+  produto: ProdutoDoPayload,
+  sortOrder: number,
+): ProdutoDoPayload[] {
+  const posicao = Math.max(0, Math.min(produtos.length, sortOrder - 1));
+  return [...produtos.slice(0, posicao), produto, ...produtos.slice(posicao)];
+}

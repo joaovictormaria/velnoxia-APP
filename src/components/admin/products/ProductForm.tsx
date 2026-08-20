@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useRouteContext, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { ImageUploadField } from "./ImageUploadField";
@@ -9,6 +9,10 @@ import {
 } from "@/components/admin/menu/OptionGroupEditor";
 import { saveProductFn } from "@/server/functions/products.fn";
 import { getBusinessTypeFn } from "@/server/functions/settings.fn";
+import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
+import { SecaoDoCardapio } from "@/components/site/pizzaria2/SecaoDoCardapio";
+import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
+import { aplicarRascunhoDeProduto } from "@/lib/previa/aplicar-rascunho";
 
 export type ProductFormValues = {
   name: string;
@@ -45,6 +49,8 @@ export function ProductForm({
   initial: ProductFormValues;
   categories: {
     id: string;
+    /** Endereço da categoria na vitrine, usado pela prévia. */
+    slug: string;
     name: string;
     sizes: { id: string; label: string }[];
     optionGroups: { id: string; name: string }[];
@@ -81,7 +87,13 @@ export function ProductForm({
    * fixa. Trocar a categoria troca o que aparece aqui — e os preços da
    * categoria anterior deixam de valer, por isso são descartados no set().
    */
+  // A loja vem da moldura do painel: este formulário é usado por duas rotas, e
+  // exigir a prop de cada uma seria repetir o que a sessão já sabe.
+  const { admin } = useRouteContext({ from: "/admin" });
+  const storeSlug = admin?.store.slug ?? "";
+
   const categoriaEscolhida = categories.find((c) => c.id === values.categoryId);
+  const slugDaCategoria = categoriaEscolhida?.slug;
   const tamanhosDaCategoria = categoriaEscolhida?.sizes ?? [];
 
   function sizeFor(categorySizeId: string) {
@@ -152,6 +164,40 @@ export function ProductForm({
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
           {error}
         </p>
+      )}
+
+      {/* O produto no meio do cardápio, como o cliente o encontra: foto,
+          etiqueta, descrição e preço já no lugar. É a resposta para "como isso
+          vai ficar", que antes exigia salvar e abrir a loja noutra aba. */}
+      {storeSlug && (
+      <PreviaDaVitrine
+        storeSlug={storeSlug}
+        aplicar={(payload) =>
+          aplicarRascunhoDeProduto(payload, {
+            id: productId,
+            name: values.name,
+            slug: values.slug,
+            description: values.description,
+            categoryId: values.categoryId,
+            basePrice: values.basePrice,
+            imageUrl: values.imageUrl,
+            tag: values.tag,
+            isActive: values.isActive,
+            allowHalfAndHalf: values.allowHalfAndHalf,
+            sortOrder: values.sortOrder,
+            // O rótulo do tamanho mora na categoria; o formulário guarda só o
+            // id, e a vitrine precisa do nome para escrever "Grande".
+            sizes: values.sizes.map((t) => ({
+              ...t,
+              label: tamanhosDaCategoria.find((x) => x.id === t.categorySizeId)?.label ?? "",
+            })),
+          })
+        }
+      >
+        <SecaoDoCardapio>
+          <CategorySaboresSection defaultCategorySlug={slugDaCategoria} />
+        </SecaoDoCardapio>
+      </PreviaDaVitrine>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr_300px]">
