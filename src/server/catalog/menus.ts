@@ -18,7 +18,7 @@ const BEBIDAS_COMUNS = {
   kind: "SIMPLE" as const,
   products: [
     { name: "Refrigerante Lata", description: "Coca-Cola, Guaraná ou Fanta, 350ml.", basePrice: 6.9 },
-    { name: "Suco Natural 500ml", description: "Laranja, limão ou maracujá.", basePrice: 9.9 },
+    { name: "Suco Natural 500ml", description: "Laranja, limão ou maracujá.", basePrice: 9.9, imageUrl: "/catalogo-inicial/comum/suco-natural.jpg" },
     { name: "Água Mineral", description: "500ml, com ou sem gás.", basePrice: 4.5 },
   ],
 };
@@ -37,10 +37,12 @@ export const RESTAURANTE: StarterCatalog = {
       icon: "UtensilsCrossed",
       kind: "SIMPLE",
       products: [
-        { name: "Prato Feito", description: "Arroz, feijão, bife acebolado, batata frita e salada.", basePrice: 26.9, tag: "Mais pedido" },
-        { name: "Frango Grelhado", description: "Filé de frango grelhado, arroz, feijão e legumes.", basePrice: 25.9 },
+        { name: "Prato Feito", description: "Arroz, feijão, bife acebolado, batata frita e salada.", basePrice: 26.9, imageUrl: "/catalogo-inicial/restaurante/prato-feito.jpg", tag: "Mais pedido" },
+        { name: "Frango Grelhado", description: "Filé de frango grelhado, arroz, feijão e legumes.", basePrice: 25.9, imageUrl: "/catalogo-inicial/restaurante/frango-grelhado.jpg" },
         { name: "Bife à Parmegiana", description: "Bife empanado ao molho e queijo, com arroz e fritas.", basePrice: 34.9 },
         { name: "Peixe Frito", description: "Filé de peixe frito, arroz, pirão e salada.", basePrice: 32.9 },
+        { name: "Feijoada", description: "Feijoada completa com arroz, couve, farofa e laranja.", basePrice: 36.9, imageUrl: "/catalogo-inicial/restaurante/feijoada-2.jpg" },
+        { name: "Estrogonofe de Frango", description: "Estrogonofe cremoso com arroz e batata palha.", basePrice: 29.9, imageUrl: "/catalogo-inicial/restaurante/estrogonofe.jpg" },
       ],
     },
     {
@@ -52,7 +54,7 @@ export const RESTAURANTE: StarterCatalog = {
       icon: "Clock",
       kind: "SIMPLE",
       products: [
-        { name: "Executivo de Carne", description: "Porção individual com arroz, feijão e guarnição.", basePrice: 22.9 },
+        { name: "Executivo de Carne", description: "Porção individual com arroz, feijão e guarnição.", basePrice: 22.9, imageUrl: "/catalogo-inicial/restaurante/executivo-de-carne.jpg" },
         { name: "Executivo de Frango", description: "Porção individual com arroz, feijão e guarnição.", basePrice: 21.9 },
         { name: "Executivo Vegetariano", description: "Legumes salteados, arroz integral e salada.", basePrice: 21.9 },
       ],
@@ -99,10 +101,10 @@ export const HOT_DOG: StarterCatalog = {
       icon: "Sandwich",
       kind: "SIMPLE",
       products: [
-        { name: "Dog Simples", description: "Pão, salsicha, molho, milho e batata palha.", basePrice: 12.9 },
-        { name: "Dog Completo", description: "Salsicha, purê, milho, ervilha, batata palha e queijo ralado.", basePrice: 17.9, tag: "Mais pedido" },
-        { name: "Dog Duplo", description: "Duas salsichas, cheddar cremoso e bacon.", basePrice: 22.9 },
-        { name: "Dog Frango", description: "Frango desfiado, catupiry e batata palha.", basePrice: 21.9 },
+        { name: "Dog Simples", description: "Pão, salsicha, molho, milho e batata palha.", basePrice: 12.9, imageUrl: "/catalogo-inicial/hot-dog/dog-queijo.jpg" },
+        { name: "Dog Completo", description: "Salsicha, purê, milho, ervilha, batata palha e queijo ralado.", basePrice: 17.9, imageUrl: "/catalogo-inicial/hot-dog/dog-completo.jpg", tag: "Mais pedido" },
+        { name: "Dog Duplo", description: "Duas salsichas, cheddar cremoso e bacon.", basePrice: 22.9, imageUrl: "/catalogo-inicial/hot-dog/dog-bacon.jpg" },
+        { name: "Dog Frango", description: "Frango desfiado, catupiry e batata palha.", basePrice: 21.9, imageUrl: "/catalogo-inicial/hot-dog/dog-cheddar.jpg" },
       ],
     },
     {
@@ -114,7 +116,7 @@ export const HOT_DOG: StarterCatalog = {
       icon: "Flame",
       kind: "SIMPLE",
       products: [
-        { name: "Prensado de Calabresa", description: "Calabresa, queijo e cebola no pão prensado.", basePrice: 18.9 },
+        { name: "Prensado de Calabresa", description: "Calabresa, queijo e cebola no pão prensado.", basePrice: 18.9, imageUrl: "/catalogo-inicial/hot-dog/prensado-carne.jpg" },
         { name: "Prensado Misto", description: "Presunto, queijo e orégano.", basePrice: 15.9 },
       ],
     },
@@ -146,10 +148,10 @@ export const CHURRASCARIA: StarterCatalog = {
       icon: "Beef",
       kind: "SIMPLE",
       products: [
-        { name: "Picanha na Brasa", description: "Picanha fatiada, com farofa e vinagrete.", basePrice: 89.9, tag: "Mais pedido" },
+        { name: "Picanha na Brasa", description: "Picanha fatiada, com farofa e vinagrete.", basePrice: 89.9, imageUrl: "/catalogo-inicial/churrascaria/picanha-tabua.jpg", tag: "Mais pedido" },
         { name: "Maminha", description: "Maminha assada lentamente, macia e suculenta.", basePrice: 69.9 },
-        { name: "Costela no Bafo", description: "Costela bovina assada por horas.", basePrice: 74.9 },
-        { name: "Linguiça Artesanal", description: "Linguiça de porco assada na brasa.", basePrice: 39.9 },
+        { name: "Costela no Bafo", description: "Costela bovina assada por horas.", basePrice: 74.9, imageUrl: "/catalogo-inicial/churrascaria/costela-brasa.jpg" },
+        { name: "Linguiça Artesanal", description: "Linguiça de porco assada na brasa.", basePrice: 39.9, imageUrl: "/catalogo-inicial/churrascaria/linguica.jpg" },
       ],
     },
     {
@@ -161,7 +163,7 @@ export const CHURRASCARIA: StarterCatalog = {
       icon: "Flame",
       kind: "SIMPLE",
       products: [
-        { name: "Espeto de Carne", description: "Alcatra em cubos, temperada no sal grosso.", basePrice: 14.9 },
+        { name: "Espeto de Carne", description: "Alcatra em cubos, temperada no sal grosso.", basePrice: 14.9, imageUrl: "/catalogo-inicial/churrascaria/picanha-espeto.jpg" },
         { name: "Espeto de Frango", description: "Peito de frango com pimentão e cebola.", basePrice: 12.9 },
         { name: "Espeto de Queijo Coalho", description: "Queijo coalho grelhado com melaço.", basePrice: 13.9 },
       ],
@@ -335,7 +337,7 @@ export const SAUDAVEL: StarterCatalog = {
       kind: "SIMPLE",
       products: [
         { name: "Bowl de Frango", description: "Frango grelhado, arroz integral, brócolis e cenoura.", basePrice: 32.9, tag: "Mais pedido" },
-        { name: "Bowl de Salmão", description: "Salmão grelhado, quinoa e legumes no vapor.", basePrice: 44.9 },
+        { name: "Bowl de Salmão", description: "Salmão grelhado, quinoa e legumes no vapor.", basePrice: 44.9, imageUrl: "/catalogo-inicial/saudavel/bowl-salmao.jpg" },
         { name: "Bowl Vegano", description: "Grão-de-bico, quinoa, abacate e folhas.", basePrice: 31.9 },
       ],
     },
@@ -348,8 +350,8 @@ export const SAUDAVEL: StarterCatalog = {
       icon: "Leaf",
       kind: "SIMPLE",
       products: [
-        { name: "Salada Caesar", description: "Alface, frango grelhado, parmesão e croutons.", basePrice: 29.9 },
-        { name: "Salada Caprese", description: "Tomate, muçarela de búfala e manjericão.", basePrice: 27.9 },
+        { name: "Salada Caesar", description: "Alface, frango grelhado, parmesão e croutons.", basePrice: 29.9, imageUrl: "/catalogo-inicial/saudavel/salada-frango-abacate.jpg" },
+        { name: "Salada Caprese", description: "Tomate, muçarela de búfala e manjericão.", basePrice: 27.9, imageUrl: "/catalogo-inicial/saudavel/salada-bowl.jpg" },
       ],
     },
     {
@@ -401,9 +403,9 @@ export const SORVETES: StarterCatalog = {
       icon: "IceCreamCone",
       kind: "SIMPLE",
       products: [
-        { name: "Casquinha", description: "Uma bola no cone crocante.", basePrice: 8.9 },
-        { name: "Copo 300ml", description: "Duas bolas com uma cobertura à escolha.", basePrice: 14.9, tag: "Mais pedido" },
-        { name: "Taça 500ml", description: "Três bolas, calda e chantilly.", basePrice: 22.9 },
+        { name: "Casquinha", description: "Uma bola no cone crocante.", basePrice: 8.9, imageUrl: "/catalogo-inicial/sorvetes/casquinha-chocolate.jpg" },
+        { name: "Copo 300ml", description: "Duas bolas com uma cobertura à escolha.", basePrice: 14.9, imageUrl: "/catalogo-inicial/sorvetes/copo-sorvete.jpg", tag: "Mais pedido" },
+        { name: "Taça 500ml", description: "Três bolas, calda e chantilly.", basePrice: 22.9, imageUrl: "/catalogo-inicial/sorvetes/sundae.jpg" },
         { name: "Pote 1L", description: "Para levar pra casa, sabor à escolha.", basePrice: 39.9 },
       ],
     },
@@ -416,7 +418,7 @@ export const SORVETES: StarterCatalog = {
       icon: "GlassWater",
       kind: "SIMPLE",
       products: [
-        { name: "Milkshake 400ml", description: "Chocolate, morango ou baunilha.", basePrice: 19.9 },
+        { name: "Milkshake 400ml", description: "Chocolate, morango ou baunilha.", basePrice: 19.9, imageUrl: "/catalogo-inicial/sorvetes/milkshakes.jpg" },
         { name: "Milkshake de Ovomaltine", description: "Com pedaços crocantes por cima.", basePrice: 24.9 },
       ],
     },
@@ -430,7 +432,7 @@ export const SORVETES: StarterCatalog = {
       kind: "SIMPLE",
       products: [
         { name: "Banana Split", description: "Três bolas, banana, calda e castanhas.", basePrice: 29.9 },
-        { name: "Sundae Duplo", description: "Duas taças com calda quente e chantilly.", basePrice: 34.9 },
+        { name: "Sundae Duplo", description: "Duas taças com calda quente e chantilly.", basePrice: 34.9, imageUrl: "/catalogo-inicial/sorvetes/taca-morango.jpg" },
       ],
     },
     BEBIDAS_COMUNS,

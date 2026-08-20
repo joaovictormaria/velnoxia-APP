@@ -215,7 +215,11 @@ const HERO_NOVOS: Record<string, HeroContent> = {
     fullMenuTeaser: "Tem muito mais combinação esperando por você!",
   },
   restaurante: {
-    photos: [],
+    photos: [
+      "/catalogo-inicial/restaurante/prato-feito.jpg",
+      "/catalogo-inicial/restaurante/frango-grelhado.jpg",
+      "/catalogo-inicial/restaurante/feijoada.jpg",
+    ],
     cravings: [
       "um prato bem servido?",
       "arroz e feijão de verdade?",
@@ -327,7 +331,11 @@ const HERO_NOVOS: Record<string, HeroContent> = {
     fullMenuTeaser: "Tem muito mais petisco esperando por você!",
   },
   saudavel: {
-    photos: [],
+    photos: [
+      "/catalogo-inicial/saudavel/bowl-salmao.jpg",
+      "/catalogo-inicial/saudavel/salada-frango-abacate.jpg",
+      "/catalogo-inicial/saudavel/salada-bowl.jpg",
+    ],
     cravings: [
       "comida leve e gostosa?",
       "um bowl bem montado?",
@@ -354,7 +362,11 @@ const HERO_NOVOS: Record<string, HeroContent> = {
     fullMenuTeaser: "Tem muito mais combinação esperando por você!",
   },
   sorvetes: {
-    photos: [],
+    photos: [
+      "/catalogo-inicial/sorvetes/casquinhas.jpg",
+      "/catalogo-inicial/sorvetes/milkshakes.jpg",
+      "/catalogo-inicial/sorvetes/taca-morango.jpg",
+    ],
     cravings: [
       "sorvete cremoso?",
       "aquela casquinha?",
