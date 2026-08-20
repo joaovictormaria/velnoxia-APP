@@ -238,10 +238,13 @@ function OrderDetailPage() {
                 Ver no mapa
               </a>
 
-              {order.courier ? (
+              {order.courier?.name ?? order.courierNameSnapshot ? (
                 <p className="mt-3 flex items-center gap-2 border-t border-neutral-100 pt-3 text-sm text-neutral-800">
                   <Bike className="size-4 text-blue-600" />
-                  Levando: <strong>{order.courier.name}</strong>
+                  Levando: <strong>{order.courier?.name ?? order.courierNameSnapshot}</strong>
+                  {!order.courier && (
+                    <span className="text-xs text-neutral-500">(conta removida)</span>
+                  )}
                 </p>
               ) : order.awaitingCourierSince ? (
                 <p className="mt-3 flex items-center gap-2 border-t border-neutral-100 pt-3 text-sm font-medium text-orange-700">

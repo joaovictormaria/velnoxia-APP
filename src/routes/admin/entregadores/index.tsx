@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Bike, Check, Copy, KeyRound, Trash2, UserPlus, Users, X } from "lucide-react";
 import {
   createCourierInviteFn,
+  deleteCourierFn,
   listCourierInvitesFn,
   listCouriersFn,
   revokeCourierInviteFn,
@@ -53,6 +54,20 @@ function EntregadoresPage() {
       setError(null);
       await queryClient.invalidateQueries({ queryKey: ["courier-invites"] });
     },
+  });
+
+  /** Quem está com a exclusão pendente de confirmação. Um por vez. */
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+
+  const excluir = useMutation({
+    mutationFn: (id: string) => deleteCourierFn({ data: { id } }),
+    onSuccess: async (res) => {
+      setConfirmando(null);
+      if (!res.ok) return setError(res.error);
+      setError(null);
+      await queryClient.invalidateQueries({ queryKey: ["couriers"] });
+    },
+    onError: () => setError("Não foi possível excluir a conta."),
   });
 
   const alterarAcesso = useMutation({
@@ -200,6 +215,40 @@ function EntregadoresPage() {
                   {courier.isActive ? <X className="size-4" /> : <Check className="size-4" />}
                   {courier.isActive ? "Tirar acesso" : "Devolver acesso"}
                 </button>
+
+                {/* Exclusão pede confirmação na própria linha, e o botão só
+                    aparece depois que o nome já foi lido ali do lado — apagar
+                    a conta errada não tem desfazer. */}
+                {confirmando === courier.id ? (
+                  <span className="flex items-center gap-2 text-sm">
+                    <span className="text-neutral-600">Excluir {courier.name}?</span>
+                    <button
+                      type="button"
+                      disabled={excluir.isPending}
+                      onClick={() => excluir.mutate(courier.id)}
+                      className="rounded-lg bg-[#E11D2E] px-3 py-1.5 font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+                    >
+                      Excluir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmando(null)}
+                      className="text-neutral-500 hover:text-neutral-800"
+                    >
+                      Cancelar
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmando(courier.id)}
+                    aria-label={`Excluir a conta de ${courier.name}`}
+                    title="Excluir conta"
+                    className="rounded-lg border border-neutral-300 p-1.5 text-neutral-400 hover:border-[#E11D2E] hover:text-[#E11D2E]"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

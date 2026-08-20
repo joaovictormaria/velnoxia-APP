@@ -510,6 +510,12 @@ model Order {
   /// ninguem, e o pedido nao pode ficar preso por causa disso.
   courierId     String?
   courier       AdminUser? @relation("OrderCourier", fields: [courierId], references: [id], onDelete: SetNull)
+  /// O nome de quem levou, copiado no momento do despacho.
+  ///
+  /// Apagar a conta do entregador zera courierId — é o SetNull acima, e tem
+  /// de ser assim para não impedir a exclusão. Sem esta cópia, todo pedido que
+  /// ele entregou passaria a dizer que ninguém levou.
+  courierNameSnapshot String?
 
   /// Marcado quando a comida ficou pronta e nao havia entregador para levar.
   /// E o que separa "ainda no forno" de "parado esperando alguem": sem isso a

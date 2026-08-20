@@ -72,6 +72,8 @@ export type KanbanOrder = {
   /** Preenchido quando o pedido está pronto e sem quem o leve. */
   awaitingCourierSince: string | Date | null;
   courier: { name: string } | null;
+  /** O nome copiado no despacho. Sobrevive à exclusão da conta. */
+  courierNameSnapshot: string | null;
 };
 
 export type KanbanColumnData = {
@@ -211,10 +213,12 @@ function OrderCard({
               Aguardando entregador
             </span>
           )}
-          {order.courier && (
+          {/* A conta pode ter sido apagada depois da entrega; aí vale a cópia
+              feita no despacho, e o pedido continua dizendo quem levou. */}
+          {(order.courier?.name ?? order.courierNameSnapshot) && (
             <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
               <Bike className="size-3" />
-              {order.courier.name}
+              {order.courier?.name ?? order.courierNameSnapshot}
             </span>
           )}
         </div>

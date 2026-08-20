@@ -518,6 +518,9 @@ export async function dispatchOrder(
       where: { id: orderId },
       data: {
         courierId: courier.id,
+        // O nome vai junto: se a conta dele for apagada um dia, o pedido ainda
+        // sabe dizer quem levou.
+        courierNameSnapshot: courier.name,
         awaitingCourierSince: null,
         status: "OUT_FOR_DELIVERY",
       },

@@ -87,6 +87,54 @@ export const listCouriersFn = createServerFn({ method: "GET" }).handler(async ()
  * sem as antigas: getCurrentAdmin relê o banco a cada pedido, então o cookie
  * que ele já tinha para de valer no mesmo instante.
  */
+/**
+ * Apaga a conta do entregador de vez.
+ *
+ * "Tirar acesso" existe para quem saiu de férias ou está de castigo; isto é
+ * para o convite mandado errado, o motoboy que nunca chegou a trabalhar e a
+ * conta de teste. São situações diferentes, e juntar as duas num botão só
+ * faria o dono desativar quando queria apagar.
+ *
+ * O histórico não vai junto: o nome de quem levou fica copiado no pedido desde
+ * o despacho, então as entregas antigas continuam dizendo quem as fez mesmo
+ * depois que a conta deixa de existir.
+ */
+export const deleteCourierFn = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+
+    // Mesma trava de tirar o acesso, pelo mesmo motivo: a entrega na rua
+    // ficaria sem dono, e o pedido travado sem ninguém para marcar entregue.
+    const naRua = await prisma.order.count({
+      where: { storeId, courierId: data.id, status: "OUT_FOR_DELIVERY" },
+    });
+    if (naRua > 0) {
+      return {
+        ok: false as const,
+        error: `Este entregador ainda tem ${naRua} entrega(s) em andamento.`,
+      };
+    }
+
+    // O papel entra na busca: esta tela não apaga o dono nem um gerente.
+    const alvo = await prisma.adminUser.findFirst({
+      where: { id: data.id, storeId, role: "COURIER" },
+      select: { id: true, name: true },
+    });
+    if (!alvo) return { ok: false as const, error: "Entregador não encontrado." };
+
+    // Rede de segurança: se algum pedido antigo ficou sem a cópia do nome,
+    // ela é gravada agora — antes de a conta sumir e não haver mais de onde
+    // tirar essa informação.
+    await prisma.order.updateMany({
+      where: { storeId, courierId: alvo.id, courierNameSnapshot: null },
+      data: { courierNameSnapshot: alvo.name },
+    });
+
+    await prisma.adminUser.delete({ where: { id: alvo.id } });
+    return { ok: true as const, name: alvo.name };
+  });
+
 export const setCourierActiveFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), isActive: z.boolean() }))
   .handler(async ({ data }) => {
