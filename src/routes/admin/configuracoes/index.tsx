@@ -1,8 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Loader2, X } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
+import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
+import { Header } from "@/components/site/pizzaria2/Header";
+import { HeroDaVitrine } from "@/components/site/pizzaria2/HeroDaVitrine";
+import { aplicarRascunhoDaLoja } from "@/lib/previa/aplicar-rascunho";
 import {
   formatCep,
   isCompleteCep,
@@ -100,6 +104,8 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 function SettingsPage() {
+  // A loja vem da moldura do painel, que é quem tem a sessão.
+  const { admin } = useRouteContext({ from: "/admin" });
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [hours, setHours] = useState<HoursDraft | null>(null);
@@ -364,14 +370,46 @@ function SettingsPage() {
         title="Identidade"
         description="Nome, logo e cor que o cliente vê no site."
       >
-        <div className="grid gap-4 sm:grid-cols-[220px_1fr]">
-          <ImageUploadField
-            kind="logo"
-            label="Logo"
-            value={draft.logoUrl}
-            onChange={(url) => set("logoUrl", url)}
-          />
-          <div className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-5">
+          {/* Topo à direita, como nas outras telas. Aqui é onde a prévia mais
+              rende: a cor é escolhida por um código hexadecimal, e sem ver o
+              resultado a lojista salva, abre a loja, volta e corrige. */}
+          {admin && (
+            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1">
+              <PreviaDaVitrine
+                storeSlug={admin.store.slug}
+                aplicarLoja={(loja) =>
+                  aplicarRascunhoDaLoja(loja, {
+                    storeName: draft.storeName,
+                    tagline: draft.tagline,
+                    heroSubtitle: draft.heroSubtitle,
+                    description: draft.description,
+                    logoUrl: draft.logoUrl,
+                    primaryColor: draft.primaryColor,
+                    colorMode: draft.colorMode,
+                    secondaryColor: draft.secondaryColor,
+                    tertiaryColor: draft.tertiaryColor,
+                  })
+                }
+              >
+                {/* O topo inteiro: a logo e o nome na barra, e o hero logo
+                    abaixo com a frase do topo e a cor da marca pintando o
+                    fundo. É onde cada campo desta tela aparece. */}
+                <Header />
+                <HeroDaVitrine />
+              </PreviaDaVitrine>
+            </div>
+          )}
+
+          <div className="lg:col-span-1">
+            <ImageUploadField
+              kind="logo"
+              label="Logo"
+              value={draft.logoUrl}
+              onChange={(url) => set("logoUrl", url)}
+            />
+          </div>
+          <div className="space-y-4 lg:col-span-2">
             <Field label="Nome da loja">
               <Input
                 value={draft.storeName}

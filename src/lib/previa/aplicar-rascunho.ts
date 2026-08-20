@@ -1,4 +1,5 @@
 import type { MenuPayload } from "@/lib/pizzaria2/menu-provider";
+import type { StorePayload } from "@/lib/pizzaria2/store-provider";
 
 /**
  * O cardápio da vitrine com as alterações que ainda não foram salvas.
@@ -219,10 +220,10 @@ export type RascunhoDaLoja = {
  * as etiquetas e os preços. É o campo em que a lojista mais mexe às cegas,
  * porque um código hexadecimal não diz nada sobre como a loja vai ficar.
  */
-export function aplicarRascunhoDaLoja<T extends RascunhoDaLoja>(
-  loja: T,
+export function aplicarRascunhoDaLoja(
+  loja: StorePayload,
   rascunho: RascunhoDaLoja | null,
-): T {
+): StorePayload {
   if (!rascunho) return loja;
   return {
     ...loja,
