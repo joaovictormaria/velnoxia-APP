@@ -35,7 +35,7 @@ export function QuantityStepper({
         type="button"
         aria-label="Aumentar quantidade"
         onClick={onIncrement}
-        className="grid h-11 w-11 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-transform hover:scale-105"
+        className="grid h-11 w-11 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-transform hover:scale-105 active:scale-90"
       >
         <Plus className="h-3.5 w-3.5" />
       </button>

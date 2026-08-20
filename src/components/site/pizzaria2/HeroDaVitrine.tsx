@@ -179,7 +179,7 @@ export function HeroDaVitrine() {
       >
         {/* Text panel — sits on the shared accent gradient (bg lives on the row above),
             so the photo's masked edge blends into the exact same gradient with no seam. */}
-        <div className="relative z-10 order-2 flex items-center justify-center px-4 py-10 sm:px-6 md:order-1">
+        <div className="relative z-10 order-2 flex items-center justify-center px-4 pb-10 pt-26.75 sm:px-6 md:order-1">
           <Reveal
             variant="up"
             className={cn("mx-auto text-center", temFoto ? "max-w-xl" : "max-w-3xl")}
@@ -188,7 +188,7 @@ export function HeroDaVitrine() {
               <span className="block text-[color:var(--on-primary)]">
                 Bateu aquela vontade de
               </span>
-              <span className="block min-h-[2.4em] text-[color:var(--on-primary-accent)] md:text-2xl lg:text-3xl xl:text-4xl">
+              <span className="block min-h-[2.4em] text-[color:var(--on-primary-accent)] sm:min-h-[1.2em] md:text-2xl lg:text-3xl xl:text-4xl">
                 <TypingText
                   texts={heroCravings}
                   className="text-[color:var(--on-primary-accent)]"

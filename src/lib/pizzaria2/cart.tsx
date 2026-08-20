@@ -4,9 +4,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { AvisoDoCarrinho } from "@/components/site/pizzaria2/AvisoDoCarrinho";
 import type { LucideIcon } from "lucide-react";
 
 export type CartLineExtra = { id: string; label: string; price: number };
@@ -88,11 +90,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [lines]);
 
+  const [avisando, setAvisando] = useState(false);
+  const relogioDoAviso = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const addLine = useCallback((line: Omit<CartLine, "id">) => {
     setLines((prev) => [
       ...prev,
       { ...line, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
     ]);
+    /*
+     * Adicionar dois itens seguidos reinicia a contagem em vez de somar dois
+     * avisos: o segundo toque não deve fazer o aviso do primeiro sumir na
+     * cara de quem acabou de tocar.
+     */
+    if (relogioDoAviso.current) clearTimeout(relogioDoAviso.current);
+    setAvisando(true);
+    relogioDoAviso.current = setTimeout(() => setAvisando(false), 1800);
+  }, []);
+
+  useEffect(() => () => {
+    if (relogioDoAviso.current) clearTimeout(relogioDoAviso.current);
   }, []);
 
   const removeLine = useCallback((id: string) => {
@@ -140,7 +157,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     total,
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+      <AvisoDoCarrinho visivel={avisando} />
+    </CartContext.Provider>
+  );
 }
 
 export function useCart() {

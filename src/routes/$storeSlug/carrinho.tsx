@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartItemRow } from "@/components/site/pizzaria2/CartItemRow";
@@ -13,13 +13,48 @@ import { useStore } from "@/lib/pizzaria2/store-provider";
 
 export const Route = createFileRoute("/$storeSlug/carrinho")({
   component: PizzariaCarrinho,
+  /*
+   * "?pagar" existe para quem veio pelo botão de finalizar do cardápio: a tela
+   * abre já com o pagamento na frente, em vez de pedir mais um toque. O
+   * carrinho fica atrás do modal, então fechar volta para a conferência sem
+   * sair da página.
+   */
+  validateSearch: (busca: Record<string, unknown>) => ({
+    /*
+     * Aceita as três formas porque o valor faz uma volta pela URL: o Link
+     * manda booleano, o endereço vira texto, e uma aba recarregada devolve
+     * "true". Reconhecer só uma delas fazia o parâmetro ser descartado na
+     * volta, e o pagamento não abria.
+     */
+    pagar:
+      busca.pagar === true || busca.pagar === "true" || busca.pagar === "1"
+        ? true
+        : undefined,
+  }),
 });
 
 function PizzariaCarrinho() {
+  const { pagar } = Route.useSearch();
   const { lines, addLine, removeLine, clearCart, subtotal, deliveryFee, total } = useCart();
   const store = useStore();
   const { categories, productBySlug, productsByCategory } = useMenu();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  /*
+   * Abre o pagamento sozinho para quem veio pelo "Finalizar compras".
+   *
+   * Num efeito, e não no estado inicial: o carrinho nasce vazio de propósito,
+   * para o primeiro render bater com o do servidor, e só carrega o que estava
+   * guardado logo depois — checar no início daria sempre carrinho vazio.
+   *
+   * A trava garante que isso aconteça uma vez só. Sem ela, fechar o modal e
+   * mexer no carrinho o traria de volta na cara de quem acabou de fechá-lo.
+   */
+  const jaAbriuOPagamento = useRef(false);
+  useEffect(() => {
+    if (!pagar || jaAbriuOPagamento.current || lines.length === 0) return;
+    jaAbriuOPagamento.current = true;
+    setCheckoutOpen(true);
+  }, [pagar, lines.length]);
 
   // "Continuar comprando" reopens the same rich cardápio picker the produto
   // screen uses — it just needs *a* pizza slug to anchor that route.
@@ -115,7 +150,7 @@ function PizzariaCarrinho() {
                           productSlug: drink.slug,
                         })
                       }
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-tomato text-tomato transition-colors hover:bg-tomato hover:text-[color:var(--on-primary)]"
+                      className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-tomato text-tomato transition-all hover:bg-tomato hover:text-[color:var(--on-primary)] active:scale-90"
                     >
                       <Plus className="h-4 w-4" />
                     </button>

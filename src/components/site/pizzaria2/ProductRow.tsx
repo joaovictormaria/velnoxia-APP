@@ -79,7 +79,7 @@ export function ProductRow({
           params={{ storeSlug, slug: product.slug }}
           search={{}}
           aria-label={`Escolher opções de ${product.name}`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-all hover:bg-tomato/90 active:scale-90 active:bg-tomato/80"
         >
           <Plus className="h-4 w-4" />
         </Link>
@@ -88,7 +88,7 @@ export function ProductRow({
           type="button"
           onClick={onQuickAdd}
           aria-label={`Adicionar ${product.name} ao carrinho`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-all hover:bg-tomato/90 active:scale-90 active:bg-tomato/80"
         >
           <Plus className="h-4 w-4" />
         </button>
