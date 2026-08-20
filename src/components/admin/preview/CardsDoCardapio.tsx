@@ -23,7 +23,18 @@ export function CardsDoCardapio({
 }) {
   const { productsByCategory, categoryBySlug } = useMenu();
   const categoria = categorySlug ? categoryBySlug(categorySlug) : undefined;
-  const produtos = categorySlug ? productsByCategory(categorySlug) : [];
+  const todos = categorySlug ? productsByCategory(categorySlug) : [];
+
+  /**
+   * Três cards, e o produto em edição sempre entre eles.
+   *
+   * Cortar os três primeiros deixaria de fora justamente o produto que a
+   * lojista está mexendo quando ele é o quarto da categoria — e a prévia
+   * mostraria os vizinhos dele. A janela desliza para conter o editado.
+   */
+  const onde = todos.findIndex((p) => p.slug === slugEmEdicao);
+  const inicio = onde < 0 ? 0 : Math.min(Math.max(0, onde - 1), Math.max(0, todos.length - 3));
+  const produtos = todos.slice(inicio, inicio + 3);
 
   if (produtos.length === 0) {
     return (
@@ -35,8 +46,8 @@ export function CardsDoCardapio({
 
   return (
     <div className="px-6 py-10">
-      <div className="mx-auto grid max-w-[920px] grid-cols-2 gap-5 lg:grid-cols-3">
-        {produtos.slice(0, 6).map((product) => (
+      <div className="mx-auto grid max-w-[920px] grid-cols-3 gap-5">
+        {produtos.map((product) => (
           <ProductCard
             key={product.slug}
             product={product}
