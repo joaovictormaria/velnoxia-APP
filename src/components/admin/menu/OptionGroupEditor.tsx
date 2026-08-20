@@ -48,7 +48,7 @@ export function OptionGroupEditor({
               type="button"
               onClick={() => onChange(value.filter((_, k) => k !== i))}
               aria-label="Remover grupo"
-              className="text-neutral-400 hover:text-[#E11D2E]"
+              className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-neutral-400 hover:text-[#E11D2E]"
             >
               <Trash2 className="size-4" />
             </button>
@@ -58,7 +58,7 @@ export function OptionGroupEditor({
 
           <div className="mt-2 space-y-1.5">
             {grupo.options.map((opcao, j) => (
-              <div key={j} className="flex items-center gap-2">
+              <div key={j} className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                 <input
                   value={opcao.name}
                   onChange={(e) =>
@@ -69,7 +69,7 @@ export function OptionGroupEditor({
                     })
                   }
                   placeholder="Opção"
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-base md:text-sm text-neutral-800"
+                  className="min-w-0 flex-1 basis-full rounded-lg border border-neutral-200 px-3 py-2 text-base text-neutral-800 sm:basis-auto md:text-sm"
                 />
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-neutral-400">R$</span>
@@ -94,7 +94,7 @@ export function OptionGroupEditor({
                     atualiza(i, { options: grupo.options.filter((_, k) => k !== j) })
                   }
                   aria-label="Remover opção"
-                  className="text-neutral-400 hover:text-[#E11D2E]"
+                  className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-neutral-400 hover:text-[#E11D2E]"
                 >
                   <Trash2 className="size-3.5" />
                 </button>

@@ -340,14 +340,14 @@ function SettingsPage() {
         </button>
       </header>
 
-      <div className="flex flex-wrap gap-1 rounded-xl bg-neutral-100 p-1">
+      <div className="flex gap-1 overflow-x-auto rounded-xl bg-neutral-100 p-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible [&::-webkit-scrollbar]:hidden">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => setTab(t.id)}
             className={
-              "rounded-lg px-4 py-2 text-sm font-medium transition-colors " +
+              "shrink-0 whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-medium transition-colors " +
               (tab === t.id
                 ? "bg-white text-neutral-900 shadow-sm"
                 : "text-neutral-600 hover:text-neutral-900")
@@ -365,6 +365,7 @@ function SettingsPage() {
             type="button"
             onClick={() => setError(null)}
             aria-label="Fechar"
+            className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg"
           >
             <X className="size-4" />
           </button>
@@ -774,9 +775,9 @@ function SettingsPage() {
           {WEEKDAYS.map((d) => (
             <div
               key={d}
-              className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3"
+              className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-neutral-200 px-4 py-3 sm:flex sm:flex-wrap"
             >
-              <span className="w-24 text-sm font-medium text-neutral-900">
+              <span className="text-sm font-medium text-neutral-900 sm:w-24">
                 {WEEKDAY_LABEL[d]}
               </span>
               <Toggle

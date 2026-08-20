@@ -31,7 +31,7 @@ export function Header() {
         <Link
           to="/$storeSlug"
           params={{ storeSlug }}
-          className="flex items-center gap-2"
+          className="flex min-w-0 items-center gap-2"
         >
           {logoUrl ? (
             <img
@@ -48,11 +48,11 @@ export function Header() {
               <Pizza className="h-4.5 w-4.5" />
             </span>
           )}
-          <span className="flex flex-col leading-tight">
+          <span className="flex min-w-0 flex-col leading-tight">
             <span
               data-previa="nome-da-loja"
               className={cn(
-                "font-display text-lg font-bold transition-colors",
+                "truncate font-display text-lg font-bold transition-colors",
                 overHero ? "text-[color:var(--on-primary)]" : "text-charcoal",
               )}
             >
@@ -116,7 +116,7 @@ export function Header() {
             aria-label="Abrir menu"
             onClick={() => setOpen((v) => !v)}
             className={cn(
-              "grid h-9 w-9 place-items-center rounded-full transition-colors md:hidden",
+              "grid h-11 w-11 place-items-center rounded-full transition-colors md:hidden",
               overHero
                 ? "text-[color:var(--on-primary)] hover:bg-[color:var(--on-primary)]/10"
                 : "text-charcoal hover:bg-charcoal/5",

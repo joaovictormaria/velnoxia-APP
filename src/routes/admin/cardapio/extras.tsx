@@ -180,7 +180,7 @@ function ExtrasPage() {
                       onClick={() => {
                         if (confirm(`Excluir "${x.name}"?`)) remove.mutate(x.id);
                       }}
-                      className="rounded-lg border border-neutral-200 p-1.5 text-neutral-600 hover:bg-red-50 hover:text-[#E11D2E]"
+                      className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-600 hover:bg-red-50 hover:text-[#E11D2E]"
                       aria-label={`Excluir ${x.name}`}
                     >
                       <Trash2 className="size-4" />

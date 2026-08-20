@@ -26,7 +26,7 @@ export function QuantityStepper({
         aria-label="Diminuir quantidade"
         onClick={onDecrement}
         disabled={value <= min}
-        className="grid h-7 w-7 place-items-center rounded-full text-charcoal transition-colors hover:bg-charcoal/8 disabled:pointer-events-none disabled:opacity-30"
+        className="grid h-11 w-11 place-items-center rounded-full text-charcoal transition-colors hover:bg-charcoal/8 disabled:pointer-events-none disabled:opacity-30"
       >
         <Minus className="h-3.5 w-3.5" />
       </button>
@@ -35,7 +35,7 @@ export function QuantityStepper({
         type="button"
         aria-label="Aumentar quantidade"
         onClick={onIncrement}
-        className="grid h-7 w-7 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-transform hover:scale-105"
+        className="grid h-11 w-11 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-transform hover:scale-105"
       >
         <Plus className="h-3.5 w-3.5" />
       </button>

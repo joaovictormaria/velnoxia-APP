@@ -150,7 +150,7 @@ function ProductsPage() {
                     <Link
                       to="/admin/cardapio/$productId"
                       params={{ productId: p.id }}
-                      className="rounded-lg border border-neutral-200 p-2 text-neutral-600 transition-colors hover:bg-neutral-100"
+                      className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-600 transition-colors hover:bg-neutral-100"
                       aria-label={`Editar ${p.name}`}
                     >
                       <Pencil className="size-4" />
@@ -162,7 +162,7 @@ function ProductsPage() {
                           remove.mutate(p.id);
                         }
                       }}
-                      className="rounded-lg border border-neutral-200 p-2 text-neutral-600 transition-colors hover:bg-red-50 hover:text-[#E11D2E]"
+                      className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-600 transition-colors hover:bg-red-50 hover:text-[#E11D2E]"
                       aria-label={`Excluir ${p.name}`}
                     >
                       <Trash2 className="size-4" />

@@ -17,7 +17,7 @@ export function SecaoDoCardapio({ children }: { children: ReactNode }) {
     <section id="cardapio" className="relative scroll-mt-20 overflow-hidden">
       <div className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-tomato/10 blur-3xl" />
       <div className="pointer-events-none absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-olive/10 blur-3xl" />
-      <div className="relative mx-auto max-w-[1800px] px-6 py-20 sm:px-10 sm:py-24 xl:px-16">
+      <div className="relative mx-auto max-w-[1800px] px-4 py-20 sm:px-10 sm:py-24 xl:px-16">
         {children}
       </div>
     </section>

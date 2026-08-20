@@ -154,7 +154,12 @@ function CategoriesPage() {
       {error && (
         <div className="flex items-start justify-between gap-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
           {error}
-          <button type="button" onClick={() => setError(null)} aria-label="Fechar">
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            aria-label="Fechar"
+            className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg"
+          >
             <X className="size-4" />
           </button>
         </div>
@@ -403,7 +408,7 @@ function CategoriesPage() {
                       onClick={() => {
                         if (confirm(`Excluir a categoria "${c.name}"?`)) remove.mutate(c.id);
                       }}
-                      className="rounded-lg border border-neutral-200 p-1.5 text-neutral-600 hover:bg-red-50 hover:text-[#E11D2E]"
+                      className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-600 hover:bg-red-50 hover:text-[#E11D2E]"
                       aria-label={`Excluir ${c.name}`}
                     >
                       <Trash2 className="size-4" />

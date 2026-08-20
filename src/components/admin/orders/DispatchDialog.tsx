@@ -72,7 +72,7 @@ export function DispatchDialog({
           <button
             type="button"
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-700"
+            className="-m-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-neutral-400 hover:text-neutral-700"
             aria-label="Fechar"
           >
             <X className="size-5" />

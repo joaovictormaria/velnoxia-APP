@@ -244,7 +244,7 @@ function EntregadoresPage() {
                     onClick={() => setConfirmando(courier.id)}
                     aria-label={`Excluir a conta de ${courier.name}`}
                     title="Excluir conta"
-                    className="rounded-lg border border-neutral-300 p-1.5 text-neutral-400 hover:border-[#E11D2E] hover:text-[#E11D2E]"
+                    className="rounded-lg border border-neutral-300 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 hover:border-[#E11D2E] hover:text-[#E11D2E]"
                   >
                     <Trash2 className="size-4" />
                   </button>

@@ -39,7 +39,7 @@ export function CartItemRow({ line, onRemove }: { line: CartLine; onRemove: () =
           type="button"
           onClick={onRemove}
           aria-label={`Remover ${line.name} do carrinho`}
-          className="text-charcoal/30 transition-colors hover:text-tomato"
+          className="-m-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-charcoal/30 transition-colors hover:text-tomato"
         >
           <X className="h-4 w-4" />
         </button>

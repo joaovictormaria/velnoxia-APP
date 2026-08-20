@@ -145,11 +145,18 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
             type="button"
             aria-label={`Ir para promoção ${i + 1}`}
             onClick={() => emblaApi?.scrollTo(i)}
-            className={cn(
-              "h-1.5 rounded-full transition-all",
-              i === selectedIndex ? "w-6 bg-mozzarella" : "w-1.5 bg-mozzarella/40 hover:bg-mozzarella/60",
-            )}
-          />
+            className="group flex h-11 items-center px-1"
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "block h-1.5 rounded-full transition-all",
+                i === selectedIndex
+                  ? "w-6 bg-mozzarella"
+                  : "w-1.5 bg-mozzarella/40 group-hover:bg-mozzarella/60",
+              )}
+            />
+          </button>
         ))}
       </div>
     </div>
