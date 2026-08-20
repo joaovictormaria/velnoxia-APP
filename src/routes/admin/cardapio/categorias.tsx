@@ -68,6 +68,8 @@ function CategoriesPage() {
   const { admin } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
+  /** Onde a prévia deve olhar. Muda quando um campo recebe o cursor. */
+  const [foco, setFoco] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data, isPending } = useQuery({
@@ -189,6 +191,7 @@ function CategoriesPage() {
           <label className="space-y-1.5 md:col-span-3">
             <span className="text-sm font-medium text-neutral-900">Nome</span>
             <input
+              onFocus={() => setFoco("nome-da-categoria")}
               value={draft.name}
               onChange={(e) =>
                 setDraft({
@@ -209,6 +212,7 @@ function CategoriesPage() {
           <label className="space-y-1.5 md:col-span-3">
             <span className="text-sm font-medium text-neutral-900">Selo</span>
             <input
+              onFocus={() => setFoco("selo-da-categoria")}
               value={draft.badge}
               onChange={(e) => setDraft({ ...draft, badge: e.target.value })}
               placeholder="Sabores que todo mundo ama"
@@ -216,7 +220,10 @@ function CategoriesPage() {
             />
           </label>
 
-          <div className="space-y-1.5 md:col-span-3">
+          <div
+            className="space-y-1.5 md:col-span-3"
+            onFocusCapture={() => setFoco("icone-da-categoria")}
+          >
             <span className="block text-sm font-medium text-neutral-900">Ícone</span>
             <IconPicker
               value={draft.icon}
@@ -232,6 +239,7 @@ function CategoriesPage() {
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Descrição — 1ª linha</span>
             <input
+              onFocus={() => setFoco("descricao-da-categoria")}
               value={draft.headline}
               onChange={(e) => setDraft({ ...draft, headline: e.target.value })}
               placeholder="Os clássicos que nunca saem de moda."
@@ -242,6 +250,7 @@ function CategoriesPage() {
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Descrição — 2ª linha</span>
             <input
+              onFocus={() => setFoco("descricao-da-categoria")}
               value={draft.subhead}
               onChange={(e) => setDraft({ ...draft, subhead: e.target.value })}
               placeholder="Ingredientes selecionados em cada receita."

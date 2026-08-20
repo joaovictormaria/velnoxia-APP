@@ -18,6 +18,7 @@ export function ProductCard({
   favorited,
   onToggleFavorite,
   ctaQuickAdd,
+  marcado,
 }: {
   product: Product;
   linkToCustomize: boolean;
@@ -33,6 +34,14 @@ export function ProductCard({
    *  Used where the screen exists only to offer extras: whoever wants none
    *  should not have to walk through it. */
   ctaQuickAdd?: boolean;
+  /**
+   * Marca este card com os pontos que a prévia do painel procura.
+   *
+   * Só um card por vez: são vários na mesma tela, e sem isso a prévia
+   * enquadraria o primeiro em vez do produto que está sendo editado. Na loja
+   * ninguém pede, então nada disso chega ao cliente.
+   */
+  marcado?: boolean;
 }) {
   const { slug: storeSlug } = useStore();
   const Icon = product.icon;
@@ -50,7 +59,7 @@ export function ProductCard({
   }
 
   const media = (
-    <div className="relative aspect-4/3 w-full shrink-0 overflow-hidden">
+    <div data-previa={marcado ? "foto-do-produto" : undefined} className="relative aspect-4/3 w-full shrink-0 overflow-hidden">
       {product.image ? (
         <img
           src={product.image}
@@ -64,7 +73,10 @@ export function ProductCard({
         </div>
       )}
       {product.tag && (
-        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-tomato px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[color:var(--on-primary)] shadow-[0_6px_16px_-6px_rgba(23,23,23,0.5)]">
+        <span
+          data-previa={marcado ? "etiqueta-do-produto" : undefined}
+          className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-tomato px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-[color:var(--on-primary)] shadow-[0_6px_16px_-6px_rgba(23,23,23,0.5)]"
+        >
           {product.tag === "Mais pedida" && <Flame className="h-3.5 w-3.5" />}
           {product.tag}
         </span>
@@ -78,10 +90,16 @@ export function ProductCard({
      numa altura diferente do vizinho. */
   const info = (
     <div className="flex flex-col p-5 sm:p-6">
-      <h3 className="line-clamp-1 font-display text-xl font-bold text-charcoal">
+      <h3
+        data-previa={marcado ? "nome-do-produto" : undefined}
+        className="line-clamp-1 font-display text-xl font-bold text-charcoal"
+      >
         {product.name}
       </h3>
-      <p className="mt-1.5 line-clamp-2 min-h-11 text-base leading-snug text-charcoal/55">
+      <p
+        data-previa={marcado ? "descricao-do-produto" : undefined}
+        className="mt-1.5 line-clamp-2 min-h-11 text-base leading-snug text-charcoal/55"
+      >
         {product.desc}
       </p>
       {tags && tags.length > 0 && (
@@ -146,7 +164,10 @@ export function ProductCard({
         </button>
       )}
 
-      <div className="flex items-center justify-between gap-3 p-5 pt-0 sm:p-6 sm:pt-0">
+      <div
+        data-previa={marcado ? "preco-do-produto" : undefined}
+        className="flex items-center justify-between gap-3 p-5 pt-0 sm:p-6 sm:pt-0"
+      >
         <PriceTag
           value={product.price}
           className="whitespace-nowrap text-xl sm:text-2xl"

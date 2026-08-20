@@ -61,6 +61,8 @@ export function ProductForm({
   // Only auto-derive the slug for new products; editing keeps the public URL stable.
   const [slugTouched, setSlugTouched] = useState(productId !== null);
   const [error, setError] = useState<string | null>(null);
+  /** Onde a prévia deve olhar. Muda quando um campo recebe o cursor. */
+  const [foco, setFoco] = useState<string | null>(null);
 
   // Meia a meia é a divisão física do disco de pizza, com regra de preço entre
   // dois sabores. Numa hamburgueria a pergunta não existe — e oferecê-la só
@@ -175,6 +177,7 @@ export function ProductForm({
           {storeSlug && (
           <PreviaDaVitrine
             storeSlug={storeSlug}
+            foco={foco}
             aplicar={(payload) =>
               aplicarRascunhoDeProduto(payload, {
                 id: productId,
@@ -198,12 +201,15 @@ export function ProductForm({
             }
             largura={1000}
           >
-            <CardsDoCardapio categorySlug={slugDaCategoria} />
+            <CardsDoCardapio categorySlug={slugDaCategoria} slugEmEdicao={values.slug} />
           </PreviaDaVitrine>
           )}
         </div>
 
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-1">
+        <div
+          className="rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-1"
+          onFocusCapture={() => setFoco("foto-do-produto")}
+        >
           <ImageUploadField
             kind="product"
             label="Foto do produto"
@@ -215,6 +221,7 @@ export function ProductForm({
         <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-2">
           <Field label="Nome do produto">
             <input
+              onFocus={() => setFoco("nome-do-produto")}
               value={values.name}
               onChange={(e) => {
                 set("name", e.target.value);
@@ -259,6 +266,7 @@ export function ProductForm({
                 type="number"
                 step="0.01"
                 min="0"
+                onFocus={() => setFoco("preco-do-produto")}
                 value={values.basePrice}
                 onChange={(e) => set("basePrice", Number(e.target.value))}
                 required
@@ -269,6 +277,7 @@ export function ProductForm({
 
           <Field label="Descrição">
             <textarea
+              onFocus={() => setFoco("descricao-do-produto")}
               value={values.description}
               onChange={(e) => set("description", e.target.value)}
               rows={3}
@@ -278,6 +287,7 @@ export function ProductForm({
 
           <Field label="Selo (opcional)">
             <input
+              onFocus={() => setFoco("etiqueta-do-produto")}
               value={values.tag ?? ""}
               onChange={(e) => set("tag", e.target.value || null)}
               placeholder="Ex: Mais pedida, Novidade"

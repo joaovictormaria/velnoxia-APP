@@ -164,17 +164,28 @@ export function CategorySaboresSection({
         <Reveal variant="up" className="lg:pt-1">
           {/* Categories created in the admin have no entry in the copy maps —
               fall back to the category's own name instead of an empty pill. */}
-          <span className="inline-flex items-center gap-2 rounded-full bg-tomato/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-tomato">
-            {category.icon && <category.icon className="h-4 w-4" />}
+          <span
+            data-previa="selo-da-categoria"
+            className="inline-flex items-center gap-2 rounded-full bg-tomato/10 px-4 py-2 text-xs font-bold uppercase tracking-wide text-tomato"
+          >
+            {category.icon && (
+              <category.icon data-previa="icone-da-categoria" className="h-4 w-4" />
+            )}
             {category.badge ?? categoryBadges[category.slug] ?? category.name}
           </span>
 
-          <h2 className="mt-5 font-display text-5xl font-extrabold leading-[1.05] text-charcoal sm:text-6xl lg:text-5xl">
+          <h2
+            data-previa="nome-da-categoria"
+            className="mt-5 font-display text-5xl font-extrabold leading-[1.05] text-charcoal sm:text-6xl lg:text-5xl"
+          >
             {category.name}
           </h2>
 
           {(firstLine || secondLine) && (
-            <p className="mt-5 max-w-md text-base leading-relaxed text-charcoal/60">
+            <p
+              data-previa="descricao-da-categoria"
+              className="mt-5 max-w-md text-base leading-relaxed text-charcoal/60"
+            >
               {firstLine}
               {secondLine && (
                 <>

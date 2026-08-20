@@ -13,7 +13,14 @@ import { exigeEscolha } from "@/lib/pizzaria2/menu";
  * São os mesmos ProductCard da vitrine, na mesma grade: o que aparece aqui é
  * exatamente o que o cliente vê.
  */
-export function CardsDoCardapio({ categorySlug }: { categorySlug: string | undefined }) {
+export function CardsDoCardapio({
+  categorySlug,
+  slugEmEdicao,
+}: {
+  categorySlug: string | undefined;
+  /** Qual card recebe as marcas de foco. */
+  slugEmEdicao?: string;
+}) {
   const { productsByCategory, categoryBySlug } = useMenu();
   const categoria = categorySlug ? categoryBySlug(categorySlug) : undefined;
   const produtos = categorySlug ? productsByCategory(categorySlug) : [];
@@ -33,6 +40,7 @@ export function CardsDoCardapio({ categorySlug }: { categorySlug: string | undef
           <ProductCard
             key={product.slug}
             product={product}
+            marcado={product.slug === slugEmEdicao}
             linkToCustomize
             ctaQuickAdd={!exigeEscolha(product, categoria)}
             onQuickAdd={() => {}}
