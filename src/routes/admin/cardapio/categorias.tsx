@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SizePicker } from "@/components/admin/menu/SizePicker";
 import { IconPicker } from "@/components/admin/menu/IconPicker";
+import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
+import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
+import { aplicarRascunhoDeCategoria, SLUG_DA_NOVA } from "@/lib/previa/aplicar-rascunho";
 import {
   OptionGroupEditor,
   type GrupoRascunho,
@@ -61,6 +64,7 @@ function slugify(v: string) {
 }
 
 function CategoriesPage() {
+  const { admin } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +133,20 @@ function CategoriesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Em cima e ocupando a largura toda: a vitrine é desenhada para tela
+          larga, e mostrá-la numa coluna estreita exibiria um layout que
+          nenhum cliente da loja vai ver. */}
+      {/* admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
+          precisa da guarda para não depender dessa suposição. */}
+      {draft && admin && (
+        <PreviaDaVitrine
+          storeSlug={admin.store.slug}
+          aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
+        >
+          <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
+        </PreviaDaVitrine>
+      )}
+
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-neutral-900">Categorias</h1>
         <button

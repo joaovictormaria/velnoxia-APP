@@ -1,0 +1,135 @@
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Eye, Loader2 } from "lucide-react";
+import { CartProvider } from "@/lib/pizzaria2/cart";
+import { MenuProvider, type MenuPayload } from "@/lib/pizzaria2/menu-provider";
+import { StoreProvider, type StorePayload } from "@/lib/pizzaria2/store-provider";
+import { brandTheme } from "@/lib/pizzaria2/brand-theme";
+import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
+
+/** A largura para a qual a vitrine foi desenhada. A prévia encolhe até caber. */
+const LARGURA_DE_PROJETO = 1280;
+
+/**
+ * A vitrine de verdade dentro do painel, refletindo o que ainda não foi salvo.
+ *
+ * Renderiza os mesmos componentes que o cliente da loja vê, não uma imitação.
+ * É o que garante que a prévia não passe a mentir quando a vitrine mudar — e
+ * uma prévia que mente é pior do que nenhuma, porque a lojista salva confiando
+ * nela.
+ *
+ * Fica em cima e ocupa a largura toda, com altura limitada: a vitrine é
+ * desenhada para tela larga, e espremê-la numa coluna lateral mostraria um
+ * layout que ninguém nunca vai ver.
+ */
+export function PreviaDaVitrine({
+  storeSlug,
+  aplicar,
+  altura = 420,
+  children,
+}: {
+  storeSlug: string;
+  /** Recebe o cardápio salvo e devolve com o rascunho por cima. */
+  aplicar: (payload: MenuPayload) => MenuPayload;
+  altura?: number;
+  /** O pedaço da vitrine a mostrar. */
+  children: ReactNode;
+}) {
+  const { data, isPending } = useQuery({
+    queryKey: ["previa-da-vitrine", storeSlug],
+    queryFn: () => getStorefrontMenuFn({ data: { storeSlug } }),
+    // O cardápio salvo muda pouco durante uma edição; o que muda a cada tecla
+    // é o rascunho, aplicado por cima sem ir ao servidor.
+    staleTime: 30_000,
+  });
+
+  const caixa = useRef<HTMLDivElement>(null);
+  const [escala, setEscala] = useState(1);
+
+  // A escala vem da largura real disponível, não de pontos de quebra: o menu
+  // do painel recolhe e expande, e a prévia acompanha.
+  useEffect(() => {
+    const alvo = caixa.current;
+    if (!alvo) return;
+    const medir = () => setEscala(Math.min(1, alvo.clientWidth / LARGURA_DE_PROJETO));
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(alvo);
+    return () => observador.disconnect();
+  }, []);
+
+  return (
+    <section className="mb-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+      <header className="flex items-center gap-2 border-b border-neutral-200 px-4 py-2.5">
+        <Eye className="size-4 text-neutral-500" />
+        <p className="text-sm font-semibold text-neutral-900">Prévia do seu cardápio</p>
+        <p className="text-xs text-neutral-500">— como fica para o cliente, antes de salvar</p>
+      </header>
+
+      <div ref={caixa} className="relative bg-[#FDF8F3]" style={{ height: altura }}>
+        {isPending || !data ? (
+          <div className="flex h-full items-center justify-center gap-2 text-sm text-neutral-500">
+            <Loader2 className="size-4 animate-spin" />
+            Carregando a prévia...
+          </div>
+        ) : (
+          <Palco escala={escala} altura={altura} data={data} aplicar={aplicar}>
+            {children}
+          </Palco>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Palco({
+  escala,
+  altura,
+  data,
+  aplicar,
+  children,
+}: {
+  escala: number;
+  altura: number;
+  data: MenuPayload & { store: StorePayload };
+  aplicar: (p: MenuPayload) => MenuPayload;
+  children: ReactNode;
+}) {
+  const comRascunho = aplicar(data);
+
+  return (
+    /**
+     * O conteúdo é montado no tamanho de projeto e encolhido por transform, em
+     * vez de renderizado num espaço estreito: assim a lojista vê o layout que
+     * o cliente dela vê, e não uma versão que só existe aqui.
+     *
+     * pointer-events desligado porque isto é uma imagem, não a loja. Sem isso,
+     * clicar num produto da prévia tiraria a lojista do formulário no meio da
+     * edição, perdendo o que ela digitou.
+     */
+    <div
+      aria-hidden
+      className="pointer-events-none select-none"
+      style={{
+        width: LARGURA_DE_PROJETO,
+        height: altura / escala,
+        transform: `scale(${escala})`,
+        transformOrigin: "top left",
+        overflow: "hidden",
+      }}
+    >
+      <StoreProvider payload={data.store}>
+        <MenuProvider payload={comRascunho}>
+          <CartProvider>
+            <div
+              className="pizzaria2 bg-cream font-sans text-charcoal"
+              style={brandTheme(data.store) as React.CSSProperties}
+            >
+              {children}
+            </div>
+          </CartProvider>
+        </MenuProvider>
+      </StoreProvider>
+    </div>
+  );
+}
