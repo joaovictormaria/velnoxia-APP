@@ -330,3 +330,32 @@ export function aplicarRascunhoDeExtra(
   const onde = posicao < 0 ? semEle.length : posicao;
   return { ...payload, extras: [...semEle.slice(0, onde), atualizado, ...semEle.slice(onde)] };
 }
+
+/** O que a aba "Sobre" de Avaliações edita. */
+export type RascunhoDoSobre = {
+  aboutEyebrow: string;
+  aboutTitle: string;
+  aboutBody: string;
+  aboutImageUrl: string | null;
+};
+
+/**
+ * Aplica na loja o texto da seção "Nosso restaurante".
+ *
+ * Campo vazio vira null porque é assim que o banco guarda, e é o null que faz
+ * a vitrine cair no texto padrão do ramo — mostrar string vazia deixaria a
+ * seção sem título, o que a loja nunca faz.
+ */
+export function aplicarRascunhoDoSobre(
+  loja: StorePayload,
+  rascunho: RascunhoDoSobre | null,
+): StorePayload {
+  if (!rascunho) return loja;
+  return {
+    ...loja,
+    aboutEyebrow: rascunho.aboutEyebrow || null,
+    aboutTitle: rascunho.aboutTitle || null,
+    aboutBody: rascunho.aboutBody || null,
+    aboutImageUrl: rascunho.aboutImageUrl,
+  };
+}

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff, Heart, Plus, Star, Trash2, X } from "lucide-react";
@@ -15,6 +15,9 @@ import {
   respondToReviewFn,
   setReviewHiddenFn,
 } from "@/server/functions/reviews.fn";
+import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
+import { SobreORestaurante } from "@/components/site/pizzaria2/SobreORestaurante";
+import { aplicarRascunhoDoSobre } from "@/lib/previa/aplicar-rascunho";
 
 export const Route = createFileRoute("/admin/avaliacoes/")({
   component: AvaliacoesPage,
@@ -80,6 +83,8 @@ function AboutTab() {
     queryKey: ["about"],
     queryFn: () => getAboutFn(),
   });
+  const { admin } = useRouteContext({ from: "/admin" });
+  const [foco, setFoco] = useState<string | null>(null);
   const [form, setForm] = useState({
     aboutEyebrow: "",
     aboutTitle: "",
@@ -126,13 +131,31 @@ function AboutTab() {
         e.preventDefault();
         save.mutate();
       }}
-      className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5"
+      className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
     >
-      <p className="text-sm text-neutral-500">
+      {/* Topo à direita, como nas outras telas. Esta seção só existe lá
+          embaixo na página da loja, e quem escreve o texto aqui não faz ideia
+          de como ele vai cair ao lado da foto. */}
+      {admin && (
+        <div className="lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1">
+          <PreviaDaVitrine
+            storeSlug={admin.store.slug}
+            foco={foco}
+            largura={900}
+            aplicarLoja={(loja) => aplicarRascunhoDoSobre(loja, form)}
+          >
+            <div className="bg-mozzarella p-8">
+              <SobreORestaurante />
+            </div>
+          </PreviaDaVitrine>
+        </div>
+      )}
+
+      <p className="text-sm text-neutral-500 lg:col-span-3">
         Deixe qualquer campo vazio para usar o texto padrão do seu ramo.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+      <div className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3">
         <ImageUploadField
           kind="product"
           label="Foto do restaurante"
@@ -142,6 +165,7 @@ function AboutTab() {
         <div className="space-y-4">
           <Field label="Chamada" hint="Linha pequena acima do título.">
             <Input
+              onFocus={() => setFoco("chamada-do-sobre")}
               value={form.aboutEyebrow}
               onChange={(v) => setForm({ ...form, aboutEyebrow: v })}
               placeholder="Nosso restaurante"
@@ -149,6 +173,7 @@ function AboutTab() {
           </Field>
           <Field label="Título">
             <Input
+              onFocus={() => setFoco("titulo-do-sobre")}
               value={form.aboutTitle}
               onChange={(v) => setForm({ ...form, aboutTitle: v })}
               placeholder="Feito com paixão, servido com carinho."
@@ -157,16 +182,19 @@ function AboutTab() {
         </div>
       </div>
 
+      <div className="lg:col-span-3">
       <Field label="Texto" hint="Conte a história da sua loja em um parágrafo.">
         <textarea
+          onFocus={() => setFoco("texto-do-sobre")}
           value={form.aboutBody}
           onChange={(e) => setForm({ ...form, aboutBody: e.target.value })}
           rows={5}
           className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
         />
       </Field>
+      </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 lg:col-span-3">
         <button
           type="submit"
           disabled={save.isPending}
