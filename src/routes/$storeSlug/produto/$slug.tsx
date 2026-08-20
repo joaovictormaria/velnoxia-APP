@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { CardapioPicker } from "@/components/site/pizzaria2/CardapioPicker";
+import { ListaDeExtras } from "@/components/site/pizzaria2/ListaDeExtras";
 import { MenuThumb } from "@/components/site/pizzaria2/MenuThumb";
 import { PriceTag } from "@/components/site/pizzaria2/PriceTag";
 import { QuantityStepper } from "@/components/site/pizzaria2/QuantityStepper";
@@ -443,29 +444,11 @@ function PizzariaPersonalizacao() {
                   </div>
                 )}
 
-                <h2 className="font-display text-base font-bold text-charcoal">
-                  Adicione extras
-                </h2>
-                <div className="mt-3 flex flex-col gap-2.5">
-                  {extrasCatalog.map((extra) => (
-                    <label
-                      key={extra.id}
-                      className="flex cursor-pointer items-center justify-between gap-3 text-sm"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Checkbox
-                          checked={selectedExtras.includes(extra.id)}
-                          onCheckedChange={() => toggleExtra(extra.id)}
-                          className="border-tomato data-[state=checked]:border-tomato data-[state=checked]:bg-tomato data-[state=checked]:text-mozzarella"
-                        />
-                        <span className="text-charcoal/80">{extra.label}</span>
-                      </span>
-                      <span className="text-charcoal/50">
-                        {formatCurrency(extra.price)}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <ListaDeExtras
+                  extras={extrasCatalog}
+                  selecionados={selectedExtras}
+                  onAlternar={toggleExtra}
+                />
 
                 <div className="mt-5">
                   <span className="text-sm font-semibold text-charcoal/70">

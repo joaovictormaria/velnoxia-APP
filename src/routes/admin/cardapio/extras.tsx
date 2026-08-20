@@ -1,8 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { deleteExtraFn, listExtrasFn, saveExtraFn } from "@/server/functions/extras.fn";
+import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
+import { ExtrasDaPrevia } from "@/components/admin/preview/ExtrasDaPrevia";
+import { aplicarRascunhoDeExtra } from "@/lib/previa/aplicar-rascunho";
 
 export const Route = createFileRoute("/admin/cardapio/extras")({
   component: ExtrasPage,
@@ -14,7 +17,9 @@ type Draft = { id: string | null; name: string; price: number; isActive: boolean
 
 function ExtrasPage() {
   const queryClient = useQueryClient();
+  const { admin } = useRouteContext({ from: "/admin" });
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [foco, setFoco] = useState<string | null>(null);
 
   const { data, isPending } = useQuery({
     queryKey: ["extras"],
@@ -59,11 +64,29 @@ function ExtrasPage() {
             e.preventDefault();
             save.mutate(draft);
           }}
-          className="flex flex-wrap items-end gap-4 rounded-2xl border border-neutral-200 bg-white p-5"
+          className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
         >
+          {/* Topo à direita, como nas outras telas. O adicional só aparece na
+              tela do produto, nunca no cardápio — é a resposta para quem
+              cadastra "Bacon extra" e não vê nada mudar na loja. */}
+          {admin && (
+            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1">
+              <PreviaDaVitrine
+                storeSlug={admin.store.slug}
+                foco={foco}
+                largura={720}
+                aplicar={(payload) => aplicarRascunhoDeExtra(payload, draft)}
+              >
+                <ExtrasDaPrevia />
+              </PreviaDaVitrine>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-end gap-4 lg:col-span-3">
           <label className="min-w-56 flex-1 space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Nome</span>
             <input
+              onFocus={() => setFoco("lista-de-extras")}
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               required
@@ -77,6 +100,7 @@ function ExtrasPage() {
               type="number"
               step="0.01"
               min="0"
+              onFocus={() => setFoco("lista-de-extras")}
               value={draft.price}
               onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
               required
@@ -98,6 +122,7 @@ function ExtrasPage() {
           >
             Cancelar
           </button>
+          </div>
         </form>
       )}
 

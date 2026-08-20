@@ -297,3 +297,36 @@ export function aplicarRascunhoDePromocao(
     promotions: [...semEla.slice(0, posicao), atualizada, ...semEla.slice(posicao)],
   };
 }
+
+/** O que a tela de Adicionais tem em mãos enquanto a lojista edita. */
+export type RascunhoDeExtra = {
+  id: string | null;
+  name: string;
+  price: number;
+  isActive: boolean;
+};
+
+/**
+ * Aplica o rascunho do adicional sobre a lista que a vitrine mostra.
+ *
+ * O adicional em edição entra mesmo antes de existir no banco: quem cadastra o
+ * primeiro precisa ver a lista nascer, e não uma lista vazia.
+ */
+export function aplicarRascunhoDeExtra(
+  payload: MenuPayload,
+  rascunho: RascunhoDeExtra | null,
+): MenuPayload {
+  if (!rascunho) return payload;
+  const atuais = payload.extras ?? [];
+  const semEle = atuais.filter((x) => !rascunho.id || x.id !== rascunho.id);
+  if (!rascunho.isActive) return { ...payload, extras: semEle };
+
+  const posicao = rascunho.id ? atuais.findIndex((x) => x.id === rascunho.id) : semEle.length;
+  const atualizado = {
+    id: rascunho.id ?? "__previa-extra-novo",
+    name: rascunho.name,
+    price: rascunho.price,
+  };
+  const onde = posicao < 0 ? semEle.length : posicao;
+  return { ...payload, extras: [...semEle.slice(0, onde), atualizado, ...semEle.slice(onde)] };
+}
