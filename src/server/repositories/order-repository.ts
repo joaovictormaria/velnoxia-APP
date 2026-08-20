@@ -114,7 +114,22 @@ export async function listKanbanOrders(
     },
   });
 
-  return { columns, awaiting };
+  /*
+   * Numa loja que só faz retirada, "Saiu p/ entrega" é uma coluna que nunca
+   * sai de zero — ocupa espaço e sugere um passo do fluxo que não existe ali.
+   *
+   * A exceção existe porque a configuração pode ser desligada com pedido já a
+   * caminho: some a coluna e o pedido fica sem onde ser finalizado. Enquanto
+   * houver alguém na rua, ela continua na tela.
+   */
+  const settings = await prisma.storeSettings.findUnique({
+    where: { storeId },
+    select: { acceptsDelivery: true },
+  });
+  const naRua = columns.find((c) => c.status === "OUT_FOR_DELIVERY")?.total ?? 0;
+  const mostrarEntrega = (settings?.acceptsDelivery ?? true) || naRua > 0;
+
+  return { columns, awaiting, mostrarEntrega };
 }
 
 export function getOrderById(storeId: string, id: string) {

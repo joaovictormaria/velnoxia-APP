@@ -167,11 +167,26 @@ export async function getTopProducts(storeId: string, reference = new Date(), li
 }
 
 export async function getDashboardData(storeId: string, reference = new Date()) {
-  const [summary, byStatus, byHour, topProducts] = await Promise.all([
+  const [summary, byStatus, byHour, topProducts, settings] = await Promise.all([
     getDashboardSummary(storeId, reference),
     getOrdersByStatus(storeId, reference),
     getOrdersByHour(storeId, reference),
     getTopProducts(storeId, reference),
+    prisma.storeSettings.findUnique({
+      where: { storeId },
+      select: { acceptsDelivery: true },
+    }),
   ]);
-  return { summary, byStatus, byHour, topProducts };
+
+  /*
+   * Numa loja que só faz retirada, "Saiu p/ entrega" é uma coluna que nunca
+   * sai de zero — ocupa espaço e sugere um passo do fluxo que não existe ali.
+   *
+   * A exceção existe porque a configuração pode ser desligada com pedido já a
+   * caminho: some a coluna e o pedido fica sem onde ser finalizado. Enquanto
+   * houver alguém na rua, ela continua na tela.
+   */
+  const mostrarEntrega = (settings?.acceptsDelivery ?? true) || byStatus.outForDelivery > 0;
+
+  return { summary, byStatus, byHour, topProducts, mostrarEntrega };
 }

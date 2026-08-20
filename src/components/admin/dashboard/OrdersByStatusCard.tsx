@@ -9,12 +9,22 @@ const CARDS = [
 
 export function OrdersByStatusCard({
   counts,
+  mostrarEntrega = true,
 }: {
   counts: { received: number; preparing: number; outForDelivery: number; completed: number };
+  /** Falso numa loja que só faz retirada — ver getDashboardData. */
+  mostrarEntrega?: boolean;
 }) {
+  const cards = mostrarEntrega ? CARDS : CARDS.filter((c) => c.key !== "outForDelivery");
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {CARDS.map(({ key, label, icon: Icon, color, bg, border }) => {
+    <div
+      className={
+        "grid grid-cols-1 gap-4 sm:grid-cols-2 " +
+        (cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3")
+      }
+    >
+      {cards.map(({ key, label, icon: Icon, color, bg, border }) => {
         /*
          * Pedido recebido é o único estado em que a loja está devendo uma
          * ação: nos outros três alguém já pegou o pedido. Por isso só ele

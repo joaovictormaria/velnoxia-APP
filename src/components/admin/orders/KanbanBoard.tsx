@@ -86,15 +86,27 @@ export function KanbanBoard({
   columns,
   onAdvance,
   onDispatch,
+  mostrarEntrega = true,
 }: {
   columns: KanbanColumnData[];
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
   /** Entrega não avança sozinha: passa pela escolha de quem leva. */
   onDispatch: (order: KanbanOrder) => void;
+  /** Falso numa loja que só faz retirada — ver listKanbanOrders. */
+  mostrarEntrega?: boolean;
 }) {
+  const colunas = mostrarEntrega
+    ? COLUMNS
+    : COLUMNS.filter((c) => c.status !== "OUT_FOR_DELIVERY");
+
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-      {COLUMNS.map((col) => {
+    <div
+      className={
+        "grid grid-cols-1 gap-4 md:grid-cols-2 " +
+        (colunas.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3")
+      }
+    >
+      {colunas.map((col) => {
         const data = columns.find((c) => c.status === col.status);
         const orders = data?.orders ?? [];
         const total = data?.total ?? 0;

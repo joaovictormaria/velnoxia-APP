@@ -131,7 +131,7 @@ function DashboardPage() {
               e a única coisa aqui que muda de minuto em minuto. */}
           <section className="space-y-3">
             <h2 className="text-lg font-semibold text-neutral-900">Pedidos por status</h2>
-            <OrdersByStatusCard counts={data.byStatus} />
+            <OrdersByStatusCard counts={data.byStatus} mostrarEntrega={data.mostrarEntrega} />
           </section>
 
           {/* Nenhum valor em dinheiro: faturamento e ticket médio vivem só em

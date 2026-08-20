@@ -119,6 +119,7 @@ function KanbanPage() {
       ) : (
         <KanbanBoard
           columns={data?.columns ?? []}
+          mostrarEntrega={data?.mostrarEntrega ?? true}
           onAdvance={handleAdvance}
           onDispatch={(order) =>
             setDispatching({
