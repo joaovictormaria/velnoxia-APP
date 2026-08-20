@@ -17,7 +17,8 @@ import {
 } from "@/server/functions/reviews.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { SobreORestaurante } from "@/components/site/pizzaria2/SobreORestaurante";
-import { aplicarRascunhoDoSobre } from "@/lib/previa/aplicar-rascunho";
+import { aplicarRascunhoDoSobre, aplicarRascunhoDePublicacao } from "@/lib/previa/aplicar-rascunho";
+import { PublicacoesDaPrevia } from "@/components/admin/preview/PublicacoesDaPrevia";
 
 export const Route = createFileRoute("/admin/avaliacoes/")({
   component: AvaliacoesPage,
@@ -242,7 +243,9 @@ const EMPTY_POST: PostDraft = {
 
 function BlogTab() {
   const queryClient = useQueryClient();
+  const { admin } = useRouteContext({ from: "/admin" });
   const [draft, setDraft] = useState<PostDraft | null>(null);
+  const [foco, setFoco] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data, isPending } = useQuery({
@@ -327,9 +330,28 @@ function BlogTab() {
             e.preventDefault();
             save.mutate(draft);
           }}
-          className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5"
+          className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
         >
-          <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+          {/* Topo à direita, como nas outras telas. A seção "Novidades" some
+              quando não há publicação nenhuma, e a em edição já entra na lista:
+              quem escreve a primeira precisa vê-la nascer. */}
+          {admin && (
+            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1">
+              <PreviaDaVitrine
+                storeSlug={admin.store.slug}
+                foco={foco}
+                largura={900}
+                aplicar={(payload) => aplicarRascunhoDePublicacao(payload, draft)}
+              >
+                <PublicacoesDaPrevia />
+              </PreviaDaVitrine>
+            </div>
+          )}
+
+          <div
+            className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3"
+            onFocusCapture={() => setFoco("foto-da-publicacao")}
+          >
             <ImageUploadField
               kind="product"
               label="Foto da publicação"
@@ -339,6 +361,7 @@ function BlogTab() {
             <div className="space-y-4">
               <Field label="Título">
                 <Input
+                  onFocus={() => setFoco("titulo-da-publicacao")}
                   value={draft.title}
                   onChange={(v) => setDraft({ ...draft, title: v })}
                   required
@@ -347,6 +370,7 @@ function BlogTab() {
               <Field label="Data">
                 <input
                   type="date"
+                  onFocus={() => setFoco("data-da-publicacao")}
                   value={draft.publishedAt}
                   onChange={(e) =>
                     setDraft({ ...draft, publishedAt: e.target.value })
@@ -357,8 +381,10 @@ function BlogTab() {
             </div>
           </div>
 
+          <div className="lg:col-span-3">
           <Field label="Texto">
             <textarea
+              onFocus={() => setFoco("texto-da-publicacao")}
               value={draft.body}
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
               required
@@ -366,8 +392,9 @@ function BlogTab() {
               className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
             />
           </Field>
+          </div>
 
-          <label className="inline-flex cursor-pointer items-center gap-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 lg:col-span-3">
             <input
               type="checkbox"
               checked={draft.isPublished}
@@ -547,7 +574,7 @@ function ReviewsTab() {
                   {dateFormat.format(new Date(r.createdAt))}
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 lg:col-span-3">
                 <span className="inline-flex items-center gap-1 text-xs text-neutral-500">
                   <Heart className="size-3.5" />
                   {r._count.likes}

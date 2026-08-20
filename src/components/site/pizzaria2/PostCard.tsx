@@ -36,21 +36,28 @@ export function PostCard({
     <article className="flex h-full flex-col overflow-hidden rounded-[24px] border border-charcoal/8 bg-mozzarella shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]">
       {post.imageUrl && (
         <img
+          data-previa="foto-da-publicacao"
           src={post.imageUrl}
           alt={post.title}
           className="aspect-video w-full object-cover"
         />
       )}
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <p className="text-xs text-charcoal/45">
+        <p data-previa="data-da-publicacao" className="text-xs text-charcoal/45">
           {dateFormat.format(new Date(post.publishedAt))}
         </p>
-        <h3 className="mt-2 font-display text-base font-bold leading-snug text-charcoal">
+        <h3
+          data-previa="titulo-da-publicacao"
+          className="mt-2 font-display text-base font-bold leading-snug text-charcoal"
+        >
           {post.title}
         </h3>
         {/* whitespace-pre-line keeps the paragraph breaks the owner typed in the
             panel, without accepting any markup. */}
-        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-charcoal/65">
+        <p
+          data-previa="texto-da-publicacao"
+          className="mt-2 whitespace-pre-line text-sm leading-relaxed text-charcoal/65"
+        >
           {post.body}
         </p>
 

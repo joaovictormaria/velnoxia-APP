@@ -359,3 +359,42 @@ export function aplicarRascunhoDoSobre(
     aboutImageUrl: rascunho.aboutImageUrl,
   };
 }
+
+/** O que a aba "Novidades" edita. */
+export type RascunhoDePublicacao = {
+  id: string | null;
+  title: string;
+  body: string;
+  imageUrl: string | null;
+  isPublished: boolean;
+  publishedAt: string;
+};
+
+/**
+ * Aplica a publicação em edição sobre as que já estão no ar.
+ *
+ * Entra na lista mesmo antes de existir no banco: a seção "Novidades" some
+ * quando não há nenhuma, e quem escreve a primeira precisa vê-la nascer.
+ */
+export function aplicarRascunhoDePublicacao(
+  payload: MenuPayload,
+  rascunho: RascunhoDePublicacao | null,
+): MenuPayload {
+  if (!rascunho) return payload;
+  const atuais = payload.posts ?? [];
+  const semEla = atuais.filter((x) => !rascunho.id || x.id !== rascunho.id);
+  // Despublicada some da vitrine, e a prévia mostra isso.
+  if (!rascunho.isPublished) return { ...payload, posts: semEla };
+
+  const antiga = rascunho.id ? atuais.find((x) => x.id === rascunho.id) : undefined;
+  const atualizada = {
+    ...(antiga ?? { id: rascunho.id ?? "__previa-publicacao-nova", likeCount: 0 }),
+    title: rascunho.title,
+    body: rascunho.body,
+    imageUrl: rascunho.imageUrl,
+    // Lida como local: "2026-08-20" sozinho é meia-noite UTC, que no Brasil
+    // ainda é o dia anterior, e a data apareceria um dia atrasada.
+    publishedAt: rascunho.publishedAt ? `${rascunho.publishedAt}T12:00:00` : new Date(),
+  };
+  return { ...payload, posts: [atualizada, ...semEla] };
+}
