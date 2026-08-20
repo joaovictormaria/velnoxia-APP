@@ -101,15 +101,25 @@ fatia da foto vizinha na borda (eram recortes de uma folha de contato); o corte
 foi medido procurando o maior bloco contíguo de linhas e colunas não-brancas de
 cada arquivo, e não a olho.
 
-### Resolução — a ressalva importante
+### bar/ e cafeteria/ estão guardadas, e de propósito não são usadas
 
-As fotos de bar e cafeteria têm **225 a 245px de largura**, contra 1200–1600px
-das capas antigas. Nos cards do cardápio passa; **na capa aparece suavizada**,
-porque ali a imagem ocupa a largura toda.
+As 28 fotos estão nas pastas, mas **nenhuma está ligada ao catálogo**: as capas
+dos dois ramos continuam com `photos: []` e nenhum produto aponta para elas.
 
-Para resolver não é preciso mexer no código: reexporte as originais com pelo
-menos 1200px de largura e salve por cima, com o mesmo nome. Os caminhos já
-apontam para lá.
+O motivo é a resolução. Elas têm **225 a 245px de largura**, contra 1200–1600px
+das capas antigas. Nos cards do cardápio até passariam; na capa, onde a imagem
+ocupa a largura toda, sairiam visivelmente suavizadas. O dono do projeto
+preferiu deixá-las guardadas a publicar assim.
+
+**Para usá-las depois:** reexporte as originais com 1200px ou mais de largura e
+salve por cima, com o mesmo nome. Aí é preencher o `photos` de `bar` e
+`cafeteria` em `src/lib/pizzaria2/hero-by-type.ts` e pôr o `imageUrl` nos
+produtos de `BAR` e `CAFETERIA` em `src/server/catalog/menus.ts`. Os nomes
+dos arquivos já descrevem o que cada um mostra.
+
+As categorias e produtos que entraram junto com elas — a carta de drinks e de
+doses do bar, os doces e o café da manhã da cafeteria — **ficaram**, porque são
+bons de cardápio mesmo sem foto, e caem no ícone da categoria como os demais.
 
 ### Procedência
 
