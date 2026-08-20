@@ -13,8 +13,12 @@ import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
  * Fixa, e não derivada do espaço disponível: é ela que decide qual layout a
  * vitrine escolhe. Deixá-la variar faria a lojista ver o cardápio empilhado de
  * celular numa tela e o de computador em outra, sem ter mudado nada.
+ *
+ * O valor é o da moldura do cardápio, que tem max-w-[1800px]. Em 1280 os três
+ * cards de produto não cabiam e transbordavam pela direita — a prévia mostrava
+ * um layout apertado que a loja de verdade nunca tem.
  */
-const LARGURA_DA_VITRINE = 1280;
+const LARGURA_DA_VITRINE = 1800;
 
 /**
  * A folga entre a vitrine e a borda do card, em pixels da tela.

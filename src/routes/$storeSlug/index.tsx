@@ -30,6 +30,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { TypingText } from "@/components/site/TypingText";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
+import { SecaoDoCardapio } from "@/components/site/pizzaria2/SecaoDoCardapio";
 import { PromoCarousel } from "@/components/site/pizzaria2/PromoCarousel";
 import { StoreBlog } from "@/components/site/pizzaria2/StoreBlog";
 import { ReviewsSection } from "@/components/site/pizzaria2/ReviewsSection";
@@ -401,13 +402,9 @@ function PizzariaInicio() {
         </Reveal>
       </section>
 
-      <section id="cardapio" className="relative scroll-mt-20 overflow-hidden">
-        <div className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-tomato/10 blur-3xl" />
-        <div className="pointer-events-none absolute -right-20 bottom-10 h-72 w-72 rounded-full bg-olive/10 blur-3xl" />
-        <div className="relative mx-auto max-w-[1800px] px-6 py-20 sm:px-10 sm:py-24 xl:px-16">
-          <CategorySaboresSection />
-        </div>
-      </section>
+      <SecaoDoCardapio>
+        <CategorySaboresSection />
+      </SecaoDoCardapio>
 
       <ReviewsProvider storeSlug={storeSlug}>
         <section

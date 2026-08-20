@@ -3,6 +3,7 @@ import { SizePicker } from "@/components/admin/menu/SizePicker";
 import { IconPicker } from "@/components/admin/menu/IconPicker";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
+import { SecaoDoCardapio } from "@/components/site/pizzaria2/SecaoDoCardapio";
 import { aplicarRascunhoDeCategoria, SLUG_DA_NOVA } from "@/lib/previa/aplicar-rascunho";
 import {
   OptionGroupEditor,
@@ -178,7 +179,9 @@ function CategoriesPage() {
                 altura={360}
                 aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
               >
-                <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
+                <SecaoDoCardapio>
+                  <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
+                </SecaoDoCardapio>
               </PreviaDaVitrine>
             </div>
           )}
