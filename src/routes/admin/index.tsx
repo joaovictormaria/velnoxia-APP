@@ -32,7 +32,15 @@ function DashboardPage() {
   const { data, isPending } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => getDashboardFn(),
-    refetchInterval: 30_000,
+    /*
+     * 8 segundos, o mesmo da tela de Pedidos.
+     *
+     * Eram 30, o que servia para um resumo mas não para um alarme: o card de
+     * "Recebidos" pulsa quando há pedido esperando, e com meio minuto de atraso
+     * o pedido chega, o cliente espera, e a tela continua calma. Um aviso que
+     * demora a aparecer ensina a não confiar nele.
+     */
+    refetchInterval: 8_000,
   });
 
   return (

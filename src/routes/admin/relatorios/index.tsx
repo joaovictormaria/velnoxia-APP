@@ -8,8 +8,11 @@ export const Route = createFileRoute("/admin/relatorios/")({
   component: ReportsPage,
 });
 
-type Days = 7 | 30 | 90;
+type Days = 1 | 7 | 30 | 90;
 const PERIODOS: { days: Days; label: string }[] = [
+  // "Hoje" e nao "1 dia": e o que o periodo de um dia de fato mostra, e o
+  // rotulo em dias sugeriria poder escolher qual dia.
+  { days: 1, label: "Hoje" },
   { days: 7, label: "7 dias" },
   { days: 30, label: "30 dias" },
   { days: 90, label: "90 dias" },
@@ -98,7 +101,9 @@ function ReportsPage() {
             />
           </div>
 
-          <Series series={data.series} />
+          {/* Com um dia só, "faturamento por dia" é uma barra sozinha repetindo
+              o número que o card de Faturamento já mostra logo acima. */}
+          {days > 1 && <Series series={data.series} />}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Breakdown

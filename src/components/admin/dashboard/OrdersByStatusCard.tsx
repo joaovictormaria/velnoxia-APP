@@ -14,19 +14,35 @@ export function OrdersByStatusCard({
 }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {CARDS.map(({ key, label, icon: Icon, color, bg, border }) => (
-        <div key={key} className={`flex items-center gap-4 rounded-2xl border p-5 ${bg} ${border}`}>
-          <span
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white"
+      {CARDS.map(({ key, label, icon: Icon, color, bg, border }) => {
+        /*
+         * Pedido recebido é o único estado em que a loja está devendo uma
+         * ação: nos outros três alguém já pegou o pedido. Por isso só ele
+         * pulsa, e pulsa até parar de ter pedido esperando — o alarme apaga
+         * quando o trabalho começa, não depois de um tempo.
+         */
+        const esperando = key === "received" && counts[key] > 0;
+        return (
+          <div
+            key={key}
+            className={
+              "flex items-center gap-4 rounded-2xl border p-5 " +
+              (esperando ? "animate-pedido-esperando" : `${bg} ${border}`)
+            }
+            /* Anuncia o pedido novo a quem usa leitor de tela, que não vê
+               a borda piscando. "polite" para não cortar a frase em curso. */
+            aria-live={key === "received" ? "polite" : undefined}
           >
-            <Icon className="size-5" style={{ color }} />
-          </span>
-          <div>
-            <p className="text-sm text-neutral-600">{label}</p>
-            <p className="text-2xl font-bold text-neutral-900">{counts[key]}</p>
+            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white">
+              <Icon className="size-5" style={{ color }} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm text-neutral-600">{label}</p>
+              <p className="text-2xl font-bold tabular-nums text-neutral-900">{counts[key]}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

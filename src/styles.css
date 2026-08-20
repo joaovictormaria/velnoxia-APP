@@ -599,3 +599,45 @@
     text-shadow: 0 1px 1.5px var(--on-primary-halo);
   }
 }
+
+/* ── Pedido esperando na fila ──────────────────────────── */
+
+/*
+ * O card de "Recebidos" pulsa enquanto houver pedido parado nele.
+ *
+ * Pulsa a borda e o fundo, não a opacidade do card inteiro: piscar o número
+ * junto o deixa ilegível justamente quando ele importa, e quem está no meio do
+ * movimento lê o card de relance, de longe.
+ *
+ * Só para quando o pedido sai de Recebidos — é um alarme, não um enfeite, e um
+ * alarme que se cansa antes de ser atendido não serve para nada.
+ */
+@keyframes pedido-esperando {
+  0%,
+  100% {
+    background-color: var(--color-red-50);
+    border-color: var(--color-red-100);
+    box-shadow: 0 0 0 0 rgb(225 29 46 / 0);
+  }
+  50% {
+    background-color: rgb(254 226 226);
+    border-color: rgb(225 29 46 / 0.55);
+    box-shadow: 0 0 0 6px rgb(225 29 46 / 0.12);
+  }
+}
+
+@utility animate-pedido-esperando {
+  animation: pedido-esperando 1.4s ease-in-out infinite;
+}
+
+/*
+ * Quem pediu menos movimento continua precisando saber que tem pedido parado.
+ * Em vez de tirar o aviso, ele deixa de piscar e fica aceso.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pedido-esperando {
+    animation: none;
+    background-color: rgb(254 226 226);
+    border-color: rgb(225 29 46 / 0.55);
+  }
+}

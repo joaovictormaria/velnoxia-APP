@@ -8,8 +8,9 @@ export const Route = createFileRoute("/admin/relatorios/produtos")({
   component: ProductReportPage,
 });
 
-type Days = 7 | 30 | 90;
+type Days = 1 | 7 | 30 | 90;
 const PERIODOS: { days: Days; label: string }[] = [
+  { days: 1, label: "Hoje" },
   { days: 7, label: "7 dias" },
   { days: 30, label: "30 dias" },
   { days: 90, label: "90 dias" },
