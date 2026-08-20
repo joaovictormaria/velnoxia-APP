@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import { deleteCouponFn, listCouponsFn, saveCouponFn } from "@/server/functions/coupons.fn";
+import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
+import { CupomDaPrevia } from "@/components/admin/preview/CupomDaPrevia";
 
 export const Route = createFileRoute("/admin/cupons/")({
   component: CouponsPage,
@@ -51,7 +53,9 @@ const dateFormat = new Intl.DateTimeFormat("pt-BR", {
 
 function CouponsPage() {
   const queryClient = useQueryClient();
+  const { admin } = useRouteContext({ from: "/admin" });
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [foco, setFoco] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data, isPending } = useQuery({ queryKey: ["coupons"], queryFn: () => listCouponsFn() });
@@ -128,11 +132,23 @@ function CouponsPage() {
             e.preventDefault();
             save.mutate(draft);
           }}
-          className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5"
+          className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
         >
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Topo à direita, como nas outras telas. O cupom não aparece na
+              loja: o cliente digita o código no fechamento do pedido. Então a
+              prévia mostra o que ele vê ali, e quanto o desconto tira. */}
+          {admin && (
+            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1">
+              <PreviaDaVitrine storeSlug={admin.store.slug} foco={foco} largura={720}>
+                <CupomDaPrevia cupom={draft} />
+              </PreviaDaVitrine>
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:col-span-3">
             <Field label="Código" hint="Sem espaços nem acentos. Ex.: BEMVINDO10">
               <Input
+                onFocus={() => setFoco("campo-do-cupom")}
                 value={draft.code}
                 onChange={(v) => setDraft({ ...draft, code: v.toUpperCase() })}
                 required
@@ -147,7 +163,7 @@ function CouponsPage() {
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 lg:col-span-3">
             <Field label="Tipo">
               <select
                 value={draft.discountType}
@@ -162,6 +178,7 @@ function CouponsPage() {
             </Field>
             <Field label={draft.discountType === "PERCENTAGE" ? "Desconto (%)" : "Desconto (R$)"}>
               <Input
+                onFocus={() => setFoco("desconto-do-cupom")}
                 value={draft.discountValue}
                 onChange={(v) => setDraft({ ...draft, discountValue: v })}
                 required
@@ -171,6 +188,7 @@ function CouponsPage() {
             </Field>
             <Field label="Pedido mínimo (R$)" hint="Vazio = sem mínimo.">
               <Input
+                onFocus={() => setFoco("desconto-do-cupom")}
                 value={draft.minOrderValue}
                 onChange={(v) => setDraft({ ...draft, minOrderValue: v })}
                 type="number"
@@ -179,7 +197,7 @@ function CouponsPage() {
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 lg:col-span-3">
             <Field label="Válido de">
               <input
                 type="date"

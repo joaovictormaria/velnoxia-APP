@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
+import { CampoDeCupom } from "@/components/site/pizzaria2/CampoDeCupom";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 import { previewCouponFn } from "@/server/functions/coupons.fn";
@@ -386,36 +387,18 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
             </select>
           </Field>
           <Field label="Cupom (opcional)">
-            <div className="flex gap-2">
-              <input
-                value={couponCode}
-                onChange={(e) => {
-                  setCouponCode(e.target.value.toUpperCase());
-                  // Editing invalidates the previous answer, so a stale
-                  // "aplicado" never sits next to a code that changed.
-                  setCouponResult(null);
-                }}
-                onBlur={checkCoupon}
-                placeholder="PIZZA10"
-                className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal placeholder:text-charcoal/30"
-              />
-              <button
-                type="button"
-                onClick={checkCoupon}
-                disabled={checkingCoupon || !couponCode.trim()}
-                className="shrink-0 rounded-xl border border-charcoal/15 px-4 text-sm font-medium text-charcoal disabled:opacity-50"
-              >
-                {checkingCoupon ? "..." : "Aplicar"}
-              </button>
-            </div>
-            {couponResult?.ok === true && (
-              <p className="mt-1.5 text-xs font-medium text-olive">
-                {couponResult.code} aplicado: -{formatCurrency(couponResult.discount)}
-              </p>
-            )}
-            {couponResult?.ok === false && (
-              <p className="mt-1.5 text-xs text-tomato">{couponResult.error}</p>
-            )}
+            <CampoDeCupom
+              codigo={couponCode}
+              onDigitar={(v) => {
+                setCouponCode(v);
+                // Editar invalida a resposta anterior, senão um "aplicado"
+                // velho ficaria ao lado de um código que mudou.
+                setCouponResult(null);
+              }}
+              onAplicar={checkCoupon}
+              conferindo={checkingCoupon}
+              resposta={couponResult}
+            />
           </Field>
         </div>
 
