@@ -35,17 +35,22 @@ export function Header() {
         >
           {logoUrl ? (
             <img
+              data-previa="logo"
               src={logoUrl}
               alt={storeName}
               className="h-9 w-9 shrink-0 rounded-full object-cover"
             />
           ) : (
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-mozzarella">
+            <span
+              data-previa="logo"
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-tomato text-mozzarella"
+            >
               <Pizza className="h-4.5 w-4.5" />
             </span>
           )}
           <span className="flex flex-col leading-tight">
             <span
+              data-previa="nome-da-loja"
               className={cn(
                 "font-display text-lg font-bold transition-colors",
                 overHero ? "text-[color:var(--on-primary)]" : "text-charcoal",
@@ -55,6 +60,7 @@ export function Header() {
             </span>
             {tagline && (
               <span
+                data-previa="subtitulo"
                 className={cn(
                   "hidden text-[11px] font-medium uppercase tracking-wide transition-colors sm:inline",
                   overHero

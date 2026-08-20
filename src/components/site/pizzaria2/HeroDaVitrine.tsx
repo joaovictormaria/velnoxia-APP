@@ -171,6 +171,7 @@ export function HeroDaVitrine() {
           dezesseis ramos ainda não têm banco de imagens, então este é o caso
           comum, não a exceção. */}
       <div
+        data-previa="cores"
         className={cn(
           "flex flex-1 flex-col bg-gradient-accent md:grid md:grid-rows-[1fr]",
           temFoto ? "md:grid-cols-2" : "md:grid-cols-1",
@@ -195,7 +196,10 @@ export function HeroDaVitrine() {
                 />
               </span>
             </h1>
-            <p className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[color:var(--on-primary-muted)]">
+            <p
+              data-previa="frase-do-topo"
+              className="mx-auto mt-5 max-w-md text-base leading-relaxed text-[color:var(--on-primary-muted)]"
+            >
               {heroSubtitle || tradeHeroSubtitle}
             </p>
             <div className="relative mt-8 inline-flex w-fit">

@@ -112,6 +112,12 @@ function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [tab, setTab] = useState<TabId>("identidade");
+  /**
+   * Onde a prévia deve olhar. Muda quando um campo recebe o cursor, e fica
+   * assim até outro receber — voltar ao geral a cada saída de campo faria a
+   * prévia pular o tempo todo enquanto a lojista escreve.
+   */
+  const [foco, setFoco] = useState<string | null>(null);
   const [cepStatus, setCepStatus] = useState<"idle" | "loading" | "notfound">("idle");
   const cepRequest = useRef<AbortController | null>(null);
   // O ramo vive noutra tabela e não entra no rascunho das configurações.
@@ -378,6 +384,7 @@ function SettingsPage() {
             <div className="lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1">
               <PreviaDaVitrine
                 storeSlug={admin.store.slug}
+                foco={foco}
                 aplicarLoja={(loja) =>
                   aplicarRascunhoDaLoja(loja, {
                     storeName: draft.storeName,
@@ -401,7 +408,7 @@ function SettingsPage() {
             </div>
           )}
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1" onFocusCapture={() => setFoco("logo")}>
             <ImageUploadField
               kind="logo"
               label="Logo"
@@ -412,6 +419,7 @@ function SettingsPage() {
           <div className="space-y-4 lg:col-span-2">
             <Field label="Nome da loja">
               <Input
+                onFocus={() => setFoco("nome-da-loja")}
                 value={draft.storeName}
                 onChange={(v) => set("storeName", v)}
                 required
@@ -439,6 +447,7 @@ function SettingsPage() {
               hint="Aparece abaixo do nome no topo. Ex.: Pizzaria"
             >
               <Input
+                onFocus={() => setFoco("subtitulo")}
                 value={draft.tagline}
                 onChange={(v) => set("tagline", v)}
               />
@@ -448,6 +457,7 @@ function SettingsPage() {
               hint="Aparece logo abaixo do título grande do cardápio. Ex.: Hambúrguer artesanal, pão fresquinho e ingredientes selecionados todos os dias. Deixe vazio para usar a frase padrão do seu ramo."
             >
               <textarea
+                onFocus={() => setFoco("frase-do-topo")}
                 value={draft.heroSubtitle}
                 onChange={(e) => set("heroSubtitle", e.target.value)}
                 rows={2}
@@ -466,7 +476,7 @@ function SettingsPage() {
               />
             </Field>
             <Field label="Cores do site">
-              <div className="flex gap-2">
+              <div className="flex gap-2" onFocusCapture={() => setFoco("cores")}>
                 {(["SOLID", "GRADIENT"] as const).map((mode) => (
                   <button
                     key={mode}

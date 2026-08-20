@@ -35,6 +35,7 @@ export function PreviaDaVitrine({
   aplicarLoja,
   altura = 360,
   largura = LARGURA_PADRAO,
+  foco = null,
   children,
 }: {
   storeSlug: string;
@@ -51,6 +52,11 @@ export function PreviaDaVitrine({
    * julgar a foto e a etiqueta.
    */
   largura?: number;
+  /**
+   * O ponto da vitrine para onde a prévia deve ir, quando um campo recebe o
+   * cursor. Casa com o data-previa marcado no componente da loja.
+   */
+  foco?: string | null;
   /** O pedaço da vitrine a mostrar. */
   children: ReactNode;
 }) {
@@ -76,6 +82,7 @@ export function PreviaDaVitrine({
         aplicar={aplicar}
         aplicarLoja={aplicarLoja}
         largura={largura}
+        foco={foco}
         preencher={preencher}
       >
         {children}
@@ -170,6 +177,7 @@ function Palco({
   aplicar,
   aplicarLoja,
   largura,
+  foco,
   preencher,
   children,
 }: {
@@ -177,12 +185,16 @@ function Palco({
   aplicar?: (p: MenuPayload) => MenuPayload;
   aplicarLoja?: (l: StorePayload) => StorePayload;
   largura: number;
+  foco: string | null;
   /** No modal a vitrine se centra na altura toda; encaixada, ela a define. */
   preencher: boolean;
   children: ReactNode;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
+  const palco = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(0.4);
+  /** Ampliação e deslocamento aplicados ao focar um campo. */
+  const [enquadre, setEnquadre] = useState({ k: 1, dx: 0, dy: 0 });
   // A cor sai daqui e pinta tudo: o brandTheme abaixo lê desta loja, não da
   // salva, senão trocar a cor não mudaria nada na prévia.
   const loja = aplicarLoja ? aplicarLoja(data.store) : data.store;
@@ -209,6 +221,62 @@ function Palco({
     return () => observador.disconnect();
   }, [largura]);
 
+  /**
+   * Leva a prévia até o ponto que o campo focado altera, e amplia nele.
+   *
+   * Saber que a loja mudou não basta: a lojista precisa ver ONDE. "Selo" e
+   * "Frase do topo" são nomes que só significam algo depois de a pessoa ter
+   * visto o resultado uma vez.
+   *
+   * A conta é direta. Com a origem no centro do palco, ampliar por k leva um
+   * ponto que está a v do centro para k·v. O deslocamento é o que falta para
+   * esse destino virar o centro da caixa.
+   */
+  useEffect(() => {
+    const alvoCaixa = caixa.current;
+    const alvoPalco = palco.current;
+    if (!alvoCaixa || !alvoPalco) return;
+
+    if (!foco) {
+      setEnquadre({ k: 1, dx: 0, dy: 0 });
+      return;
+    }
+
+    // Medido sem transformação: as medidas precisam ser as do enquadre neutro,
+    // senão cada foco partiria do anterior e a prévia iria se afastando.
+    alvoPalco.style.transform = "none";
+    const marca = alvoPalco.querySelector<HTMLElement>(`[data-previa="${foco}"]`);
+    if (!marca) {
+      alvoPalco.style.transform = "";
+      setEnquadre({ k: 1, dx: 0, dy: 0 });
+      return;
+    }
+
+    const rCaixa = alvoCaixa.getBoundingClientRect();
+    const rPalco = alvoPalco.getBoundingClientRect();
+    const rMarca = marca.getBoundingClientRect();
+    alvoPalco.style.transform = "";
+
+    // Amplia até a marca ocupar dois terços da caixa, sem passar de 4x: mais
+    // que isso e o entorno some, e ver só o pedaço não diz onde ele fica.
+    const k = Math.min(
+      4,
+      Math.max(1, Math.min((rCaixa.width * 0.66) / Math.max(rMarca.width, 1),
+                           (rCaixa.height * 0.66) / Math.max(rMarca.height, 1))),
+    );
+
+    const centro = (r: DOMRect) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+    const cCaixa = centro(rCaixa);
+    const cPalco = centro(rPalco);
+    const cMarca = centro(rMarca);
+
+    setEnquadre({
+      k,
+      dx: cCaixa.x - cPalco.x - k * (cMarca.x - cPalco.x),
+      dy: cCaixa.y - cPalco.y - k * (cMarca.y - cPalco.y),
+    });
+  }, [foco, escala, largura]);
+
   return (
     /**
      * Centralizado nos dois eixos, com zoom em vez de transform: zoom encolhe
@@ -225,10 +293,22 @@ function Palco({
         "flex w-full items-center justify-center overflow-hidden " + (preencher ? "h-full" : "")
       }
     >
+      {/*
+       * A transformação fica sempre aplicada, mesmo neutra, e não por capricho:
+       * um elemento fixed se ancora no primeiro ancestral que tenha transform.
+       * O cabeçalho da loja é fixed — sem isto ele se ancorava na janela do
+       * navegador, era desenhado por cima do painel e sumia no recorte da caixa.
+       */}
       <div
+        ref={palco}
         aria-hidden
-        className="pointer-events-none select-none"
-        style={{ width: largura, zoom: escala }}
+        className="pointer-events-none select-none transition-transform duration-500 ease-out"
+        style={{
+          width: largura,
+          zoom: escala,
+          transform: `translate(${enquadre.dx}px, ${enquadre.dy}px) scale(${enquadre.k})`,
+          transformOrigin: "center",
+        }}
       >
         <StoreProvider payload={loja}>
           <MenuProvider payload={aplicar ? aplicar(data) : data}>
