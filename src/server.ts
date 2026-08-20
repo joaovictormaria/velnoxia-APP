@@ -56,8 +56,7 @@ function isH3SwallowedErrorBody(body: string): boolean {
  * estilos se estiver um passo fora do que o bundler gera, e acertá-la pede
  * testar cada tela. Fica anotado como próximo passo, não escondido como pronto.
  */
-function comCabecalhosDeSeguranca(response: Response): Response {
-  const h = response.headers;
+function aplicarCabecalhos(h: Headers): void {
   h.set("X-Content-Type-Options", "nosniff");
   h.set("X-Frame-Options", "DENY");
   h.set("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -72,7 +71,37 @@ function comCabecalhosDeSeguranca(response: Response): Response {
   if (process.env.RAILWAY_ENVIRONMENT_NAME) {
     h.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   }
-  return response;
+}
+
+function comCabecalhosDeSeguranca(response: Response): Response {
+  /*
+   * Caminho normal: os headers são mutáveis, então se escreve neles direto e a
+   * resposta segue como está — sem reconstruir o stream do corpo do SSR.
+   *
+   * A exceção é o que vem de `Response.redirect()`, cujos headers nascem
+   * imutáveis por especificação: escrever neles estoura "TypeError: immutable",
+   * o erro sobe até o catch do fetch, e o visitante recebe a página de erro 500
+   * no lugar do redirecionamento.
+   *
+   * Quem constrói uma dessas aqui é o próprio TanStack Start, ao normalizar uma
+   * URL protocolo-relativa: um caminho começando com "//" vira um 308. Não são
+   * os redirecionamentos das rotas — o `redirect()` do router monta uma resposta
+   * comum, de headers mutáveis, que passa pelo caminho de cima sem tocar neste.
+   * Vale saber disso antes de concluir que a guarda não serve para nada: "/" ->
+   * "/admin/login" não a exercita; `curl --path-as-is 'http://host//x'` sim.
+   */
+  try {
+    aplicarCabecalhos(response.headers);
+    return response;
+  } catch {
+    const headers = new Headers(response.headers);
+    aplicarCabecalhos(headers);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
 }
 
 export default {
