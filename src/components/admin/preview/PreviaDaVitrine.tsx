@@ -242,9 +242,17 @@ function Palco({
       return;
     }
 
-    // Medido sem transformação: as medidas precisam ser as do enquadre neutro,
-    // senão cada foco partiria do anterior e a prévia iria se afastando.
-    alvoPalco.style.transform = "none";
+    /*
+     * Medido no enquadre neutro, senão cada foco partiria do anterior e a
+     * prévia iria se afastando a cada clique.
+     *
+     * Neutro é "translate(0,0) scale(1)", nunca "none": é a existência de uma
+     * transformação que ancora o cabeçalho fixo dentro do palco. Com "none"
+     * ele voltava a se ancorar na janela do navegador durante a medição, e a
+     * conta saía com a posição dele na tela do painel — por isso só os campos
+     * que apontam para o cabeçalho erravam o alvo.
+     */
+    alvoPalco.style.transform = "translate(0px, 0px) scale(1)";
     const marca = alvoPalco.querySelector<HTMLElement>(`[data-previa="${foco}"]`);
     if (!marca) {
       alvoPalco.style.transform = "";
@@ -256,6 +264,14 @@ function Palco({
     const rPalco = alvoPalco.getBoundingClientRect();
     const rMarca = marca.getBoundingClientRect();
     alvoPalco.style.transform = "";
+
+    // Marca sem tamanho é marca escondida nesta largura — o subtítulo do
+    // cabeçalho, por exemplo, só aparece a partir de certo ponto. Enquadrar
+    // algo invisível jogaria a prévia para fora da caixa.
+    if (rMarca.width < 1 || rMarca.height < 1) {
+      setEnquadre({ k: 1, dx: 0, dy: 0 });
+      return;
+    }
 
     // Amplia até a marca ocupar dois terços da caixa, sem passar de 4x: mais
     // que isso e o entorno some, e ver só o pedaço não diz onde ele fica.
