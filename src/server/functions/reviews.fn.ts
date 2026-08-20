@@ -68,6 +68,11 @@ export const submitReviewFn = createServerFn({ method: "POST" })
 export const toggleReviewLikeFn = createServerFn({ method: "POST" })
   .validator(z.object({ storeSlug: z.string().min(1), reviewId: z.string(), visitorId }))
   .handler(async ({ data }) => {
+    // Mesmo motivo do like de publicação: o visitorId é do cliente, então o
+    // teto por origem é o que segura a inflação de curtidas.
+    if (!permitido("review-like", { max: 15, janelaMs: 60_000 })) {
+      return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+    }
     const store = await servableStore(data.storeSlug);
     const result = await toggleLike(store.id, data.reviewId, data.visitorId);
     if (!result) return { ok: false as const, error: "Avaliação não encontrada." };

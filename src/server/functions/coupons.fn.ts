@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
+import { permitido } from "../security/rate-limit";
 import {
   createCoupon,
   deleteCoupon,
@@ -98,6 +99,12 @@ export const previewCouponFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    // Público e diz se um código é válido: sem teto, dá para varrer códigos e
+    // achar cupom não divulgado. 20/min por origem é folgado para quem digita
+    // um código e intransponível para um dicionário.
+    if (!permitido("coupon-preview", { max: 20, janelaMs: 60_000 })) {
+      return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+    }
     const store = await getStoreBySlug(data.storeSlug);
     if (!store || !isStoreServable(store)) return { ok: false as const, error: "Loja indisponível." };
 

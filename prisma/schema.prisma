@@ -173,6 +173,10 @@ model AdminUser {
   /// Onde ele está agora — só a última posição, e só enquanto tem entrega.
   location     CourierLocation?
   isActive     Boolean   @default(true)
+  /// Sobe a cada troca de senha ou desativação. A sessão guarda a versão que
+  /// tinha no login; quando divergem, o cookie antigo deixa de valer. É o que
+  /// faz uma redefinição de senha expulsar quem já estava dentro.
+  sessionVersion Int     @default(0)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
