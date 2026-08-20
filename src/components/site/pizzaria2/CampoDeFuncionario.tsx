@@ -17,13 +17,17 @@ export type RespostaDoFuncionario =
 /**
  * O benefício de funcionário, no checkout.
  *
- * Fica escondido atrás de um botão em vez de aparecer sozinho quando o telefone
- * digitado é de um funcionário. A diferença importa: um campo que surge sozinho
- * conta a qualquer pessoa que aquele número trabalha na loja, e quem quisesse
- * saber bastaria testar números até o campo aparecer.
+ * O campo se abre sozinho quando o telefone digitado é de alguém com benefício
+ * — e o link continua existindo para quem quiser abri-lo antes disso. A
+ * primeira versão só tinha o link, discreto, para o site não contar quem
+ * trabalha ali; na prática o funcionário não o via, pedia por preço cheio e
+ * concluía que o desconto estava quebrado. Entre esconder o campo e o benefício
+ * não ser usado, a escolha foi mostrar: revelar exige já saber o número da
+ * pessoa, e o desconto continua trancado atrás do PIN.
  */
 export function CampoDeFuncionario({
   aberto,
+  reconhecido,
   onAbrir,
   pin,
   onDigitar,
@@ -32,6 +36,8 @@ export function CampoDeFuncionario({
   resposta,
 }: {
   aberto: boolean;
+  /** O telefone digitado é de funcionário: a tela chama a pessoa pelo PIN. */
+  reconhecido: boolean;
   onAbrir: () => void;
   pin: string;
   onDigitar: (v: string) => void;
@@ -53,7 +59,20 @@ export function CampoDeFuncionario({
   }
 
   return (
-    <div className="rounded-xl border border-charcoal/15 bg-white/60 p-3">
+    <div
+      className={`rounded-xl border p-3 ${
+        reconhecido && !resposta?.ok
+          ? // Enquanto o PIN não foi conferido, a caixa se destaca: ela apareceu
+            // sozinha, e a pessoa precisa perceber que ainda falta um passo.
+            "border-olive/40 bg-olive/5"
+          : "border-charcoal/15 bg-white/60"
+      }`}
+    >
+      {reconhecido && !resposta?.ok && (
+        <p className="mb-2 text-sm font-medium text-charcoal">
+          Você tem benefício de funcionário. Digite seu PIN para aplicar o desconto.
+        </p>
+      )}
       <div className="flex items-end gap-2">
         <label className="block flex-1 space-y-1.5">
           <span className="text-sm font-medium text-charcoal">PIN de funcionário</span>

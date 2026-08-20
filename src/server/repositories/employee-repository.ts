@@ -347,3 +347,23 @@ export async function deleteBenefitPlan(storeId: string, id: string) {
   const r = await prisma.employeeBenefitPlan.deleteMany({ where: { id, storeId } });
   return r.count > 0;
 }
+
+/**
+ * Só responde se aquele telefone é de um funcionário com benefício — nada mais.
+ *
+ * Serve para o checkout abrir o campo do PIN sozinho, em vez de esperar que a
+ * pessoa repare num link discreto. É uma resposta de sim ou não sobre um número
+ * que quem pergunta já digitou, e sem o PIN ela não vale desconto nenhum; ainda
+ * assim é o endpoint que confirma quem trabalha na loja, e por isso tem teto de
+ * tentativas em cima.
+ */
+export async function employeeHasBenefit(
+  storeId: string,
+  phone: string,
+): Promise<boolean> {
+  const achado = await prisma.employee.findFirst({
+    where: { storeId, phone, isActive: true, plan: { isActive: true } },
+    select: { id: true },
+  });
+  return achado !== null;
+}

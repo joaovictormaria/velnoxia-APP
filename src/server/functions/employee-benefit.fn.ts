@@ -2,7 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { verifyPassword } from "../auth/password";
 import { prisma } from "../db/client";
-import { findEmployeeForCheckout, lerUsoDoDia } from "../repositories/employee-repository";
+import {
+  employeeHasBenefit,
+  findEmployeeForCheckout,
+  lerUsoDoDia,
+} from "../repositories/employee-repository";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
 import { permitido } from "../security/rate-limit";
 import { calcularBeneficio, descreverCota } from "../services/employee-benefit";
@@ -85,4 +89,33 @@ export const previewEmployeeBenefitFn = createServerFn({ method: "POST" })
       /** Se a tela deve oferecer "desconto em folha" como forma de pagamento. */
       permiteFolha: funcionario.plano.allowPayroll,
     };
+  });
+
+/**
+ * Aquele telefone é de funcionário?
+ *
+ * O checkout pergunta assim que a pessoa termina de digitar o WhatsApp, para
+ * abrir o campo do PIN sozinho. Antes o campo ficava atrás de um link discreto
+ * e passava despercebido: o funcionário pedia, não via desconto nenhum e
+ * concluía que o benefício não funcionava.
+ *
+ * Responde só sim ou não, sobre um número que quem pergunta já digitou, e sem
+ * o PIN isso não vale desconto. Ainda assim é o endereço que confirma quem
+ * trabalha na loja, então o teto por origem é mais apertado que o do resto:
+ * uma pessoa digita o próprio telefone uma vez, um script tentaria a lista toda.
+ */
+export const employeePhoneHasBenefitFn = createServerFn({ method: "POST" })
+  .validator(z.object({ storeSlug: z.string().min(1), phone: z.string().min(10) }))
+  .handler(async ({ data }) => {
+    if (!permitido("telefone-funcionario", { max: 12, janelaMs: 60_000 })) {
+      // Silêncio em vez de erro: isto é um enfeite de conveniência, e barrar o
+      // checkout de um cliente comum por causa dele seria pior que não ter.
+      return { funcionario: false as const };
+    }
+
+    const store = await getStoreBySlug(data.storeSlug);
+    if (!store || !isStoreServable(store)) return { funcionario: false as const };
+
+    const funcionario = await employeeHasBenefit(store.id, data.phone.replace(/\D/g, ""));
+    return { funcionario };
   });

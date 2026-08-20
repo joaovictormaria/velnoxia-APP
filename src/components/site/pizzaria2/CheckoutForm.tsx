@@ -14,7 +14,10 @@ import {
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 import { previewCouponFn } from "@/server/functions/coupons.fn";
-import { previewEmployeeBenefitFn } from "@/server/functions/employee-benefit.fn";
+import {
+  employeePhoneHasBenefitFn,
+  previewEmployeeBenefitFn,
+} from "@/server/functions/employee-benefit.fn";
 import { loadCustomerDetails, saveCustomerDetails } from "@/lib/pizzaria2/customer-details";
 import { formatCep, isCompleteCep, lookupCep, normalizeCep } from "@/lib/pizzaria2/cep-lookup";
 
@@ -55,6 +58,43 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [employeePin, setEmployeePin] = useState("");
   const [employeeResult, setEmployeeResult] = useState<RespostaDoFuncionario>(null);
   const [checkingEmployee, setCheckingEmployee] = useState(false);
+  /** O telefone digitado é de funcionário — o campo do PIN se abre sozinho. */
+  const [employeeRecognized, setEmployeeRecognized] = useState(false);
+
+  /*
+   * Assim que o WhatsApp fica completo, o servidor diz se aquele número tem
+   * benefício, e o campo do PIN aparece por conta própria.
+   *
+   * Existe porque o link discreto não bastava: o funcionário digitava o
+   * telefone, não via nada, fechava o pedido por preço cheio e concluía que o
+   * desconto não funcionava. Nada disto libera desconto — só revela o campo; o
+   * PIN continua sendo o que vale.
+   */
+  useEffect(() => {
+    const digitos = phone.replace(/\D/g, "");
+    if (digitos.length < 10) {
+      setEmployeeRecognized(false);
+      return;
+    }
+    // Espera a digitação parar: sem isto sairia uma consulta por tecla.
+    let vivo = true;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await employeePhoneHasBenefitFn({
+          data: { storeSlug: storeInfo.slug, phone: digitos },
+        });
+        if (!vivo) return;
+        setEmployeeRecognized(res.funcionario);
+        if (res.funcionario) setEmployeeOpen(true);
+      } catch {
+        // Silêncio de propósito: é conveniência, e o link manual continua ali.
+      }
+    }, 600);
+    return () => {
+      vivo = false;
+      clearTimeout(timer);
+    };
+  }, [phone, storeInfo.slug]);
 
   /**
    * Confere o PIN e já traz quanto o benefício tira deste carrinho.
@@ -488,6 +528,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
 
         <CampoDeFuncionario
           aberto={employeeOpen}
+          reconhecido={employeeRecognized}
           onAbrir={() => setEmployeeOpen(true)}
           pin={employeePin}
           onDigitar={(v) => {
