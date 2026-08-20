@@ -70,7 +70,7 @@ export function PreviaDaVitrine({
     staleTime: 30_000,
   });
 
-  const desenhar = (preencher: boolean) =>
+  const desenhar = (preencher: boolean, teto?: number) =>
     isPending || !data ? (
       <div className="flex h-40 items-center justify-center gap-2 text-sm text-neutral-500">
         <Loader2 className="size-4 animate-spin" />
@@ -84,6 +84,7 @@ export function PreviaDaVitrine({
         largura={largura}
         foco={foco}
         preencher={preencher}
+        teto={teto}
       >
         {children}
       </Palco>
@@ -110,9 +111,7 @@ export function PreviaDaVitrine({
             layout, então a caixa se ajusta ao tamanho da seção. A altura vira
             teto, para uma seção comprida não empurrar o formulário inteiro
             para fora da tela. */}
-        <div className="overflow-hidden bg-[#FDF8F3]" style={{ maxHeight: altura }}>
-          {desenhar(false)}
-        </div>
+        <div className="bg-[#FDF8F3]">{desenhar(false, altura)}</div>
       </section>
 
       {ampliada && (
@@ -179,6 +178,7 @@ function Palco({
   largura,
   foco,
   preencher,
+  teto,
   children,
 }: {
   data: MenuPayload & { store: StorePayload };
@@ -188,6 +188,15 @@ function Palco({
   foco: string | null;
   /** No modal a vitrine se centra na altura toda; encaixada, ela a define. */
   preencher: boolean;
+  /**
+   * Altura máxima, quando encaixada.
+   *
+   * O corte precisa ser deste elemento, e não do pai: é ele que serve de
+   * referência para enquadrar o campo focado. Cortando no pai, a caixa medida
+   * tinha a altura inteira do conteúdo, e a prévia centralizava o alvo no meio
+   * de algo três vezes maior do que a parte visível.
+   */
+  teto?: number;
   children: ReactNode;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
@@ -313,6 +322,7 @@ function Palco({
      */
     <div
       ref={caixa}
+      style={teto ? { maxHeight: teto } : undefined}
       className={
         "flex w-full items-center justify-center overflow-hidden " + (preencher ? "h-full" : "")
       }
