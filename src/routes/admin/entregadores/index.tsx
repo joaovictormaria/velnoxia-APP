@@ -184,9 +184,14 @@ function EntregadoresPage() {
                 <span className="text-sm text-neutral-600">
                   {courier.activeDeliveries === 0 ? "Livre" : courier.activeDeliveries + " na rua"}
                 </span>
+                {/* Só o botão clicado desliga. isPending é um estado só para os
+                    três, e usá-lo direto fazia todos piscarem juntos a cada
+                    clique — parecia que o clique tinha ido para outra linha. */}
                 <button
                   type="button"
-                  disabled={alterarAcesso.isPending}
+                  disabled={
+                    alterarAcesso.isPending && alterarAcesso.variables?.id === courier.id
+                  }
                   onClick={() =>
                     alterarAcesso.mutate({ id: courier.id, isActive: !courier.isActive })
                   }

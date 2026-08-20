@@ -61,7 +61,11 @@ export const listCouriersFn = createServerFn({ method: "GET" }).handler(async ()
 
   const couriers = await prisma.adminUser.findMany({
     where: { storeId, role: "COURIER" },
-    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    // Só por nome. Ordenar por acesso fazia a lista se reordenar a cada
+    // clique: quem recebia acesso subia, os outros desciam, e a linha debaixo
+    // do cursor virava a de outra pessoa — o dono clicava de novo achando que
+    // era o mesmo entregador e mexia em quem não queria.
+    orderBy: { name: "asc" },
     select: { id: true, name: true, email: true, isActive: true, createdAt: true, lastLoginAt: true },
   });
 
