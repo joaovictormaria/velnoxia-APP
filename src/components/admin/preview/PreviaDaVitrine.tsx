@@ -7,8 +7,26 @@ import { StoreProvider, type StorePayload } from "@/lib/pizzaria2/store-provider
 import { brandTheme } from "@/lib/pizzaria2/brand-theme";
 import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
 
-/** A largura para a qual a vitrine foi desenhada. A prévia encolhe até caber. */
-const LARGURA_DE_PROJETO = 1280;
+/**
+ * O quanto a prévia se afasta.
+ *
+ * Em painel largo a vitrine cabia em tamanho real, e o que entrava na altura
+ * era só o começo da seção — um nariz colado na tela. Afastar mostra o bloco
+ * inteiro e onde ele se encaixa no resto da página.
+ *
+ * É o mesmo que dar zoom-out no navegador: a janela passa a valer mais pixels.
+ * Por isso a largura de renderização cresce junto — se ficasse fixa, a prévia
+ * encolheria e sobraria uma faixa vazia à direita.
+ */
+const AFASTAMENTO = 0.7;
+
+/**
+ * Abaixo disto a vitrine troca para o layout de celular.
+ *
+ * Num painel estreito a conta daria uma largura pequena, e a lojista veria o
+ * cardápio empilhado — que não é o que ela está editando nesta tela.
+ */
+const LARGURA_MINIMA = 1180;
 
 /**
  * A vitrine de verdade dentro do painel, refletindo o que ainda não foi salvo.
@@ -25,7 +43,7 @@ const LARGURA_DE_PROJETO = 1280;
 export function PreviaDaVitrine({
   storeSlug,
   aplicar,
-  altura = 420,
+  altura = 520,
   children,
 }: {
   storeSlug: string;
@@ -44,14 +62,20 @@ export function PreviaDaVitrine({
   });
 
   const caixa = useRef<HTMLDivElement>(null);
-  const [escala, setEscala] = useState(1);
+  const [medida, setMedida] = useState({ escala: AFASTAMENTO, largura: LARGURA_MINIMA });
 
-  // A escala vem da largura real disponível, não de pontos de quebra: o menu
-  // do painel recolhe e expande, e a prévia acompanha.
+  // Medido da largura real, não de pontos de quebra: o menu do painel recolhe
+  // e expande, e a prévia acompanha.
   useEffect(() => {
     const alvo = caixa.current;
     if (!alvo) return;
-    const medir = () => setEscala(Math.min(1, alvo.clientWidth / LARGURA_DE_PROJETO));
+    const medir = () => {
+      const disponivel = alvo.clientWidth;
+      const largura = Math.max(LARGURA_MINIMA, disponivel / AFASTAMENTO);
+      // A escala sai da razão entre as duas, e não da constante: assim o
+      // conteúdo reduzido preenche exatamente a caixa, sem sobra.
+      setMedida({ escala: disponivel / largura, largura });
+    };
     medir();
     const observador = new ResizeObserver(medir);
     observador.observe(alvo);
@@ -73,7 +97,13 @@ export function PreviaDaVitrine({
             Carregando a prévia...
           </div>
         ) : (
-          <Palco escala={escala} altura={altura} data={data} aplicar={aplicar}>
+          <Palco
+            escala={medida.escala}
+            largura={medida.largura}
+            altura={altura}
+            data={data}
+            aplicar={aplicar}
+          >
             {children}
           </Palco>
         )}
@@ -84,12 +114,14 @@ export function PreviaDaVitrine({
 
 function Palco({
   escala,
+  largura,
   altura,
   data,
   aplicar,
   children,
 }: {
   escala: number;
+  largura: number;
   altura: number;
   data: MenuPayload & { store: StorePayload };
   aplicar: (p: MenuPayload) => MenuPayload;
@@ -111,7 +143,7 @@ function Palco({
       aria-hidden
       className="pointer-events-none select-none"
       style={{
-        width: LARGURA_DE_PROJETO,
+        width: largura,
         height: altura / escala,
         transform: `scale(${escala})`,
         transformOrigin: "top left",
