@@ -42,7 +42,7 @@ export function OptionGroupEditor({
               value={grupo.name}
               onChange={(e) => atualiza(i, { name: e.target.value })}
               placeholder="Nome da pergunta. Ex.: Sabor"
-              className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-900"
+              className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-base md:text-sm font-medium text-neutral-900"
             />
             <button
               type="button"
@@ -69,7 +69,7 @@ export function OptionGroupEditor({
                     })
                   }
                   placeholder="Opção"
-                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-800"
+                  className="min-w-0 flex-1 rounded-lg border border-neutral-200 px-3 py-1.5 text-base md:text-sm text-neutral-800"
                 />
                 <div className="flex items-center gap-1">
                   <span className="text-xs text-neutral-400">R$</span>
@@ -85,7 +85,7 @@ export function OptionGroupEditor({
                         ),
                       })
                     }
-                    className="w-20 rounded-lg border border-neutral-200 px-2 py-1.5 text-sm text-neutral-900"
+                    className="w-20 rounded-lg border border-neutral-200 px-2 py-1.5 text-base md:text-sm text-neutral-900"
                   />
                 </div>
                 <button

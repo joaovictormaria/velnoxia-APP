@@ -51,7 +51,7 @@ function CustomersPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nome ou telefone"
-            className="w-full rounded-xl border border-neutral-300 py-2.5 pl-9 pr-3 text-sm text-neutral-900"
+            className="w-full rounded-xl border border-neutral-300 py-2.5 pl-9 pr-3 text-base md:text-sm text-neutral-900"
           />
         </div>
         {!isPending && (
@@ -77,6 +77,7 @@ function CustomersPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Cliente</th>
                 <th className="px-4 py-3 font-medium">Contato</th>
+                <th className="px-4 py-3 font-medium">O que mais pede</th>
                 <th className="px-4 py-3 text-right font-medium">Pedidos</th>
                 <th className="px-4 py-3 text-right font-medium">Total gasto</th>
                 <th className="px-4 py-3 font-medium">Último pedido</th>
@@ -101,6 +102,31 @@ function CustomersPage() {
                       {formatPhone(c.phone)}
                     </a>
                     {c.email && <p className="text-xs text-neutral-500">{c.email}</p>}
+                  </td>
+                  {/* O que a pessoa costuma levar, do que mais pede para o que
+                      menos pede. É o que permite receber quem chega com "o de
+                      sempre?" — e o motivo de existir uma ficha de cliente. */}
+                  <td className="px-4 py-3">
+                    {c.favoritos.length === 0 ? (
+                      <span className="text-xs text-neutral-400">—</span>
+                    ) : (
+                      <div className="flex max-w-xs flex-wrap gap-1">
+                        {c.favoritos.map((f) => (
+                          <span
+                            key={f.nome}
+                            className="inline-flex max-w-full items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700"
+                            title={`${f.nome} — ${f.vezes}x`}
+                          >
+                            <span className="truncate">{f.nome}</span>
+                            {f.vezes > 1 && (
+                              <span className="shrink-0 font-semibold tabular-nums text-neutral-500">
+                                {f.vezes}x
+                              </span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className="text-neutral-900">{c.orderCount}</span>

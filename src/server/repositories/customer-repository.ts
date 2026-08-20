@@ -12,6 +12,14 @@ export type CustomerListItem = {
   orderCount: number;
   totalSpent: number;
   lastOrderAt: Date | null;
+  /**
+   * O que essa pessoa mais pede, do que pede mais para o que pede menos.
+   *
+   * Vem do nome gravado no item do pedido, e não do produto de hoje: o
+   * cardápio muda, produtos são renomeados e apagados, e a ficha do cliente
+   * precisa continuar dizendo o que ele comprou de fato naquele dia.
+   */
+  favoritos: { nome: string; vezes: number }[];
 };
 
 /**
@@ -41,7 +49,12 @@ export async function listCustomers(
     },
     include: {
       orders: {
-        select: { total: true, status: true, createdAt: true },
+        select: {
+          total: true,
+          status: true,
+          createdAt: true,
+          items: { select: { productNameSnapshot: true, quantity: true } },
+        },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -53,6 +66,19 @@ export async function listCustomers(
     const pagos = c.orders.filter((o) =>
       (PAID_STATUSES as readonly string[]).includes(o.status),
     );
+    /*
+     * Só os pedidos que viraram venda entram no "o que mais pede": um pedido
+     * cancelado é o que a pessoa desistiu de comprar, e sugerir isso a ela no
+     * balcão seria o contrário do que a ficha serve.
+     */
+    const vezesPorProduto = new Map<string, number>();
+    for (const pedido of pagos) {
+      for (const item of pedido.items) {
+        const atual = vezesPorProduto.get(item.productNameSnapshot) ?? 0;
+        vezesPorProduto.set(item.productNameSnapshot, atual + item.quantity);
+      }
+    }
+
     return {
       id: c.id,
       name: c.name,
@@ -62,6 +88,10 @@ export async function listCustomers(
       orderCount: c.orders.length,
       totalSpent: Math.round(pagos.reduce((sum, o) => sum + o.total, 0) * 100) / 100,
       lastOrderAt: c.orders[0]?.createdAt ?? null,
+      favoritos: [...vezesPorProduto.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))
+        .slice(0, 4)
+        .map(([nome, vezes]) => ({ nome, vezes })),
     };
   });
 }

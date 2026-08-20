@@ -346,7 +346,7 @@ function PizzariaPersonalizacao() {
                         <select
                           value={product.slug}
                           disabled
-                          className="mt-1 w-full rounded-xl border border-charcoal/15 bg-mozzarella px-3 py-2 text-sm text-charcoal/70"
+                          className="mt-1 w-full rounded-xl border border-charcoal/15 bg-mozzarella px-3 py-2 text-base md:text-sm text-charcoal/70"
                         >
                           <option value={product.slug}>{product.name}</option>
                         </select>
@@ -358,7 +358,7 @@ function PizzariaPersonalizacao() {
                         <select
                           value={half2Slug}
                           onChange={(e) => setHalf2Slug(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-charcoal/15 bg-mozzarella px-3 py-2 text-sm text-charcoal focus:border-tomato focus:outline-none"
+                          className="mt-1 w-full rounded-xl border border-charcoal/15 bg-mozzarella px-3 py-2 text-base md:text-sm text-charcoal focus:border-tomato focus:outline-none"
                         >
                           {pizzaProducts.map((p) => (
                             <option key={p.slug} value={p.slug}>

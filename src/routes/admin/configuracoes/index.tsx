@@ -437,7 +437,7 @@ function SettingsPage() {
               <select
                 value={businessType ?? ""}
                 onChange={(e) => setBusinessType(e.target.value)}
-                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
               >
                 {businessType === null && <option value="">Carregando...</option>}
                 {BUSINESS_TYPE_OPTIONS.map((o) => (
@@ -466,7 +466,7 @@ function SettingsPage() {
                 value={draft.heroSubtitle}
                 onChange={(e) => set("heroSubtitle", e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
               />
             </Field>
             <Field
@@ -477,7 +477,7 @@ function SettingsPage() {
                 value={draft.description}
                 onChange={(e) => set("description", e.target.value)}
                 rows={3}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
               />
             </Field>
             <Field label="Cores do site">
@@ -709,7 +709,7 @@ function SettingsPage() {
                   e.target.value === "" ? null : Number(e.target.value),
                 )
               }
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
           <Field label="Entrega: mínimo (min)">
@@ -797,7 +797,7 @@ function SettingsPage() {
                     h ? { ...h, [d]: { ...h[d], opensAt: e.target.value } } : h,
                   )
                 }
-                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 disabled:opacity-40"
+                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-base md:text-sm text-neutral-900 disabled:opacity-40"
               />
               <span className="text-sm text-neutral-400">às</span>
               <input
@@ -811,7 +811,7 @@ function SettingsPage() {
                       : h,
                   )
                 }
-                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-900 disabled:opacity-40"
+                className="rounded-lg border border-neutral-300 px-3 py-1.5 text-base md:text-sm text-neutral-900 disabled:opacity-40"
               />
             </div>
           ))}
@@ -877,7 +877,7 @@ function Input({
       {...rest}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
     />
   );
 }
@@ -898,7 +898,7 @@ function NumberInput({
       step={step}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
     />
   );
 }
@@ -947,7 +947,7 @@ function ColorRow({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-neutral-300 px-3 py-2 font-mono text-sm text-neutral-900"
+        className="w-full rounded-lg border border-neutral-300 px-3 py-2 font-mono text-base md:text-sm text-neutral-900"
       />
     </div>
   );

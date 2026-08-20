@@ -170,7 +170,7 @@ function CouponsPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, discountType: e.target.value as Draft["discountType"] })
                 }
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
               >
                 <option value="PERCENTAGE">Porcentagem (%)</option>
                 <option value="FIXED_AMOUNT">Valor fixo (R$)</option>
@@ -203,7 +203,7 @@ function CouponsPage() {
                 type="date"
                 value={draft.validFrom}
                 onChange={(e) => setDraft({ ...draft, validFrom: e.target.value })}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
               />
             </Field>
             <Field label="Válido até" hint="Vale o dia inteiro.">
@@ -211,7 +211,7 @@ function CouponsPage() {
                 type="date"
                 value={draft.validUntil}
                 onChange={(e) => setDraft({ ...draft, validUntil: e.target.value })}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
               />
             </Field>
             <Field label="Limite de usos" hint="Vazio = ilimitado.">
@@ -365,7 +365,7 @@ function Input({
       {...rest}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
     />
   );
 }

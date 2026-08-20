@@ -57,7 +57,7 @@ function ProductsPage() {
         <select
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
-          className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-700"
+          className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-base md:text-sm text-neutral-700"
         >
           <option value="">Todos os produtos</option>
           {data?.categories.map((c) => (
@@ -73,7 +73,7 @@ function ProductsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar produto..."
-            className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm text-neutral-700 placeholder:text-neutral-400"
+            className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-base md:text-sm text-neutral-700 placeholder:text-neutral-400"
           />
         </div>
       </div>

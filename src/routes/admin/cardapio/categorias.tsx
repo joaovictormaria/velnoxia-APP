@@ -201,7 +201,7 @@ function CategoriesPage() {
                 })
               }
               required
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </label>
 
@@ -216,7 +216,7 @@ function CategoriesPage() {
               value={draft.badge}
               onChange={(e) => setDraft({ ...draft, badge: e.target.value })}
               placeholder="Sabores que todo mundo ama"
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
             />
           </label>
 
@@ -243,7 +243,7 @@ function CategoriesPage() {
               value={draft.headline}
               onChange={(e) => setDraft({ ...draft, headline: e.target.value })}
               placeholder="Os clássicos que nunca saem de moda."
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
             />
           </label>
 
@@ -254,16 +254,17 @@ function CategoriesPage() {
               value={draft.subhead}
               onChange={(e) => setDraft({ ...draft, subhead: e.target.value })}
               placeholder="Ingredientes selecionados em cada receita."
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
             />
           </label>
 
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Como aparece na vitrine</span>
             <select
+              onFocus={() => setFoco("icone-da-categoria")}
               value={draft.kind}
               onChange={(e) => setDraft({ ...draft, kind: e.target.value as Draft["kind"] })}
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
             >
               <option value="PIZZA">Com foto da categoria</option>
               <option value="SIMPLE">Com ícone</option>
@@ -306,7 +307,7 @@ function CategoriesPage() {
               type="number"
               value={draft.sortOrder}
               onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </label>
 

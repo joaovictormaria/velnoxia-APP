@@ -82,7 +82,7 @@ export function CardapioPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar no cardápio..."
-            className="w-full rounded-full border border-charcoal/10 bg-cream/60 py-2.5 pl-10 pr-4 text-sm text-charcoal placeholder:text-charcoal/40 focus:border-tomato focus:outline-none"
+            className="w-full rounded-full border border-charcoal/10 bg-cream/60 py-2.5 pl-10 pr-4 text-base md:text-sm text-charcoal placeholder:text-charcoal/40 focus:border-tomato focus:outline-none"
           />
         </div>
         <div className="flex items-center gap-2 rounded-full border border-charcoal/10 px-3.5 py-2 text-xs font-semibold text-charcoal/70">

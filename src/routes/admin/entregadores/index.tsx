@@ -118,7 +118,7 @@ function EntregadoresPage() {
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               placeholder="Ex.: Carlos"
-              className="w-full rounded-xl border border-neutral-200 px-4 py-2.5 text-sm text-neutral-800 placeholder:text-neutral-400"
+              className="w-full rounded-xl border border-neutral-200 px-4 py-2.5 text-base md:text-sm text-neutral-800 placeholder:text-neutral-400"
             />
           </label>
           <button

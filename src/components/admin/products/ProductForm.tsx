@@ -228,7 +228,7 @@ export function ProductForm({
                 if (!slugTouched) set("slug", slugify(e.target.value));
               }}
               required
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
 
@@ -240,7 +240,7 @@ export function ProductForm({
                 set("slug", e.target.value);
               }}
               required
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
 
@@ -250,7 +250,7 @@ export function ProductForm({
                 value={values.categoryId}
                 onChange={(e) => set("categoryId", e.target.value)}
                 required
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
               >
                 <option value="">Selecione...</option>
                 {categories.map((c) => (
@@ -270,7 +270,7 @@ export function ProductForm({
                 value={values.basePrice}
                 onChange={(e) => set("basePrice", Number(e.target.value))}
                 required
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
               />
             </Field>
           </div>
@@ -281,7 +281,7 @@ export function ProductForm({
               value={values.description}
               onChange={(e) => set("description", e.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
 
@@ -291,7 +291,7 @@ export function ProductForm({
               value={values.tag ?? ""}
               onChange={(e) => set("tag", e.target.value || null)}
               placeholder="Ex: Mais pedida, Novidade"
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
             />
           </Field>
 
@@ -333,7 +333,7 @@ export function ProductForm({
                           value={size?.price ?? ""}
                           onChange={(e) => setSizePrice(id, Number(e.target.value))}
                           placeholder="—"
-                          className="w-28 rounded-lg border border-neutral-200 px-3 py-1.5 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
+                          className="w-28 rounded-lg border border-neutral-200 px-3 py-1.5 text-base md:text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
                         />
                       </div>
                     );
@@ -407,7 +407,7 @@ export function ProductForm({
                           e.target.value as ProductFormValues["halfPizzaPricingRule"],
                         )
                       }
-                      className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
+                      className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
                     >
                       <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
                       <option value="AVERAGE_PRICE">Média entre os sabores</option>
@@ -429,7 +429,7 @@ export function ProductForm({
               type="number"
               value={values.sortOrder}
               onChange={(e) => set("sortOrder", Number(e.target.value))}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
         </div>

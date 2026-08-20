@@ -157,7 +157,10 @@ function AboutTab() {
         Deixe qualquer campo vazio para usar o texto padrão do seu ramo.
       </p>
 
-      <div className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3">
+      <div
+        className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3"
+        onFocusCapture={() => setFoco("foto-do-sobre")}
+      >
         <ImageUploadField
           kind="product"
           label="Foto do restaurante"
@@ -191,7 +194,7 @@ function AboutTab() {
           value={form.aboutBody}
           onChange={(e) => setForm({ ...form, aboutBody: e.target.value })}
           rows={5}
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
         />
       </Field>
       </div>
@@ -353,12 +356,14 @@ function BlogTab() {
             className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3"
             onFocusCapture={() => setFoco("foto-da-publicacao")}
           >
-            <ImageUploadField
-              kind="product"
-              label="Foto da publicação"
-              value={draft.imageUrl}
-              onChange={(url) => setDraft({ ...draft, imageUrl: url })}
-            />
+            <div onFocusCapture={() => setFoco("foto-da-publicacao")}>
+              <ImageUploadField
+                kind="product"
+                label="Foto da publicação"
+                value={draft.imageUrl}
+                onChange={(url) => setDraft({ ...draft, imageUrl: url })}
+              />
+            </div>
             <div className="space-y-4">
               <Field label="Título">
                 <Input
@@ -376,7 +381,7 @@ function BlogTab() {
                   onChange={(e) =>
                     setDraft({ ...draft, publishedAt: e.target.value })
                   }
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
                 />
               </Field>
             </div>
@@ -390,7 +395,7 @@ function BlogTab() {
               onChange={(e) => setDraft({ ...draft, body: e.target.value })}
               required
               rows={6}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
           </div>
@@ -638,7 +643,7 @@ function ReviewsTab() {
                   required
                   rows={3}
                   placeholder="Responda ao cliente..."
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
                 />
                 <div className="flex gap-2">
                   <button
@@ -730,7 +735,7 @@ function Input({
       {...rest}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
     />
   );
 }

@@ -276,7 +276,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
               onChange={(e) => setName(e.target.value)}
               required
               minLength={2}
-              className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+              className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
             />
           </Field>
           <Field label="WhatsApp">
@@ -285,7 +285,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
               onChange={(e) => setPhone(e.target.value)}
               required
               placeholder="(11) 98765-4321"
-              className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+              className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
             />
           </Field>
         </div>
@@ -299,7 +299,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setCep(normalizeCep(e.target.value))}
                   inputMode="numeric"
                   placeholder="00000-000"
-                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
                 />
                 {cepStatus === "loading" && (
                   <span className="mt-1 block text-xs text-charcoal/50">Buscando endereço...</span>
@@ -318,7 +318,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
                 />
               </Field>
             </div>
@@ -328,7 +328,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                   value={number}
                   onChange={(e) => setNumber(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
                 />
               </Field>
             </div>
@@ -337,7 +337,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                 <input
                   value={complement}
                   onChange={(e) => setComplement(e.target.value)}
-                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
                 />
               </Field>
             </div>
@@ -346,7 +346,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                 <input
                   value={neighborhood}
                   onChange={(e) => setNeighborhood(e.target.value)}
-                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
                 />
               </Field>
             </div>
@@ -355,7 +355,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
                 />
               </Field>
             </div>
@@ -365,7 +365,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
                   value={state}
                   onChange={(e) => setState(e.target.value.toUpperCase().slice(0, 2))}
                   maxLength={2}
-                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm uppercase text-charcoal"
+                  className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm uppercase text-charcoal"
                 />
               </Field>
             </div>
@@ -377,7 +377,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full rounded-xl border border-charcoal/15 bg-white px-3 py-2.5 text-sm text-charcoal"
+              className="w-full rounded-xl border border-charcoal/15 bg-white px-3 py-2.5 text-base md:text-sm text-charcoal"
             >
               {payments.map((p) => (
                 <option key={p} value={p}>
@@ -408,7 +408,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
             onChange={(e) => setNote(e.target.value)}
             rows={2}
             placeholder="Ex: tocar o interfone 45 ao chegar."
-            className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal placeholder:text-charcoal/30"
+            className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal placeholder:text-charcoal/30"
           />
         </Field>
 

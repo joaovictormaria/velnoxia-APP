@@ -397,7 +397,7 @@ function OrderDetailPage() {
             value={internalNote ?? order.internalNote ?? ""}
             onChange={(e) => setInternalNote(e.target.value)}
             placeholder="Anotação visível apenas para a equipe"
-            className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+            className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
           />
           {internalNote !== null && (
             <button

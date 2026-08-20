@@ -36,7 +36,7 @@ export function CampoDeCupom({
           onChange={(e) => onDigitar(e.target.value.toUpperCase())}
           onBlur={onAplicar}
           placeholder="PIZZA10"
-          className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-sm text-charcoal placeholder:text-charcoal/30"
+          className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal placeholder:text-charcoal/30"
         />
         <button
           type="button"

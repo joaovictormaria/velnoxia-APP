@@ -96,7 +96,7 @@ function KanbanPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar pedido, cliente ou telefone..."
-              className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-sm text-neutral-700 placeholder:text-neutral-400"
+              className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-10 pr-4 text-base md:text-sm text-neutral-700 placeholder:text-neutral-400"
             />
           </div>
 

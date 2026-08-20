@@ -128,7 +128,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                   placeholder="Seu nome"
                   required
                   maxLength={60}
-                  className="mt-4 w-full rounded-xl border border-charcoal/12 bg-white px-4 py-2.5 text-sm text-charcoal outline-none focus:border-tomato"
+                  className="mt-4 w-full rounded-xl border border-charcoal/12 bg-white px-4 py-2.5 text-base md:text-sm text-charcoal outline-none focus:border-tomato"
                 />
                 <textarea
                   value={comment}
@@ -137,7 +137,7 @@ export function ReviewsSection({ storeSlug }: { storeSlug: string }) {
                   required
                   rows={3}
                   maxLength={1000}
-                  className="mt-3 w-full resize-none rounded-xl border border-charcoal/12 bg-white px-4 py-3 text-sm text-charcoal outline-none focus:border-tomato"
+                  className="mt-3 w-full resize-none rounded-xl border border-charcoal/12 bg-white px-4 py-3 text-base md:text-sm text-charcoal outline-none focus:border-tomato"
                 />
 
                 {error && <p className="mt-3 text-sm text-tomato">{error}</p>}

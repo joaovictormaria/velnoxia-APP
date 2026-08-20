@@ -101,7 +101,7 @@ export function ImageUploadField({
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value || null)}
         placeholder="ou cole a URL da imagem"
-        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-xs text-neutral-700 placeholder:text-neutral-400"
+        className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-xs text-neutral-700 placeholder:text-neutral-400"
       />
 
       <p className="text-xs text-neutral-500">Formatos: JPG, PNG, WEBP. Tamanho máx. 2MB.</p>

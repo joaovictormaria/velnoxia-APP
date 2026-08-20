@@ -90,7 +90,7 @@ function ExtrasPage() {
               value={draft.name}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               required
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </label>
 
@@ -104,7 +104,7 @@ function ExtrasPage() {
               value={draft.price}
               onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
               required
-              className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </label>
 
