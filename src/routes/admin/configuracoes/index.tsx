@@ -399,11 +399,16 @@ function SettingsPage() {
                   })
                 }
               >
-                {/* O topo inteiro: a logo e o nome na barra, e o hero logo
-                    abaixo com a frase do topo e a cor da marca pintando o
-                    fundo. É onde cada campo desta tela aparece. */}
+                {/* A mesma montagem da loja: cabeçalho e, abaixo, o conteúdo
+                    com o espaço dele reservado.
+                    O pt-16.75 não é enfeite. O cabeçalho sai do fluxo, e o hero
+                    começa com margem negativa para subir por baixo dele — sem o
+                    espaço reservado, tudo sobe e o cabeçalho fica acima da
+                    origem da rolagem, num lugar aonde não há como chegar. */}
                 <Header />
-                <HeroDaVitrine />
+                <div className="pt-16.75">
+                  <HeroDaVitrine />
+                </div>
               </PreviaDaVitrine>
             </div>
           )}

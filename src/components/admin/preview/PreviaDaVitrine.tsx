@@ -171,6 +171,18 @@ function ModalDaPrevia({ onFechar, children }: { onFechar: () => void; children:
   );
 }
 
+/**
+ * O recorte da vitrine, e o enquadramento do campo focado.
+ *
+ * A posição é feita por rolagem, não por transform. Foram três tentativas com
+ * transform, e cada uma trocou um erro por outro: pixels de tela contra pixels
+ * dentro do zoom, a âncora do cabeçalho fixo que a própria medição desligava,
+ * e a caixa medida que não era a caixa visível.
+ *
+ * Rolagem não tem esse problema porque não há conversão a fazer: mede-se onde
+ * a marca está agora, mede-se onde é o centro agora, e rola-se a diferença. Se
+ * a conta estiver imprecisa, a próxima medição parte do estado real e corrige.
+ */
 function Palco({
   data,
   aplicar,
@@ -186,40 +198,21 @@ function Palco({
   aplicarLoja?: (l: StorePayload) => StorePayload;
   largura: number;
   foco: string | null;
-  /** No modal a vitrine se centra na altura toda; encaixada, ela a define. */
+  /** No modal a vitrine ocupa a altura toda; encaixada, ela tem um teto. */
   preencher: boolean;
-  /**
-   * Altura máxima, quando encaixada.
-   *
-   * O corte precisa ser deste elemento, e não do pai: é ele que serve de
-   * referência para enquadrar o campo focado. Cortando no pai, a caixa medida
-   * tinha a altura inteira do conteúdo, e a prévia centralizava o alvo no meio
-   * de algo três vezes maior do que a parte visível.
-   */
   teto?: number;
   children: ReactNode;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
-  const palco = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(0.4);
-  /** Ampliação e deslocamento aplicados ao focar um campo. */
-  const [enquadre, setEnquadre] = useState({ k: 1, dx: 0, dy: 0 });
+  /** Quanto a escala base é multiplicada ao focar um campo. */
+  const [ampliacao, setAmpliacao] = useState(1);
+
   // A cor sai daqui e pinta tudo: o brandTheme abaixo lê desta loja, não da
   // salva, senão trocar a cor não mudaria nada na prévia.
   const loja = aplicarLoja ? aplicarLoja(data.store) : data.store;
 
-  /**
-   * A escala sai só da largura disponível.
-   *
-   * Medir também a altura do conteúdo parecia melhor — caberia a seção
-   * inteira. Mas o zoom muda o que offsetHeight devolve, e a conta que
-   * compensava isso derrubou a escala para quase zero: a prévia virou um ponto
-   * no meio da caixa. Pela largura o resultado é previsível e não depende do
-   * que o navegador considera "altura" de um elemento com zoom.
-   *
-   * O que passar da altura da caixa fica cortado, igualmente em cima e
-   * embaixo, porque o conteúdo está centrado.
-   */
+  /** A escala base cabe a largura da vitrine na caixa. */
   useEffect(() => {
     const alvo = caixa.current;
     if (!alvo) return;
@@ -230,118 +223,104 @@ function Palco({
     return () => observador.disconnect();
   }, [largura]);
 
+  /** Decide o quanto ampliar no ponto focado, pelo tamanho que ele tem. */
+  useEffect(() => {
+    const alvo = caixa.current;
+    if (!alvo) return;
+    if (!foco) {
+      setAmpliacao(1);
+      return;
+    }
+    const marca = alvo.querySelector<HTMLElement>(`[data-previa="${foco}"]`);
+    const r = marca?.getBoundingClientRect();
+    // Marca ausente ou escondida nesta largura: fica no enquadre geral em vez
+    // de ampliar em cima de nada.
+    if (!r || r.width < 1 || r.height < 1) {
+      setAmpliacao(1);
+      return;
+    }
+    // Cresce até a marca ocupar dois terços da caixa, e para em 4x: mais que
+    // isso e o entorno some, e ver só o pedaço não diz onde ele fica.
+    const cabe = Math.min(
+      (alvo.clientWidth * 0.66) / r.width,
+      (alvo.clientHeight * 0.66) / r.height,
+    );
+    setAmpliacao(Math.min(4, Math.max(1, cabe)));
+  }, [foco, escala, largura, children]);
+
   /**
-   * Leva a prévia até o ponto que o campo focado altera, e amplia nele.
+   * Põe no centro o ponto focado — ou o meio da vitrine, quando não há foco.
    *
-   * Saber que a loja mudou não basta: a lojista precisa ver ONDE. "Selo" e
-   * "Frase do topo" são nomes que só significam algo depois de a pessoa ter
-   * visto o resultado uma vez.
-   *
-   * A conta é direta. Com a origem no centro do palco, ampliar por k leva um
-   * ponto que está a v do centro para k·v. O deslocamento é o que falta para
-   * esse destino virar o centro da caixa.
+   * Roda depois da pintura, porque a ampliação acabou de mudar o tamanho de
+   * tudo e as medidas anteriores já não valem.
    */
   useEffect(() => {
-    const alvoCaixa = caixa.current;
-    const alvoPalco = palco.current;
-    if (!alvoCaixa || !alvoPalco) return;
+    const alvo = caixa.current;
+    if (!alvo) return;
 
-    if (!foco) {
-      setEnquadre({ k: 1, dx: 0, dy: 0 });
-      return;
-    }
+    const id = requestAnimationFrame(() => {
+      const rCaixa = alvo.getBoundingClientRect();
+      const meioCaixaX = rCaixa.left + rCaixa.width / 2;
+      const meioCaixaY = rCaixa.top + rCaixa.height / 2;
 
-    /*
-     * Medido no enquadre neutro, senão cada foco partiria do anterior e a
-     * prévia iria se afastando a cada clique.
-     *
-     * Neutro é "translate(0,0) scale(1)", nunca "none": é a existência de uma
-     * transformação que ancora o cabeçalho fixo dentro do palco. Com "none"
-     * ele voltava a se ancorar na janela do navegador durante a medição, e a
-     * conta saía com a posição dele na tela do painel — por isso só os campos
-     * que apontam para o cabeçalho erravam o alvo.
-     */
-    alvoPalco.style.transform = "translate(0px, 0px) scale(1)";
-    const marca = alvoPalco.querySelector<HTMLElement>(`[data-previa="${foco}"]`);
-    if (!marca) {
-      alvoPalco.style.transform = "";
-      setEnquadre({ k: 1, dx: 0, dy: 0 });
-      return;
-    }
+      const marca = foco
+        ? alvo.querySelector<HTMLElement>(`[data-previa="${foco}"]`)
+        : null;
+      const r = marca?.getBoundingClientRect();
 
-    const rCaixa = alvoCaixa.getBoundingClientRect();
-    const rPalco = alvoPalco.getBoundingClientRect();
-    const rMarca = marca.getBoundingClientRect();
-    alvoPalco.style.transform = "";
-
-    // Marca sem tamanho é marca escondida nesta largura — o subtítulo do
-    // cabeçalho, por exemplo, só aparece a partir de certo ponto. Enquadrar
-    // algo invisível jogaria a prévia para fora da caixa.
-    if (rMarca.width < 1 || rMarca.height < 1) {
-      setEnquadre({ k: 1, dx: 0, dy: 0 });
-      return;
-    }
-
-    // Amplia até a marca ocupar dois terços da caixa, sem passar de 4x: mais
-    // que isso e o entorno some, e ver só o pedaço não diz onde ele fica.
-    const k = Math.min(
-      4,
-      Math.max(1, Math.min((rCaixa.width * 0.66) / Math.max(rMarca.width, 1),
-                           (rCaixa.height * 0.66) / Math.max(rMarca.height, 1))),
-    );
-
-    const centro = (r: DOMRect) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
-    const cCaixa = centro(rCaixa);
-    const cPalco = centro(rPalco);
-    const cMarca = centro(rMarca);
-
-    /*
-     * O deslocamento é dividido pela escala porque o translate mora DENTRO do
-     * elemento que tem zoom: o navegador multiplica o valor pela escala antes
-     * de mover. As medidas acima são de tela; sem dividir, a prévia parava a
-     * uma distância proporcional à escala do ponto certo — e como a escala é
-     * de um terço, parava a três vezes a distância.
-     */
-    const escalaViva = escala || 1;
-    setEnquadre({
-      k,
-      dx: (cCaixa.x - cPalco.x - k * (cMarca.x - cPalco.x)) / escalaViva,
-      dy: (cCaixa.y - cPalco.y - k * (cMarca.y - cPalco.y)) / escalaViva,
+      if (r && r.width >= 1 && r.height >= 1) {
+        alvo.scrollTo({
+          left: alvo.scrollLeft + (r.left + r.width / 2) - meioCaixaX,
+          top: alvo.scrollTop + (r.top + r.height / 2) - meioCaixaY,
+          behavior: "smooth",
+        });
+      } else {
+        alvo.scrollTo({
+          left: (alvo.scrollWidth - alvo.clientWidth) / 2,
+          top: (alvo.scrollHeight - alvo.clientHeight) / 2,
+          behavior: "smooth",
+        });
+      }
     });
-  }, [foco, escala, largura]);
+    return () => cancelAnimationFrame(id);
+  }, [foco, ampliacao, escala, largura, children]);
 
   return (
-    /**
-     * Centralizado nos dois eixos, com zoom em vez de transform: zoom encolhe
-     * também o espaço que o elemento ocupa no layout, então o flex consegue
-     * centrá-lo. Com transform o elemento continuaria do tamanho original para
-     * o layout, e a vitrine ficaria colada no canto de cima à esquerda.
-     *
-     * pointer-events desligado porque isto é uma imagem, não a loja. Sem isso,
-     * clicar num produto tiraria a lojista do formulário no meio da edição.
-     */
     <div
       ref={caixa}
       style={teto ? { maxHeight: teto } : undefined}
       className={
-        "flex w-full items-center justify-center overflow-hidden " + (preencher ? "h-full" : "")
+        "w-full overflow-hidden bg-[#FDF8F3] " + (preencher ? "h-full" : "")
       }
     >
       {/*
-       * A transformação fica sempre aplicada, mesmo neutra, e não por capricho:
-       * um elemento fixed se ancora no primeiro ancestral que tenha transform.
-       * O cabeçalho da loja é fixed — sem isto ele se ancorava na janela do
-       * navegador, era desenhado por cima do painel e sumia no recorte da caixa.
+       * translateZ(0) não desloca nada: está aqui porque um elemento fixed se
+       * ancora no primeiro ancestral com transform. O cabeçalho da loja é
+       * fixed — sem isto ele se ancorava na janela do navegador, era desenhado
+       * por cima do painel e sumia no recorte.
+       *
+       * pointer-events desligado porque isto é uma imagem, não a loja: clicar
+       * num produto tiraria a lojista do formulário no meio da edição.
        */}
+      {/*
+       * Dentro da prévia o cabeçalho deixa de ser fixo.
+       *
+       * Elemento fixed não rola — provado no navegador: depois de rolar, ele
+       * fica exatamente onde estava. Enquanto fosse fixed, nenhum campo que
+       * aponta para o cabeçalho poderia ser enquadrado. Absolute põe-no no
+       * mesmo lugar e o faz acompanhar a rolagem.
+       *
+       * translateZ(0) fica porque é ele que faz deste elemento a referência de
+       * posição do que está dentro.
+       */}
+      <style>{".palco-da-previa .fixed{position:absolute}"}</style>
       <div
-        ref={palco}
         aria-hidden
-        className="pointer-events-none select-none transition-transform duration-500 ease-out"
+        className="palco-da-previa pointer-events-none relative select-none"
         style={{
           width: largura,
-          zoom: escala,
-          transform: `translate(${enquadre.dx}px, ${enquadre.dy}px) scale(${enquadre.k})`,
-          transformOrigin: "center",
+          zoom: escala * ampliacao,
+          transform: "translateZ(0)",
         }}
       >
         <StoreProvider payload={loja}>
