@@ -107,7 +107,6 @@ function OrderDetailPage() {
 
   const linkDoMapa = buscaNoMapa({
     street: order.deliveryStreet,
-    number: order.deliveryNumber,
     neighborhood: order.deliveryNeighborhood,
     city: order.deliveryCity,
     state: order.deliveryState,

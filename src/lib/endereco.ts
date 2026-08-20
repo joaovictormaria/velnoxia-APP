@@ -6,18 +6,29 @@
  * esquecia até o bairro. O resultado foi um endereço real, salvo inteiro e
  * correto no banco, que o Google respondia não existir.
  *
- * A forma abaixo é a convenção dos Correios, que é a que os mapas reconhecem:
+ *     Rua, Bairro, Cidade - UF, CEP, Brasil
  *
- *     Rua, número - Bairro, Cidade - UF, CEP, Brasil
+ * **O número da casa fica de fora, e isso é deliberado.** Testado numa entrega
+ * real em Mosqueiro, Aracaju: com "Avenida Coronel André Lucas, 18" o Google
+ * respondeu "não foi possível traçar uma rota" em todos os modos — de carro, de
+ * moto, a pé. Sem o número, a mesma avenida roteia na hora. Ele não tem o
+ * número mapeado ali e, em vez de cair na rua, desiste do trajeto inteiro.
  *
- * O CEP entra por último e nunca sozinho: buscar só "49009-225" devolve um
- * resultado em Pernambuco, porque sem o resto ele vira só um número.
+ * A troca é consciente: mantendo o número, o erro é catastrófico e silencioso —
+ * o motoboy fica sem rota nenhuma; tirando, o erro é ameno — a rota para no
+ * quarteirão certo. Entre as duas, a segunda é a que deixa ele trabalhar.
+ *
+ * Quem faz o papel do número é o CEP, que no Brasil costuma valer por um
+ * quarteirão. Ele entra por último e nunca sozinho: buscar só "49009-225"
+ * devolve um resultado em Pernambuco, porque sem o resto ele vira só um número.
+ *
+ * O número continua na tela do entregador, ao lado do endereço. Ele sai do que
+ * vai para o mapa, não da vista de quem entrega — são os últimos cinquenta
+ * metros, e quem os resolve é a pessoa, olhando a fachada.
  */
 
 type EnderecoDeEntrega = {
   street?: string | null;
-  number?: string | null;
-  complement?: string | null;
   neighborhood?: string | null;
   city?: string | null;
   state?: string | null;
@@ -40,7 +51,6 @@ export function cepEscrito(cep: string | null | undefined): string | null {
  */
 export function enderecoParaMapa(e: EnderecoDeEntrega): string | null {
   const rua = limpo(e.street);
-  const numero = limpo(e.number);
   const bairro = limpo(e.neighborhood);
   const cidade = limpo(e.city);
   const uf = limpo(e.state);
@@ -48,12 +58,9 @@ export function enderecoParaMapa(e: EnderecoDeEntrega): string | null {
 
   if (!rua && !cep) return null;
 
-  // O complemento fica de fora de propósito: "apto 302", "fundos" e "casa 2"
-  // não existem para o mapa e só atrapalham a busca do número na rua.
-  const logradouro = [rua, numero].filter(Boolean).join(", ");
   const localidade = [bairro, cidade && uf ? `${cidade} - ${uf}` : cidade].filter(Boolean).join(", ");
 
-  return [logradouro, localidade, cep, "Brasil"].filter(Boolean).join(", ");
+  return [rua, localidade, cep, "Brasil"].filter(Boolean).join(", ");
 }
 
 /**

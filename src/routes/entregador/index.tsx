@@ -178,7 +178,6 @@ function CartaoDeEntrega({
   // e já traçada a partir de onde ele está.
   const rota = rotaNoMapa({
     street: entrega.deliveryStreet,
-    number: entrega.deliveryNumber,
     neighborhood: entrega.deliveryNeighborhood,
     city: entrega.deliveryCity,
     state: entrega.deliveryState,

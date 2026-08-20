@@ -155,7 +155,6 @@ function adapt(payload: StorePayload): StoreApi {
      */
     mapsHref: buscaNoMapa({
       street: payload.addressStreet,
-      number: payload.addressNumber,
       neighborhood: payload.addressNeighborhood,
       city: payload.addressCity,
       state: payload.addressState,
