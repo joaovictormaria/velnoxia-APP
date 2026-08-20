@@ -75,17 +75,27 @@ function ReportsPage() {
             <Card
               label="Faturamento"
               value={money(data.revenue)}
+              explicacao="Tudo o que a loja vendeu no período, somado. Pedidos cancelados não entram."
               atual={data.revenue}
               anterior={data.previousRevenue}
             />
             <Card
               label="Pedidos"
               value={String(data.orderCount)}
+              explicacao="Quantos pedidos entraram no período, sem contar os cancelados."
               atual={data.orderCount}
               anterior={data.previousOrderCount}
             />
-            <Card label="Ticket médio" value={money(data.averageTicket)} />
-            <Card label="Cancelados" value={String(data.cancelled)} />
+            <Card
+              label="Ticket médio"
+              value={money(data.averageTicket)}
+              explicacao="Quanto cada cliente gastou, em média, por pedido. É o faturamento dividido pelo número de pedidos — mostra se o pedido está engordando quando você cria um combo ou oferece um adicional."
+            />
+            <Card
+              label="Cancelados"
+              value={String(data.cancelled)}
+              explicacao="Pedidos que foram cancelados no período. Não entram no faturamento nem no ticket médio."
+            />
           </div>
 
           <Series series={data.series} />
@@ -93,12 +103,14 @@ function ReportsPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Breakdown
               title="Entrega ou retirada"
+              explicacao="Quantos clientes pediram para entregar e quantos foram buscar. Ajuda a dimensionar quantos entregadores você precisa."
               rows={data.byOrderType}
               total={data.orderCount}
               label={(k) => TIPO[k] ?? k}
             />
             <Breakdown
               title="Forma de pagamento"
+              explicacao="Como os clientes pagaram. Útil para saber quanto troco deixar no caixa e quanto vai cair na maquininha."
               rows={data.byPaymentMethod}
               total={data.orderCount}
               label={(k) => PAGAMENTO[k] ?? k}
@@ -115,11 +127,21 @@ function ReportsPage() {
 function Card({
   label,
   value,
+  explicacao,
   atual,
   anterior,
 }: {
   label: string;
   value: string;
+  /**
+   * O que o número quer dizer, em uma linha.
+   *
+   * Fica embaixo e sempre visível, e não escondido atrás de um "?": quem abre
+   * esta tela é dono de restaurante, não analista, e um rótulo como "ticket
+   * médio" não se explica sozinho. Uma dica que só aparece no passar do mouse
+   * também não existe para quem está no celular.
+   */
+  explicacao: string;
   atual?: number;
   anterior?: number;
 }) {
@@ -130,7 +152,7 @@ function Card({
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <p className="text-sm text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-neutral-900">{value}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-900">{value}</p>
       {comparavel && (
         <p
           className={
@@ -142,6 +164,9 @@ function Card({
           {Math.abs(variacao).toFixed(0)}% vs. período anterior
         </p>
       )}
+      <p className="mt-2 border-t border-neutral-100 pt-2 text-xs leading-relaxed text-neutral-500">
+        {explicacao}
+      </p>
     </div>
   );
 }
@@ -155,6 +180,10 @@ function Series({ series }: { series: { date: string; orders: number; revenue: n
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-neutral-900">Faturamento por dia</h2>
+      <p className="mt-1 text-xs text-neutral-500">
+        Quanto entrou em cada dia do período. Serve para achar seus dias fortes e
+        fracos da semana.
+      </p>
       {vazio ? (
         <p className="mt-6 text-center text-sm text-neutral-500">
           Nenhum pedido no período.
@@ -177,11 +206,14 @@ function Series({ series }: { series: { date: string; orders: number; revenue: n
 
 function Breakdown({
   title,
+  explicacao,
   rows,
   total,
   label,
 }: {
   title: string;
+  /** Uma linha dizendo o que a divisão responde. Ver o Card acima. */
+  explicacao: string;
   rows: { key: string; count: number }[];
   total: number;
   label: (k: string) => string;
@@ -189,20 +221,21 @@ function Breakdown({
   return (
     <div className="rounded-2xl border border-neutral-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-neutral-900">{title}</h2>
+      <p className="mt-1 text-xs text-neutral-500">{explicacao}</p>
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-neutral-500">Sem dados no período.</p>
       ) : (
         <div className="mt-3 space-y-2">
           {rows.map((r) => (
             <div key={r.key} className="flex items-center gap-3">
-              <span className="w-40 shrink-0 text-sm text-neutral-700">{label(r.key)}</span>
+              <span className="w-24 shrink-0 truncate text-sm text-neutral-700 sm:w-40">{label(r.key)}</span>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-neutral-100">
                 <div
                   className="h-full rounded-full bg-[#E11D2E]/70"
                   style={{ width: `${total ? (r.count / total) * 100 : 0}%` }}
                 />
               </div>
-              <span className="w-10 text-right text-sm text-neutral-600">{r.count}</span>
+              <span className="w-8 shrink-0 text-right text-sm tabular-nums text-neutral-600 sm:w-10">{r.count}</span>
             </div>
           ))}
         </div>

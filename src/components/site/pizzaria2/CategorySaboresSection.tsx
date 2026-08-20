@@ -176,7 +176,7 @@ export function CategorySaboresSection({
 
           <h2
             data-previa="nome-da-categoria"
-            className="mt-5 font-display text-5xl font-extrabold leading-[1.05] text-charcoal sm:text-6xl lg:text-5xl"
+            className="mt-5 break-words font-display text-3xl font-extrabold leading-[1.05] text-charcoal sm:text-5xl lg:text-5xl"
           >
             {category.name}
           </h2>
@@ -250,7 +250,7 @@ export function CategorySaboresSection({
             ))}
           </div>
 
-          <div className="mt-6 hidden max-w-[920px] gap-5 md:grid md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 hidden max-w-[920px] gap-5 md:grid md:grid-cols-2 2xl:grid-cols-3">
             {items.map((product, i) => (
               <Reveal
                 key={product.slug}

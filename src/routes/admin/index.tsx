@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { contagemNoAr } from "@/components/admin/layout/ContagemDoTeste";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, DollarSign, ExternalLink, ShoppingBag, Star, Wallet } from "lucide-react";
+import { CalendarDays, Clock, ExternalLink, ShoppingBag, Star } from "lucide-react";
 import { KpiCard } from "@/components/admin/dashboard/KpiCard";
 import { semProtocolo, urlDoCardapio, useBaseUrlPublica } from "@/lib/public-url";
 import { MenuQrCodeButton } from "@/components/admin/dashboard/MenuQrCodeButton";
@@ -15,7 +15,6 @@ export const Route = createFileRoute("/admin/")({
   component: DashboardPage,
 });
 
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const todayLabel = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" });
 
 function DashboardPage() {
@@ -64,8 +63,18 @@ function DashboardPage() {
       )}
 
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Olá, {admin?.name}! 👋</h1>
+        {/* Largura inteira para o sino alcançar a borda direita da tela. Solto
+            na fileira de botões ele era o último item e sobrava sozinho numa
+            linha quando a barra quebrava no celular. */}
+        <div className="w-full min-w-0">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="min-w-0 text-3xl font-bold text-neutral-900">
+              Olá, {admin?.name}! 👋
+            </h1>
+            <div className="shrink-0">
+              <NotificationBell />
+            </div>
+          </div>
           <p className="mt-1 text-sm text-neutral-600">
             Aqui está o resumo do seu negócio hoje.
           </p>
@@ -80,7 +89,7 @@ function DashboardPage() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
           {/* Opens in a new tab: this is the public site, and the owner is
               usually mid-task in the panel — replacing it loses that place. */}
           {admin && (
@@ -99,11 +108,10 @@ function DashboardPage() {
           {admin && (
             <MenuQrCodeButton slug={admin.store.slug} storeName={admin.store.name} />
           )}
-          <div className="flex items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-700">
+          <div className="hidden items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-700 sm:flex">
             <CalendarDays className="size-4 text-neutral-500" />
             Hoje, {todayLabel.format(new Date())}
           </div>
-          <NotificationBell />
         </div>
       </header>
 
@@ -111,27 +119,17 @@ function DashboardPage() {
         <p className="text-sm text-neutral-500">Carregando...</p>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Nenhum valor em dinheiro aqui: faturamento e ticket médio vivem
+              só em Relatórios, que é a tela que se abre de propósito quando se
+              quer ver dinheiro. O painel fica aberto o dia todo, muitas vezes
+              com o cliente do outro lado do balcão. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <KpiCard
               label="Pedidos"
               value={String(data.summary.orders.value)}
               change={data.summary.orders.change}
               icon={ShoppingBag}
               accent="#E11D2E"
-            />
-            <KpiCard
-              label="Faturamento"
-              value={currency.format(data.summary.revenue.value)}
-              change={data.summary.revenue.change}
-              icon={DollarSign}
-              accent="#059669"
-            />
-            <KpiCard
-              label="Ticket médio"
-              value={currency.format(data.summary.averageTicket.value)}
-              change={data.summary.averageTicket.change}
-              icon={Wallet}
-              accent="#F59E0B"
             />
             <KpiCard
               label="Avaliação média"

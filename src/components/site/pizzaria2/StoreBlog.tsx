@@ -85,7 +85,7 @@ function Blog({ posts }: { posts: Post[] }) {
       keyOf={(p) => p.id}
       label={`Novidades de ${storeName}`}
       className={className}
-      itemClassName="w-75 sm:w-85"
+      itemClassName="w-64 sm:w-85"
       renderItem={card}
     />
   );

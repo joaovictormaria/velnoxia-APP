@@ -269,7 +269,7 @@ function CategoriesPage() {
               <option value="SIMPLE">Com ícone</option>
             </select>
           </label>
-          <div className="block sm:col-span-2">
+          <div className="block lg:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-neutral-700">
               Tamanhos
             </span>
@@ -285,7 +285,7 @@ function CategoriesPage() {
             </span>
           </div>
 
-          <div className="block sm:col-span-2">
+          <div className="block lg:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-neutral-700">
               Perguntas ao pedir
             </span>
@@ -329,7 +329,7 @@ function CategoriesPage() {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
             <tr>

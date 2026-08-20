@@ -418,7 +418,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           </p>
         )}
 
-        <div className="flex items-center justify-between border-t border-charcoal/10 pt-4">
+        <div className="flex flex-col gap-4 border-t border-charcoal/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs text-charcoal/50">
               {couponResult?.ok ? "Com o desconto do cupom" : "Subtotal dos itens"}
@@ -433,7 +433,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           <Button
             type="submit"
             disabled={submit.isPending}
-            className="rounded-full bg-tomato px-8 py-6 text-base font-semibold text-[color:var(--on-primary)] hover:bg-tomato/90"
+            className="h-auto w-full rounded-full bg-tomato px-8 py-4 text-base font-semibold text-[color:var(--on-primary)] hover:bg-tomato/90 sm:w-auto"
           >
             {submit.isPending ? "Enviando..." : "Confirmar pedido"}
           </Button>
@@ -449,7 +449,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
 function Overlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-mozzarella p-6">
+      <div className="relative max-h-[92dvh] w-full max-w-xl overflow-y-auto overscroll-contain rounded-3xl bg-mozzarella p-6">
         <button
           type="button"
           onClick={onClose}

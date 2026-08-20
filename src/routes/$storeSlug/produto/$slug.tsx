@@ -381,7 +381,7 @@ function PizzariaPersonalizacao() {
                   <h2 className="font-display text-base font-bold text-charcoal">
                     Escolha o tamanho
                   </h2>
-                  <div className="mt-3 grid grid-cols-3 gap-2.5">
+                  <div className="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                     {sizeOptions.map((block) => (
                       <button
                         key={block.id}
@@ -478,7 +478,7 @@ function PizzariaPersonalizacao() {
                 <Button
                   onClick={handleAddToCart}
                   disabled={Boolean(faltando)}
-                  className="mt-6 w-full rounded-full bg-tomato py-6 text-base font-semibold text-mozzarella shadow-none hover:bg-tomato/90 disabled:opacity-50"
+                  className="mt-6 h-auto w-full whitespace-normal rounded-full bg-tomato px-4 py-4 text-base font-semibold text-mozzarella shadow-none hover:bg-tomato/90 disabled:opacity-50"
                 >
                   {faltando
                     ? `Escolha: ${faltando.name}`

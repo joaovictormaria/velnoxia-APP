@@ -184,11 +184,11 @@ export function HeroDaVitrine() {
             variant="up"
             className={cn("mx-auto text-center", temFoto ? "max-w-xl" : "max-w-3xl")}
           >
-            <h1 className="font-display text-[7vw] font-extrabold leading-[1.1] sm:text-5xl md:text-4xl lg:text-5xl">
-              <span className="block whitespace-nowrap text-[color:var(--on-primary)]">
+            <h1 className="text-balance font-display text-[7vw] font-extrabold leading-[1.1] sm:text-4xl md:text-3xl lg:text-4xl xl:text-5xl">
+              <span className="block text-[color:var(--on-primary)]">
                 Bateu aquela vontade de
               </span>
-              <span className="block min-h-[1.2em] whitespace-nowrap text-[color:var(--on-primary-accent)] md:text-3xl lg:text-4xl xl:text-5xl">
+              <span className="block min-h-[2.4em] text-[color:var(--on-primary-accent)] md:text-2xl lg:text-3xl xl:text-4xl">
                 <TypingText
                   texts={heroCravings}
                   className="text-[color:var(--on-primary-accent)]"

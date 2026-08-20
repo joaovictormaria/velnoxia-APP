@@ -159,7 +159,7 @@ function PizzariaCarrinho() {
           </Button>
           <Button
             onClick={() => setCheckoutOpen(true)}
-            className="rounded-full bg-tomato px-8 py-6 text-base font-semibold text-[color:var(--on-primary)] shadow-none hover:bg-tomato/90 sm:flex-1 sm:max-w-sm"
+            className="h-auto rounded-full bg-tomato px-8 py-4 text-base font-semibold text-[color:var(--on-primary)] shadow-none hover:bg-tomato/90 sm:max-w-sm sm:flex-1"
           >
             Finalizar pedido →
           </Button>

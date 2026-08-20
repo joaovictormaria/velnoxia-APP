@@ -112,8 +112,12 @@ function AdminLayout() {
         logoUrl={admin.store.logoUrl}
         onLogout={handleLogout}
       />
-      <main className="min-w-0 flex-1 overflow-x-hidden p-4">
-        <div className="admin-theme min-h-full rounded-2xl bg-[#FAF9F7] p-8 text-neutral-900">
+      {/* A moldura cresce com a tela em vez de custar 96px fixos. Num celular
+          de 360px os p-4 + p-8 antigos comiam mais de um quarto da largura
+          antes de qualquer conteúdo, e o overflow-x-hidden abaixo faz o que
+          sobra ser cortado sem rolagem — some, em vez de rolar. */}
+      <main className="min-w-0 flex-1 overflow-x-hidden p-2 sm:p-4">
+        <div className="admin-theme min-h-full rounded-2xl bg-[#FAF9F7] p-4 text-neutral-900 sm:p-6 lg:p-8">
           {/* Na moldura, e não no painel inicial: nas últimas horas o aviso
               precisa alcançar quem está no cardápio ou nos pedidos, que é
               onde o dono realmente passa o dia. */}

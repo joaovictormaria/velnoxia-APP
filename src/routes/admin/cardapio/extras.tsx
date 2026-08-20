@@ -126,7 +126,7 @@ function ExtrasPage() {
         </form>
       )}
 
-      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
             <tr>

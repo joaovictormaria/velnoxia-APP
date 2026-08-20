@@ -90,7 +90,7 @@ function KanbanPage() {
             />
           </label>
 
-          <div className="relative min-w-64">
+          <div className="relative w-full min-w-0 flex-1 sm:min-w-64">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
             <input
               value={search}

@@ -67,7 +67,7 @@ function ProductsPage() {
           ))}
         </select>
 
-        <div className="relative min-w-64 flex-1">
+        <div className="relative w-full min-w-0 flex-1 sm:min-w-64">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
           <input
             value={search}
@@ -78,7 +78,7 @@ function ProductsPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
             <tr>

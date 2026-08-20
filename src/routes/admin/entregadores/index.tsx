@@ -110,7 +110,7 @@ function EntregadoresPage() {
             if (nome.trim().length >= 2) criar.mutate();
           }}
         >
-          <label className="min-w-64 flex-1">
+          <label className="w-full min-w-0 flex-1 sm:min-w-64">
             <span className="mb-1.5 block text-sm font-medium text-neutral-700">
               Nome do entregador
             </span>
@@ -283,7 +283,7 @@ function CodigoGerado({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <code className="rounded-lg bg-white px-4 py-2.5 text-2xl font-bold tracking-[0.3em] text-neutral-900">
+        <code className="block w-full break-all rounded-lg bg-white px-3 py-2.5 text-xl font-bold tracking-[0.2em] text-neutral-900 sm:w-auto sm:px-4 sm:text-2xl sm:tracking-[0.3em]">
           {dados.code}
         </code>
         <button
