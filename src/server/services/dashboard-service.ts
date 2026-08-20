@@ -1,5 +1,6 @@
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "../db/client";
+import { horasDoGrafico, rotuloDaHora } from "./janela-do-grafico";
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -93,15 +94,42 @@ export async function getOrdersByStatus(storeId: string, reference = new Date())
   };
 }
 
+/** O enum do banco na ordem do getDay() do JavaScript, que começa no domingo. */
+const DIAS_DA_SEMANA = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+] as const;
+
 export async function getOrdersByHour(storeId: string, reference = new Date()) {
-  const orders = await prisma.order.findMany({
-    where: {
-      storeId,
-      createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) },
-      status: { not: "CANCELLED" },
-    },
-    select: { createdAt: true },
-  });
+  const [orders, settings] = await Promise.all([
+    prisma.order.findMany({
+      where: {
+        storeId,
+        createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) },
+        status: { not: "CANCELLED" },
+      },
+      select: { createdAt: true },
+    }),
+    /*
+     * O horário do dia que está sendo mostrado, e não um dia qualquer: uma
+     * padaria que abre 5h de semana e 7h no domingo tem gráficos diferentes,
+     * e mostrar a janela errada faz parecer que faltou movimento.
+     */
+    prisma.storeSettings.findUnique({
+      where: { storeId },
+      select: {
+        openingHours: {
+          where: { weekday: DIAS_DA_SEMANA[reference.getDay()] },
+          select: { isOpen: true, opensAt: true, closesAt: true },
+        },
+      },
+    }),
+  ]);
 
   const buckets = new Map<number, number>();
   for (const order of orders) {
@@ -109,11 +137,11 @@ export async function getOrdersByHour(storeId: string, reference = new Date()) {
     buckets.set(hour, (buckets.get(hour) ?? 0) + 1);
   }
 
-  // Janela fixa 8h-23h, igual ao gráfico do mockup.
-  return Array.from({ length: 16 }, (_, i) => {
-    const hour = i + 8;
-    return { hour, label: `${String(hour).padStart(2, "0")}h`, orders: buckets.get(hour) ?? 0 };
-  });
+  return horasDoGrafico(settings?.openingHours[0] ?? null, [...buckets.keys()]).map((hour) => ({
+    hour,
+    label: rotuloDaHora(hour),
+    orders: buckets.get(hour) ?? 0,
+  }));
 }
 
 export async function getTopProducts(storeId: string, reference = new Date(), limit = 6) {

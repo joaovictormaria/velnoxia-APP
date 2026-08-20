@@ -1,7 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { contagemNoAr } from "@/components/admin/layout/ContagemDoTeste";
 import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, ExternalLink, ShoppingBag, Star } from "lucide-react";
+import { CalendarDays, Clock, ExternalLink, ShoppingBag } from "lucide-react";
 import { KpiCard } from "@/components/admin/dashboard/KpiCard";
 import { semProtocolo, urlDoCardapio, useBaseUrlPublica } from "@/lib/public-url";
 import { MenuQrCodeButton } from "@/components/admin/dashboard/MenuQrCodeButton";
@@ -119,11 +119,18 @@ function DashboardPage() {
         <p className="text-sm text-neutral-500">Carregando...</p>
       ) : (
         <>
-          {/* Nenhum valor em dinheiro aqui: faturamento e ticket médio vivem
-              só em Relatórios, que é a tela que se abre de propósito quando se
-              quer ver dinheiro. O painel fica aberto o dia todo, muitas vezes
-              com o cliente do outro lado do balcão. */}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* A fila de trabalho primeiro: é o que se olha no meio do movimento,
+              e a única coisa aqui que muda de minuto em minuto. */}
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-neutral-900">Pedidos por status</h2>
+            <OrdersByStatusCard counts={data.byStatus} />
+          </section>
+
+          {/* Nenhum valor em dinheiro: faturamento e ticket médio vivem só em
+              Relatórios, que é a tela que se abre de propósito quando se quer
+              ver dinheiro. O painel fica aberto o dia todo, muitas vezes com o
+              cliente do outro lado do balcão. */}
+          <div className="grid grid-cols-1 gap-4">
             <KpiCard
               label="Pedidos"
               value={String(data.summary.orders.value)}
@@ -131,20 +138,7 @@ function DashboardPage() {
               icon={ShoppingBag}
               accent="#E11D2E"
             />
-            <KpiCard
-              label="Avaliação média"
-              value={data.summary.rating.value.toFixed(1).replace(".", ",")}
-              change={data.summary.rating.change}
-              changeSuffix=""
-              icon={Star}
-              accent="#2563EB"
-            />
           </div>
-
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-neutral-900">Pedidos por status</h2>
-            <OrdersByStatusCard counts={data.byStatus} />
-          </section>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">

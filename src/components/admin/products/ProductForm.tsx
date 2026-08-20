@@ -58,8 +58,17 @@ export function ProductForm({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [values, setValues] = useState<ProductFormValues>(initial);
-  // Only auto-derive the slug for new products; editing keeps the public URL stable.
-  const [slugTouched, setSlugTouched] = useState(productId !== null);
+  /*
+   * O endereço público segue o nome enquanto o produto está sendo criado, e
+   * congela quando ele passa a existir.
+   *
+   * Congelar é o ponto: a lojista manda esse link no WhatsApp e ele vira print
+   * na conversa do cliente. Se renomear "Pizza Calabresa" para "Pizza
+   * Calabresa Especial" mudasse o endereço, todo link já enviado passaria a
+   * dar página não encontrada, e ninguém faria a ligação entre uma coisa e
+   * outra.
+   */
+  const enderecoSegueONome = productId === null;
   const [error, setError] = useState<string | null>(null);
   /** Onde a prévia deve olhar. Muda quando um campo recebe o cursor. */
   const [foco, setFoco] = useState<string | null>(null);
@@ -132,6 +141,16 @@ export function ProductForm({
     setError(null);
     if (!values.categoryId) {
       setError("Escolha uma categoria.");
+      return;
+    }
+    /*
+     * Um nome só de símbolos ("★★★") vira endereço vazio, e o servidor recusa.
+     * Agora que o endereço é do sistema, a lojista não tem como consertá-lo —
+     * então o erro precisa apontar para o campo que ela pode mexer, que é o
+     * nome, em vez de reclamar de um campo que ela nem edita.
+     */
+    if (!values.slug) {
+      setError("Use letras ou números no nome do produto — é o nome que forma o endereço dele no site.");
       return;
     }
     save.mutate();
@@ -225,23 +244,33 @@ export function ProductForm({
               value={values.name}
               onChange={(e) => {
                 set("name", e.target.value);
-                if (!slugTouched) set("slug", slugify(e.target.value));
+                if (enderecoSegueONome) set("slug", slugify(e.target.value));
               }}
               required
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
 
-          <Field label="Identificador na URL (slug)">
+          {/*
+           * Só de leitura: quem monta o endereço é o sistema, a partir do nome.
+           *
+           * Editável, ele convidava a lojista a mexer no que é a identidade da
+           * página do produto — e um endereço digitado à mão é onde nascem
+           * acento, espaço e slug repetido, que o cliente só descobre quando o
+           * link não abre. Fica à mostra porque é o endereço que ela manda no
+           * WhatsApp; só não se digita nele.
+           */}
+          <Field label="Endereço do produto no site">
             <input
               value={values.slug}
-              onChange={(e) => {
-                setSlugTouched(true);
-                set("slug", e.target.value);
-              }}
-              required
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
+              readOnly
+              tabIndex={-1}
+              aria-describedby="dica-do-slug"
+              className="w-full cursor-default rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-base text-neutral-500 md:text-sm"
             />
+            <span id="dica-do-slug" className="mt-1 block text-xs text-neutral-500">
+              Criado sozinho a partir do nome do produto.
+            </span>
           </Field>
 
           <div className="grid grid-cols-2 gap-4">
