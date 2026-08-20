@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
@@ -8,6 +8,9 @@ import {
   listPromotionsFn,
   savePromotionFn,
 } from "@/server/functions/promotions.fn";
+import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
+import { PromoCarouselDaPrevia } from "@/components/admin/preview/PromoCarouselDaPrevia";
+import { aplicarRascunhoDePromocao } from "@/lib/previa/aplicar-rascunho";
 
 export const Route = createFileRoute("/admin/promocoes/")({
   component: PromotionsPage,
@@ -44,7 +47,10 @@ const toNumber = (v: string) => (v.trim() === "" ? null : Number(v));
 
 function PromotionsPage() {
   const queryClient = useQueryClient();
+  const { admin } = useRouteContext({ from: "/admin" });
   const [draft, setDraft] = useState<Draft | null>(null);
+  /** Onde a prévia deve olhar. Muda quando um campo recebe o cursor. */
+  const [foco, setFoco] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data, isPending } = useQuery({
@@ -125,11 +131,29 @@ function PromotionsPage() {
             e.preventDefault();
             save.mutate(draft);
           }}
-          className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5"
+          className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
         >
-          <div className="grid gap-4 sm:grid-cols-2">
+          {/* Topo à direita, como nas outras telas. */}
+          {admin && (
+            <div className="lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1">
+              <PreviaDaVitrine
+                storeSlug={admin.store.slug}
+                foco={foco}
+                largura={1200}
+                aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
+              >
+                {/* O carrossel some quando não há promoção nenhuma; a em edição
+                    já entra na lista, senão a prévia de uma promoção nova
+                    mostraria a faixa vazia. */}
+                <PromoCarouselDaPrevia />
+              </PreviaDaVitrine>
+            </div>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:col-span-3">
             <Field label="Chamada" hint="Linha pequena acima do título.">
               <Input
+                onFocus={() => setFoco("chamada-da-promocao")}
                 value={draft.eyebrow}
                 onChange={(v) => setDraft({ ...draft, eyebrow: v })}
                 required
@@ -137,6 +161,7 @@ function PromotionsPage() {
             </Field>
             <Field label="Título">
               <Input
+                onFocus={() => setFoco("titulo-da-promocao")}
                 value={draft.title}
                 onChange={(v) => setDraft({ ...draft, title: v })}
                 required
@@ -144,7 +169,7 @@ function PromotionsPage() {
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
+          <div className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3">
             <ImageUploadField
               kind="product"
               label="Foto da promoção"
@@ -153,6 +178,7 @@ function PromotionsPage() {
             />
             <Field label="Descrição">
               <textarea
+                onFocus={() => setFoco("descricao-da-promocao")}
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 required
@@ -162,15 +188,17 @@ function PromotionsPage() {
             </Field>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 lg:col-span-3">
             <Field label="Selo" hint='Texto livre: "-20%", "Leve 3 pague 2".'>
               <Input
+                onFocus={() => setFoco("selo-da-promocao")}
                 value={draft.discount}
                 onChange={(v) => setDraft({ ...draft, discount: v })}
               />
             </Field>
             <Field label="Preço (R$)" hint="Deixe vazio para não mostrar preço.">
               <Input
+                onFocus={() => setFoco("preco-da-promocao")}
                 value={draft.price}
                 onChange={(v) => setDraft({ ...draft, price: v })}
                 type="number"
@@ -178,6 +206,7 @@ function PromotionsPage() {
             </Field>
             <Field label="Preço antigo (R$)" hint="Aparece riscado ao lado.">
               <Input
+                onFocus={() => setFoco("preco-da-promocao")}
                 value={draft.originalPrice}
                 onChange={(v) => setDraft({ ...draft, originalPrice: v })}
                 type="number"

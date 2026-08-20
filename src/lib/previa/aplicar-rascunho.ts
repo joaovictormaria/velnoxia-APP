@@ -240,3 +240,60 @@ export function aplicarRascunhoDaLoja(
     tertiaryColor: rascunho.tertiaryColor || null,
   };
 }
+
+/** O que a tela de Promoções tem em mãos enquanto a lojista edita. */
+export type RascunhoDePromocao = {
+  id: string | null;
+  eyebrow: string;
+  title: string;
+  description: string;
+  discount: string;
+  /** Vêm como texto do formulário; vazio significa "não mostrar preço". */
+  price: string;
+  originalPrice: string;
+  imageUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+};
+
+type PromocaoDoPayload = NonNullable<MenuPayload["promotions"]>[number];
+
+/**
+ * Aplica o rascunho da promoção sobre as que já existem.
+ *
+ * O carrossel some quando não há nenhuma — uma faixa vazia com setas que não
+ * levam a lugar nenhum parece defeito. Por isso a promoção em edição entra na
+ * lista mesmo antes de existir no banco: sem ela, a prévia de uma promoção
+ * nova mostraria a tela sem carrossel.
+ */
+export function aplicarRascunhoDePromocao(
+  payload: MenuPayload,
+  rascunho: RascunhoDePromocao | null,
+): MenuPayload {
+  if (!rascunho) return payload;
+
+  const atuais = payload.promotions ?? [];
+  const semEla = atuais.filter((x) => !rascunho.id || x.id !== rascunho.id);
+  if (!rascunho.isActive) return { ...payload, promotions: semEla };
+
+  const antiga = rascunho.id ? atuais.find((x) => x.id === rascunho.id) : undefined;
+  // Campo de preço vazio não é zero: é "não mostrar preço nenhum".
+  const numero = (v: string) => (v.trim() === "" ? null : Number(v.replace(",", ".")));
+
+  const atualizada: PromocaoDoPayload = {
+    ...(antiga ?? ({ id: rascunho.id ?? "__previa-promocao-nova" } as PromocaoDoPayload)),
+    eyebrow: rascunho.eyebrow,
+    title: rascunho.title,
+    description: rascunho.description,
+    discount: rascunho.discount || null,
+    price: numero(rascunho.price),
+    originalPrice: numero(rascunho.originalPrice),
+    imageUrl: rascunho.imageUrl,
+  };
+
+  const posicao = Math.max(0, Math.min(semEla.length, rascunho.sortOrder - 1));
+  return {
+    ...payload,
+    promotions: [...semEla.slice(0, posicao), atualizada, ...semEla.slice(posicao)],
+  };
+}
