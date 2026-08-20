@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
+import { contagemNoAr } from "@/components/admin/layout/ContagemDoTeste";
 import { useQuery } from "@tanstack/react-query";
 import { CalendarDays, Clock, DollarSign, ExternalLink, ShoppingBag, Star, Wallet } from "lucide-react";
 import { KpiCard } from "@/components/admin/dashboard/KpiCard";
@@ -20,7 +21,15 @@ const todayLabel = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "lo
 function DashboardPage() {
   const { admin } = Route.useRouteContext();
   const basePublica = useBaseUrlPublica();
-  const trial = admin?.store.status === "TRIAL" ? trialCountdown(admin.store.trialEndsAt) : null;
+  /**
+   * O aviso em dias, e só enquanto a contagem regressiva não estiver no ar.
+   * Nas últimas 24 horas quem informa é o relógio na moldura; manter os dois
+   * seria dizer a mesma coisa duas vezes, uma delas com menos precisão.
+   */
+  const trial =
+    admin?.store.status === "TRIAL" && !contagemNoAr(admin.store.trialEndsAt)
+      ? trialCountdown(admin.store.trialEndsAt)
+      : null;
   const { data, isPending } = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => getDashboardFn(),
@@ -43,14 +52,14 @@ function DashboardPage() {
             <Clock className="mr-1.5 inline size-4 align-text-bottom" />
             <strong>Período de teste</strong> — {trial.label}
           </p>
-          <a
-            href="https://wa.me/5511999999999"
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* Antes isto abria um WhatsApp de exemplo, que nem era o da loja.
+              Agora leva para onde a assinatura de fato acontece. */}
+          <Link
+            to="/admin/assinatura"
             className="rounded-lg bg-[#E11D2E] px-4 py-2 text-xs font-semibold text-white hover:bg-[#c4172a]"
           >
             Assinar agora
-          </a>
+          </Link>
         </div>
       )}
 

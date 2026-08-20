@@ -8,6 +8,18 @@ const JANELA_MS = 24 * 60 * 60 * 1000;
 /** Última hora: o tom muda porque o cardápio está prestes a sair do ar. */
 const CRITICO_MS = 60 * 60 * 1000;
 
+/**
+ * Se a contagem regressiva está no ar para este fim de teste.
+ *
+ * Existe para o aviso em dias do painel inicial saber quando se calar: os dois
+ * dizem a mesma coisa, e nas últimas horas quem serve é o relógio.
+ */
+export function contagemNoAr(trialEndsAt: Date | string | null): boolean {
+  if (!trialEndsAt) return false;
+  const falta = new Date(trialEndsAt).getTime() - Date.now();
+  return falta > 0 && falta <= JANELA_MS;
+}
+
 export type Contagem =
   | { mostrar: false }
   | { mostrar: true; horas: string; minutos: string; segundos: string; critico: boolean };
