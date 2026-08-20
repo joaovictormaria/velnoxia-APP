@@ -19,6 +19,7 @@ import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { SobreORestaurante } from "@/components/site/pizzaria2/SobreORestaurante";
 import { aplicarRascunhoDoSobre, aplicarRascunhoDePublicacao } from "@/lib/previa/aplicar-rascunho";
 import { PublicacoesDaPrevia } from "@/components/admin/preview/PublicacoesDaPrevia";
+import { RespostaDaPrevia } from "@/components/admin/preview/RespostaDaPrevia";
 
 export const Route = createFileRoute("/admin/avaliacoes/")({
   component: AvaliacoesPage,
@@ -491,6 +492,7 @@ function BlogTab() {
 /* ----------------------------------------------------------- avaliações --- */
 
 function ReviewsTab() {
+  const { admin } = useRouteContext({ from: "/admin" });
   const queryClient = useQueryClient();
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -512,6 +514,9 @@ function ReviewsTab() {
     },
   });
 
+  /** A avaliação que está sendo respondida, para a prévia mostrar qual é. */
+  const respondendo = data?.reviews.find((r) => r.id === replyTo);
+
   const setHidden = useMutation({
     mutationFn: (v: { id: string; isHidden: boolean }) =>
       setReviewHiddenFn({ data: v }),
@@ -527,6 +532,16 @@ function ReviewsTab() {
         O que o cliente escreveu não pode ser alterado — nem por você, nem por
         nós. Você pode responder publicamente ou ocultar uma avaliação abusiva.
       </div>
+
+      {/* Só enquanto se responde. A resposta sai pública, embaixo da crítica,
+          para qualquer um que abra a loja — ver isso enquanto se escreve muda
+          o tom do que se escreve. Fora disso não há o que prever: o texto da
+          avaliação é do cliente, e esta tela não o edita. */}
+      {admin && replyTo && respondendo && (
+        <PreviaDaVitrine storeSlug={admin.store.slug} foco="resposta-da-loja" largura={760}>
+          <RespostaDaPrevia avaliacao={respondendo} resposta={replyText} />
+        </PreviaDaVitrine>
+      )}
 
       {data && data.summary.total > 0 && (
         <div className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white px-5 py-4">

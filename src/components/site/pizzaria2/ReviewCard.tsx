@@ -68,7 +68,10 @@ export function ReviewCard({
       </p>
 
       {review.response && (
-        <div className="mt-3 rounded-lg border-l-2 border-tomato bg-charcoal/[0.03] px-3 py-2.5">
+        <div
+          data-previa="resposta-da-loja"
+          className="mt-3 rounded-lg border-l-2 border-tomato bg-charcoal/[0.03] px-3 py-2.5"
+        >
           <p className="text-xs font-semibold uppercase tracking-wide text-tomato">
             Resposta da loja
           </p>
