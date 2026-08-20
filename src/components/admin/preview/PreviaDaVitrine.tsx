@@ -146,47 +146,29 @@ function Palco({
   children: ReactNode;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
-  const conteudo = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(0.4);
-  /** A escala já aplicada, para desfazer o zoom ao medir a altura de novo. */
-  const escalaAtual = useRef(0.4);
 
   /**
-   * A escala cabe a vitrine inteira na caixa, medindo as duas dimensões.
+   * A escala sai só da largura disponível.
    *
-   * Só pela largura, a seção terminava fora da caixa embaixo; só pela altura,
-   * os cards saíam pela direita. Era o que se via: conteúdo cortado de um lado
-   * e vazio do outro.
+   * Medir também a altura do conteúdo parecia melhor — caberia a seção
+   * inteira. Mas o zoom muda o que offsetHeight devolve, e a conta que
+   * compensava isso derrubou a escala para quase zero: a prévia virou um ponto
+   * no meio da caixa. Pela largura o resultado é previsível e não depende do
+   * que o navegador considera "altura" de um elemento com zoom.
+   *
+   * O que passar da altura da caixa fica cortado, igualmente em cima e
+   * embaixo, porque o conteúdo está centrado.
    */
   useEffect(() => {
     const alvo = caixa.current;
-    const dentro = conteudo.current;
-    if (!alvo || !dentro) return;
-
-    const medir = () => {
-      // offsetHeight já vem com o zoom aplicado; dividir devolve o tamanho
-      // real, senão cada medição usaria a escala anterior e ela iria encolhendo.
-      const alturaReal = dentro.offsetHeight / (escalaAtual.current || 1);
-      if (alturaReal < 1) return;
-      const nova = Math.min(
-        alvo.clientWidth / LARGURA_DA_VITRINE,
-        alvo.clientHeight / alturaReal,
-        1,
-      );
-      // O observador vigia o próprio conteúdo, e mudar a escala muda o tamanho
-      // dele. Sem esta margem, um arredondamento de meio pixel bastaria para
-      // as duas medidas ficarem se alternando e o navegador rodar em círculo.
-      if (Math.abs(nova - escalaAtual.current) < 0.005) return;
-      escalaAtual.current = nova;
-      setEscala(nova);
-    };
-
+    if (!alvo) return;
+    const medir = () => setEscala(Math.min(1, alvo.clientWidth / LARGURA_DA_VITRINE));
     medir();
     const observador = new ResizeObserver(medir);
     observador.observe(alvo);
-    observador.observe(dentro);
     return () => observador.disconnect();
-  }, [data, children]);
+  }, []);
 
   return (
     /**
@@ -200,7 +182,6 @@ function Palco({
      */
     <div ref={caixa} className="flex h-full w-full items-center justify-center overflow-hidden">
       <div
-        ref={conteudo}
         aria-hidden
         className="pointer-events-none select-none"
         style={{ width: LARGURA_DA_VITRINE, zoom: escala }}
