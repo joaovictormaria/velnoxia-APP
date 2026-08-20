@@ -277,7 +277,11 @@ const HERO_NOVOS: Record<string, HeroContent> = {
     fullMenuTeaser: "Tem muito mais corte esperando por você!",
   },
   cafeteria: {
-    photos: [],
+    photos: [
+      "/catalogo-inicial/cafeteria/latte.jpg",
+      "/catalogo-inicial/cafeteria/croissant.jpg",
+      "/catalogo-inicial/cafeteria/bolo-de-chocolate.jpg",
+    ],
     cravings: [
       "um café passado na hora?",
       "pão quentinho?",
@@ -304,7 +308,11 @@ const HERO_NOVOS: Record<string, HeroContent> = {
     fullMenuTeaser: "Tem muito mais esperando por você!",
   },
   bar: {
-    photos: [],
+    photos: [
+      "/catalogo-inicial/bar/chope.jpg",
+      "/catalogo-inicial/bar/shots.jpg",
+      "/catalogo-inicial/bar/caipirinha.jpg",
+    ],
     cravings: [
       "uma gelada?",
       "porção pra dividir?",

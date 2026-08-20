@@ -85,22 +85,48 @@ e picles), enquanto o cardápio inicial descreve o brasileiro (purê, milho,
 batata palha). É a mesma comida, não outro ramo, mas o dono provavelmente vai
 querer trocar pelas dele.
 
-## Ramos ainda sem foto
+## Ramos completados (2026-08-20)
 
-`restaurante`, `cafeteria`, `bar`, `saudavel` e `sorvetes` estão com
-`photos: []` em hero-by-type.ts. **Isso é uma escolha, não uma pendência
-quebrada:** sem foto a capa vira só texto sobre o gradiente da marca e a coluna
-da imagem sai do layout, o que parece decidido. Emprestar a foto de outro ramo
-seria pior — uma churrascaria anunciando pizza.
+Não sobrou nenhum ramo com `photos: []`. As fotos chegaram em duas levas, as
+duas conferidas uma a uma antes de entrar.
 
-O caso de `restaurante` é o mais difícil e cobre quatro ramos (restaurante,
-comida caseira, comida brasileira, marmitaria). Quatro buscas no Unsplash não
-acharam prato feito brasileiro: vieram pratos asiáticos, comida fusion, uma mesa
-com o cardápio de outro restaurante à mostra e um prato com bandeirinha do
-Brasil espetada num hambúrguer. Arroz, feijão e bife acebolado praticamente não
-existem no acervo — é um banco internacional, e comida caseira brasileira é o
-nicho que falta nele. Foto de cliente real resolveria melhor que qualquer banco.
+**Primeira leva** — 48 arquivos com nomes opacos, separados por ramo:
+restaurante, saudável, sorvetes, churrascaria, hot dog, japonês e pizzaria. O
+suco de laranja servia quase todo cardápio, então mora em `comum/` em vez de
+repetido sete vezes.
 
-Para acrescentar: salve em `public/catalogo-inicial/<ramo>/`, em retrato
-800x1200, e preencha o `photos` do ramo em
-`src/lib/pizzaria2/hero-by-type.ts`.
+**Segunda leva** — 15 fotos de bar e 15 de cafeteria, fornecidas pelo dono do
+projeto. As de bar vinham com o nome do arquivo impresso dentro da imagem e uma
+fatia da foto vizinha na borda (eram recortes de uma folha de contato); o corte
+foi medido procurando o maior bloco contíguo de linhas e colunas não-brancas de
+cada arquivo, e não a olho.
+
+### Resolução — a ressalva importante
+
+As fotos de bar e cafeteria têm **225 a 245px de largura**, contra 1200–1600px
+das capas antigas. Nos cards do cardápio passa; **na capa aparece suavizada**,
+porque ali a imagem ocupa a largura toda.
+
+Para resolver não é preciso mexer no código: reexporte as originais com pelo
+menos 1200px de largura e salve por cima, com o mesmo nome. Os caminhos já
+apontam para lá.
+
+### Procedência
+
+As de bar e cafeteria vieram do dono do projeto, não do Unsplash — a
+procedência e o direito de uso são de quem as forneceu, como já era o caso das
+fotos de açaí.
+
+### O que ficou de fora
+
+Em `fotos-nao-usadas/`, na raiz do repositório e fora do build:
+
+- **Marca de terceiro visível:** Coca-Cola 2L, Coca-Cola lata, água Crystal,
+  milkshakes em copo "JERONIMO", bolo em tábua "VILLA café" e uma garrafa de
+  Corona. Colocar marca alheia no catálogo inicial de dezesseis lojas é decisão
+  de quem assina o produto, não de quem organiza a pasta.
+- **Quatro hambúrgueres** que duplicavam o que a hamburgueria já tinha.
+
+Para acrescentar mais: salve em `public/catalogo-inicial/<ramo>/`, de
+preferência em retrato e com 1200px ou mais de largura, e preencha o `photos`
+do ramo em `src/lib/pizzaria2/hero-by-type.ts`.
