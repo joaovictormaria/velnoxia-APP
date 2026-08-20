@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
+import { ContagemDoTeste } from "@/components/admin/layout/ContagemDoTeste";
 import { registrarPainelInstalavel } from "@/lib/painel-instalavel";
 import { precoEscrito } from "@/lib/plano";
 import { getCurrentAdminFn, logoutFn } from "@/server/functions/auth.fn";
@@ -113,6 +114,15 @@ function AdminLayout() {
       />
       <main className="min-w-0 flex-1 overflow-x-hidden p-4">
         <div className="admin-theme min-h-full rounded-2xl bg-[#FAF9F7] p-8 text-neutral-900">
+          {/* Na moldura, e não no painel inicial: nas últimas horas o aviso
+              precisa alcançar quem está no cardápio ou nos pedidos, que é
+              onde o dono realmente passa o dia. */}
+          {admin.store.status === "TRIAL" && (
+            <ContagemDoTeste
+              trialEndsAt={admin.store.trialEndsAt}
+              onExpirar={() => router.invalidate()}
+            />
+          )}
           <Outlet />
         </div>
       </main>
