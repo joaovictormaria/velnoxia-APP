@@ -256,47 +256,57 @@ function Palco({
    * Roda depois da pintura, porque a ampliação acabou de mudar o tamanho de
    * tudo e as medidas anteriores já não valem.
    */
+  /** O último ponto enquadrado, para saber quando a mudança é de campo. */
+  const focoAnterior = useRef<string | null>(null);
+
   useEffect(() => {
     const alvo = caixa.current;
     if (!alvo) return;
 
-    const id = requestAnimationFrame(() => {
-      const rCaixa = alvo.getBoundingClientRect();
-      const meioCaixaX = rCaixa.left + rCaixa.width / 2;
-      const meioCaixaY = rCaixa.top + rCaixa.height / 2;
+    const trocouDeCampo = focoAnterior.current !== foco;
+    focoAnterior.current = foco;
 
-      const marca = foco
-        ? alvo.querySelector<HTMLElement>(`[data-previa="${foco}"]`)
-        : null;
+    const centrar = (suave: boolean) => {
+      const rCaixa = alvo.getBoundingClientRect();
+      const meioX = rCaixa.left + rCaixa.width / 2;
+      const meioY = rCaixa.top + rCaixa.height / 2;
+
+      const marca = foco ? alvo.querySelector<HTMLElement>(`[data-previa="${foco}"]`) : null;
       const r = marca?.getBoundingClientRect();
 
-      if (r && r.width >= 1 && r.height >= 1) {
-        alvo.scrollTo({
-          left: alvo.scrollLeft + (r.left + r.width / 2) - meioCaixaX,
-          top: alvo.scrollTop + (r.top + r.height / 2) - meioCaixaY,
-          behavior: "smooth",
-        });
-      } else {
-        alvo.scrollTo({
-          left: (alvo.scrollWidth - alvo.clientWidth) / 2,
-          top: (alvo.scrollHeight - alvo.clientHeight) / 2,
-          behavior: "smooth",
-        });
+      const destino =
+        r && r.width >= 1 && r.height >= 1
+          ? {
+              left: alvo.scrollLeft + (r.left + r.width / 2) - meioX,
+              top: alvo.scrollTop + (r.top + r.height / 2) - meioY,
+            }
+          : {
+              left: (alvo.scrollWidth - alvo.clientWidth) / 2,
+              top: (alvo.scrollHeight - alvo.clientHeight) / 2,
+            };
+
+      // Meio pixel de diferença não é movimento, é arredondamento. Corrigir
+      // isso a cada quadro faria a prévia vibrar parada.
+      if (
+        Math.abs(destino.left - alvo.scrollLeft) < 1 &&
+        Math.abs(destino.top - alvo.scrollTop) < 1
+      ) {
+        return;
       }
-    });
-    return () => cancelAnimationFrame(id);
+      alvo.scrollTo({ ...destino, behavior: suave ? "smooth" : "auto" });
+    };
+
     /*
-     * Sem children nas dependências.
+     * Trocar de campo desliza; ficar no campo prende.
      *
-     * Ele muda de identidade a cada renderização, então cada letra digitada
-     * reiniciava a rolagem suave: a prévia saía do lugar e voltava, tremendo
-     * enquanto a lojista escrevia — justamente quando ela precisa olhar.
-     *
-     * O enquadre só se refaz quando o campo focado muda, ou quando a escala
-     * muda. Se o texto crescer e empurrar o alvo alguns pixels, a vista fica
-     * onde está, o que é melhor do que persegui-lo a cada tecla.
+     * Enquanto se digita, o texto cresce e empurra o alvo alguns pixels. Sem
+     * corrigir, a vista ia ficando para trás; corrigindo com deslize, cada
+     * letra reiniciava a animação e a prévia tremia. Instantâneo resolve os
+     * dois: o alvo simplesmente não sai do lugar.
      */
-  }, [foco, ampliacao, escala, largura]);
+    const id = requestAnimationFrame(() => centrar(trocouDeCampo));
+    return () => cancelAnimationFrame(id);
+  });
 
   return (
     <div
