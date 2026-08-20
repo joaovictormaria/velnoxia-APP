@@ -7,9 +7,14 @@ import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { CampoDeCupom } from "@/components/site/pizzaria2/CampoDeCupom";
+import {
+  CampoDeFuncionario,
+  type RespostaDoFuncionario,
+} from "@/components/site/pizzaria2/CampoDeFuncionario";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 import { previewCouponFn } from "@/server/functions/coupons.fn";
+import { previewEmployeeBenefitFn } from "@/server/functions/employee-benefit.fn";
 import { loadCustomerDetails, saveCustomerDetails } from "@/lib/pizzaria2/customer-details";
 import { formatCep, isCompleteCep, lookupCep, normalizeCep } from "@/lib/pizzaria2/cep-lookup";
 
@@ -18,6 +23,7 @@ const PAYMENT_LABEL: Record<string, string> = {
   CREDIT_CARD: "Cartão de crédito",
   DEBIT_CARD: "Cartão de débito",
   CASH: "Dinheiro",
+  PAYROLL: "Desconto em folha",
 };
 
 export function CheckoutForm({ onClose }: { onClose: () => void }) {
@@ -45,6 +51,54 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   >(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
+  const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [employeePin, setEmployeePin] = useState("");
+  const [employeeResult, setEmployeeResult] = useState<RespostaDoFuncionario>(null);
+  const [checkingEmployee, setCheckingEmployee] = useState(false);
+
+  /**
+   * Confere o PIN e já traz quanto o benefício tira deste carrinho.
+   *
+   * O servidor recalcula tudo ao confirmar o pedido; isto aqui só existe para a
+   * pessoa ver o desconto e a cota antes de decidir.
+   */
+  async function checkEmployee() {
+    if (employeePin.length < 4) return;
+    if (phone.replace(/\D/g, "").length < 10) {
+      setEmployeeResult({ ok: false, error: "Informe seu WhatsApp antes de conferir o PIN." });
+      return;
+    }
+    setCheckingEmployee(true);
+    try {
+      const res = await previewEmployeeBenefitFn({
+        data: {
+          storeSlug: storeInfo.slug,
+          phone,
+          pin: employeePin,
+          items: lines.map((l) => ({
+            productSlug: l.productSlug,
+            sizeId: l.sizeId,
+            optionIds: l.optionIds,
+            secondProductSlug: l.secondProductSlug,
+            extraIds: l.extras.map((e) => e.id),
+            quantity: l.qty,
+          })),
+        },
+      });
+      setEmployeeResult(res);
+      // Um cupom junto seria recusado pelo servidor; tirar aqui evita o
+      // pedido morrer no botão por causa de um código que a pessoa nem usou.
+      if (res.ok && res.desconto > 0) {
+        setCouponCode("");
+        setCouponResult(null);
+      }
+    } catch {
+      setEmployeeResult({ ok: false, error: "Não foi possível conferir agora." });
+    } finally {
+      setCheckingEmployee(false);
+    }
+  }
+
   async function checkCoupon() {
     const code = couponCode.trim();
     if (!code) {
@@ -69,7 +123,15 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
     trackingToken: string | null;
   } | null>(null);
 
-  const payments = storeInfo.acceptedPaymentMethods;
+  /*
+   * "Desconto em folha" não é forma de pagamento da loja: ela só aparece para
+   * quem foi reconhecido e cujo plano a libera. Se não estivesse condicionada,
+   * qualquer cliente escolheria não pagar.
+   */
+  const payments =
+    employeeResult?.ok && employeeResult.permiteFolha
+      ? [...storeInfo.acceptedPaymentMethods, "PAYROLL"]
+      : storeInfo.acceptedPaymentMethods;
 
   // Filled after mount, not in a state initialiser: localStorage does not
   // exist on the server, so seeding it during the first render would make the
@@ -134,6 +196,18 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
     return () => controller.abort();
   }, [cep]);
 
+  /*
+   * O desconto que a tela mostra. Os dois nunca somam — o servidor recusa o
+   * cupom quando há benefício —, então mostrar a soma seria prometer um total
+   * que o pedido não vai ter.
+   */
+  const descontoNaTela =
+    employeeResult?.ok && employeeResult.desconto > 0
+      ? employeeResult.desconto
+      : couponResult?.ok
+        ? couponResult.discount
+        : 0;
+
   const submit = useMutation({
     mutationFn: () =>
       submitCheckoutFn({
@@ -153,6 +227,10 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           type,
           paymentMethod: paymentMethod as "PIX",
           couponCode: couponCode.trim() || undefined,
+          // Só vai quando a pessoa se declarou funcionária e o PIN passou na
+          // conferência: um PIN meio digitado faria o pedido inteiro ser
+          // recusado no servidor.
+          employeePin: employeeResult?.ok ? employeePin : undefined,
           customerNote: note.trim() || undefined,
           delivery:
             type === "DELIVERY"
@@ -282,7 +360,13 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           <Field label="WhatsApp">
             <input
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                // O reconhecimento foi feito para o número anterior. Trocar o
+                // telefone sem derrubá-lo deixaria na tela um desconto que o
+                // servidor recusaria na hora de confirmar.
+                setEmployeeResult(null);
+              }}
               required
               placeholder="(11) 98765-4321"
               className="w-full rounded-xl border border-charcoal/15 px-3 py-2.5 text-base md:text-sm text-charcoal"
@@ -402,6 +486,28 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           </Field>
         </div>
 
+        <CampoDeFuncionario
+          aberto={employeeOpen}
+          onAbrir={() => setEmployeeOpen(true)}
+          pin={employeePin}
+          onDigitar={(v) => {
+            setEmployeePin(v);
+            setEmployeeResult(null);
+            /*
+             * Mexer no PIN derruba a conferência, e com ela o direito ao
+             * desconto em folha. Sem devolver a forma de pagamento para uma
+             * que a loja aceita, o pedido sairia com PAYROLL sem respaldo e
+             * seria recusado no fim, sem a pessoa entender por quê.
+             */
+            if (paymentMethod === "PAYROLL") {
+              setPaymentMethod(storeInfo.acceptedPaymentMethods[0] ?? "PIX");
+            }
+          }}
+          onConferir={checkEmployee}
+          conferindo={checkingEmployee}
+          resposta={employeeResult}
+        />
+
         <Field label="Observação (opcional)">
           <textarea
             value={note}
@@ -421,12 +527,16 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
         <div className="flex flex-col gap-4 border-t border-charcoal/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs text-charcoal/50">
-              {couponResult?.ok ? "Com o desconto do cupom" : "Subtotal dos itens"}
+              {employeeResult?.ok && employeeResult.desconto > 0
+                ? "Com o desconto de funcionário"
+                : couponResult?.ok
+                  ? "Com o desconto do cupom"
+                  : "Subtotal dos itens"}
             </p>
             <p className="font-display text-xl font-bold text-charcoal">
-              {formatCurrency(subtotal - (couponResult?.ok ? couponResult.discount : 0))}
+              {formatCurrency(subtotal - descontoNaTela)}
             </p>
-            {couponResult?.ok && (
+            {descontoNaTela > 0 && (
               <p className="text-xs text-charcoal/45 line-through">{formatCurrency(subtotal)}</p>
             )}
           </div>

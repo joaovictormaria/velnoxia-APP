@@ -6,6 +6,13 @@ import type {
 } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { prisma } from "../db/client";
+import { verifyPassword } from "../auth/password";
+import { findEmployeeForCheckout, lerUsoDoDia } from "../repositories/employee-repository";
+import {
+  calcularBeneficio,
+  type LinhaParaBeneficio,
+  type ResultadoDoBeneficio,
+} from "./employee-benefit";
 import { conferirOpcoes } from "./option-pricing";
 
 /**
@@ -36,6 +43,11 @@ export type CheckoutInput = {
   type: OrderType;
   paymentMethod: PaymentMethod;
   couponCode?: string;
+  /**
+   * O PIN de quem se declarou funcionário. Ausente na esmagadora maioria dos
+   * pedidos, e aí nada neste arquivo muda de comportamento.
+   */
+  employeePin?: string;
   customerNote?: string;
   delivery?: {
     street?: string;
@@ -67,32 +79,47 @@ function priceForSize(
   return product.sizes.find((s) => s.categorySizeId === sizeId)?.price ?? null;
 }
 
+
+/** Uma linha do pedido, com o preço e os nomes já copiados do cardápio. */
+type LinhaDoPedido = {
+  productId: string;
+  productNameSnapshot: string;
+  sizeLabel: string | null;
+  isHalfAndHalf: boolean;
+  secondProductId: string | null;
+  secondProductNameSnapshot: string | null;
+  unitPrice: number;
+  quantity: number;
+  note: string | null;
+  extras: {
+    extraId: string | null;
+    optionItemId: string | null;
+    groupNameSnapshot: string | null;
+    nameSnapshot: string;
+    priceSnapshot: number;
+  }[];
+};
+
+export type Precificacao =
+  | { ok: true; lines: LinhaDoPedido[]; linhasParaBeneficio: LinhaParaBeneficio[]; subtotal: number }
+  | { ok: false; error: string };
+
 /**
- * Creates an order, recomputing every price from the database. Nothing the
- * client sends about money is trusted — only ids, sizes and quantities.
+ * Transforma o que o navegador mandou — slugs, tamanhos e quantidades — nas
+ * linhas do pedido, com cada preço relido do banco.
+ *
+ * Separada de `createOrderFromCheckout` para a prévia do carrinho poder chamar
+ * exatamente esta conta. Se a prévia refizesse a precificação por conta
+ * própria, as duas divergiriam no primeiro ajuste de regra, e o funcionário
+ * veria um desconto na tela e pagaria outro.
  */
-export async function createOrderFromCheckout(
+export async function precificarItens(
   storeId: string,
-  input: CheckoutInput,
-): Promise<CheckoutResult> {
-  if (input.items.length === 0) return { ok: false, error: "O carrinho está vazio." };
-
-  const settings = await prisma.storeSettings.findUnique({ where: { storeId } });
-  if (!settings) return { ok: false, error: "A loja ainda não está configurada." };
-
-  if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
-    return { ok: false, error: "A loja não está aceitando entregas no momento." };
-  }
-  if (input.type === "PICKUP" && !settings.acceptsPickup) {
-    return { ok: false, error: "A loja não está aceitando retiradas no momento." };
-  }
-  if (!settings.acceptedPaymentMethods.includes(input.paymentMethod)) {
-    return { ok: false, error: "Forma de pagamento não aceita." };
-  }
-
+  items: CheckoutItem[],
+): Promise<Precificacao> {
   const slugs = [
     ...new Set(
-      input.items.flatMap((i) =>
+      items.flatMap((i) =>
         [i.productSlug, i.secondProductSlug].filter((s): s is string => Boolean(s)),
       ),
     ),
@@ -132,34 +159,24 @@ export async function createOrderFromCheckout(
     ]);
   }
 
-  const extraIds = [...new Set(input.items.flatMap((i) => i.extraIds))];
+  const extraIds = [...new Set(items.flatMap((i) => i.extraIds))];
   const extras = extraIds.length
     ? await prisma.extra.findMany({ where: { storeId, id: { in: extraIds }, isActive: true } })
     : [];
   const extraById = new Map(extras.map((e) => [e.id, e]));
 
-  const lines: {
-    productId: string;
-    productNameSnapshot: string;
-    sizeLabel: string | null;
-    isHalfAndHalf: boolean;
-    secondProductId: string | null;
-    secondProductNameSnapshot: string | null;
-    unitPrice: number;
-    quantity: number;
-    note: string | null;
-    extras: {
-      extraId: string | null;
-      optionItemId: string | null;
-      groupNameSnapshot: string | null;
-      nameSnapshot: string;
-      priceSnapshot: number;
-    }[];
-  }[] = [];
+  const lines: LinhaDoPedido[] = [];
 
   let subtotal = 0;
 
-  for (const item of input.items) {
+  /**
+   * As mesmas linhas, no mesmo índice, com o que o cálculo do benefício
+   * precisa saber. Separadas de `lines` porque aquele objeto vai inteiro para
+   * o `create` do Prisma, e um campo a mais ali quebraria a criação.
+   */
+  const linhasParaBeneficio: LinhaParaBeneficio[] = [];
+
+  for (const item of items) {
     const product = productBySlug.get(item.productSlug);
     if (!product) {
       return { ok: false, error: `"${item.productSlug}" não está mais disponível.` };
@@ -258,9 +275,86 @@ export async function createOrderFromCheckout(
       note: item.note?.trim() || null,
       extras: todosAdicionais,
     });
+
+    linhasParaBeneficio.push({
+      productId: product.id,
+      categoryId: product.categoryId,
+      // O preço do item, sem os adicionais: o benefício é sobre a refeição, e
+      // não sobre a borda recheada que a pessoa escolheu pôr nela.
+      unitPrice: Math.round(unitPrice * 100) / 100,
+      quantity: item.quantity,
+    });
   }
 
-  subtotal = Math.round(subtotal * 100) / 100;
+  return {
+    ok: true,
+    lines,
+    linhasParaBeneficio,
+    subtotal: Math.round(subtotal * 100) / 100,
+  };
+}
+
+/**
+ * Creates an order, recomputing every price from the database. Nothing the
+ * client sends about money is trusted — only ids, sizes and quantities.
+ */
+export async function createOrderFromCheckout(
+  storeId: string,
+  input: CheckoutInput,
+): Promise<CheckoutResult> {
+  if (input.items.length === 0) return { ok: false, error: "O carrinho está vazio." };
+
+  const settings = await prisma.storeSettings.findUnique({ where: { storeId } });
+  if (!settings) return { ok: false, error: "A loja ainda não está configurada." };
+
+  if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
+    return { ok: false, error: "A loja não está aceitando entregas no momento." };
+  }
+  if (input.type === "PICKUP" && !settings.acceptsPickup) {
+    return { ok: false, error: "A loja não está aceitando retiradas no momento." };
+  }
+  const phone = input.customerPhone.replace(/\D/g, "");
+
+  /*
+   * Quem pediu é funcionário?
+   *
+   * A pergunta vem antes da forma de pagamento porque "desconto em folha" só
+   * existe para quem for reconhecido — e antes dos produtos porque um PIN
+   * errado tem de falhar dizendo que o PIN está errado, não depois de uma
+   * lista de outras conferências.
+   *
+   * Sem PIN informado, nada aqui acontece e o pedido segue o caminho de sempre.
+   */
+  const funcionario = input.employeePin
+    ? await findEmployeeForCheckout(prisma, storeId, phone)
+    : null;
+  if (input.employeePin) {
+    if (!funcionario || !(await verifyPassword(input.employeePin, funcionario.pinHash))) {
+      // A mesma mensagem para "não é funcionário" e "PIN errado": separá-las
+      // transformaria o checkout num jeito de descobrir quem trabalha na loja.
+      return { ok: false, error: "Telefone ou PIN de funcionário não confere." };
+    }
+    if (!funcionario.plano) {
+      return {
+        ok: false,
+        error: "Seu cadastro ainda não tem um benefício definido. Fale com a loja.",
+      };
+    }
+  }
+
+  if (input.paymentMethod === "PAYROLL") {
+    // Desconto em folha não é forma de pagamento da loja: não está em
+    // `acceptedPaymentMethods` e é o plano que o libera, pessoa a pessoa.
+    if (!funcionario?.plano?.allowPayroll) {
+      return { ok: false, error: "Desconto em folha não está liberado para este pedido." };
+    }
+  } else if (!settings.acceptedPaymentMethods.includes(input.paymentMethod)) {
+    return { ok: false, error: "Forma de pagamento não aceita." };
+  }
+
+  const precos = await precificarItens(storeId, input.items);
+  if (!precos.ok) return precos;
+  const { lines, linhasParaBeneficio, subtotal } = precos;
 
   if (subtotal < settings.minOrderValue) {
     return {
@@ -269,10 +363,37 @@ export async function createOrderFromCheckout(
     };
   }
 
+  /*
+   * O benefício do funcionário.
+   *
+   * Calculado aqui, e não só dentro da transação, por dois motivos: é o que
+   * decide se o cupom logo abaixo pode ser aceito, e um erro precisa poder
+   * sair antes de qualquer escrita. O número é refeito lá dentro, com a cota
+   * relida — este aqui não é o que vai para o pedido.
+   */
+  const beneficio: ResultadoDoBeneficio | null = funcionario?.plano
+    ? calcularBeneficio(
+        funcionario.plano,
+        linhasParaBeneficio,
+        await lerUsoDoDia(prisma, storeId, funcionario.id),
+      )
+    : null;
+
   // Coupon
-  let discount = 0;
+  let descontoDoCupom = 0;
   let couponId: string | null = null;
   if (input.couponCode) {
+    /*
+     * Os dois não somam. Somar deixaria um lanche de funcionário chegar perto
+     * de zero com um cupom de campanha que não foi feito para ele, e o dono
+     * só descobriria isso no fechamento do mês.
+     */
+    if (beneficio && beneficio.descontoTotal > 0) {
+      return {
+        ok: false,
+        error: "Este pedido já tem o desconto de funcionário; o cupom não acumula.",
+      };
+    }
     const coupon = await prisma.coupon.findFirst({
       where: { storeId, code: input.couponCode.trim().toUpperCase() },
     });
@@ -287,11 +408,11 @@ export async function createOrderFromCheckout(
     ) {
       return { ok: false, error: "Cupom inválido ou expirado." };
     }
-    discount =
+    descontoDoCupom =
       coupon.discountType === "PERCENTAGE"
         ? (subtotal * coupon.discountValue) / 100
         : coupon.discountValue;
-    discount = Math.min(Math.round(discount * 100) / 100, subtotal);
+    descontoDoCupom = Math.min(Math.round(descontoDoCupom * 100) / 100, subtotal);
     couponId = coupon.id;
   }
 
@@ -301,14 +422,34 @@ export async function createOrderFromCheckout(
       ? settings.deliveryFee
       : 0;
 
-  const total = Math.round((subtotal + deliveryFee - discount) * 100) / 100;
-
   const estimatedMinutes =
     input.type === "DELIVERY" ? settings.estimatedDeliveryMinMax : settings.estimatedPickupMinMax;
 
-  const phone = input.customerPhone.replace(/\D/g, "");
-
   const order = await prisma.$transaction(async (tx) => {
+    /*
+     * A cota é relida aqui dentro, e o desconto refeito com ela.
+     *
+     * Sem isto, duas abas abertas gastariam a mesma cota duas vezes: as duas
+     * leriam "nenhum item usado hoje", as duas dariam o desconto inteiro, e o
+     * funcionário almoçaria de graça duas vezes com uma cota de uma. O número
+     * calculado lá em cima serve para conferir o cupom e para a prévia; o que
+     * vai para o pedido é este.
+     */
+    const beneficioFinal = funcionario?.plano
+      ? calcularBeneficio(
+          funcionario.plano,
+          linhasParaBeneficio,
+          await lerUsoDoDia(tx, storeId, funcionario.id),
+        )
+      : null;
+
+    const employeeDiscount = beneficioFinal?.descontoTotal ?? 0;
+    const discount = Math.min(
+      Math.round((employeeDiscount + descontoDoCupom) * 100) / 100,
+      subtotal,
+    );
+    const total = Math.round((subtotal + deliveryFee - discount) * 100) / 100;
+
     const customer = await tx.customer.upsert({
       where: { storeId_phone: { storeId, phone } },
       create: { storeId, phone, name: input.customerName },
@@ -343,6 +484,12 @@ export async function createOrderFromCheckout(
         discount,
         total,
         couponId,
+        employeeId: funcionario?.id ?? null,
+        // O nome vai copiado: apagar a ficha do funcionário um dia não pode
+        // apagar o registro de quem pegou o quê.
+        employeeNameSnapshot: funcionario?.name ?? null,
+        employeeDiscount,
+        employeeBenefitNote: beneficioFinal?.nota ?? null,
         deliveryStreet: input.delivery?.street ?? null,
         deliveryNumber: input.delivery?.number ?? null,
         deliveryComplement: input.delivery?.complement ?? null,
@@ -354,8 +501,12 @@ export async function createOrderFromCheckout(
         estimatedDeliveryAt: new Date(Date.now() + estimatedMinutes * 60_000),
         autoPrintRequested: settings.autoPrintEnabled,
         items: {
-          create: lines.map(({ extras: lineExtras, ...line }) => ({
+          create: lines.map(({ extras: lineExtras, ...line }, i) => ({
             ...line,
+            // Por linha, porque a cota pode acabar no meio de uma: dois com
+            // desconto e o terceiro cheio não cabe num campo único do pedido.
+            employeeDiscount: beneficioFinal?.porLinha[i]?.desconto ?? 0,
+            benefitQuantity: beneficioFinal?.porLinha[i]?.quantidade ?? 0,
             extras: { create: lineExtras },
           })),
         },
@@ -429,7 +580,7 @@ export async function transitionOrderStatus(
   // not be found, not be moved.
   const order = await prisma.order.findFirst({
     where: { id: orderId, storeId },
-    select: { status: true, type: true, courierId: true },
+    select: { status: true, type: true, courierId: true, paymentMethod: true },
   });
   if (!order) return { ok: false, error: "Pedido não encontrado." };
   if (order.status === status) return { ok: true };
@@ -459,8 +610,17 @@ export async function transitionOrderStatus(
       where: { id: orderId },
       data: {
         status,
-        // Completing an order settles the payment for cash/on-delivery flows.
-        ...(status === "COMPLETED" ? { paymentStatus: "PAID" as const } : {}),
+        /*
+         * Completing an order settles the payment for cash/on-delivery flows.
+         *
+         * Menos o desconto em folha: ali o pedido é entregue e continua não
+         * pago de propósito, porque o acerto é no salário no fim do mês. Sem
+         * esta exceção, todo pedido de funcionário se quitaria sozinho ao ser
+         * concluído e o total a descontar seria sempre zero.
+         */
+        ...(status === "COMPLETED" && order.paymentMethod !== "PAYROLL"
+          ? { paymentStatus: "PAID" as const }
+          : {}),
         // Sair do preparo encerra a espera de qualquer jeito: o pedido saiu,
         // foi cancelado ou virou retirada, e nenhum deles ainda aguarda alguem.
         awaitingCourierSince: null,

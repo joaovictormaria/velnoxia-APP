@@ -43,6 +43,29 @@ enum DiscountType {
   FIXED_AMOUNT
 }
 
+/// Como o benefício do funcionário se aplica a um item.
+///
+/// NONE existe para poder dizer "aqui não tem desconto" numa exceção sem
+/// apagá-la: é assim que "50% em lanches, nada em bebidas" se escreve.
+enum EmployeeBenefitType {
+  NONE
+  PERCENTAGE
+  FIXED_AMOUNT
+  /// Preço de funcionário: o item passa a custar este valor, e nunca mais caro
+  /// do que já custava.
+  FIXED_PRICE
+}
+
+/// Como a cota diária é contada. O dono escolhe uma; as outras ficam sem efeito.
+enum EmployeeLimitMode {
+  NONE
+  ITEMS_PER_DAY
+  AMOUNT_PER_DAY
+  /// O limite mora em cada exceção (`EmployeeBenefitRule.dailyLimit`), e não no
+  /// plano: "1 lanche e 2 bebidas" são dois números diferentes.
+  PER_CATEGORY
+}
+
 enum OrderType {
   DELIVERY
   PICKUP
@@ -61,6 +84,10 @@ enum PaymentMethod {
   CREDIT_CARD
   DEBIT_CARD
   CASH
+  /// Desconto em folha. Fica de fora de `acceptedPaymentMethods` de propósito:
+  /// não é uma forma de pagamento da loja, é um acerto com o funcionário, e só
+  /// aparece no checkout de quem foi reconhecido por um plano que a permite.
+  PAYROLL
 }
 
 enum PaymentStatus {
@@ -153,6 +180,8 @@ model Store {
   courierInvites       CourierInvite[]
   promotions    Promotion[]
   notifications Notification[]
+  employees            Employee[]
+  employeeBenefitPlans EmployeeBenefitPlan[]
 
   @@index([status])
 }
@@ -287,6 +316,7 @@ model Category {
   products Product[]
   sizes      CategorySize[]
   optionGroups OptionGroup[]
+  employeeBenefitRules EmployeeBenefitRule[]
 
   @@unique([storeId, slug])
   @@index([storeId, sortOrder])
@@ -314,6 +344,7 @@ model Product {
   sizes        ProductSize[]
   orderItems   OrderItem[]
   optionGroups OptionGroup[]
+  employeeBenefitRules EmployeeBenefitRule[]
 
   @@unique([storeId, slug])
   @@index([categoryId, isActive])
@@ -490,6 +521,111 @@ model Customer {
   @@unique([storeId, phone])
 }
 
+// ---------- Funcionários ----------
+
+/**
+ * Quem trabalha na loja e come nela.
+ *
+ * Não é um `AdminUser`: o funcionário não entra no painel, não tem senha e não
+ * vê pedido nenhum. Ele pede pela vitrine como qualquer cliente, e o que o
+ * distingue é ser reconhecido no checkout. Por isso ele também continua tendo
+ * um `Customer` normal — o histórico dele como comprador é o de todo mundo.
+ *
+ * O reconhecimento é telefone + PIN. Só o telefone não bastaria: quem soubesse
+ * o número de um colega comeria com o desconto dele, e a conta só apareceria
+ * errada no fim do mês.
+ */
+model Employee {
+  id       String  @id @default(cuid())
+  storeId  String
+  store    Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name     String
+  /// A função, livre: "cozinha", "atendimento", "caixa". Só para o dono se
+  /// achar na lista — quem manda no desconto é o plano.
+  jobTitle String?
+  /// Só dígitos, no mesmo formato em que o checkout grava `customerPhone`. É a
+  /// chave do reconhecimento, e por isso é única dentro da loja.
+  phone    String
+  /// Guardado como hash, igual às senhas. Um PIN de 4 dígitos em texto puro no
+  /// banco é a mesma coisa que não ter PIN.
+  pinHash  String
+  /// Sem plano, o funcionário fica cadastrado mas não ganha nada — é o estado
+  /// de quem acabou de ser contratado e ainda não teve o benefício definido.
+  planId   String?
+  plan     EmployeeBenefitPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@unique([storeId, phone])
+  @@index([storeId, isActive])
+}
+
+/**
+ * O benefício de um grupo de funcionários: "Cozinha", "Atendimento".
+ *
+ * Mora num plano, e não em cada pessoa, porque a regra quase sempre é do cargo
+ * e não do indivíduo — mudar o desconto da cozinha teria de ser reescrito em
+ * cada ficha, e bastaria esquecer uma.
+ *
+ * A regra padrão vale para o cardápio inteiro; as exceções em
+ * `EmployeeBenefitRule` cobrem categoria e produto. São os dois juntos que
+ * fazem os quatro jeitos que o dono pediu caberem num mecanismo só: só o
+ * padrão é "% em tudo"; padrão NONE mais exceções por categoria é "% por
+ * categoria"; padrão NONE mais exceções por produto é "só nos marcados"; e
+ * exceções FIXED_PRICE são o preço de funcionário.
+ */
+model EmployeeBenefitPlan {
+  id           String              @id @default(cuid())
+  storeId      String
+  store        Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name         String
+  defaultType  EmployeeBenefitType @default(NONE)
+  defaultValue Float               @default(0)
+  limitMode    EmployeeLimitMode   @default(NONE)
+  /// Itens por dia ou reais por dia, conforme o modo. Ignorado em NONE e em
+  /// PER_CATEGORY, onde o número está em cada exceção.
+  limitValue   Float?
+  /// Libera "desconto em folha" no checkout de quem tem este plano. Sem isto, a
+  /// forma de pagamento não é oferecida e o servidor a recusa.
+  allowPayroll Boolean             @default(false)
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  rules     EmployeeBenefitRule[]
+  employees Employee[]
+
+  @@unique([storeId, name])
+}
+
+/**
+ * Uma exceção à regra padrão do plano, para uma categoria OU para um produto —
+ * nunca os dois, como nos `OptionGroup`.
+ *
+ * A resolução é produto > categoria > padrão: o item procura primeiro uma
+ * regra sua, depois uma da categoria dele, e só então cai no padrão do plano.
+ */
+model EmployeeBenefitRule {
+  id         String              @id @default(cuid())
+  planId     String
+  plan       EmployeeBenefitPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category?           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product?            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type       EmployeeBenefitType
+  value      Float               @default(0)
+  /// Quantas unidades por dia, quando o plano conta a cota por categoria.
+  dailyLimit Int?
+
+  @@unique([planId, categoryId])
+  @@unique([planId, productId])
+  @@index([planId])
+}
+
 // ---------- Pedidos ----------
 
 model Order {
@@ -520,6 +656,23 @@ model Order {
   /// de ser assim para não impedir a exclusão. Sem esta cópia, todo pedido que
   /// ele entregou passaria a dizer que ninguém levou.
   courierNameSnapshot String?
+
+  /// Quem pediu era funcionário. Reconhecido pelo telefone mais o PIN no
+  /// checkout — o funcionário pede pela vitrine como qualquer cliente, e é aqui
+  /// que fica registrado que aquele pedido saiu com benefício.
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  /// O nome copiado no momento do pedido, pelo mesmo motivo do
+  /// `courierNameSnapshot`: apagar a ficha do funcionário não pode apagar o
+  /// registro de quem pegou o quê.
+  employeeNameSnapshot String?
+  /// Quanto do `discount` veio do benefício. Redundante de propósito: o
+  /// relatório de pessoal precisa separar isto de um desconto de cupom, e os
+  /// dois moram no mesmo campo de total.
+  employeeDiscount     Float   @default(0)
+  /// Por qual regra, em português, para a tela do pedido explicar sem recalcular
+  /// nada: "Plano Cozinha — 30%; 2 itens fora da cota".
+  employeeBenefitNote  String?
 
   /// Marcado quando a comida ficou pronta e nao havia entregador para levar.
   /// E o que separa "ainda no forno" de "parado esperando alguem": sem isso a
@@ -566,6 +719,9 @@ model Order {
   @@index([storeId, status, createdAt])
   /// A tela do entregador so pergunta pelas entregas dele.
   @@index([courierId, status])
+  /// A cota do dia é uma pergunta por funcionário dentro de uma janela de
+  /// tempo, e ela é feita em todo checkout dele.
+  @@index([employeeId, createdAt])
   @@index([storeId, createdAt])
   @@index([customerId])
 }
@@ -587,6 +743,15 @@ model OrderItem {
   unitPrice Float
   quantity  Int    @default(1)
   note      String?
+
+  /// Quanto o benefício do funcionário tirou desta linha, no total (já
+  /// multiplicado pelas unidades que entraram na cota).
+  employeeDiscount Float @default(0)
+  /// Quantas unidades desta linha couberam na cota do dia. Menor que
+  /// `quantity` quando a cota acabou no meio da linha — é o que permite dizer
+  /// "dois com desconto, o terceiro cheio" em vez de tratar a linha inteira
+  /// como beneficiada ou não.
+  benefitQuantity  Int   @default(0)
 
   extras OrderItemExtra[]
 

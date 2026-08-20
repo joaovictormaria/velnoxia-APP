@@ -43,6 +43,7 @@ const PAYMENT_LABEL: Record<string, string> = {
   CREDIT_CARD: "Cartão de crédito",
   DEBIT_CARD: "Cartão de débito",
   CASH: "Dinheiro",
+  PAYROLL: "Desconto em folha",
 };
 
 const STATUS_META: Record<OrderStatus, { label: string; chip: string }> = {
@@ -334,10 +335,26 @@ function OrderDetailPage() {
               )}
               {order.discount > 0 && (
                 <Row
-                  label={`Desconto${order.coupon ? ` (${order.coupon.code})` : ""}`}
+                  label={
+                    order.employeeDiscount > 0
+                      ? `Desconto de funcionário${
+                          order.employeeNameSnapshot ? ` (${order.employeeNameSnapshot})` : ""
+                        }`
+                      : `Desconto${order.coupon ? ` (${order.coupon.code})` : ""}`
+                  }
                   value={`- ${currency.format(order.discount)}`}
                   accent="text-emerald-700"
                 />
+              )}
+              {/* Por qual regra o desconto saiu, em uma linha, sem o dono ter
+                  de abrir o plano e refazer a conta de cabeça. */}
+              {order.employeeBenefitNote && (
+                <p className="pt-0.5 text-xs text-neutral-500">{order.employeeBenefitNote}</p>
+              )}
+              {order.paymentMethod === "PAYROLL" && (
+                <p className="text-xs text-amber-700">
+                  A descontar em folha — o pedido fica em aberto até você quitar.
+                </p>
               )}
               <div className="flex items-baseline justify-between border-t border-neutral-200 pt-2">
                 <dt className="text-lg font-bold text-neutral-900">Total</dt>

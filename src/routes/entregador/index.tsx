@@ -30,6 +30,7 @@ const PAGAMENTO: Record<string, string> = {
   CREDIT_CARD: "Cartão de crédito",
   DEBIT_CARD: "Cartão de débito",
   CASH: "Dinheiro",
+  PAYROLL: "Desconto em folha",
 };
 
 type Entrega = Awaited<ReturnType<typeof listMyDeliveriesFn>>["emRota"][number];
@@ -178,7 +179,12 @@ function CartaoDeEntrega({
 
   // Só o que ainda não foi pago é dinheiro para receber na porta. Pix e cartão
   // já quitados viram uma linha informativa, não uma cobrança.
-  const receberNaEntrega = entrega.paymentStatus !== "PAID";
+  //
+  // Desconto em folha fica de fora: o pedido segue em aberto de propósito, mas
+  // quem acerta é a loja no salário — mandar o entregador cobrar na porta seria
+  // pedir duas vezes pela mesma comida.
+  const receberNaEntrega =
+    entrega.paymentStatus !== "PAID" && entrega.paymentMethod !== "PAYROLL";
 
   return (
     <article className="rounded-2xl bg-white p-5 shadow-sm">

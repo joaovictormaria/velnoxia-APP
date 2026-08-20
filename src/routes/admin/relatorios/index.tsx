@@ -26,6 +26,7 @@ const PAGAMENTO: Record<string, string> = {
   CASH: "Dinheiro",
   CREDIT_CARD: "Cartão de crédito",
   DEBIT_CARD: "Cartão de débito",
+  PAYROLL: "Desconto em folha",
 };
 
 function ReportsPage() {

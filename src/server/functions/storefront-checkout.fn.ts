@@ -22,8 +22,15 @@ const checkoutSchema = z.object({
   customerName: z.string().min(2, "Informe seu nome."),
   customerPhone: z.string().min(10, "Informe um telefone válido."),
   type: z.enum(["DELIVERY", "PICKUP"]),
-  paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH"]),
+  // PAYROLL entra aqui, mas quem o libera é o plano do funcionário: o serviço
+  // recusa quando não houver um, e ele nunca está em `acceptedPaymentMethods`.
+  paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH", "PAYROLL"]),
   couponCode: z.string().optional(),
+  /** Quatro dígitos, quando a pessoa se declara funcionária. */
+  employeePin: z
+    .string()
+    .regex(/^\d{4}$/)
+    .optional(),
   customerNote: z.string().max(500).optional(),
   delivery: z
     .object({
