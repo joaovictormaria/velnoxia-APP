@@ -10,8 +10,7 @@ import {
 import { saveProductFn } from "@/server/functions/products.fn";
 import { getBusinessTypeFn } from "@/server/functions/settings.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
-import { SecaoDoCardapio } from "@/components/site/pizzaria2/SecaoDoCardapio";
-import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
+import { CardsDoCardapio } from "@/components/admin/preview/CardsDoCardapio";
 import { aplicarRascunhoDeProduto } from "@/lib/previa/aplicar-rascunho";
 
 export type ProductFormValues = {
@@ -166,42 +165,45 @@ export function ProductForm({
         </p>
       )}
 
-      {/* O produto no meio do cardápio, como o cliente o encontra: foto,
-          etiqueta, descrição e preço já no lugar. É a resposta para "como isso
-          vai ficar", que antes exigia salvar e abrir a loja noutra aba. */}
-      {storeSlug && (
-      <PreviaDaVitrine
-        storeSlug={storeSlug}
-        aplicar={(payload) =>
-          aplicarRascunhoDeProduto(payload, {
-            id: productId,
-            name: values.name,
-            slug: values.slug,
-            description: values.description,
-            categoryId: values.categoryId,
-            basePrice: values.basePrice,
-            imageUrl: values.imageUrl,
-            tag: values.tag,
-            isActive: values.isActive,
-            allowHalfAndHalf: values.allowHalfAndHalf,
-            sortOrder: values.sortOrder,
-            // O rótulo do tamanho mora na categoria; o formulário guarda só o
-            // id, e a vitrine precisa do nome para escrever "Grande".
-            sizes: values.sizes.map((t) => ({
-              ...t,
-              label: tamanhosDaCategoria.find((x) => x.id === t.categorySizeId)?.label ?? "",
-            })),
-          })
-        }
-      >
-        <SecaoDoCardapio>
-          <CategorySaboresSection defaultCategorySlug={slugDaCategoria} />
-        </SecaoDoCardapio>
-      </PreviaDaVitrine>
-      )}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        {/* Topo à direita, como na tela de categorias: os campos ficam ao lado
+            e a prévia acompanha o que se digita sem sair do campo de visão. */}
+        <div className="lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1">
+          {/* O produto no meio do cardápio, como o cliente o encontra: foto,
+              etiqueta, descrição e preço já no lugar. É a resposta para "como isso
+              vai ficar", que antes exigia salvar e abrir a loja noutra aba. */}
+          {storeSlug && (
+          <PreviaDaVitrine
+            storeSlug={storeSlug}
+            aplicar={(payload) =>
+              aplicarRascunhoDeProduto(payload, {
+                id: productId,
+                name: values.name,
+                slug: values.slug,
+                description: values.description,
+                categoryId: values.categoryId,
+                basePrice: values.basePrice,
+                imageUrl: values.imageUrl,
+                tag: values.tag,
+                isActive: values.isActive,
+                allowHalfAndHalf: values.allowHalfAndHalf,
+                sortOrder: values.sortOrder,
+                // O rótulo do tamanho mora na categoria; o formulário guarda só o
+                // id, e a vitrine precisa do nome para escrever "Grande".
+                sizes: values.sizes.map((t) => ({
+                  ...t,
+                  label: tamanhosDaCategoria.find((x) => x.id === t.categorySizeId)?.label ?? "",
+                })),
+              })
+            }
+            largura={1000}
+          >
+            <CardsDoCardapio categorySlug={slugDaCategoria} />
+          </PreviaDaVitrine>
+          )}
+        </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr_300px]">
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-1">
           <ImageUploadField
             kind="product"
             label="Foto do produto"
@@ -210,7 +212,7 @@ export function ProductForm({
           />
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
+        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-2">
           <Field label="Nome do produto">
             <input
               value={values.name}
@@ -367,7 +369,7 @@ export function ProductForm({
           </div>
         </div>
 
-        <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-5">
+        <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-3">
           <p className="text-sm font-semibold text-neutral-900">Opções</p>
 
           <Toggle

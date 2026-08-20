@@ -18,7 +18,7 @@ import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
  * cards de produto não cabiam e transbordavam pela direita — a prévia mostrava
  * um layout apertado que a loja de verdade nunca tem.
  */
-const LARGURA_DA_VITRINE = 1800;
+const LARGURA_PADRAO = 1800;
 
 
 /**
@@ -32,13 +32,25 @@ const LARGURA_DA_VITRINE = 1800;
 export function PreviaDaVitrine({
   storeSlug,
   aplicar,
+  aplicarLoja,
   altura = 360,
+  largura = LARGURA_PADRAO,
   children,
 }: {
   storeSlug: string;
   /** Recebe o cardápio salvo e devolve com o rascunho por cima. */
-  aplicar: (payload: MenuPayload) => MenuPayload;
+  aplicar?: (payload: MenuPayload) => MenuPayload;
+  /** O mesmo para os dados da loja: nome, logo e cores. */
+  aplicarLoja?: (loja: StorePayload) => StorePayload;
   altura?: number;
+  /**
+   * Em que largura montar a vitrine antes de encolher.
+   *
+   * Menor aproxima: a tela de Produtos mostra só a fileira de cards, e ali
+   * cabe uma largura menor — o resultado é o card grande o bastante para se
+   * julgar a foto e a etiqueta.
+   */
+  largura?: number;
   /** O pedaço da vitrine a mostrar. */
   children: ReactNode;
 }) {
@@ -59,7 +71,13 @@ export function PreviaDaVitrine({
         Carregando a prévia...
       </div>
     ) : (
-      <Palco data={data} aplicar={aplicar} preencher={preencher}>
+      <Palco
+        data={data}
+        aplicar={aplicar}
+        aplicarLoja={aplicarLoja}
+        largura={largura}
+        preencher={preencher}
+      >
         {children}
       </Palco>
     );
@@ -150,17 +168,24 @@ function ModalDaPrevia({ onFechar, children }: { onFechar: () => void; children:
 function Palco({
   data,
   aplicar,
+  aplicarLoja,
+  largura,
   preencher,
   children,
 }: {
   data: MenuPayload & { store: StorePayload };
-  aplicar: (p: MenuPayload) => MenuPayload;
+  aplicar?: (p: MenuPayload) => MenuPayload;
+  aplicarLoja?: (l: StorePayload) => StorePayload;
+  largura: number;
   /** No modal a vitrine se centra na altura toda; encaixada, ela a define. */
   preencher: boolean;
   children: ReactNode;
 }) {
   const caixa = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(0.4);
+  // A cor sai daqui e pinta tudo: o brandTheme abaixo lê desta loja, não da
+  // salva, senão trocar a cor não mudaria nada na prévia.
+  const loja = aplicarLoja ? aplicarLoja(data.store) : data.store;
 
   /**
    * A escala sai só da largura disponível.
@@ -177,12 +202,12 @@ function Palco({
   useEffect(() => {
     const alvo = caixa.current;
     if (!alvo) return;
-    const medir = () => setEscala(Math.min(1, alvo.clientWidth / LARGURA_DA_VITRINE));
+    const medir = () => setEscala(Math.min(1, alvo.clientWidth / largura));
     medir();
     const observador = new ResizeObserver(medir);
     observador.observe(alvo);
     return () => observador.disconnect();
-  }, []);
+  }, [largura]);
 
   return (
     /**
@@ -203,14 +228,14 @@ function Palco({
       <div
         aria-hidden
         className="pointer-events-none select-none"
-        style={{ width: LARGURA_DA_VITRINE, zoom: escala }}
+        style={{ width: largura, zoom: escala }}
       >
-        <StoreProvider payload={data.store}>
-          <MenuProvider payload={aplicar(data)}>
+        <StoreProvider payload={loja}>
+          <MenuProvider payload={aplicar ? aplicar(data) : data}>
             <CartProvider>
               <div
                 className="pizzaria2 bg-cream font-sans text-charcoal"
-                style={brandTheme(data.store) as React.CSSProperties}
+                style={brandTheme(loja) as React.CSSProperties}
               >
                 {children}
               </div>

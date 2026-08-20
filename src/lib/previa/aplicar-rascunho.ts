@@ -193,3 +193,49 @@ function posicionar(
   const posicao = Math.max(0, Math.min(produtos.length, sortOrder - 1));
   return [...produtos.slice(0, posicao), produto, ...produtos.slice(posicao)];
 }
+
+/**
+ * Os campos da tela de Configurações que mudam a cara da loja.
+ *
+ * Só os que a vitrine lê. Endereço, horários e formas de pagamento também são
+ * editados ali, mas não mudam nada do que a prévia mostra.
+ */
+export type RascunhoDaLoja = {
+  storeName: string;
+  tagline: string;
+  heroSubtitle: string;
+  description: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  colorMode: string;
+  secondaryColor: string;
+  tertiaryColor: string;
+};
+
+/**
+ * Aplica na loja o que está sendo editado em Configurações.
+ *
+ * A cor entra por aqui e chega à vitrine inteira: é dela que saem os botões,
+ * as etiquetas e os preços. É o campo em que a lojista mais mexe às cegas,
+ * porque um código hexadecimal não diz nada sobre como a loja vai ficar.
+ */
+export function aplicarRascunhoDaLoja<T extends RascunhoDaLoja>(
+  loja: T,
+  rascunho: RascunhoDaLoja | null,
+): T {
+  if (!rascunho) return loja;
+  return {
+    ...loja,
+    storeName: rascunho.storeName,
+    // Vazio vira null porque é assim que o banco guarda, e a vitrine decide o
+    // que mostrar no lugar a partir disso.
+    tagline: rascunho.tagline || null,
+    heroSubtitle: rascunho.heroSubtitle || null,
+    description: rascunho.description || null,
+    logoUrl: rascunho.logoUrl,
+    primaryColor: rascunho.primaryColor,
+    colorMode: rascunho.colorMode,
+    secondaryColor: rascunho.secondaryColor || null,
+    tertiaryColor: rascunho.tertiaryColor || null,
+  };
+}
