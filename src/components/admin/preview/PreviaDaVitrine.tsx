@@ -83,7 +83,7 @@ export function PreviaDaVitrine({
   }, []);
 
   return (
-    <section className="mb-6 overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+    <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
       <header className="flex items-center gap-2 border-b border-neutral-200 px-4 py-2.5">
         <Eye className="size-4 text-neutral-500" />
         <p className="text-sm font-semibold text-neutral-900">Prévia do seu cardápio</p>

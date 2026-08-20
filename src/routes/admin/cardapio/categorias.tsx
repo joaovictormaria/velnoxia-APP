@@ -133,20 +133,6 @@ function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Em cima e ocupando a largura toda: a vitrine é desenhada para tela
-          larga, e mostrá-la numa coluna estreita exibiria um layout que
-          nenhum cliente da loja vai ver. */}
-      {/* admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
-          precisa da guarda para não depender dessa suposição. */}
-      {draft && admin && (
-        <PreviaDaVitrine
-          storeSlug={admin.store.slug}
-          aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
-        >
-          <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
-        </PreviaDaVitrine>
-      )}
-
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-neutral-900">Categorias</h1>
         <button
@@ -180,7 +166,24 @@ function CategoriesPage() {
           }}
           className="grid grid-cols-1 gap-4 rounded-2xl border border-neutral-200 bg-white p-5 md:grid-cols-5"
         >
-          <label className="space-y-1.5 md:col-span-2">
+          {/* Canto superior direito, ocupando as três primeiras linhas: os campos
+              de identidade ficam ao lado dela, e o resto do formulário corre
+              por baixo em largura inteira.
+              admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
+              precisa da guarda para não depender dessa suposição. */}
+          {admin && (
+            <div className="md:col-span-2 md:col-start-4 md:row-span-3 md:row-start-1">
+              <PreviaDaVitrine
+                storeSlug={admin.store.slug}
+                altura={360}
+                aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
+              >
+                <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
+              </PreviaDaVitrine>
+            </div>
+          )}
+
+          <label className="space-y-1.5 md:col-span-3">
             <span className="text-sm font-medium text-neutral-900">Nome</span>
             <input
               value={draft.name}
@@ -210,7 +213,7 @@ function CategoriesPage() {
             />
           </label>
 
-          <div className="space-y-1.5 md:col-span-5">
+          <div className="space-y-1.5 md:col-span-3">
             <span className="block text-sm font-medium text-neutral-900">Ícone</span>
             <IconPicker
               value={draft.icon}
