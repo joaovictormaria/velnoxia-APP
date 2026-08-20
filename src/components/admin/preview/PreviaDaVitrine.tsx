@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Eye, Loader2 } from "lucide-react";
+import { Eye, Loader2, Maximize2, X } from "lucide-react";
 import { CartProvider } from "@/lib/pizzaria2/cart";
 import { MenuProvider, type MenuPayload } from "@/lib/pizzaria2/menu-provider";
 import { StoreProvider, type StorePayload } from "@/lib/pizzaria2/store-provider";
@@ -8,25 +8,13 @@ import { brandTheme } from "@/lib/pizzaria2/brand-theme";
 import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
 
 /**
- * O quanto a prévia se afasta.
+ * A largura em que a vitrine é montada antes de encolher.
  *
- * Em painel largo a vitrine cabia em tamanho real, e o que entrava na altura
- * era só o começo da seção — um nariz colado na tela. Afastar mostra o bloco
- * inteiro e onde ele se encaixa no resto da página.
- *
- * É o mesmo que dar zoom-out no navegador: a janela passa a valer mais pixels.
- * Por isso a largura de renderização cresce junto — se ficasse fixa, a prévia
- * encolheria e sobraria uma faixa vazia à direita.
+ * Fixa, e não derivada do espaço disponível: é ela que decide qual layout a
+ * vitrine escolhe. Deixá-la variar faria a lojista ver o cardápio empilhado de
+ * celular numa tela e o de computador em outra, sem ter mudado nada.
  */
-const AFASTAMENTO = 0.7;
-
-/**
- * Abaixo disto a vitrine troca para o layout de celular.
- *
- * Num painel estreito a conta daria uma largura pequena, e a lojista veria o
- * cardápio empilhado — que não é o que ela está editando nesta tela.
- */
-const LARGURA_MINIMA = 1180;
+const LARGURA_DA_VITRINE = 1280;
 
 /**
  * A vitrine de verdade dentro do painel, refletindo o que ainda não foi salvo.
@@ -35,15 +23,11 @@ const LARGURA_MINIMA = 1180;
  * É o que garante que a prévia não passe a mentir quando a vitrine mudar — e
  * uma prévia que mente é pior do que nenhuma, porque a lojista salva confiando
  * nela.
- *
- * Fica em cima e ocupa a largura toda, com altura limitada: a vitrine é
- * desenhada para tela larga, e espremê-la numa coluna lateral mostraria um
- * layout que ninguém nunca vai ver.
  */
 export function PreviaDaVitrine({
   storeSlug,
   aplicar,
-  altura = 520,
+  altura = 360,
   children,
 }: {
   storeSlug: string;
@@ -53,6 +37,8 @@ export function PreviaDaVitrine({
   /** O pedaço da vitrine a mostrar. */
   children: ReactNode;
 }) {
+  const [ampliada, setAmpliada] = useState(false);
+
   const { data, isPending } = useQuery({
     queryKey: ["previa-da-vitrine", storeSlug],
     queryFn: () => getStorefrontMenuFn({ data: { storeSlug } }),
@@ -61,107 +47,177 @@ export function PreviaDaVitrine({
     staleTime: 30_000,
   });
 
-  const caixa = useRef<HTMLDivElement>(null);
-  const [medida, setMedida] = useState({ escala: AFASTAMENTO, largura: LARGURA_MINIMA });
-
-  // Medido da largura real, não de pontos de quebra: o menu do painel recolhe
-  // e expande, e a prévia acompanha.
-  useEffect(() => {
-    const alvo = caixa.current;
-    if (!alvo) return;
-    const medir = () => {
-      const disponivel = alvo.clientWidth;
-      const largura = Math.max(LARGURA_MINIMA, disponivel / AFASTAMENTO);
-      // A escala sai da razão entre as duas, e não da constante: assim o
-      // conteúdo reduzido preenche exatamente a caixa, sem sobra.
-      setMedida({ escala: disponivel / largura, largura });
-    };
-    medir();
-    const observador = new ResizeObserver(medir);
-    observador.observe(alvo);
-    return () => observador.disconnect();
-  }, []);
+  const conteudo =
+    isPending || !data ? (
+      <div className="flex h-full items-center justify-center gap-2 text-sm text-neutral-500">
+        <Loader2 className="size-4 animate-spin" />
+        Carregando a prévia...
+      </div>
+    ) : (
+      <Palco data={data} aplicar={aplicar}>
+        {children}
+      </Palco>
+    );
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
-      <header className="flex items-center gap-2 border-b border-neutral-200 px-4 py-2.5">
-        <Eye className="size-4 text-neutral-500" />
-        <p className="text-sm font-semibold text-neutral-900">Prévia do seu cardápio</p>
-        <p className="text-xs text-neutral-500">— como fica para o cliente, antes de salvar</p>
-      </header>
-
-      <div ref={caixa} className="relative bg-[#FDF8F3]" style={{ height: altura }}>
-        {isPending || !data ? (
-          <div className="flex h-full items-center justify-center gap-2 text-sm text-neutral-500">
-            <Loader2 className="size-4 animate-spin" />
-            Carregando a prévia...
-          </div>
-        ) : (
-          <Palco
-            escala={medida.escala}
-            largura={medida.largura}
-            altura={altura}
-            data={data}
-            aplicar={aplicar}
+    <>
+      <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white">
+        <header className="flex items-center gap-2 border-b border-neutral-200 px-4 py-2.5">
+          <Eye className="size-4 shrink-0 text-neutral-500" />
+          <p className="truncate text-sm font-semibold text-neutral-900">Prévia do seu cardápio</p>
+          <button
+            type="button"
+            onClick={() => setAmpliada(true)}
+            title="Ver em tamanho maior"
+            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-300 px-2.5 py-1 text-xs font-medium text-neutral-600 hover:border-[#E11D2E] hover:text-[#E11D2E]"
           >
-            {children}
-          </Palco>
-        )}
+            <Maximize2 className="size-3.5" />
+            Ampliar
+          </button>
+        </header>
+
+        <div className="bg-[#FDF8F3]" style={{ height: altura }}>
+          {conteudo}
+        </div>
+      </section>
+
+      {ampliada && <ModalDaPrevia onFechar={() => setAmpliada(false)}>{conteudo}</ModalDaPrevia>}
+    </>
+  );
+}
+
+/**
+ * A prévia em tela cheia, para conferir o resultado sem apertar os olhos.
+ *
+ * Encaixada ao lado do formulário, a vitrine aparece a menos de metade do
+ * tamanho: serve para acompanhar o que muda enquanto se digita, mas não para
+ * ler. Aqui ela cabe grande, e o formulário continua logo atrás.
+ */
+function ModalDaPrevia({ onFechar, children }: { onFechar: () => void; children: ReactNode }) {
+  // Esc fecha: é a tecla que qualquer pessoa tenta primeiro, e sem ela a única
+  // saída seria mirar no botão.
+  useEffect(() => {
+    const aoTeclar = (e: KeyboardEvent) => e.key === "Escape" && onFechar();
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [onFechar]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 sm:p-8"
+      onClick={onFechar}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Prévia do cardápio"
+        // Clique dentro não fecha: só o fundo e o Esc fecham.
+        onClick={(e) => e.stopPropagation()}
+        className="flex h-full max-h-[90vh] w-full max-w-350 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+      >
+        <header className="flex items-center gap-2 border-b border-neutral-200 px-5 py-3">
+          <Eye className="size-4 text-neutral-500" />
+          <p className="text-sm font-semibold text-neutral-900">Prévia do seu cardápio</p>
+          <p className="hidden text-xs text-neutral-500 sm:block">
+            — como fica para o cliente, antes de salvar
+          </p>
+          <button
+            type="button"
+            onClick={onFechar}
+            aria-label="Fechar prévia"
+            className="ml-auto rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+          >
+            <X className="size-5" />
+          </button>
+        </header>
+        <div className="flex-1 overflow-hidden bg-[#FDF8F3]">{children}</div>
       </div>
-    </section>
+    </div>
   );
 }
 
 function Palco({
-  escala,
-  largura,
-  altura,
   data,
   aplicar,
   children,
 }: {
-  escala: number;
-  largura: number;
-  altura: number;
   data: MenuPayload & { store: StorePayload };
   aplicar: (p: MenuPayload) => MenuPayload;
   children: ReactNode;
 }) {
-  const comRascunho = aplicar(data);
+  const caixa = useRef<HTMLDivElement>(null);
+  const conteudo = useRef<HTMLDivElement>(null);
+  const [escala, setEscala] = useState(0.4);
+  /** A escala já aplicada, para desfazer o zoom ao medir a altura de novo. */
+  const escalaAtual = useRef(0.4);
+
+  /**
+   * A escala cabe a vitrine inteira na caixa, medindo as duas dimensões.
+   *
+   * Só pela largura, a seção terminava fora da caixa embaixo; só pela altura,
+   * os cards saíam pela direita. Era o que se via: conteúdo cortado de um lado
+   * e vazio do outro.
+   */
+  useEffect(() => {
+    const alvo = caixa.current;
+    const dentro = conteudo.current;
+    if (!alvo || !dentro) return;
+
+    const medir = () => {
+      // offsetHeight já vem com o zoom aplicado; dividir devolve o tamanho
+      // real, senão cada medição usaria a escala anterior e ela iria encolhendo.
+      const alturaReal = dentro.offsetHeight / (escalaAtual.current || 1);
+      if (alturaReal < 1) return;
+      const nova = Math.min(
+        alvo.clientWidth / LARGURA_DA_VITRINE,
+        alvo.clientHeight / alturaReal,
+        1,
+      );
+      // O observador vigia o próprio conteúdo, e mudar a escala muda o tamanho
+      // dele. Sem esta margem, um arredondamento de meio pixel bastaria para
+      // as duas medidas ficarem se alternando e o navegador rodar em círculo.
+      if (Math.abs(nova - escalaAtual.current) < 0.005) return;
+      escalaAtual.current = nova;
+      setEscala(nova);
+    };
+
+    medir();
+    const observador = new ResizeObserver(medir);
+    observador.observe(alvo);
+    observador.observe(dentro);
+    return () => observador.disconnect();
+  }, [data, children]);
 
   return (
     /**
-     * O conteúdo é montado no tamanho de projeto e encolhido por transform, em
-     * vez de renderizado num espaço estreito: assim a lojista vê o layout que
-     * o cliente dela vê, e não uma versão que só existe aqui.
+     * Centralizado nos dois eixos, com zoom em vez de transform: zoom encolhe
+     * também o espaço que o elemento ocupa no layout, então o flex consegue
+     * centrá-lo. Com transform o elemento continuaria do tamanho original para
+     * o layout, e a vitrine ficaria colada no canto de cima à esquerda.
      *
      * pointer-events desligado porque isto é uma imagem, não a loja. Sem isso,
-     * clicar num produto da prévia tiraria a lojista do formulário no meio da
-     * edição, perdendo o que ela digitou.
+     * clicar num produto tiraria a lojista do formulário no meio da edição.
      */
-    <div
-      aria-hidden
-      className="pointer-events-none select-none"
-      style={{
-        width: largura,
-        height: altura / escala,
-        transform: `scale(${escala})`,
-        transformOrigin: "top left",
-        overflow: "hidden",
-      }}
-    >
-      <StoreProvider payload={data.store}>
-        <MenuProvider payload={comRascunho}>
-          <CartProvider>
-            <div
-              className="pizzaria2 bg-cream font-sans text-charcoal"
-              style={brandTheme(data.store) as React.CSSProperties}
-            >
-              {children}
-            </div>
-          </CartProvider>
-        </MenuProvider>
-      </StoreProvider>
+    <div ref={caixa} className="flex h-full w-full items-center justify-center overflow-hidden">
+      <div
+        ref={conteudo}
+        aria-hidden
+        className="pointer-events-none select-none"
+        style={{ width: LARGURA_DA_VITRINE, zoom: escala }}
+      >
+        <StoreProvider payload={data.store}>
+          <MenuProvider payload={aplicar(data)}>
+            <CartProvider>
+              <div
+                className="pizzaria2 bg-cream font-sans text-charcoal"
+                style={brandTheme(data.store) as React.CSSProperties}
+              >
+                {children}
+              </div>
+            </CartProvider>
+          </MenuProvider>
+        </StoreProvider>
+      </div>
     </div>
   );
 }
