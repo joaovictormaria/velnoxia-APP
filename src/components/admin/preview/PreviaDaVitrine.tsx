@@ -270,10 +270,18 @@ function Palco({
     const cPalco = centro(rPalco);
     const cMarca = centro(rMarca);
 
+    /*
+     * O deslocamento é dividido pela escala porque o translate mora DENTRO do
+     * elemento que tem zoom: o navegador multiplica o valor pela escala antes
+     * de mover. As medidas acima são de tela; sem dividir, a prévia parava a
+     * uma distância proporcional à escala do ponto certo — e como a escala é
+     * de um terço, parava a três vezes a distância.
+     */
+    const escalaViva = escala || 1;
     setEnquadre({
       k,
-      dx: cCaixa.x - cPalco.x - k * (cMarca.x - cPalco.x),
-      dy: cCaixa.y - cPalco.y - k * (cMarca.y - cPalco.y),
+      dx: (cCaixa.x - cPalco.x - k * (cMarca.x - cPalco.x)) / escalaViva,
+      dy: (cCaixa.y - cPalco.y - k * (cMarca.y - cPalco.y)) / escalaViva,
     });
   }, [foco, escala, largura]);
 
