@@ -5,6 +5,7 @@ import {
   InstagramIcon,
   TikTokIcon,
 } from "@/components/site/pizzaria2/SocialIcons";
+import { buscaNoMapa } from "@/lib/endereco";
 
 export type Weekday =
   | "MONDAY"
@@ -142,15 +143,24 @@ function buildOpeningHoursSummary(hours: StorePayload["openingHours"]): string[]
 
 function adapt(payload: StorePayload): StoreApi {
   const addressLines = buildAddressLines(payload);
-  const fullAddress = addressLines.join(", ");
 
   return {
     ...payload,
     addressLines,
     hasAddress: addressLines.length > 0,
-    mapsHref: fullAddress
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
-      : null,
+    /*
+     * O link não usa as linhas que a tela mostra: elas trazem o complemento,
+     * que não existe para o mapa, e deixam de fora o CEP, que é o que faz a
+     * busca acertar. As duas coisas se parecem e servem a propósitos diferentes.
+     */
+    mapsHref: buscaNoMapa({
+      street: payload.addressStreet,
+      number: payload.addressNumber,
+      neighborhood: payload.addressNeighborhood,
+      city: payload.addressCity,
+      state: payload.addressState,
+      zipCode: payload.addressZipCode,
+    }),
     whatsappHref: (message?: string) => whatsappLink(payload.whatsappNumber, message),
     socialLinks: buildSocialLinks(payload),
     openingHoursSummary: buildOpeningHoursSummary(payload.openingHours),

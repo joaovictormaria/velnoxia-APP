@@ -23,6 +23,7 @@ import {
   updateOrderStatusFn,
 } from "@/server/functions/orders.fn";
 import { DispatchDialog } from "@/components/admin/orders/DispatchDialog";
+import { buscaNoMapa } from "@/lib/endereco";
 
 export const Route = createFileRoute("/admin/pedidos/$orderId")({
   component: OrderDetailPage,
@@ -103,6 +104,15 @@ function OrderDetailPage() {
   const historyByStatus = new Map(order.statusHistory.map((h) => [h.status, h.createdAt]));
   const currentIndex = STEPS.findIndex((s) => s.status === order.status);
   const elapsed = Math.round((Date.now() - new Date(order.createdAt).getTime()) / 60_000);
+
+  const linkDoMapa = buscaNoMapa({
+    street: order.deliveryStreet,
+    number: order.deliveryNumber,
+    neighborhood: order.deliveryNeighborhood,
+    city: order.deliveryCity,
+    state: order.deliveryState,
+    zipCode: order.deliveryZipCode,
+  });
 
   const next =
     order.status === "RECEIVED"
@@ -225,19 +235,20 @@ function OrderDetailPage() {
                   .filter(Boolean)
                   .join(" - ")}
               </p>
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                  [order.deliveryStreet, order.deliveryNumber, order.deliveryCity]
-                    .filter(Boolean)
-                    .join(", "),
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[#E11D2E] px-3 py-1.5 text-sm text-[#E11D2E] hover:bg-red-50"
-              >
-                <MapPin className="size-4" />
-                Ver no mapa
-              </a>
+              {/* O bairro e o CEP entram na busca: sem eles o mapa não achava
+                  endereço nenhum em rua de nome repetido — e "Rua A" existe em
+                  meia dúzia de bairros na mesma cidade. */}
+              {linkDoMapa && (
+                <a
+                  href={linkDoMapa}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[#E11D2E] px-3 py-1.5 text-sm text-[#E11D2E] hover:bg-red-50"
+                >
+                  <MapPin className="size-4" />
+                  Ver no mapa
+                </a>
+              )}
 
               {order.courier?.name ?? order.courierNameSnapshot ? (
                 <p className="mt-3 flex items-center gap-2 border-t border-neutral-100 pt-3 text-sm text-neutral-800">

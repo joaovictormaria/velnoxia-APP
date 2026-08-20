@@ -22,16 +22,6 @@ export function distanciaEmMetros(
   return 2 * RAIO_TERRA * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/** Coordenada plausível: descarta lixo antes de virar distância sem sentido. */
-export function coordenadaValida(latitude: number, longitude: number) {
-  return (
-    Number.isFinite(latitude) &&
-    Number.isFinite(longitude) &&
-    Math.abs(latitude) <= 90 &&
-    Math.abs(longitude) <= 180
-  );
-}
-
 /**
  * Texto que o cliente lê.
  *
@@ -41,10 +31,14 @@ export function coordenadaValida(latitude: number, longitude: number) {
  * localizar o entregador com mais exatidão do que ele precisa.
  */
 export function textoDaDistancia(metros: number): string {
-  if (metros < 1000) {
-    const passo = Math.max(50, Math.round(metros / 50) * 50);
-    return `${passo} m`;
-  }
-  const km = Math.round(metros / 100) / 10;
+  /*
+   * Arredonda primeiro, escolhe a unidade depois. Na ordem inversa, qualquer
+   * valor entre 975 e 999 m entrava no ramo dos metros e saía arredondado para
+   * cima — a tela escrevia "1000 m", que ninguém fala, em vez de "1,0 km".
+   */
+  const passo = Math.max(50, Math.round(metros / 50) * 50);
+  if (passo < 1000) return `${passo} m`;
+
+  const km = Math.round(passo / 100) / 10;
   return `${km.toLocaleString("pt-BR", { minimumFractionDigits: 1 })} km`;
 }

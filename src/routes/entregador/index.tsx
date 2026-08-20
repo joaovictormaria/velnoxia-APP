@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { logoutFn } from "@/server/functions/auth.fn";
 import { useCourierLocation } from "@/lib/use-courier-location";
+import { rotaNoMapa } from "@/lib/endereco";
 import {
   listMyDeliveriesFn,
   markDeliveryDoneFn,
@@ -173,9 +174,16 @@ function CartaoDeEntrega({
   const complemento = [entrega.deliveryComplement, entrega.deliveryNeighborhood]
     .filter(Boolean)
     .join(" - ");
-  const buscaNoMapa = [endereco, entrega.deliveryNeighborhood, entrega.deliveryCity]
-    .filter(Boolean)
-    .join(", ");
+  // Rota, e não busca: com o endereço inteiro — estado, CEP e país inclusive —
+  // e já traçada a partir de onde ele está.
+  const rota = rotaNoMapa({
+    street: entrega.deliveryStreet,
+    number: entrega.deliveryNumber,
+    neighborhood: entrega.deliveryNeighborhood,
+    city: entrega.deliveryCity,
+    state: entrega.deliveryState,
+    zipCode: entrega.deliveryZipCode,
+  });
 
   // Só o que ainda não foi pago é dinheiro para receber na porta. Pix e cartão
   // já quitados viram uma linha informativa, não uma cobrança.
@@ -228,15 +236,19 @@ function CartaoDeEntrega({
           <Phone className="size-4" />
           Ligar
         </a>
-        <a
-          href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(buscaNoMapa)}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-xl border border-neutral-300 py-3 text-sm font-semibold text-neutral-700"
-        >
-          <MapPin className="size-4" />
-          Rota
-        </a>
+        {/* Sem rua nem CEP não há o que abrir: o botão sairia da tela em vez de
+            mandar o entregador para o centro da cidade. */}
+        {rota && (
+          <a
+            href={rota}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-2 rounded-xl border border-neutral-300 py-3 text-sm font-semibold text-neutral-700"
+          >
+            <MapPin className="size-4" />
+            Rota
+          </a>
+        )}
       </div>
 
       {/* Confirmação em dois toques: marcar entregue finaliza o pedido e não tem
