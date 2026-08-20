@@ -17,6 +17,14 @@ import { getStorefrontMenuFn } from "@/server/functions/storefront-menu.fn";
 const LARGURA_DA_VITRINE = 1280;
 
 /**
+ * A folga entre a vitrine e a borda do card, em pixels da tela.
+ *
+ * Sem ela o conteúdo encostava nos dois lados, e a prévia parecia um pedaço
+ * cortado de uma página maior em vez de uma página inteira em miniatura.
+ */
+const RESPIRO = 24;
+
+/**
  * A vitrine de verdade dentro do painel, refletindo o que ainda não foi salvo.
  *
  * Renderiza os mesmos componentes que o cliente da loja vê, não uma imitação.
@@ -172,7 +180,10 @@ function Palco({
   useEffect(() => {
     const alvo = caixa.current;
     if (!alvo) return;
-    const medir = () => setEscala(Math.min(1, alvo.clientWidth / LARGURA_DA_VITRINE));
+    // clientWidth inclui o preenchimento, então ele sai da conta: o que sobra
+    // é o espaço em que a vitrine pode caber de fato.
+    const medir = () =>
+      setEscala(Math.min(1, (alvo.clientWidth - RESPIRO * 2) / LARGURA_DA_VITRINE));
     medir();
     const observador = new ResizeObserver(medir);
     observador.observe(alvo);
@@ -191,6 +202,7 @@ function Palco({
      */
     <div
       ref={caixa}
+      style={{ padding: RESPIRO }}
       className={
         "flex w-full items-center justify-center overflow-hidden " + (preencher ? "h-full" : "")
       }
