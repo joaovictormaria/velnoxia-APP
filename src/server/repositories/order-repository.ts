@@ -29,6 +29,25 @@ const KANBAN_STATUSES: OrderStatus[] = [
   "COMPLETED",
 ];
 
+/**
+ * A ordem dentro de cada coluna, que não é a mesma para todas.
+ *
+ * As três primeiras são fila de trabalho: quem chegou primeiro fica em cima,
+ * e o pedido novo entra por baixo. Antes era o inverso, e isso empurrava para
+ * o topo justamente o pedido que podia esperar, enquanto quem já estava há
+ * vinte minutos descia a cada pedido que entrava.
+ *
+ * Finalizados é o oposto porque não é fila, é histórico: ali ninguém tem nada
+ * a fazer, e o que se procura é o pedido que acabou de sair — que deve estar
+ * no topo, e não no fim de uma lista que só cresce.
+ *
+ * A ordem também decide o que o `take` corta. Na fila, sobra de fora quem
+ * chegou por último; no histórico, o mais antigo.
+ */
+function ordemDaColuna(status: OrderStatus): "asc" | "desc" {
+  return status === "COMPLETED" ? "desc" : "asc";
+}
+
 /** Board data: a capped page per column plus the true total for "+ N pedidos". */
 export async function listKanbanOrders(
   storeId: string,
@@ -57,7 +76,7 @@ export async function listKanbanOrders(
       const [orders, total] = await Promise.all([
         prisma.order.findMany({
           where: { ...where, status },
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: ordemDaColuna(status) },
           take: perColumn,
           include: {
             items: {
