@@ -43,7 +43,6 @@ export class InventoryService {
       minimumThreshold: data.minimumThreshold,
       idealQuantity: data.idealQuantity,
       maximumCapacity: data.maximumCapacity,
-      store: { connect: { id: storeId } },
     });
   }
 
@@ -218,7 +217,7 @@ export class InventoryService {
       idempotencyKey: reversalKey,
       itemId: original.itemId,
       type: "REVERSAL",
-      quantity: original.quantity.mul(-1), // Inverse sign
+      quantity: original.quantity * -1,
       unitId: original.unitId,
       originalMovementId,
       reference: original.reference,
@@ -251,7 +250,7 @@ export class InventoryService {
     }
 
     // Check availability
-    const quantityAvailable = item.quantityOnHand.sub(item.quantityReserved);
+    const quantityAvailable = item.quantityOnHand - item.quantityReserved;
     if (quantityAvailable < quantity) {
       throw new Error(
         `Insufficient quantity. Available: ${quantityAvailable}, Requested: ${quantity}`

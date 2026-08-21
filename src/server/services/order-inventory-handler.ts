@@ -1,7 +1,6 @@
 import { prisma } from "@/server/db/client";
 import { InventoryService } from "@/server/services/inventory-service";
 import { CompositionService } from "@/server/services/composition-service";
-import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * Sincroniza mudanças de status de pedido com estoque
@@ -179,7 +178,7 @@ export class OrderInventoryHandler {
             idempotencyKey: reversalKey,
             itemId: movement.itemId,
             type: "REVERSAL",
-            quantity: movement.quantity.mul(-1),
+            quantity: movement.quantity * -1,
             unitId: movement.unitId,
             originalMovementId: movement.id,
             reference: orderId,

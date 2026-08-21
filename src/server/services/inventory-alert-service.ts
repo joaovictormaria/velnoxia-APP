@@ -1,5 +1,4 @@
-import { prisma } from '@/server/db/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { prisma } from "@/server/db/client";
 
 /**
  * Serviço de Alertas de Estoque

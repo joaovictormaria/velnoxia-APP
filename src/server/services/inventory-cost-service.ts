@@ -1,5 +1,4 @@
 import { prisma } from "@/server/db/client";
-import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * Serviço de Análise de Custos de Produção
