@@ -358,7 +358,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   {(item.quantityOnHand - item.quantityReserved).toFixed(2)}{" "}
                   {item.baseUnit.code}
                 </td>
-                <td className="px-4 py-2 text-right">R$ {item.cost.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-center">
                   {item.isActive ? (
                     <button
