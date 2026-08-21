@@ -142,9 +142,12 @@ export function InventoryGrid(props: InventoryGridProps) {
       const sku = (createdItem as any)?.sku || "gerado";
 
       console.log("✅ Item criado:", { itemId, sku, createdItem });
+      console.log("📝 newItem.initialQuantity:", newItem.initialQuantity);
 
       // Se houver quantidade inicial, registrar movimento
       const initialQty = newItem.initialQuantity?.trim();
+      console.log("🔍 Após trim, initialQty:", initialQty, "parseFloat:", parseFloat(initialQty || "0"));
+
       if (initialQty && parseFloat(initialQty) > 0 && itemId) {
         try {
           const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
