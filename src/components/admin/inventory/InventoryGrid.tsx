@@ -137,6 +137,7 @@ export function InventoryGrid(props: InventoryGridProps) {
         }
       };
 
+      const createdItem = await adminCreateInventoryItem(payload as any);
       console.log("[Create Item] Response from adminCreateInventoryItem:", createdItem);
       const itemId = (createdItem as any)?.id;
       const sku = (createdItem as any)?.sku || "gerado";
