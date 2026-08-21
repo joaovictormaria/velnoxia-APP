@@ -40,21 +40,16 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
     const admin = await requireAdminSession();
 
-    // Pegar dados do contexto de forma segura
-    const data = (context?.data || context) as any;
+    // Tentar pegar dados de vários lugares
+    let data = context?.data || context;
 
-    // DEBUGAR: Retornar exatamente o que recebeu
+    // Se ainda não tiver, tentar como argumento
+    if (!data || typeof data !== 'object') {
+      throw new Error(`Invalid data format. Received type: ${typeof context}, keys: ${Object.keys(context || {}).join(', ')}`);
+    }
+
     if (!data?.name || !data?.baseUnitId) {
-      const debugInfo = {
-        receivedContext: context,
-        receivedData: data,
-        keys: Object.keys(data || {}),
-        name: data?.name,
-        baseUnitId: data?.baseUnitId,
-        itemType: data?.itemType,
-        cost: data?.cost,
-      };
-      throw new Error(JSON.stringify(debugInfo, null, 2));
+      throw new Error(`Missing required fields. Got name="${data?.name}", baseUnitId="${data?.baseUnitId}"`);
     }
 
     let unitId = data.baseUnitId;
