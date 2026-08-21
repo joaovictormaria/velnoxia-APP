@@ -13,6 +13,7 @@ import {
   LogOut,
   Megaphone,
   Menu,
+  Package,
   PanelLeft,
   PanelLeftClose,
   Percent,
@@ -103,6 +104,7 @@ const MENU: (Item | Grupo)[] = [
       { to: "/admin/relatorios/funcionarios", label: "Funcionários", icon: BadgePercent },
     ],
   },
+  { to: "/admin/estoque", label: "Estoque & Produção", icon: Package },
   { to: "/admin/assinatura", label: "Assinatura", icon: CreditCard },
   { to: "/admin/configuracoes", label: "Configurações", icon: Cog },
 ];
