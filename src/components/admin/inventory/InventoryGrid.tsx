@@ -229,11 +229,43 @@ export function InventoryGrid(props: InventoryGridProps) {
                 onChange={(e) => setNewItem({ ...newItem, itemType: e.target.value })}
                 className="w-full px-3 py-2 border rounded bg-background text-foreground"
               >
-                <option value="INGREDIENT">Ingrediente</option>
-                <option value="RESALE">Revenda</option>
-                <option value="PRODUCED">Produzido</option>
-                <option value="PACKAGING">Embalagem</option>
+                <option value="INGREDIENT">🧪 Ingrediente</option>
+                <option value="RESALE">🛒 Revenda</option>
+                <option value="PRODUCED">🍕 Produzido</option>
+                <option value="PACKAGING">📦 Embalagem</option>
               </select>
+
+              {/* Descrição dinâmica do tipo selecionado */}
+              <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-700 border border-gray-200">
+                {newItem.itemType === "INGREDIENT" && (
+                  <>
+                    <strong>🧪 Ingrediente:</strong> Produtos que ENTRAM NA RECEITA.
+                    <br />
+                    Exemplos: Farinha de Trigo, Queijo, Molho, Calabresa
+                  </>
+                )}
+                {newItem.itemType === "RESALE" && (
+                  <>
+                    <strong>🛒 Revenda:</strong> Produtos PRONTOS que você compra e revende sem mudança.
+                    <br />
+                    Exemplos: Refrigerante, Cerveja, Suco, Água mineral
+                  </>
+                )}
+                {newItem.itemType === "PRODUCED" && (
+                  <>
+                    <strong>🍕 Produzido:</strong> Produtos que VOCÊ FABRICA internamente.
+                    <br />
+                    Exemplos: Massa fresca, Molho caseiro, Pão caseiro
+                  </>
+                )}
+                {newItem.itemType === "PACKAGING" && (
+                  <>
+                    <strong>📦 Embalagem:</strong> Caixas, sacolas e embalagens.
+                    <br />
+                    Exemplos: Caixa de pizza, Sacola plástica, Guardanapo
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2 justify-end">

@@ -11,7 +11,7 @@ import {
   createConsumptionSchema,
   createAdjustmentSchema,
 } from "@/lib/estoque-schemas";
-import { inventoryItemRepository } from "@/server/repositories";
+import { inventoryItemRepository, inventoryUnitRepository } from "@/server/repositories";
 
 /**
  * Generate unique SKU automatically
@@ -50,6 +50,16 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       throw new Error("Not authenticated");
     }
 
+    // Converter código da unidade (ex: "kg") para ID se necessário
+    let unitId = data.baseUnitId;
+    if (!data.baseUnitId.includes('-')) { // Se for um código (não UUID)
+      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
+      if (!unit) {
+        throw new Error(`Unit "${data.baseUnitId}" not found`);
+      }
+      unitId = unit.id;
+    }
+
     // Gerar SKU automaticamente se não fornecido
     const sku = data.sku || generateSKU(data.itemType);
 
@@ -57,7 +67,7 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       name: data.name,
       sku: sku,
       barcode: data.barcode || null,
-      baseUnitId: data.baseUnitId,
+      baseUnitId: unitId,
       cost: data.cost ? parseFloat(data.cost) : undefined,
       itemType: data.itemType,
     });
