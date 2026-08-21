@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { adminUpdateInventoryItem } from "@/server/functions/inventory.fn";
+import { adminCreateInventoryItem, adminUpdateInventoryItem } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export interface InventoryGridProps {
   storeId: string;
@@ -31,6 +32,14 @@ export function InventoryGrid(props: InventoryGridProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     field: "name",
     order: "asc",
+  });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newItem, setNewItem] = useState({
+    name: "",
+    sku: "",
+    baseUnitId: "kg", // Default to kg
+    cost: "",
+    itemType: "INGREDIENT",
   });
 
   const fetchItems = async () => {
@@ -117,11 +126,136 @@ export function InventoryGrid(props: InventoryGridProps) {
     }
   };
 
+  const handleCreateItem = async () => {
+    if (!newItem.name.trim()) {
+      alert("Nome é obrigatório");
+      return;
+    }
+
+    try {
+      await adminCreateInventoryItem({
+        name: newItem.name,
+        sku: newItem.sku || undefined,
+        baseUnitId: newItem.baseUnitId,
+        cost: newItem.cost ? newItem.cost : undefined,
+        itemType: newItem.itemType,
+      });
+
+      setShowCreateModal(false);
+      setNewItem({
+        name: "",
+        sku: "",
+        baseUnitId: "kg",
+        cost: "",
+        itemType: "INGREDIENT",
+      });
+      fetchItems();
+      alert("Item criado com sucesso!");
+    } catch (error) {
+      console.error("Failed to create item:", error);
+      alert("Erro ao criar item: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
   return (
     <div className="inventory-grid space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Itens de Estoque</h2>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
+        >
+          + Novo Item
+        </button>
       </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full space-y-4">
+            <h3 className="text-lg font-bold">Criar Novo Item</h3>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Nome *</label>
+              <input
+                type="text"
+                value={newItem.name}
+                onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                placeholder="Ex: Farinha de Trigo"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">SKU (Opcional)</label>
+              <input
+                type="text"
+                value={newItem.sku}
+                onChange={(e) => setNewItem({ ...newItem, sku: e.target.value })}
+                placeholder="Ex: FAR-001"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Unidade *</label>
+              <select
+                value={newItem.baseUnitId}
+                onChange={(e) => setNewItem({ ...newItem, baseUnitId: e.target.value })}
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
+              >
+                <option value="kg">kg (quilograma)</option>
+                <option value="g">g (grama)</option>
+                <option value="L">L (litro)</option>
+                <option value="ml">ml (mililitro)</option>
+                <option value="un">un (unidade)</option>
+                <option value="m">m (metro)</option>
+                <option value="cm">cm (centímetro)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Custo (R$) (Opcional)</label>
+              <input
+                type="number"
+                value={newItem.cost}
+                onChange={(e) => setNewItem({ ...newItem, cost: e.target.value })}
+                placeholder="Ex: 5.50"
+                step="0.01"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Tipo *</label>
+              <select
+                value={newItem.itemType}
+                onChange={(e) => setNewItem({ ...newItem, itemType: e.target.value })}
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
+              >
+                <option value="INGREDIENT">Ingrediente</option>
+                <option value="RESALE">Revenda</option>
+                <option value="PRODUCED">Produzido</option>
+                <option value="PACKAGING">Embalagem</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 border rounded hover:bg-neutral-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateItem}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Criar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <select
