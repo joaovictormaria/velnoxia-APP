@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { adminCreateInventoryItem, adminUpdateInventoryItem } from "@/server/functions/inventory.fn";
+import { adminCreateInventoryItem, adminUpdateInventoryItem, adminRecordMovement } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
 
 export interface InventoryGridProps {
@@ -35,9 +35,10 @@ export function InventoryGrid(props: InventoryGridProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newItem, setNewItem] = useState({
     name: "",
-    baseUnitId: "kg", // Default to kg
+    baseUnitId: "kg",
     cost: "",
     itemType: "INGREDIENT",
+    initialQuantity: "",
   });
   const [generatedSku, setGeneratedSku] = useState<string>("");
 
@@ -137,6 +138,27 @@ export function InventoryGrid(props: InventoryGridProps) {
       };
 
       const createdItem = await adminCreateInventoryItem(payload as any);
+      const itemId = (createdItem as any)?.id;
+      const sku = (createdItem as any)?.sku || "gerado";
+
+      // Se houver quantidade inicial, registrar movimento
+      const initialQty = newItem.initialQuantity?.trim();
+      if (initialQty && parseFloat(initialQty) > 0 && itemId) {
+        try {
+          const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
+          await adminRecordMovement({
+            itemId,
+            type: "PURCHASE",
+            quantity: initialQty,
+            unitId,
+            reference: undefined,
+            referenceType: undefined,
+            note: "Quantidade inicial registrada na criação do item",
+          } as any);
+        } catch (movError) {
+          console.error("Failed to record initial movement:", movError);
+        }
+      }
 
       setShowCreateModal(false);
       setNewItem({
@@ -144,13 +166,13 @@ export function InventoryGrid(props: InventoryGridProps) {
         baseUnitId: "kg",
         cost: "",
         itemType: "INGREDIENT",
+        initialQuantity: "",
       });
       setGeneratedSku("");
       fetchItems();
 
-      // Mostrar SKU gerado
-      const sku = (createdItem as any)?.sku || "gerado";
-      alert(`✅ Item "${newItem.name}" criado com sucesso!\n\nSKU: ${sku}\n\nProxima etapa: Ir para "Movimentações" para registrar a quantidade inicial.`);
+      const qtyMsg = initialQty ? `\nQuantidade inicial: ${initialQty}kg` : "\n(Sem quantidade inicial)";
+      alert(`✅ Item "${newItem.name}" criado com sucesso!\n\nSKU: ${sku}${qtyMsg}`);
     } catch (error) {
       console.error("Failed to create item:", error);
       alert("Erro ao criar item: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -218,6 +240,21 @@ export function InventoryGrid(props: InventoryGridProps) {
                 step="0.01"
                 className="w-full px-3 py-2 border rounded bg-background text-foreground"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Quantidade Inicial (Opcional)</label>
+              <input
+                type="number"
+                value={newItem.initialQuantity}
+                onChange={(e) => setNewItem({ ...newItem, initialQuantity: e.target.value })}
+                placeholder="Ex: 10"
+                step="0.01"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
+              />
+              <p className="text-xs text-neutral-600 mt-1">
+                Será registrada como compra (PURCHASE) automaticamente
+              </p>
             </div>
 
             <div>
