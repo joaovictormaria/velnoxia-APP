@@ -36,7 +36,8 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .handler(async ({ data }: { data: any }) => {
+  .validator(z.any())
+  .handler(async ({ data }: any) => {
     console.log("Raw data received:", data);
 
     const store = await getStoreFromSession();
