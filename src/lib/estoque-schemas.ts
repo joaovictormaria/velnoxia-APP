@@ -142,3 +142,40 @@ export const createAdjustmentSchema = z.object({
 });
 
 export type CreateAdjustmentInput = z.infer<typeof createAdjustmentSchema>;
+
+/**
+ * Schema para CompositionItem (insumo de receita)
+ */
+export const compositionItemSchema = z.object({
+  inventoryItemId: z.string().cuid(),
+  quantity: z.number().positive(),
+  unitId: z.string().cuid(),
+  sortOrder: z.number().nonnegative().default(0),
+});
+
+export type CompositionItemInput = z.infer<typeof compositionItemSchema>;
+
+/**
+ * Schema para criar ProductComposition (receita nova)
+ */
+export const createProductCompositionSchema = z.object({
+  productId: z.string().cuid(),
+  items: z.array(compositionItemSchema).min(1),
+  isActive: z.boolean().default(true),
+});
+
+export type CreateProductCompositionInput = z.infer<
+  typeof createProductCompositionSchema
+>;
+
+/**
+ * Schema para atualizar ProductComposition (só se não foi usada)
+ */
+export const updateProductCompositionSchema = z.object({
+  items: z.array(compositionItemSchema).min(1).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type UpdateProductCompositionInput = z.infer<
+  typeof updateProductCompositionSchema
+>;
