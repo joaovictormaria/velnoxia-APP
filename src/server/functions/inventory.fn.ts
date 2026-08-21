@@ -36,45 +36,40 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.any())
-  .handler(async ({ data }: any) => {
-    console.log("Raw data received:", data);
-
+  .validator(z.object({
+    name: z.string(),
+    sku: z.string().nullish().optional(),
+    barcode: z.string().nullish().optional(),
+    baseUnitId: z.string(),
+    cost: z.string().nullish().optional(),
+    itemType: z.string(),
+  }))
+  .handler(async ({ data }) => {
     const store = await getStoreFromSession();
     if (!store?.adminUser) {
       throw new Error("Not authenticated");
     }
 
-    // Parse manually
-    const validated = z.object({
-      name: z.string(),
-      sku: z.string().nullable().optional(),
-      barcode: z.string().nullable().optional(),
-      baseUnitId: z.string(),
-      cost: z.string().optional(),
-      itemType: z.string(),
-    }).parse(data);
-
     // Converter código da unidade (ex: "kg") para ID se necessário
-    let unitId = validated.baseUnitId;
-    if (!validated.baseUnitId.includes('-')) { // Se for um código (não UUID)
-      const unit = await inventoryUnitRepository.findByCode(validated.baseUnitId);
+    let unitId = data.baseUnitId;
+    if (!data.baseUnitId.includes('-')) { // Se for um código (não UUID)
+      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
       if (!unit) {
-        throw new Error(`Unit "${validated.baseUnitId}" not found`);
+        throw new Error(`Unit "${data.baseUnitId}" not found`);
       }
       unitId = unit.id;
     }
 
     // Gerar SKU automaticamente se não fornecido
-    const sku = validated.sku || generateSKU(validated.itemType);
+    const sku = data.sku || generateSKU(data.itemType);
 
     const itemData = createInventoryItemSchema.parse({
-      name: validated.name,
+      name: data.name,
       sku: sku,
-      barcode: validated.barcode || null,
+      barcode: data.barcode || null,
       baseUnitId: unitId,
-      cost: validated.cost ? parseFloat(validated.cost) : undefined,
-      itemType: validated.itemType,
+      cost: data.cost ? parseFloat(data.cost) : undefined,
+      itemType: data.itemType,
     });
 
     return InventoryService.createItem(store.id, itemData);
