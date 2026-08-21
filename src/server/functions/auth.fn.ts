@@ -10,8 +10,10 @@ export const getCurrentAdminFn = createServerFn({ method: "GET" }).handler(async
 export const loginFn = createServerFn({ method: "POST" })
   .validator(
     z.object({
-      email: z.string().email(),
-      password: z.string().min(1),
+      // As mensagens sao em portugues porque a tela passou a mostra-las: uma
+      // recusa de validacao agora vira texto para o lojista, e nao um erro mudo.
+      email: z.string().email("Informe um e-mail válido."),
+      password: z.string().min(1, "Informe sua senha."),
     }),
   )
   .handler(async ({ data }) => {

@@ -2,6 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Bike } from "lucide-react";
 import { redeemCourierInviteFn } from "@/server/functions/courier-signup.fn";
+import { mensagemDoErro } from "@/lib/erro-do-servidor";
 
 export const Route = createFileRoute("/entregador/entrar")({
   component: EntrarComCodigoPage,
@@ -27,19 +28,27 @@ function EntrarComCodigoPage() {
     setPending(true);
     setError(null);
 
-    const result = await redeemCourierInviteFn({
-      data: { code: code.trim(), name: name.trim(), email: email.trim(), password },
-    });
+    // Validação recusada rejeita a promessa, e não volta em `result`. Sem o
+    // try, o motoboy ficava com o botão preso e sem mensagem — no primeiro
+    // contato dele com o sistema, que é a pior hora para isso acontecer.
+    try {
+      const result = await redeemCourierInviteFn({
+        data: { code: code.trim(), name: name.trim(), email: email.trim(), password },
+      });
 
-    if (!result.ok) {
-      setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      // O resgate já deixou a sessão de pé: dá para ir direto para as entregas.
+      await router.invalidate();
+      router.navigate({ to: "/entregador" });
+    } catch (erro) {
+      setError(mensagemDoErro(erro, "Não foi possível criar seu acesso. Confira os dados."));
+    } finally {
       setPending(false);
-      return;
     }
-
-    // O resgate já deixou a sessão de pé: dá para ir direto para as entregas.
-    await router.invalidate();
-    router.navigate({ to: "/entregador" });
   }
 
   return (

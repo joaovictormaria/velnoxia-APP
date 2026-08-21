@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loginFn } from "@/server/functions/auth.fn";
+import { mensagemDoErro } from "@/lib/erro-do-servidor";
 
 export const Route = createFileRoute("/admin/login")({
   validateSearch: z.object({ redirect: z.string().optional() }),
@@ -25,21 +26,29 @@ function LoginPage() {
     setPending(true);
     setError(null);
 
-    const result = await loginFn({ data: { email, password } });
-    if (!result.ok) {
-      setError(result.error);
-      setPending(false);
-      return;
-    }
+    // Uma recusa de validação rejeita a promessa em vez de voltar em `result`.
+    // Sem o try, um e-mail mal digitado prendia o botão em "Entrando..." sem
+    // dizer nada — e a pessoa fica sem entender por que a tela parou.
+    try {
+      const result = await loginFn({ data: { email, password } });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
 
-    await router.invalidate();
-    // O mesmo formulário serve dono e entregador: o papel decide onde cada um
-    // cai, senão o motoboy aterrissaria num painel que não é dele.
-    if (result.admin.role === "COURIER") {
-      router.navigate({ to: "/entregador" });
-      return;
+      await router.invalidate();
+      // O mesmo formulário serve dono e entregador: o papel decide onde cada um
+      // cai, senão o motoboy aterrissaria num painel que não é dele.
+      if (result.admin.role === "COURIER") {
+        router.navigate({ to: "/entregador" });
+        return;
+      }
+      router.navigate({ to: search.redirect ?? "/admin" });
+    } catch (erro) {
+      setError(mensagemDoErro(erro, "Não foi possível entrar. Tente de novo."));
+    } finally {
+      setPending(false);
     }
-    router.navigate({ to: search.redirect ?? "/admin" });
   }
 
   return (
