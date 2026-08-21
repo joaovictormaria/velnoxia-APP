@@ -84,7 +84,9 @@ export function MovementForm(props: MovementFormProps) {
         }
       };
 
+      console.log("🔵 [MovementForm] Sending payload:", payload);
       await adminRecordMovement(payload as any);
+      console.log("✅ [MovementForm] Success!");
       props.onSuccess?.();
 
       setFormData({
@@ -97,7 +99,7 @@ export function MovementForm(props: MovementFormProps) {
       });
       setSelectedItem(null);
     } catch (error) {
-      console.error("Movement creation failed:", error);
+      console.error("❌ [MovementForm] Error:", error);
       alert("Erro ao registrar movimentação. Tente novamente.");
     } finally {
       setSubmitting(false);
