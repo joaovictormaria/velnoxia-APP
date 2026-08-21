@@ -152,13 +152,15 @@ export function InventoryGrid(props: InventoryGridProps) {
           console.log("[Create Item] Recording movement with:", { itemId, unitId, quantity: parseFloat(initialQty), type: "PURCHASE" });
 
           const movementResult = await adminRecordMovement({
-            itemId,
-            type: "PURCHASE",
-            quantity: parseFloat(initialQty),
-            unitId,
-            reference: undefined,
-            referenceType: undefined,
-            note: "Quantidade inicial registrada na criação do item",
+            data: {
+              itemId,
+              type: "PURCHASE",
+              quantity: parseFloat(initialQty),
+              unitId,
+              reference: undefined,
+              referenceType: undefined,
+              note: "Quantidade inicial registrada na criação do item",
+            }
           } as any);
 
           console.log("[Create Item] Movement result:", movementResult);
