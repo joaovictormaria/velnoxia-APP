@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { adminRecordMovement, adminGetStockReport } from "@/server/functions/inventory.fn";
+import { adminRecordMovement } from "@/server/functions/inventory.fn";
+import { adminGetStockReport } from "@/server/functions/report.fn";
 
 export interface MovementFormProps {
   storeId: string;
@@ -34,9 +35,10 @@ export function MovementForm(props: MovementFormProps) {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append("storeId", props.storeId);
-      const data = await adminGetStockReport(fd);
+      const data = await adminGetStockReport({
+        sortBy: "name",
+        limit: "100",
+      });
       if (Array.isArray(data)) {
         setItems(data.filter((i: any) => i.isActive));
       }

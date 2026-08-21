@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { adminGetStockReport, adminUpdateInventoryItem } from "@/server/functions/inventory.fn";
+import { adminUpdateInventoryItem } from "@/server/functions/inventory.fn";
+import { adminGetStockReport } from "@/server/functions/report.fn";
 
 export interface InventoryGridProps {
   storeId: string;
@@ -35,9 +36,10 @@ export function InventoryGrid(props: InventoryGridProps) {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append("storeId", props.storeId);
-      const data = await adminGetStockReport(fd);
+      const data = await adminGetStockReport({
+        sortBy: sortConfig.field === "quantityOnHand" ? "quantity" : sortConfig.field,
+        limit: "100",
+      });
       if (Array.isArray(data)) {
         setItems(data);
       }
