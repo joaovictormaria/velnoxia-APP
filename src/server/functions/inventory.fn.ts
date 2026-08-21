@@ -37,14 +37,18 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.any())
-  .handler(async ({ data }) => {
-    console.log("📥 Dados:", data);
+  .handler(async (context: any) => {
     const admin = await requireAdminSession();
 
-    // Converter código da unidade (ex: "kg") para ID se necessário
+    // Pegar dados do contexto de forma segura
+    const data = (context?.data || context) as any;
+    console.log("📥 Data received:", { data, hasName: !!data?.name, hasBaseUnitId: !!data?.baseUnitId });
+
+    if (!data?.name) throw new Error("Nome é obrigatório");
+    if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
+
     let unitId = data.baseUnitId;
-    if (!data.baseUnitId.includes('-')) { // Se for um código (não UUID)
+    if (!data.baseUnitId.includes('-')) {
       const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
       if (!unit) {
         throw new Error(`Unit "${data.baseUnitId}" not found`);
@@ -52,8 +56,7 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       unitId = unit.id;
     }
 
-    // Gerar SKU automaticamente se não fornecido
-    const sku = data.sku || generateSKU(data.itemType);
+    const sku = data.sku || generateSKU(data.itemType || "INGREDIENT");
 
     const itemData = createInventoryItemSchema.parse({
       name: data.name,
@@ -61,7 +64,7 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       barcode: data.barcode || null,
       baseUnitId: unitId,
       cost: data.cost ? parseFloat(data.cost) : undefined,
-      itemType: data.itemType,
+      itemType: data.itemType || "INGREDIENT",
     });
 
     return InventoryService.createItem(admin.storeId, itemData);
