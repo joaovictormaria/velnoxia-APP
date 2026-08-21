@@ -41,21 +41,27 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async (input: any) => {
     const admin = await requireAdminSession();
 
-    // Logar tudo para descobrir a estrutura real
-    console.log("🔍 INPUT keys:", Object.keys(input || {}).join(','));
-    console.log("🔍 INPUT.data type:", typeof input?.data);
-    console.log("🔍 INPUT.data instanceof FormData:", input?.data instanceof FormData);
+    // Tentar múltiplas formas de extrair os dados
+    let parsedData: any = {};
 
-    let parsedData: any = input?.data || input;
-
-    // Se FormData, extrair os campos
-    if (parsedData instanceof FormData) {
-      parsedData = Object.fromEntries(parsedData.entries());
+    // Forma 1: input.data
+    if (input?.data) {
+      if (input.data instanceof FormData) {
+        parsedData = Object.fromEntries(input.data.entries());
+      } else if (typeof input.data === 'object') {
+        parsedData = input.data;
+      }
+    }
+    // Forma 2: input direto (se for um objeto)
+    if (!parsedData.name && typeof input === 'object' && input.name) {
+      parsedData = input;
+    }
+    // Forma 3: Procurar em outras propriedades comuns
+    if (!parsedData.name) {
+      parsedData = input?.payload || input?.body || input?.params || input;
     }
 
-    console.log("🔍 PARSED DATA:", parsedData);
-
-    if (!parsedData?.name) throw new Error(`Nome vazio. Data: ${JSON.stringify(parsedData)}`);
+    if (!parsedData?.name) throw new Error("Nome é obrigatório");
     if (!parsedData?.baseUnitId) throw new Error("Unidade é obrigatória");
 
     // Converter código da unidade (ex: "kg") para ID se necessário
