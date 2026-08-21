@@ -20,6 +20,7 @@ function EstoquePage() {
   const { admin } = Route.useRouteContext();
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [selectedMovementItemId, setSelectedMovementItemId] = useState<string>("");
 
   const tabs: Array<{ id: TabId; label: string; icon: string }> = [
     { id: "dashboard", label: "Dashboard", icon: "📊" },
@@ -73,10 +74,19 @@ function EstoquePage() {
           {activeTab === "movements" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1">
-                <MovementForm storeId={admin.storeId} />
+                <MovementForm
+                  storeId={admin.storeId}
+                  onItemSelected={setSelectedMovementItemId}
+                />
               </div>
               <div className="lg:col-span-2">
-                <AuditLog storeId={admin.storeId} />
+                {selectedMovementItemId ? (
+                  <AuditLog storeId={admin.storeId} itemId={selectedMovementItemId} />
+                ) : (
+                  <div className="p-8 text-center border-2 border-dashed rounded bg-neutral-50 text-neutral-600">
+                    <p className="text-sm">Selecione um item para ver o histórico de movimentações</p>
+                  </div>
+                )}
               </div>
             </div>
           )}

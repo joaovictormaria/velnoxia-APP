@@ -5,6 +5,7 @@ import { adminGetStockReport } from "@/server/functions/report.fn";
 export interface MovementFormProps {
   storeId: string;
   onSuccess?: () => void;
+  onItemSelected?: (itemId: string) => void;
 }
 
 interface InventoryItem {
@@ -119,9 +120,10 @@ export function MovementForm(props: MovementFormProps) {
           <label className="block text-sm font-medium mb-2">Item *</label>
           <select
             value={formData.itemId}
-            onChange={(e) =>
-              setFormData({ ...formData, itemId: e.target.value })
-            }
+            onChange={(e) => {
+              setFormData({ ...formData, itemId: e.target.value });
+              props.onItemSelected?.(e.target.value);
+            }}
             disabled={loading || submitting}
             required
             className="w-full px-3 py-2 border rounded bg-white text-foreground"
