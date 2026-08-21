@@ -40,7 +40,8 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
 
-    if (!data?.name) throw new Error("Nome é obrigatório");
+    // Nome é opcional - gerar automaticamente se não fornecido
+    const name = data?.name || `Item ${new Date().getTime()}`;
     if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
 
     // Converter código da unidade (ex: "kg") para ID se necessário
@@ -57,7 +58,7 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
     const sku = data.sku || generateSKU(data.itemType || "INGREDIENT");
 
     const itemData = createInventoryItemSchema.parse({
-      name: data.name,
+      name: name,
       sku: sku,
       barcode: data.barcode || null,
       baseUnitId: unitId,
