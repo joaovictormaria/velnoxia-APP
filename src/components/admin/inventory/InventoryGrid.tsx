@@ -41,6 +41,12 @@ export function InventoryGrid(props: InventoryGridProps) {
     initialQuantity: "",
   });
   const [generatedSku, setGeneratedSku] = useState<string>("");
+  const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
+
+  const showToast = (message: string) => {
+    setToast({ message, show: true });
+    setTimeout(() => setToast({ message: "", show: false }), 3000);
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -173,8 +179,8 @@ export function InventoryGrid(props: InventoryGridProps) {
       setGeneratedSku("");
       fetchItems();
 
-      const qtyMsg = initialQty ? `\nQuantidade inicial: ${initialQty}kg` : "\n(Sem quantidade inicial)";
-      alert(`✅ Item "${newItem.name}" criado com sucesso!\n\nSKU: ${sku}${qtyMsg}`);
+      const qtyMsg = initialQty ? ` (${initialQty}un)` : "";
+      showToast(`✅ Item "${newItem.name}" criado com sucesso! SKU: ${sku}${qtyMsg}`);
     } catch (error) {
       console.error("Failed to create item:", error);
       alert("Erro ao criar item: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -183,6 +189,12 @@ export function InventoryGrid(props: InventoryGridProps) {
 
   return (
     <div className="inventory-grid space-y-4">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300 z-50">
+          <p className="text-sm font-medium">{toast.message}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Itens de Estoque</h2>
         <button
