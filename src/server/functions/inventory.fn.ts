@@ -42,10 +42,20 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
 
     // Pegar dados do contexto de forma segura
     const data = (context?.data || context) as any;
-    console.log("📥 Data received:", { data, hasName: !!data?.name, hasBaseUnitId: !!data?.baseUnitId });
 
-    if (!data?.name) throw new Error("Nome é obrigatório");
-    if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
+    // DEBUGAR: Retornar exatamente o que recebeu
+    if (!data?.name || !data?.baseUnitId) {
+      const debugInfo = {
+        receivedContext: context,
+        receivedData: data,
+        keys: Object.keys(data || {}),
+        name: data?.name,
+        baseUnitId: data?.baseUnitId,
+        itemType: data?.itemType,
+        cost: data?.cost,
+      };
+      throw new Error(JSON.stringify(debugInfo, null, 2));
+    }
 
     let unitId = data.baseUnitId;
     if (!data.baseUnitId.includes('-')) {
