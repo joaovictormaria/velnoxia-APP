@@ -37,8 +37,13 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
+  .validator(z.any())
   .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
+
+    console.log("📦 Received data:", data);
+    console.log("📦 Data type:", typeof data);
+    console.log("📦 Data keys:", Object.keys(data || {}));
 
     // Gerar valores padrão se não fornecidos
     const baseUnitId = data?.baseUnitId || "kg";
