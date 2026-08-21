@@ -214,3 +214,44 @@ export const getItemDetails = createServerFn({ method: "POST" })
 
     return inventoryItemRepository.getSummary(store.id, data.itemId);
   });
+
+/**
+ * Admin only: Get total inventory value
+ */
+export const adminGetInventoryValue = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const store = await getStoreFromSession();
+    if (!store?.adminUser) {
+      throw new Error("Not authenticated");
+    }
+
+    const items = await inventoryItemRepository.findAll(store.id, {
+      includeInactive: false,
+    });
+
+    const totalValue = items.reduce((sum, item) => {
+      return sum + (item.quantityOnHand * (item.cost || 0));
+    }, 0);
+
+    return { totalValue };
+  });
+
+/**
+ * Admin only: Get low stock alerts
+ */
+export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const store = await getStoreFromSession();
+    if (!store?.adminUser) {
+      throw new Error("Not authenticated");
+    }
+
+    const items = await inventoryItemRepository.findAll(store.id, {
+      includeInactive: false,
+    });
+
+    return items.filter((item) => {
+      if (!item.minimumThreshold) return false;
+      return item.quantityOnHand <= item.minimumThreshold;
+    });
+  });

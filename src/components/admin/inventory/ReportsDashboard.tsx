@@ -13,12 +13,9 @@ export function ReportsDashboard(props: ReportsDashboardProps) {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      const fd = new FormData();
-      fd.append("storeId", props.storeId);
-
       const [inventory, alerts] = await Promise.all([
-        adminGetInventoryValue(fd),
-        adminGetLowStockAlerts(fd),
+        adminGetInventoryValue(),
+        adminGetLowStockAlerts(),
       ]);
 
       if (inventory && typeof inventory === "object") {
