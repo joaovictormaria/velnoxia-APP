@@ -137,11 +137,26 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
 
     console.log("🔴 [Result]", result);
 
-    // Serialize Decimal values
+    // Serialize Decimal values - convert ALL numeric fields
     return {
-      ...result,
+      id: result.id,
+      storeId: result.storeId,
+      itemId: result.itemId,
+      type: result.type,
       quantity: Number(result.quantity ?? 0),
+      unitId: result.unitId,
+      reference: result.reference,
+      referenceType: result.referenceType,
+      originalMovementId: result.originalMovementId,
+      compositionId: result.compositionId,
       costAtTime: result.costAtTime ? Number(result.costAtTime) : null,
+      note: result.note,
+      authorType: result.authorType,
+      authorId: result.authorId,
+      authorName: result.authorName,
+      idempotencyKey: result.idempotencyKey,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
     };
   });
 
