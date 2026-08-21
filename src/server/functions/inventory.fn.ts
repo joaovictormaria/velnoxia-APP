@@ -38,15 +38,23 @@ function generateSKU(itemType: string): string {
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .validator(z.any())
-  .handler(async ({ data }: any) => {
+  .handler(async (input: any) => {
     const admin = await requireAdminSession();
 
     try {
-      // Se data.data existe, é porque os dados estão aninhados
+      // Tentar múltiplas formas de acessar os dados
+      const data = input?.data || input;
       const actualData = data?.data || data;
 
+      // Debug: mostrar exatamente o que recebeu
       if (!actualData?.name) {
-        throw new Error(`Nome é obrigatório. Recebido: ${JSON.stringify({ actualData, data, type: typeof actualData })}`);
+        const debugInfo = {
+          inputKeys: Object.keys(input || {}),
+          dataValue: data,
+          actualDataValue: actualData,
+          inputValue: input,
+        };
+        throw new Error(`[DEBUG] ${JSON.stringify(debugInfo)}`);
       }
       if (!actualData?.baseUnitId) {
         throw new Error(`Unidade é obrigatória. Recebido: ${JSON.stringify({ baseUnitId: actualData?.baseUnitId })}`);
