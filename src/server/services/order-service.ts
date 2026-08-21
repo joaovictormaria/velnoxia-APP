@@ -15,6 +15,7 @@ import {
   type ResultadoDoBeneficio,
 } from "./employee-benefit";
 import { conferirOpcoes } from "./option-pricing";
+import { orderStatusSync } from "./order-status-sync";
 
 /**
  * Secret for the tracking link the customer gets. Generated with crypto rather
@@ -559,6 +560,11 @@ export async function createOrderFromCheckout(
     return created;
   });
 
+  // Sync inventory after order creation (fire-and-forget)
+  orderStatusSync.onStatusChange(order.id, "RECEIVED").catch((err) => {
+    console.error(`Inventory sync failed for new order ${order.id}:`, err);
+  });
+
   return {
     ok: true,
     orderId: order.id,
@@ -663,6 +669,11 @@ export async function transitionOrderStatus(
     }),
   ]);
 
+  // Sync inventory after status change (fire-and-forget, doesn't block order update)
+  orderStatusSync.onStatusChange(orderId, status).catch((err) => {
+    console.error(`Inventory sync failed for order ${orderId} (status: ${status}):`, err);
+  });
+
   return { ok: true };
 }
 
@@ -721,6 +732,11 @@ export async function dispatchOrder(
       },
     }),
   ]);
+
+  // Sync inventory after dispatch (fire-and-forget)
+  orderStatusSync.onStatusChange(orderId, "OUT_FOR_DELIVERY").catch((err) => {
+    console.error(`Inventory sync failed for order ${orderId} (status: OUT_FOR_DELIVERY):`, err);
+  });
 
   return { ok: true, courierName: courier.name };
 }
