@@ -41,9 +41,15 @@ export function CompositionBuilder(props: CompositionBuilderProps) {
       }
 
       // Fetch existing versions
-      const versionsData = await adminGetProductVersions(new FormData());
-      if (Array.isArray(versionsData)) {
-        setVersions(versionsData.filter((v: any) => v.productId === props.productId));
+      try {
+        const versionsData = await adminGetProductVersions({
+          data: { productId: props.productId }
+        } as any);
+        if (Array.isArray(versionsData)) {
+          setVersions(versionsData);
+        }
+      } catch (error) {
+        console.log("No versions found yet");
       }
     } catch (error) {
       console.error("Failed to fetch composition data:", error);
@@ -91,12 +97,14 @@ export function CompositionBuilder(props: CompositionBuilderProps) {
 
     setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append("productId", props.productId);
-      formData.append("items", JSON.stringify(compositionItems));
-      formData.append("isActive", "true");
+      await adminCreateComposition({
+        data: {
+          productId: props.productId,
+          items: compositionItems,
+          isActive: true,
+        }
+      } as any);
 
-      await adminCreateComposition(formData);
       alert("✅ Receita criada com sucesso!");
       setCompositionItems([]);
       fetchData();

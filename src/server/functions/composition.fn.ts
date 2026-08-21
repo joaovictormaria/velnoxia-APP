@@ -1,4 +1,4 @@
-import { action } from "@solidjs/router";
+import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
 import { CompositionService } from "@/server/services/composition-service";
 import {
@@ -10,156 +10,123 @@ import { productCompositionRepository } from "@/server/repositories";
 /**
  * Admin only: Create a new recipe/composition
  */
-export const adminCreateComposition = action(async (formData: FormData) => {
-  const store = await requireAdminSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminCreateComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const productId = formData.get("productId") as string;
-  const itemsJson = formData.get("items") as string;
-  const isActive = formData.get("isActive") === "true";
+    const items = data?.items || [];
 
-  const items = JSON.parse(itemsJson);
+    const validated = createProductCompositionSchema.parse({
+      productId: data?.productId,
+      items,
+      isActive: data?.isActive !== false,
+    });
 
-  const validated = createProductCompositionSchema.parse({
-    productId,
-    items,
-    isActive,
+    return CompositionService.createComposition(admin.storeId, data.productId, validated);
   });
-
-  return CompositionService.createComposition(store.id, productId, validated);
-});
 
 /**
  * Admin only: Update a recipe (only if not yet used)
  */
-export const adminUpdateComposition = action(async (formData: FormData) => {
-  const store = await requireAdminSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminUpdateComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
-  const itemsJson = formData.get("items");
-  const isActive = formData.get("isActive");
+    const updateData: any = {};
 
-  const data: any = {};
+    if (data?.items) {
+      updateData.items = data.items;
+    }
 
-  if (itemsJson) {
-    const items = JSON.parse(itemsJson as string);
-    data.items = items;
-  }
+    if (data?.isActive !== undefined) {
+      updateData.isActive = data.isActive;
+    }
 
-  if (isActive !== null) {
-    data.isActive = isActive === "true";
-  }
+    const validated = updateProductCompositionSchema.parse(updateData);
 
-  const validated = updateProductCompositionSchema.parse(data);
-
-  return CompositionService.updateComposition(
-    store.id,
-    compositionId,
-    validated
-  );
-});
+    return CompositionService.updateComposition(
+      admin.storeId,
+      data.compositionId,
+      validated
+    );
+  });
 
 /**
  * Admin only: Activate a specific version
  */
-export const adminActivateVersion = action(async (formData: FormData) => {
-  const store = await requireAdminSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminActivateVersion = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
-
-  return CompositionService.activateVersion(store.id, compositionId);
-});
+    return CompositionService.activateVersion(admin.storeId, data.compositionId);
+  });
 
 /**
  * Admin only: Delete a composition (soft delete if used)
  */
-export const adminDeleteComposition = action(async (formData: FormData) => {
-  const store = await requireAdminSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminDeleteComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
-
-  return CompositionService.deleteComposition(store.id, compositionId);
-});
+    return CompositionService.deleteComposition(admin.storeId, data.compositionId);
+  });
 
 /**
  * Admin only: Get composition details
  */
-export const adminGetComposition = action(async (formData: FormData) => {
-  const store = await requireAdminSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminGetComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
-
-  return productCompositionRepository.findById(store.id, compositionId);
-});
+    return productCompositionRepository.findById(admin.storeId, data.compositionId);
+  });
 
 /**
  * Admin only: Get all versions of a product
  */
-export const adminGetProductVersions = action(async (formData: FormData) => {
-  const store = await requireAdminSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminGetProductVersions = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const productId = formData.get("productId") as string;
-
-  return productCompositionRepository.findAllVersions(store.id, productId);
-});
+    return productCompositionRepository.findAllVersions(admin.storeId, data.productId);
+  });
 
 /**
  * Admin only: Calculate composition cost
  */
-export const adminCalculateCompositionCost = action(
-  async (formData: FormData) => {
-    const store = await requireAdminSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+export const adminCalculateCompositionCost = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-    const compositionId = formData.get("compositionId") as string;
-
-    return CompositionService.calculateCost(store.id, compositionId);
-  }
-);
+    return CompositionService.calculateCost(admin.storeId, data.compositionId);
+  });
 
 /**
  * Public: Get active composition for a product
  */
-export const getActiveComposition = action(async (formData: FormData) => {
-  const store = await requireAdminSession();
-  if (!store) {
-    throw new Error("Not authenticated");
-  }
+export const getActiveComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const productId = formData.get("productId") as string;
-
-  return CompositionService.getActiveComposition(store.id, productId);
-});
+    return CompositionService.getActiveComposition(admin.storeId, data.productId);
+  });
 
 /**
  * Public: Get all compositions for a store (for admin UI)
  */
-export const adminGetAllCompositions = action(async () => {
-  const store = await requireAdminSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminGetAllCompositions = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const admin = await requireAdminSession();
 
-  return productCompositionRepository.findAllByStore(store.id, {
-    activeOnly: false,
+    return productCompositionRepository.findAllByStore(admin.storeId, {
+      activeOnly: false,
+    });
   });
-});
