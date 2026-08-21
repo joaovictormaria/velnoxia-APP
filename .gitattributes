@@ -1,0 +1,7 @@
+# O Git detectou o PDF da marca como texto. Com autocrlf no Windows isso
+# reescreve as quebras de linha dentro do arquivo e entrega um PDF quebrado.
+*.pdf binary
+*.jpeg binary
+*.jpg binary
+*.png binary
+*.ico binary
