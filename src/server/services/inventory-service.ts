@@ -11,6 +11,18 @@ import type {
 import type { CreateInventoryMovementInput } from "@/server/repositories";
 
 export class InventoryService {
+  private static serializeItem(item: any) {
+    return {
+      ...item,
+      quantityOnHand: Number(item.quantityOnHand ?? 0),
+      quantityReserved: Number(item.quantityReserved ?? 0),
+      cost: item.cost ? Number(item.cost) : null,
+      minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
+      idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
+      maximumCapacity: item.maximumCapacity ? Number(item.maximumCapacity) : null,
+    };
+  }
+
   /**
    * Create a new inventory item
    * Validates baseUnitId exists
@@ -33,7 +45,7 @@ export class InventoryService {
       throw new Error("SKU or barcode already exists in this store");
     }
 
-    return inventoryItemRepository.create(storeId, {
+    const item = await inventoryItemRepository.create(storeId, {
       name: data.name,
       sku: data.sku,
       barcode: data.barcode,
@@ -44,6 +56,8 @@ export class InventoryService {
       idealQuantity: data.idealQuantity,
       maximumCapacity: data.maximumCapacity,
     });
+
+    return this.serializeItem(item);
   }
 
   /**
