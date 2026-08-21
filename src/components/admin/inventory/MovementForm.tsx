@@ -72,16 +72,21 @@ export function MovementForm(props: MovementFormProps) {
 
     setSubmitting(true);
     try {
-      const fd = new FormData();
-      fd.append("storeId", props.storeId);
-      fd.append("itemId", formData.itemId);
-      fd.append("type", formData.type);
-      fd.append("quantity", formData.quantity);
-      if (formData.unitId) fd.append("unitId", formData.unitId);
-      if (formData.reference) fd.append("reference", formData.reference);
-      if (formData.note) fd.append("note", formData.note);
+      const payload = {
+        data: {
+          itemId: formData.itemId,
+          type: formData.type,
+          quantity: formData.quantity,
+          unitId: formData.unitId,
+          reference: formData.reference || undefined,
+          referenceType: undefined,
+          note: formData.note || undefined,
+        }
+      };
 
-      await adminRecordMovement(fd);
+      console.log("🔵 [MovementForm] Sending payload:", payload);
+      await adminRecordMovement(payload as any);
+      console.log("✅ [MovementForm] Success!");
       props.onSuccess?.();
 
       setFormData({
@@ -94,7 +99,7 @@ export function MovementForm(props: MovementFormProps) {
       });
       setSelectedItem(null);
     } catch (error) {
-      console.error("Movement creation failed:", error);
+      console.error("❌ [MovementForm] Error:", error);
       alert("Erro ao registrar movimentação. Tente novamente.");
     } finally {
       setSubmitting(false);

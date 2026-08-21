@@ -103,30 +103,29 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
  * Admin only: Record a movement (PURCHASE, LOSS, ADJUSTMENT, etc)
  */
 export const adminRecordMovement = createServerFn({ method: "POST" })
-  .validator(z.object({
-    itemId: z.string(),
-    type: z.string(),
-    quantity: z.string(),
-    unitId: z.string(),
-    reference: z.string().optional(),
-    referenceType: z.string().optional(),
-    note: z.string().optional(),
-  }))
-  .handler(async ({ data }) => {
+  .handler(async (context: any) => {
+    console.log("🔴 [adminRecordMovement] START");
+    console.log("🔴 [Context keys]", Object.keys(context || {}));
+
     const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
+
+    console.log("🔴 [Received data]", data);
 
     const validated = createInventoryMovementSchema.parse({
-      itemId: data.itemId,
-      type: data.type,
-      quantity: parseFloat(data.quantity),
-      unitId: data.unitId,
-      reference: data.reference || undefined,
-      referenceType: data.referenceType || undefined,
-      note: data.note || undefined,
+      itemId: data?.itemId,
+      type: data?.type,
+      quantity: data?.quantity ? parseFloat(data.quantity) : 0,
+      unitId: data?.unitId,
+      reference: data?.reference || undefined,
+      referenceType: data?.referenceType || undefined,
+      note: data?.note || undefined,
       authorType: "ADMIN",
       authorId: admin.id,
       authorName: admin.name,
     });
+
+    console.log("🔴 [Validated]", validated);
 
     // Generate idempotency key
     const idempotencyKey = `${admin.storeId}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}#0`;
