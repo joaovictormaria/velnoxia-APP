@@ -37,14 +37,36 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .handler(async (context: any) => {
+  .validator(z.object({}).passthrough())
+  .handler(async ({ data }) => {
     const admin = await requireAdminSession();
 
-    // Os dados devem estar em alguma dessas propriedades
-    const dataFromRequest = context?.request?.body || context?.request?.data;
-    const dataFromInner = context?.context?.data;
+    console.log("📥 Data received:", data);
 
-    throw new Error(`[DEBUG] Request body type: ${typeof dataFromRequest}, Inner data type: ${typeof dataFromInner}, Request.body: ${JSON.stringify(dataFromRequest)}, Context.data: ${JSON.stringify(dataFromInner)}`);
+    if (!data?.name) throw new Error("Nome é obrigatório");
+    if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
+
+    let unitId = data.baseUnitId;
+    if (!data.baseUnitId.includes('-')) {
+      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
+      if (!unit) {
+        throw new Error(`Unit "${data.baseUnitId}" not found`);
+      }
+      unitId = unit.id;
+    }
+
+    const sku = data.sku || generateSKU(data.itemType || "INGREDIENT");
+
+    const itemData = createInventoryItemSchema.parse({
+      name: data.name,
+      sku: sku,
+      barcode: data.barcode || null,
+      baseUnitId: unitId,
+      cost: data.cost ? parseFloat(data.cost) : undefined,
+      itemType: data.itemType || "INGREDIENT",
+    });
+
+    return InventoryService.createItem(admin.storeId, itemData);
   });
 
 /**
