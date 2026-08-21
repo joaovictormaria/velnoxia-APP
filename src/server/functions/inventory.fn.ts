@@ -130,10 +130,19 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
     // Generate idempotency key
     const idempotencyKey = `${admin.storeId}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}#0`;
 
-    return InventoryService.recordMovement(admin.storeId, {
+    const result = await InventoryService.recordMovement(admin.storeId, {
       ...validated,
       idempotencyKey,
     });
+
+    console.log("🔴 [Result]", result);
+
+    // Serialize Decimal values
+    return {
+      ...result,
+      quantity: Number(result.quantity ?? 0),
+      costAtTime: result.costAtTime ? Number(result.costAtTime) : null,
+    };
   });
 
 /**
