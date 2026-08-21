@@ -1,6 +1,5 @@
 ﻿import { prisma } from "@/server/db/client";
 import { Prisma, InventoryMovementType } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
 
 export const reportRepository = {
   async getStockLevelsByStore(storeId: string, options?: any) {
