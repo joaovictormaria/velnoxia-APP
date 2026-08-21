@@ -141,11 +141,15 @@ export function InventoryGrid(props: InventoryGridProps) {
       const itemId = (createdItem as any)?.id;
       const sku = (createdItem as any)?.sku || "gerado";
 
+      console.log("✅ Item criado:", { itemId, sku, createdItem });
+
       // Se houver quantidade inicial, registrar movimento
       const initialQty = newItem.initialQuantity?.trim();
       if (initialQty && parseFloat(initialQty) > 0 && itemId) {
         try {
           const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
+          console.log("📊 Registrando movimentação inicial:", { itemId, unitId, quantity: initialQty });
+
           await adminRecordMovement({
             itemId,
             type: "PURCHASE",
@@ -155,8 +159,10 @@ export function InventoryGrid(props: InventoryGridProps) {
             referenceType: undefined,
             note: "Quantidade inicial registrada na criação do item",
           } as any);
+
+          console.log("✅ Movimentação registrada com sucesso");
         } catch (movError) {
-          console.error("Failed to record initial movement:", movError);
+          console.error("❌ Erro ao registrar movimento:", movError);
         }
       }
 
