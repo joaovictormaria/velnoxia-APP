@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getStoreFromSession } from "@/server/auth/session";
+import { requireAdminSession } from "@/server/auth/session";
 import { InventoryForecastService } from "@/server/services/inventory-forecast-service";
 
 /**
@@ -16,7 +16,7 @@ export const forecastItemConsumption = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -41,7 +41,7 @@ export const forecastStoreConsumption = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -66,7 +66,7 @@ export const getPurchaseRecommendations = createServerFn({
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -88,7 +88,7 @@ export const getDemandTrend = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }

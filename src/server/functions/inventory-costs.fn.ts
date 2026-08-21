@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getStoreFromSession } from "@/server/auth/session";
+import { requireAdminSession } from "@/server/auth/session";
 import { InventoryCostService } from "@/server/services/inventory-cost-service";
 import { Decimal } from "@prisma/client/runtime/library";
 
@@ -14,7 +14,7 @@ export const getOrderCost = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -33,7 +33,7 @@ export const getCostReport = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -74,7 +74,7 @@ export const getProductProfitability = createServerFn({
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -95,7 +95,7 @@ export const getFinancialKPIs = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
