@@ -14,8 +14,8 @@ interface Movement {
   quantity: number;
   reference?: string;
   note?: string;
-  createdAt: Date;
-  item: { name: string };
+  createdAt: string | Date;
+  item?: { name: string };
 }
 
 export function AuditLog(props: AuditLogProps) {
