@@ -37,32 +37,11 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.any())
-  .handler(async (input: any) => {
+  .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
 
-    // Tentar múltiplas formas de extrair os dados
-    let parsedData: any = {};
-
-    // Forma 1: input.data
-    if (input?.data) {
-      if (input.data instanceof FormData) {
-        parsedData = Object.fromEntries(input.data.entries());
-      } else if (typeof input.data === 'object') {
-        parsedData = input.data;
-      }
-    }
-    // Forma 2: input direto (se for um objeto)
-    if (!parsedData.name && typeof input === 'object' && input.name) {
-      parsedData = input;
-    }
-    // Forma 3: Procurar em outras propriedades comuns
-    if (!parsedData.name) {
-      parsedData = input?.payload || input?.body || input?.params || input;
-    }
-
-    if (!parsedData?.name) throw new Error("Nome é obrigatório");
-    if (!parsedData?.baseUnitId) throw new Error("Unidade é obrigatória");
+    if (!data?.name) throw new Error("Nome é obrigatório");
+    if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
 
     // Converter código da unidade (ex: "kg") para ID se necessário
     let unitId = parsedData.baseUnitId;
