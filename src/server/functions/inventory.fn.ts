@@ -41,7 +41,6 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
 
     // Gerar valores padrão se não fornecidos
-    const name = data?.name || `Item ${new Date().getTime()}`;
     const baseUnitId = data?.baseUnitId || "kg";
     const itemType = data?.itemType || "INGREDIENT";
 
@@ -57,6 +56,9 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
 
     // Gerar SKU automaticamente
     const sku = data?.sku || generateSKU(itemType);
+
+    // Usar SKU como nome se não fornecido
+    const name = data?.name || sku;
 
     const itemData = createInventoryItemSchema.parse({
       name: name,
