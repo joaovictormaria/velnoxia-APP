@@ -38,41 +38,44 @@ function generateSKU(itemType: string): string {
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .validator(z.any())
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
 
-    console.log("📥 Data type:", typeof data);
-    console.log("📥 Data keys:", Object.keys(data || {}).join(','));
-    console.log("📥 Data.data:", data?.data);
-    console.log("📥 Data.name:", data?.name);
+    try {
+      // Se data.data existe, é porque os dados estão aninhados
+      const actualData = data?.data || data;
 
-    // Se data.data existe, é porque os dados estão aninhados
-    const actualData = data?.data || data;
-
-    if (!actualData?.name) throw new Error("Nome é obrigatório");
-    if (!actualData?.baseUnitId) throw new Error("Unidade é obrigatória");
-
-    let unitId = actualData.baseUnitId;
-    if (!actualData.baseUnitId.includes('-')) {
-      const unit = await inventoryUnitRepository.findByCode(actualData.baseUnitId);
-      if (!unit) {
-        throw new Error(`Unit "${actualData.baseUnitId}" not found`);
+      if (!actualData?.name) {
+        throw new Error(`Nome é obrigatório. Recebido: ${JSON.stringify({ actualData, data, type: typeof actualData })}`);
       }
-      unitId = unit.id;
+      if (!actualData?.baseUnitId) {
+        throw new Error(`Unidade é obrigatória. Recebido: ${JSON.stringify({ baseUnitId: actualData?.baseUnitId })}`);
+      }
+
+      let unitId = actualData.baseUnitId;
+      if (!actualData.baseUnitId.includes('-')) {
+        const unit = await inventoryUnitRepository.findByCode(actualData.baseUnitId);
+        if (!unit) {
+          throw new Error(`Unit "${actualData.baseUnitId}" not found`);
+        }
+        unitId = unit.id;
+      }
+
+      const sku = actualData.sku || generateSKU(actualData.itemType || "INGREDIENT");
+
+      const itemData = createInventoryItemSchema.parse({
+        name: actualData.name,
+        sku: sku,
+        barcode: actualData.barcode || null,
+        baseUnitId: unitId,
+        cost: actualData.cost ? parseFloat(actualData.cost) : undefined,
+        itemType: actualData.itemType || "INGREDIENT",
+      });
+
+      return InventoryService.createItem(admin.storeId, itemData);
+    } catch (error) {
+      throw error;
     }
-
-    const sku = actualData.sku || generateSKU(actualData.itemType || "INGREDIENT");
-
-    const itemData = createInventoryItemSchema.parse({
-      name: actualData.name,
-      sku: sku,
-      barcode: actualData.barcode || null,
-      baseUnitId: unitId,
-      cost: actualData.cost ? parseFloat(actualData.cost) : undefined,
-      itemType: actualData.itemType || "INGREDIENT",
-    });
-
-    return InventoryService.createItem(admin.storeId, itemData);
   });
 
 /**
