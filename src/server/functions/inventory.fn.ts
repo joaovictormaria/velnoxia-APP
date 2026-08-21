@@ -37,17 +37,9 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.object({
-    data: z.object({
-      name: z.string().optional(),
-      baseUnitId: z.string().optional(),
-      itemType: z.string().optional(),
-      cost: z.string().optional(),
-    })
-  }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
-    const itemData = data.data;
+    const itemData = data?.data || data;
 
     // Gerar valores padrão se não fornecidos
     const baseUnitId = itemData?.baseUnitId || "kg";
