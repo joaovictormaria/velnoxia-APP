@@ -36,45 +36,47 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.object({
-    name: z.string(),
-    sku: z.string().nullable().optional(),
-    barcode: z.string().nullable().optional(),
-    baseUnitId: z.string(),
-    cost: z.string().optional(),
-    itemType: z.string(),
-  }).passthrough())
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: { data: any }) => {
+    console.log("Raw data received:", data);
+
     const store = await getStoreFromSession();
     if (!store?.adminUser) {
       throw new Error("Not authenticated");
     }
 
-    console.log("adminCreateInventoryItem received:", data);
+    // Parse manually
+    const validated = z.object({
+      name: z.string(),
+      sku: z.string().nullable().optional(),
+      barcode: z.string().nullable().optional(),
+      baseUnitId: z.string(),
+      cost: z.string().optional(),
+      itemType: z.string(),
+    }).parse(data);
 
     // Converter código da unidade (ex: "kg") para ID se necessário
-    let unitId = data.baseUnitId;
-    if (!data.baseUnitId.includes('-')) { // Se for um código (não UUID)
-      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
+    let unitId = validated.baseUnitId;
+    if (!validated.baseUnitId.includes('-')) { // Se for um código (não UUID)
+      const unit = await inventoryUnitRepository.findByCode(validated.baseUnitId);
       if (!unit) {
-        throw new Error(`Unit "${data.baseUnitId}" not found`);
+        throw new Error(`Unit "${validated.baseUnitId}" not found`);
       }
       unitId = unit.id;
     }
 
     // Gerar SKU automaticamente se não fornecido
-    const sku = data.sku || generateSKU(data.itemType);
+    const sku = validated.sku || generateSKU(validated.itemType);
 
-    const validated = createInventoryItemSchema.parse({
-      name: data.name,
+    const itemData = createInventoryItemSchema.parse({
+      name: validated.name,
       sku: sku,
-      barcode: data.barcode || null,
+      barcode: validated.barcode || null,
       baseUnitId: unitId,
-      cost: data.cost ? parseFloat(data.cost) : undefined,
-      itemType: data.itemType,
+      cost: validated.cost ? parseFloat(validated.cost) : undefined,
+      itemType: validated.itemType,
     });
 
-    return InventoryService.createItem(store.id, validated);
+    return InventoryService.createItem(store.id, itemData);
   });
 
 /**
