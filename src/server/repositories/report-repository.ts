@@ -43,13 +43,26 @@ export const reportRepository = {
       if (options?.endDate) (where.createdAt as any).lte = options.endDate;
     }
 
-    return prisma.inventoryMovement.findMany({
+    const movements = await prisma.inventoryMovement.findMany({
       where,
       include: { item: true, unit: true, originalMovement: true },
       orderBy: { createdAt: options?.orderBy === "asc" ? "asc" : "desc" },
       take: options?.limit ?? 100,
       skip: options?.offset ?? 0,
     });
+
+    // Serialize Decimal to Number
+    return movements.map(mov => ({
+      ...mov,
+      quantity: Number(mov.quantity ?? 0),
+      costAtTime: mov.costAtTime ? Number(mov.costAtTime) : null,
+      item: mov.item ? {
+        ...mov.item,
+        quantityOnHand: Number(mov.item.quantityOnHand ?? 0),
+        quantityReserved: Number(mov.item.quantityReserved ?? 0),
+        cost: mov.item.cost ? Number(mov.item.cost) : null,
+      } : null,
+    }));
   },
 
   async getInventoryValue(storeId: string) {
