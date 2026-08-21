@@ -36,7 +36,6 @@ export function AuditLog(props: AuditLogProps) {
     const labels: Record<string, string> = {
       PURCHASE: "🛒 Compra",
       LOSS: "❌ Perda",
-      ADJUSTMENT: "🔧 Ajuste",
       CONSUMPTION: "🍽️ Consumo",
       RESERVATION: "📌 Reserva",
       REVERSAL: "↩️ Reversão",

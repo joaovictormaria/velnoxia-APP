@@ -180,7 +180,6 @@ export function MovementForm(props: MovementFormProps) {
           >
             <option value="PURCHASE">Compra (+)</option>
             <option value="LOSS">Perda (-)</option>
-            <option value="ADJUSTMENT">Ajuste (±)</option>
           </select>
         </div>
 
