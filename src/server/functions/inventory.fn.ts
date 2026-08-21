@@ -37,7 +37,7 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.object({}).passthrough())
+  .validator(z.any())
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
 
