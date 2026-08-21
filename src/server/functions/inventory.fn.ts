@@ -37,30 +37,47 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(createInventoryItemClientSchema)
-  .handler(async ({ data }) => {
+  .validator(z.any())
+  .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
 
+    // Aceitar FormData ou objeto JSON
+    let parsedData: any = {};
+
+    if (data instanceof FormData) {
+      parsedData = {
+        name: data.get("name"),
+        baseUnitId: data.get("baseUnitId"),
+        itemType: data.get("itemType"),
+        cost: data.get("cost"),
+      };
+    } else {
+      parsedData = data;
+    }
+
+    if (!parsedData.name) throw new Error("Nome é obrigatório");
+    if (!parsedData.baseUnitId) throw new Error("Unidade é obrigatória");
+
     // Converter código da unidade (ex: "kg") para ID se necessário
-    let unitId = data.baseUnitId;
-    if (!data.baseUnitId.includes('-')) {
-      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
+    let unitId = parsedData.baseUnitId;
+    if (!parsedData.baseUnitId.includes('-')) {
+      const unit = await inventoryUnitRepository.findByCode(parsedData.baseUnitId);
       if (!unit) {
-        throw new Error(`Unit "${data.baseUnitId}" not found`);
+        throw new Error(`Unit "${parsedData.baseUnitId}" not found`);
       }
       unitId = unit.id;
     }
 
     // Gerar SKU automaticamente se não fornecido
-    const sku = data.sku || generateSKU(data.itemType);
+    const sku = parsedData.sku || generateSKU(parsedData.itemType || "INGREDIENT");
 
     const itemData = createInventoryItemSchema.parse({
-      name: data.name,
+      name: parsedData.name,
       sku: sku,
-      barcode: data.barcode || null,
+      barcode: parsedData.barcode || null,
       baseUnitId: unitId,
-      cost: data.cost ? parseFloat(data.cost) : undefined,
-      itemType: data.itemType,
+      cost: parsedData.cost ? parseFloat(parsedData.cost) : undefined,
+      itemType: parsedData.itemType || "INGREDIENT",
     });
 
     return InventoryService.createItem(admin.storeId, itemData);

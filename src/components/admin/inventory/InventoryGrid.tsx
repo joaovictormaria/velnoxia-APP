@@ -132,15 +132,13 @@ export function InventoryGrid(props: InventoryGridProps) {
     }
 
     try {
-      const payload = {
-        name: newItem.name || "",
-        baseUnitId: newItem.baseUnitId || "kg",
-        itemType: newItem.itemType || "INGREDIENT",
-        cost: newItem.cost && newItem.cost.trim() ? newItem.cost : null,
-      };
-      console.log("📤 Enviando payload:", payload);
-      const createdItem = await adminCreateInventoryItem(payload);
-      console.log("✅ Item criado:", createdItem);
+      const formData = new FormData();
+      formData.append("name", newItem.name || "");
+      formData.append("baseUnitId", newItem.baseUnitId || "kg");
+      formData.append("itemType", newItem.itemType || "INGREDIENT");
+      formData.append("cost", newItem.cost && newItem.cost.trim() ? newItem.cost : "");
+
+      const createdItem = await adminCreateInventoryItem(formData);
 
       setShowCreateModal(false);
       setNewItem({
