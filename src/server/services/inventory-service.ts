@@ -347,8 +347,12 @@ export class InventoryService {
         break;
 
       case "LOSS":
+        // Decrease quantityOnHand for losses
+        updates.quantityOnHand = item.quantityOnHand - quantity;
+        break;
+
       case "ADJUSTMENT":
-        // Direct change to quantityOnHand
+        // Direct change to quantityOnHand (quantity can be positive or negative)
         updates.quantityOnHand = item.quantityOnHand + quantity;
         break;
 
