@@ -15,12 +15,22 @@ export function AuditLog(props: AuditLogProps) {
     const fetchMovements = async () => {
       setLoading(true);
       try {
-        const data = await adminGetMovementHistory({
-          itemId: props.itemId,
-          limit: "50",
-        });
+        const params: any = { limit: "50" };
+        if (props.itemId) params.itemId = props.itemId;
+
+        const data = await adminGetMovementHistory(params);
+        console.log("✅ adminGetMovementHistory returned:", data);
+        console.log("   Type:", typeof data);
+        console.log("   Is Array?", Array.isArray(data));
+        if (data) {
+          console.log("   Keys:", Object.keys(data));
+        }
+
         if (Array.isArray(data)) {
+          console.log(`   Setting ${data.length} movements`);
           setMovements(data);
+        } else {
+          console.log("   Data is NOT an array!");
         }
       } catch (error) {
         console.error("Failed to fetch movements:", error);

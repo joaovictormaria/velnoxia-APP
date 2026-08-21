@@ -33,14 +33,10 @@ export const adminGetLowStockAlerts2 = createServerFn({ method: "GET" })
   });
 
 export const adminGetMovementHistory = createServerFn({ method: "POST" })
-  .validator(z.object({
-    itemId: z.string().optional(),
-    type: z.string().optional(),
-    limit: z.string().optional(),
-  }))
-  .handler(async ({ data }) => {
+  .handler(async (context: any) => {
     const admin = await requireAdminSession();
 
+    const data = context?.data || {};
     const limit = parseInt(data.limit || "100") || 100;
 
     return reportRepository.getMovementHistory(admin.storeId, {
