@@ -139,21 +139,21 @@ enum StoreStatus {
 /// Tenant root. Every customer-facing and admin-facing record hangs off a
 /// Store, and every query must be scoped by storeId — there is no global view.
 model Store {
-  id          String      @id @default(cuid())
+  id           String      @id @default(cuid())
   /// Drives the starter catalog and the storefront copy (pizzaria, hamburgueria...).
-  businessType String     @default("pizzaria")
+  businessType String      @default("pizzaria")
   /// Public URL segment: velnox.app/<slug>. Checked against RESERVED_SLUGS on
   /// signup so a store can never shadow a real route (/admin, /criar-site...).
-  slug        String      @unique
-  name        String
-  status      StoreStatus @default(TRIAL)
-  trialEndsAt DateTime?
+  slug         String      @unique
+  name         String
+  status       StoreStatus @default(TRIAL)
+  trialEndsAt  DateTime?
 
   /// O cliente no Stripe. Criado na primeira tentativa de assinar e reusado
   /// depois, para o dono não virar dois clientes com dois cartões.
-  stripeCustomerId     String? @unique
+  stripeCustomerId     String?   @unique
   /// A assinatura corrente. Null enquanto ele nunca assinou.
-  stripeSubscriptionId String? @unique
+  stripeSubscriptionId String?   @unique
   /// O texto cru que o Stripe usa ("active", "past_due", "canceled"). Guardado
   /// para a tela explicar o porquê em vez de só dizer que caiu.
   subscriptionStatus   String?
@@ -162,26 +162,29 @@ model Store {
   paidUntil            DateTime?
   /// Marcada quando o dono pede cancelamento: ele continua usando até o fim
   /// do período que já pagou, e a tela precisa dizer isso.
-  cancelAtPeriodEnd    Boolean @default(false)
+  cancelAtPeriodEnd    Boolean   @default(false)
 
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  settings      StoreSettings?
-  admins        AdminUser[]
-  categories    Category[]
-  products      Product[]
-  extras        Extra[]
-  coupons       Coupon[]
-  customers     Customer[]
-  orders        Order[]
-  reviews       Review[]
+  settings             StoreSettings?
+  admins               AdminUser[]
+  categories           Category[]
+  products             Product[]
+  extras               Extra[]
+  coupons              Coupon[]
+  customers            Customer[]
+  orders               Order[]
+  reviews              Review[]
   posts                Post[]
   courierInvites       CourierInvite[]
-  promotions    Promotion[]
-  notifications Notification[]
+  promotions           Promotion[]
+  notifications        Notification[]
   employees            Employee[]
   employeeBenefitPlans EmployeeBenefitPlan[]
+  inventoryItems       InventoryItem[]       @relation("InventoryItems")
+  inventoryMovements   InventoryMovement[]   @relation("InventoryMovements")
+  productCompositions  ProductComposition[]  @relation("ProductCompositions")
 
   @@index([status])
 }
@@ -189,28 +192,28 @@ model Store {
 // ---------- Auth ----------
 
 model AdminUser {
-  id           String    @id @default(cuid())
-  storeId      String
-  store        Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name         String
+  id             String           @id @default(cuid())
+  storeId        String
+  store          Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name           String
   /// Globally unique: the login form finds the user by e-mail alone, and the
   /// store comes from the user record rather than being typed in.
-  email        String    @unique
-  passwordHash String
-  role         AdminRole @default(OWNER)
-  deliveries   Order[]   @relation("OrderCourier")
+  email          String           @unique
+  passwordHash   String
+  role           AdminRole        @default(OWNER)
+  deliveries     Order[]          @relation("OrderCourier")
   /// Onde ele está agora — só a última posição, e só enquanto tem entrega.
-  location     CourierLocation?
-  isActive     Boolean   @default(true)
+  location       CourierLocation?
+  isActive       Boolean          @default(true)
   /// Sobe a cada troca de senha ou desativação. A sessão guarda a versão que
   /// tinha no login; quando divergem, o cookie antigo deixa de valer. É o que
   /// faz uma redefinição de senha expulsar quem já estava dentro.
-  sessionVersion Int     @default(0)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  sessionVersion Int              @default(0)
+  lastLoginAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
-  respondedReviews Review[] @relation("ReviewRespondedBy")
+  respondedReviews Review[]             @relation("ReviewRespondedBy")
   passwordResets   PasswordResetToken[]
 
   @@index([storeId])
@@ -313,40 +316,41 @@ model Category {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  products Product[]
-  sizes      CategorySize[]
-  optionGroups OptionGroup[]
+  products             Product[]
+  sizes                CategorySize[]
+  optionGroups         OptionGroup[]
   employeeBenefitRules EmployeeBenefitRule[]
-  extraScopes  ExtraScope[]
+  extraScopes          ExtraScope[]
 
   @@unique([storeId, slug])
   @@index([storeId, sortOrder])
 }
 
 model Product {
-  id                     String               @id @default(cuid())
-  storeId                String
-  store                  Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name                   String
-  slug                   String
-  description            String
-  categoryId             String
-  category               Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  basePrice              Float
-  imageUrl               String?
-  tag                    String?
-  isActive               Boolean              @default(true)
-  allowHalfAndHalf       Boolean              @default(false)
-  halfPizzaPricingRule   HalfPizzaPricingRule @default(HIGHEST_PRICE)
-  sortOrder              Int                  @default(0)
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  id                   String               @id @default(cuid())
+  storeId              String
+  store                Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name                 String
+  slug                 String
+  description          String
+  categoryId           String
+  category             Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  basePrice            Float
+  imageUrl             String?
+  tag                  String?
+  isActive             Boolean              @default(true)
+  allowHalfAndHalf     Boolean              @default(false)
+  halfPizzaPricingRule HalfPizzaPricingRule @default(HIGHEST_PRICE)
+  sortOrder            Int                  @default(0)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
-  sizes        ProductSize[]
-  orderItems   OrderItem[]
-  optionGroups OptionGroup[]
+  sizes                ProductSize[]
+  orderItems           OrderItem[]
+  optionGroups         OptionGroup[]
   employeeBenefitRules EmployeeBenefitRule[]
-  extraScopes  ExtraScope[]
+  extraScopes          ExtraScope[]
+  productCompositions  ProductComposition[]
 
   @@unique([storeId, slug])
   @@index([categoryId, isActive])
@@ -462,11 +466,9 @@ model Extra {
 /**
  * Onde um adicional pode ser pedido: numa categoria inteira ou num produto —
  * nunca nos dois na mesma linha, como nos `OptionGroup`.
- *
  * Antes disto o adicional era da loja e valia para tudo: dava para pedir borda
  * de catupiry num refrigerante, e o sistema aceitava e cobrava. O dono não
  * tinha onde dizer que não.
- *
  * A categoria existe porque sem ela o cadastro seria impraticável: numa
  * pizzaria de quarenta sabores, "Borda de catupiry" exigiria quarenta marcações
  * e mais uma a cada pizza nova — e a que fosse esquecida viraria uma borda que
@@ -490,21 +492,21 @@ model ExtraScope {
 }
 
 model Coupon {
-  id             String       @id @default(cuid())
-  storeId        String
-  store          Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  code           String
-  description    String?
-  discountType   DiscountType
-  discountValue  Float
-  minOrderValue  Float?
-  maxUsage       Int?
-  usageCount     Int          @default(0)
-  validFrom      DateTime
-  validUntil     DateTime
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id            String       @id @default(cuid())
+  storeId       String
+  store         Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  code          String
+  description   String?
+  discountType  DiscountType
+  discountValue Float
+  minOrderValue Float?
+  maxUsage      Int?
+  usageCount    Int          @default(0)
+  validFrom     DateTime
+  validUntil    DateTime
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 
   orders Order[]
 
@@ -559,37 +561,35 @@ model Customer {
 
 /**
  * Quem trabalha na loja e come nela.
- *
  * Não é um `AdminUser`: o funcionário não entra no painel, não tem senha e não
  * vê pedido nenhum. Ele pede pela vitrine como qualquer cliente, e o que o
  * distingue é ser reconhecido no checkout. Por isso ele também continua tendo
  * um `Customer` normal — o histórico dele como comprador é o de todo mundo.
- *
  * O reconhecimento é telefone + PIN. Só o telefone não bastaria: quem soubesse
  * o número de um colega comeria com o desconto dele, e a conta só apareceria
  * errada no fim do mês.
  */
 model Employee {
-  id       String  @id @default(cuid())
-  storeId  String
-  store    Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  name     String
+  id        String               @id @default(cuid())
+  storeId   String
+  store     Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
   /// A função, livre: "cozinha", "atendimento", "caixa". Só para o dono se
   /// achar na lista — quem manda no desconto é o plano.
-  jobTitle String?
+  jobTitle  String?
   /// Só dígitos, no mesmo formato em que o checkout grava `customerPhone`. É a
   /// chave do reconhecimento, e por isso é única dentro da loja.
-  phone    String
+  phone     String
   /// Guardado como hash, igual às senhas. Um PIN de 4 dígitos em texto puro no
   /// banco é a mesma coisa que não ter PIN.
-  pinHash  String
+  pinHash   String
   /// Sem plano, o funcionário fica cadastrado mas não ganha nada — é o estado
   /// de quem acabou de ser contratado e ainda não teve o benefício definido.
-  planId   String?
-  plan     EmployeeBenefitPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  planId    String?
+  plan      EmployeeBenefitPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  isActive  Boolean              @default(true)
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
 
   orders Order[]
 
@@ -599,11 +599,9 @@ model Employee {
 
 /**
  * O benefício de um grupo de funcionários: "Cozinha", "Atendimento".
- *
  * Mora num plano, e não em cada pessoa, porque a regra quase sempre é do cargo
  * e não do indivíduo — mudar o desconto da cozinha teria de ser reescrito em
  * cada ficha, e bastaria esquecer uma.
- *
  * A regra padrão vale para o cardápio inteiro; as exceções em
  * `EmployeeBenefitRule` cobrem categoria e produto. São os dois juntos que
  * fazem os quatro jeitos que o dono pediu caberem num mecanismo só: só o
@@ -638,7 +636,6 @@ model EmployeeBenefitPlan {
 /**
  * Uma exceção à regra padrão do plano, para uma categoria OU para um produto —
  * nunca os dois, como nos `OptionGroup`.
- *
  * A resolução é produto > categoria > padrão: o item procura primeiro uma
  * regra sua, depois uma da categoria dele, e só então cai no padrão do plano.
  */
@@ -682,8 +679,8 @@ model Order {
 
   /// Quem leva. Opcional: o dono pode sair para entrega sem escolher
   /// ninguem, e o pedido nao pode ficar preso por causa disso.
-  courierId     String?
-  courier       AdminUser? @relation("OrderCourier", fields: [courierId], references: [id], onDelete: SetNull)
+  courierId           String?
+  courier             AdminUser? @relation("OrderCourier", fields: [courierId], references: [id], onDelete: SetNull)
   /// O nome de quem levou, copiado no momento do despacho.
   ///
   /// Apagar a conta do entregador zera courierId — é o SetNull acima, e tem
@@ -694,8 +691,8 @@ model Order {
   /// Quem pediu era funcionário. Reconhecido pelo telefone mais o PIN no
   /// checkout — o funcionário pede pela vitrine como qualquer cliente, e é aqui
   /// que fica registrado que aquele pedido saiu com benefício.
-  employeeId String?
-  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  employeeId           String?
+  employee             Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
   /// O nome copiado no momento do pedido, pelo mesmo motivo do
   /// `courierNameSnapshot`: apagar a ficha do funcionário não pode apagar o
   /// registro de quem pegou o quê.
@@ -703,7 +700,7 @@ model Order {
   /// Quanto do `discount` veio do benefício. Redundante de propósito: o
   /// relatório de pessoal precisa separar isto de um desconto de cupom, e os
   /// dois moram no mesmo campo de total.
-  employeeDiscount     Float   @default(0)
+  employeeDiscount     Float     @default(0)
   /// Por qual regra, em português, para a tela do pedido explicar sem recalcular
   /// nada: "Plano Cozinha — 30%; 2 itens fora da cota".
   employeeBenefitNote  String?
@@ -713,9 +710,9 @@ model Order {
   /// lista de espera seria indistinguivel da coluna de preparo.
   awaitingCourierSince DateTime?
 
-  type   OrderType     @default(DELIVERY)
-  status OrderStatus   @default(RECEIVED)
-  source OrderSource   @default(SITE)
+  type   OrderType   @default(DELIVERY)
+  status OrderStatus @default(RECEIVED)
+  source OrderSource @default(SITE)
 
   paymentMethod PaymentMethod
   paymentStatus PaymentStatus @default(PENDING)
@@ -765,17 +762,17 @@ model OrderItem {
   orderId String
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  productId          String?
-  product            Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productId           String?
+  product             Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   productNameSnapshot String
   sizeLabel           String?
 
-  isHalfAndHalf              Boolean @default(false)
-  secondProductId             String?
-  secondProductNameSnapshot   String?
+  isHalfAndHalf             Boolean @default(false)
+  secondProductId           String?
+  secondProductNameSnapshot String?
 
   unitPrice Float
-  quantity  Int    @default(1)
+  quantity  Int     @default(1)
   note      String?
 
   /// Quanto o benefício do funcionário tirou desta linha, no total (já
@@ -793,21 +790,21 @@ model OrderItem {
 }
 
 model OrderItemExtra {
-  id           String    @id @default(cuid())
-  orderItemId  String
-  orderItem    OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  extraId      String?
-  extra        Extra?    @relation(fields: [extraId], references: [id], onDelete: SetNull)
+  id                String      @id @default(cuid())
+  orderItemId       String
+  orderItem         OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  extraId           String?
+  extra             Extra?      @relation(fields: [extraId], references: [id], onDelete: SetNull)
   /// Preenchido quando a linha veio de um grupo de opções, e não da lista
   /// solta de adicionais. Os dois convivem na mesma tabela porque, para o
   /// pedido, ambos são "algo que o cliente escolheu e entrou na conta".
-  optionItemId String?
-  optionItem   OptionItem? @relation(fields: [optionItemId], references: [id], onDelete: SetNull)
+  optionItemId      String?
+  optionItem        OptionItem? @relation(fields: [optionItemId], references: [id], onDelete: SetNull)
   /// O nome do grupo no momento da compra, para o pedido dizer
   /// "Sabor: Chocolate" e não só "Chocolate".
   groupNameSnapshot String?
-  nameSnapshot String
-  priceSnapshot Float
+  nameSnapshot      String
+  priceSnapshot     Float
 }
 
 model OrderStatusHistory {
@@ -826,27 +823,27 @@ model OrderStatusHistory {
 // ---------- Avaliações ----------
 
 model Review {
-  id                  String       @id @default(cuid())
-  storeId             String
-  store               Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  customerId          String?
-  customer            Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  id                   String        @id @default(cuid())
+  storeId              String
+  store                Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customerId           String?
+  customer             Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   customerNameSnapshot String
-  orderId             String?
-  order               Order?       @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  rating              Int
-  comment             String
-  channel             ReviewChannel @default(SITE)
-  status              ReviewStatus  @default(PENDING)
-  visitorId           String?
-  isHidden            Boolean       @default(false)
-  likes               ReviewLike[]
-  response            String?
-  respondedAt         DateTime?
-  respondedByAdminId  String?
-  respondedBy         AdminUser?   @relation("ReviewRespondedBy", fields: [respondedByAdminId], references: [id], onDelete: SetNull)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  orderId              String?
+  order                Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  rating               Int
+  comment              String
+  channel              ReviewChannel @default(SITE)
+  status               ReviewStatus  @default(PENDING)
+  visitorId            String?
+  isHidden             Boolean       @default(false)
+  likes                ReviewLike[]
+  response             String?
+  respondedAt          DateTime?
+  respondedByAdminId   String?
+  respondedBy          AdminUser?    @relation("ReviewRespondedBy", fields: [respondedByAdminId], references: [id], onDelete: SetNull)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
   @@index([storeId, status])
   @@index([storeId, createdAt])
@@ -881,16 +878,16 @@ model ReviewLike {
 }
 
 model Post {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   storeId     String
-  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store       Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
   title       String
   body        String
   imageUrl    String?
-  isPublished Boolean  @default(true)
-  publishedAt DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isPublished Boolean    @default(true)
+  publishedAt DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   likes       PostLike[]
 
   @@index([storeId, publishedAt])
@@ -910,7 +907,6 @@ model PostLike {
 /**
  * Última posição conhecida do entregador, para o cliente saber a que distância
  * o pedido está.
- *
  * Uma linha por entregador, sobrescrita a cada envio: não existe histórico de
  * trajeto. Guardar o caminho de um trabalhador seria dado sensível sem nenhuma
  * pergunta que ele responda — o cliente só quer saber a distância de agora. A
@@ -931,16 +927,16 @@ model CourierLocation {
 /// Assim o dono nunca sabe a senha do funcionário, e o entregador não precisa
 /// descobrir quais lojas existem: sem código, não há como entrar.
 model CourierInvite {
-  id         String    @id @default(cuid())
-  storeId    String
-  store      Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   /// Guardado como hash: quem ler o banco não consegue usar o convite.
-  codeHash   String    @unique
-  name       String
-  expiresAt  DateTime
-  usedAt     DateTime?
-  usedById   String?
-  createdAt  DateTime  @default(now())
+  codeHash  String    @unique
+  name      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  usedById  String?
+  createdAt DateTime  @default(now())
 
   @@index([storeId, usedAt])
 }
@@ -949,13 +945,239 @@ model CourierInvite {
 /// quem ler o banco não consegue trocar a senha de ninguém. Uso único e vida
 /// curta, porque um link de redefinição é, enquanto vale, a própria senha.
 model PasswordResetToken {
-  id           String    @id @default(cuid())
-  adminUserId  String
-  adminUser    AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
-  tokenHash    String    @unique
-  expiresAt    DateTime
-  usedAt       DateTime?
-  createdAt    DateTime  @default(now())
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
 
   @@index([adminUserId, usedAt])
+}
+
+// ---------- Estoque & Produção (Fase 1) ----------
+
+enum InventoryUnitSystem {
+  /// Peso: quilograma, grama, miligrama, tonelada
+  WEIGHT
+
+  /// Volume: litro, mililitro, decilitro
+  VOLUME
+
+  /// Contagem: unidade, dúzia, par
+  COUNT
+
+  /// Comprimento: metro, centímetro, milímetro
+  LENGTH
+
+  /// Casos especiais futuros
+  CUSTOM
+}
+
+enum InventoryMovementType {
+  /// Entrada de compra de fornecedor
+  PURCHASE
+
+  /// Reserva de estoque (pedido recebido)
+  /// NÃO é movimento físico: apenas atualiza quantityReserved
+  RESERVATION
+
+  /// Consumo efetivo de estoque (pedido em preparação)
+  CONSUMPTION
+
+  /// Saída de insumo para produção
+  PRODUCTION
+
+  /// Perda, desperdício, produto estragado
+  LOSS
+
+  /// Ajuste manual de inventário
+  ADJUSTMENT
+
+  /// Devolução de fornecedor
+  RETURN
+
+  /// Reversão de movimentação anterior
+  REVERSAL
+}
+
+/// Unidade de medida (SISTEMA GLOBAL)
+/// Não varia por loja. Seed inicial com unidades padrão.
+model InventoryUnit {
+  id String @id @default(cuid())
+
+  code        String              @unique
+  name        String
+  system      InventoryUnitSystem
+  description String?
+  isBuiltIn   Boolean             @default(false)
+
+  createdAt DateTime @default(now())
+
+  items            InventoryItem[]
+  conversions      InventoryUnitConversion[] @relation("from")
+  conversionsTo    InventoryUnitConversion[] @relation("to")
+  movementUnits    InventoryMovement[]
+  compositionUnits CompositionItem[]
+
+  @@index([system])
+}
+
+/// Conversão entre unidades (ex: 1kg = 1000g)
+model InventoryUnitConversion {
+  id String @id @default(cuid())
+
+  fromUnitId String
+  fromUnit   InventoryUnit @relation("from", fields: [fromUnitId], references: [id], onDelete: Restrict)
+
+  toUnitId String
+  toUnit   InventoryUnit @relation("to", fields: [toUnitId], references: [id], onDelete: Restrict)
+
+  conversionFactor Decimal @db.Decimal(15, 6)
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromUnitId, toUnitId])
+  @@index([fromUnitId])
+  @@index([toUnitId])
+}
+
+/// Item de estoque (insumo, produto de revenda, embalagem, produto produzido)
+model InventoryItem {
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation("InventoryItems", fields: [storeId], references: [id], onDelete: Cascade)
+
+  name     String
+  sku      String?
+  barcode  String?
+  itemType String  @default("INGREDIENT")
+
+  baseUnitId String
+  baseUnit   InventoryUnit @relation(fields: [baseUnitId], references: [id], onDelete: Restrict)
+
+  /// ESTADO DERIVADO: Saldo atual em estoque (FONTE DE VERDADE: InventoryMovement)
+  quantityOnHand   Decimal @default(0) @db.Decimal(15, 4)
+  /// ESTADO DERIVADO: Quantidade reservada para pedidos
+  quantityReserved Decimal @default(0) @db.Decimal(15, 4)
+
+  cost Decimal? @db.Decimal(10, 2)
+
+  minimumThreshold Decimal? @db.Decimal(15, 4)
+  idealQuantity    Decimal? @db.Decimal(15, 4)
+  maximumCapacity  Decimal? @db.Decimal(15, 4)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movements    InventoryMovement[]
+  compositions CompositionItem[]
+
+  @@unique([storeId, sku])
+  @@unique([storeId, barcode])
+  @@index([storeId, itemType])
+  @@index([storeId, isActive])
+  @@index([storeId, createdAt])
+}
+
+/// Histórico IMUTÁVEL de movimentações de estoque
+/// PRINCÍPIO: O saldo é ESTADO DERIVADO das movimentações. Nunca é editada.
+model InventoryMovement {
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation("InventoryMovements", fields: [storeId], references: [id], onDelete: Cascade)
+
+  /// Chave de idempotência: store#{refType}#{refId}#{movementType}#{itemId}#{idx}
+  /// Para REVERSAL: store#REVERSAL#{originalMovementId}
+  idempotencyKey String @unique
+
+  itemId String
+  item   InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+
+  type InventoryMovementType
+
+  quantity Decimal       @db.Decimal(15, 4)
+  unitId   String
+  unit     InventoryUnit @relation(fields: [unitId], references: [id], onDelete: Restrict)
+
+  reference     String?
+  referenceType String?
+
+  /// Para REVERSAL: qual movimentação está sendo revertida
+  originalMovementId String?            @unique
+  originalMovement   InventoryMovement? @relation("reversal", fields: [originalMovementId], references: [id], onDelete: SetNull)
+  reversedBy         InventoryMovement? @relation("reversal")
+
+  /// Qual composição foi usada
+  compositionId String?
+  composition   ProductComposition? @relation(fields: [compositionId], references: [id], onDelete: SetNull)
+
+  costAtTime Decimal? @db.Decimal(10, 2)
+  note       String?
+
+  authorType String?
+  authorId   String?
+  authorName String?
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([storeId, itemId])
+  @@index([storeId, type])
+  @@index([reference])
+  @@index([compositionId])
+  @@index([originalMovementId])
+}
+
+/// Receita/Ficha Técnica (VERSIONADA E IMUTÁVEL APÓS USO)
+model ProductComposition {
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation("ProductCompositions", fields: [storeId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  version  Int     @default(1)
+  isActive Boolean @default(true)
+
+  /// FONTE DE VERDADE: quando foi usada primeira vez
+  firstUsedAt DateTime?
+  /// Auxiliar: cache de uso
+  usageCount  Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items     CompositionItem[]
+  movements InventoryMovement[]
+
+  @@unique([productId, version])
+  @@index([productId, isActive])
+  @@index([storeId, createdAt])
+}
+
+/// Componente de uma composição (insumo necessário)
+model CompositionItem {
+  id String @id @default(cuid())
+
+  compositionId String
+  composition   ProductComposition @relation(fields: [compositionId], references: [id], onDelete: Cascade)
+
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  quantity Decimal       @db.Decimal(15, 4)
+  unitId   String
+  unit     InventoryUnit @relation(fields: [unitId], references: [id], onDelete: Restrict)
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([compositionId])
+  @@index([inventoryItemId])
 }
