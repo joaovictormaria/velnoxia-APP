@@ -44,25 +44,25 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
     if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
 
     // Converter código da unidade (ex: "kg") para ID se necessário
-    let unitId = parsedData.baseUnitId;
-    if (!parsedData.baseUnitId.includes('-')) {
-      const unit = await inventoryUnitRepository.findByCode(parsedData.baseUnitId);
+    let unitId = data.baseUnitId;
+    if (!data.baseUnitId.includes('-')) {
+      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
       if (!unit) {
-        throw new Error(`Unit "${parsedData.baseUnitId}" not found`);
+        throw new Error(`Unit "${data.baseUnitId}" not found`);
       }
       unitId = unit.id;
     }
 
     // Gerar SKU automaticamente se não fornecido
-    const sku = parsedData.sku || generateSKU(parsedData.itemType || "INGREDIENT");
+    const sku = data.sku || generateSKU(data.itemType || "INGREDIENT");
 
     const itemData = createInventoryItemSchema.parse({
-      name: parsedData.name,
+      name: data.name,
       sku: sku,
-      barcode: parsedData.barcode || null,
+      barcode: data.barcode || null,
       baseUnitId: unitId,
-      cost: parsedData.cost ? parseFloat(parsedData.cost) : undefined,
-      itemType: parsedData.itemType || "INGREDIENT",
+      cost: data.cost ? parseFloat(data.cost) : undefined,
+      itemType: data.itemType || "INGREDIENT",
     });
 
     return InventoryService.createItem(admin.storeId, itemData);
