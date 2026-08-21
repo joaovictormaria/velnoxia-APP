@@ -38,25 +38,25 @@ function generateSKU(itemType: string): string {
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .validator(z.any())
-  .handler(async ({ data }: any) => {
+  .handler(async (input: any) => {
     const admin = await requireAdminSession();
 
-    // Aceitar FormData ou objeto JSON
-    let parsedData: any = {};
+    // Logar tudo para descobrir a estrutura real
+    console.log("🔍 INPUT keys:", Object.keys(input || {}).join(','));
+    console.log("🔍 INPUT.data type:", typeof input?.data);
+    console.log("🔍 INPUT.data instanceof FormData:", input?.data instanceof FormData);
 
-    if (data instanceof FormData) {
-      parsedData = {
-        name: data.get("name"),
-        baseUnitId: data.get("baseUnitId"),
-        itemType: data.get("itemType"),
-        cost: data.get("cost"),
-      };
-    } else {
-      parsedData = data;
+    let parsedData: any = input?.data || input;
+
+    // Se FormData, extrair os campos
+    if (parsedData instanceof FormData) {
+      parsedData = Object.fromEntries(parsedData.entries());
     }
 
-    if (!parsedData.name) throw new Error("Nome é obrigatório");
-    if (!parsedData.baseUnitId) throw new Error("Unidade é obrigatória");
+    console.log("🔍 PARSED DATA:", parsedData);
+
+    if (!parsedData?.name) throw new Error(`Nome vazio. Data: ${JSON.stringify(parsedData)}`);
+    if (!parsedData?.baseUnitId) throw new Error("Unidade é obrigatória");
 
     // Converter código da unidade (ex: "kg") para ID se necessário
     let unitId = parsedData.baseUnitId;
