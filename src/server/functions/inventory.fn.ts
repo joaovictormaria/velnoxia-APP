@@ -43,12 +43,14 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
     baseUnitId: z.string(),
     cost: z.string().optional(),
     itemType: z.string(),
-  }))
+  }).passthrough())
   .handler(async ({ data }) => {
     const store = await getStoreFromSession();
     if (!store?.adminUser) {
       throw new Error("Not authenticated");
     }
+
+    console.log("adminCreateInventoryItem received:", data);
 
     // Converter código da unidade (ex: "kg") para ID se necessário
     let unitId = data.baseUnitId;
