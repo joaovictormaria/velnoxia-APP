@@ -127,8 +127,6 @@ export function InventoryGrid(props: InventoryGridProps) {
 
   const handleCreateItem = async () => {
     try {
-      console.log("🔵 [BEFORE SEND] newItem state:", newItem);
-
       const payload = {
         name: newItem.name || "",
         baseUnitId: newItem.baseUnitId || "kg",
@@ -136,7 +134,6 @@ export function InventoryGrid(props: InventoryGridProps) {
         cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
       };
 
-      console.log("🔵 [PAYLOAD] About to send:", payload);
       const createdItem = await adminCreateInventoryItem(payload as any);
 
       setShowCreateModal(false);
