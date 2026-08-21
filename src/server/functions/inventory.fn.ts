@@ -41,29 +41,35 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
 
-    console.log("📥 Data received:", data);
+    console.log("📥 Data type:", typeof data);
+    console.log("📥 Data keys:", Object.keys(data || {}).join(','));
+    console.log("📥 Data.data:", data?.data);
+    console.log("📥 Data.name:", data?.name);
 
-    if (!data?.name) throw new Error("Nome é obrigatório");
-    if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
+    // Se data.data existe, é porque os dados estão aninhados
+    const actualData = data?.data || data;
 
-    let unitId = data.baseUnitId;
-    if (!data.baseUnitId.includes('-')) {
-      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
+    if (!actualData?.name) throw new Error("Nome é obrigatório");
+    if (!actualData?.baseUnitId) throw new Error("Unidade é obrigatória");
+
+    let unitId = actualData.baseUnitId;
+    if (!actualData.baseUnitId.includes('-')) {
+      const unit = await inventoryUnitRepository.findByCode(actualData.baseUnitId);
       if (!unit) {
-        throw new Error(`Unit "${data.baseUnitId}" not found`);
+        throw new Error(`Unit "${actualData.baseUnitId}" not found`);
       }
       unitId = unit.id;
     }
 
-    const sku = data.sku || generateSKU(data.itemType || "INGREDIENT");
+    const sku = actualData.sku || generateSKU(actualData.itemType || "INGREDIENT");
 
     const itemData = createInventoryItemSchema.parse({
-      name: data.name,
+      name: actualData.name,
       sku: sku,
-      barcode: data.barcode || null,
+      barcode: actualData.barcode || null,
       baseUnitId: unitId,
-      cost: data.cost ? parseFloat(data.cost) : undefined,
-      itemType: data.itemType || "INGREDIENT",
+      cost: actualData.cost ? parseFloat(actualData.cost) : undefined,
+      itemType: actualData.itemType || "INGREDIENT",
     });
 
     return InventoryService.createItem(admin.storeId, itemData);
