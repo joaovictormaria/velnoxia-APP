@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { adminCreateInventoryItem, adminUpdateInventoryItem } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
-import { Decimal } from "@prisma/client/runtime/library";
 
 export interface InventoryGridProps {
   storeId: string;
