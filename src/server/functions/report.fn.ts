@@ -3,6 +3,17 @@ import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { reportRepository } from "@/server/repositories/report-repository";
 
+function serializeItem(item: any) {
+  return {
+    ...item,
+    quantityOnHand: Number(item.quantityOnHand ?? 0),
+    quantityReserved: Number(item.quantityReserved ?? 0),
+    quantityAvailable: Number(item.quantityAvailable ?? 0),
+    cost: item.cost ? Number(item.cost) : null,
+    minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
+  };
+}
+
 export const adminGetStockReport = createServerFn({ method: "POST" })
   .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
@@ -10,7 +21,8 @@ export const adminGetStockReport = createServerFn({ method: "POST" })
     const sortBy = (data?.sortBy || "name") as any;
     const limit = parseInt(data?.limit || "100") || 100;
 
-    return reportRepository.getStockLevelsByStore(admin.storeId, { sortBy, limit });
+    const items = await reportRepository.getStockLevelsByStore(admin.storeId, { sortBy, limit });
+    return items.map(serializeItem);
   });
 
 export const adminGetLowStockAlerts2 = createServerFn({ method: "GET" })
