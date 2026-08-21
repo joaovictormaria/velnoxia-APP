@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { InventoryService } from "@/server/services/inventory-service";
 import {
+  createInventoryItemClientSchema,
   createInventoryItemSchema,
   updateInventoryItemSchema,
   createInventoryMovementSchema,
@@ -36,14 +37,7 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.object({
-    name: z.string(),
-    sku: z.string().nullish().optional(),
-    barcode: z.string().nullish().optional(),
-    baseUnitId: z.string(),
-    cost: z.string().nullish().optional(),
-    itemType: z.string(),
-  }))
+  .validator(createInventoryItemClientSchema)
   .handler(async ({ data }) => {
     const store = await requireAdminSession();
     if (!store?.adminUser) {
