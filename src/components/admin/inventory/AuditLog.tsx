@@ -70,24 +70,28 @@ export function AuditLog(props: AuditLogProps) {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {movements.map((mov: any) => (
-                <tr key={mov.id}>
-                  <td className="px-4 py-2 text-sm">
-                    {new Date(mov.createdAt).toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className="px-4 py-2">{mov.item?.name || "—"}</td>
-                  <td className="px-4 py-2">{getTypeLabel(mov.type)}</td>
-                  <td className="px-4 py-2 text-right font-semibold">
-                    {mov.quantity > 0 ? "+" : ""}{mov.quantity}
-                  </td>
-                  <td className="px-4 py-2 text-xs text-neutral-600">
-                    {mov.reference || "—"}
-                  </td>
-                  <td className="px-4 py-2 text-xs text-neutral-600">
-                    {mov.note || "—"}
-                  </td>
-                </tr>
-              ))}
+              {movements.map((mov: any) => {
+                const dateStr = typeof mov.createdAt === "string"
+                  ? mov.createdAt.split("T")[0]
+                  : new Date(mov.createdAt).toISOString().split("T")[0];
+
+                return (
+                  <tr key={mov.id}>
+                    <td className="px-4 py-2 text-sm">{dateStr}</td>
+                    <td className="px-4 py-2">{mov.item?.name || "—"}</td>
+                    <td className="px-4 py-2">{getTypeLabel(mov.type)}</td>
+                    <td className="px-4 py-2 text-right font-semibold">
+                      {mov.quantity > 0 ? "+" : ""}{mov.quantity}
+                    </td>
+                    <td className="px-4 py-2 text-xs text-neutral-600">
+                      {mov.reference || "—"}
+                    </td>
+                    <td className="px-4 py-2 text-xs text-neutral-600">
+                      {mov.note || "—"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
