@@ -40,30 +40,31 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
 
-    // Nome é opcional - gerar automaticamente se não fornecido
+    // Gerar valores padrão se não fornecidos
     const name = data?.name || `Item ${new Date().getTime()}`;
-    if (!data?.baseUnitId) throw new Error("Unidade é obrigatória");
+    const baseUnitId = data?.baseUnitId || "kg";
+    const itemType = data?.itemType || "INGREDIENT";
 
-    // Converter código da unidade (ex: "kg") para ID se necessário
-    let unitId = data.baseUnitId;
-    if (!data.baseUnitId.includes('-')) {
-      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
+    // Converter código da unidade para ID
+    let unitId = baseUnitId;
+    if (!baseUnitId.includes('-')) {
+      const unit = await inventoryUnitRepository.findByCode(baseUnitId);
       if (!unit) {
-        throw new Error(`Unit "${data.baseUnitId}" not found`);
+        throw new Error(`Unit "${baseUnitId}" not found`);
       }
       unitId = unit.id;
     }
 
-    // Gerar SKU automaticamente se não fornecido
-    const sku = data.sku || generateSKU(data.itemType || "INGREDIENT");
+    // Gerar SKU automaticamente
+    const sku = data?.sku || generateSKU(itemType);
 
     const itemData = createInventoryItemSchema.parse({
       name: name,
       sku: sku,
-      barcode: data.barcode || null,
+      barcode: data?.barcode || null,
       baseUnitId: unitId,
-      cost: data.cost ? parseFloat(data.cost) : undefined,
-      itemType: data.itemType || "INGREDIENT",
+      cost: data?.cost ? parseFloat(data.cost) : undefined,
+      itemType: itemType,
     });
 
     return InventoryService.createItem(admin.storeId, itemData);
