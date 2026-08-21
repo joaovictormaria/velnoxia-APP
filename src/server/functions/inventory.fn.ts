@@ -107,8 +107,6 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    console.log("[adminRecordMovement] Received data:", data);
-
     const validated = createInventoryMovementSchema.parse({
       itemId: data?.itemId,
       type: data?.type,
@@ -122,8 +120,6 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
       authorName: admin.name,
     });
 
-    console.log("[adminRecordMovement] Validated data:", validated);
-
     // Generate idempotency key
     const idempotencyKey = `${admin.storeId}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}#0`;
 
@@ -131,8 +127,6 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
       ...validated,
       idempotencyKey,
     });
-
-    console.log("[adminRecordMovement] Result from service:", result);
 
     // Serialize Decimal values - convert ALL numeric fields
     return {

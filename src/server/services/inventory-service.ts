@@ -179,15 +179,11 @@ export class InventoryService {
         data.quantity
       );
 
-      console.log("[recordMovement] Item before update:", { id: item.id, quantityOnHand: item.quantityOnHand });
-      console.log("[recordMovement] Updates calculated:", updates);
-
       if (Object.keys(updates).length > 0) {
-        const updatedItem = await tx.inventoryItem.update({
+        await tx.inventoryItem.update({
           where: { id: item.id },
           data: updates,
         });
-        console.log("[recordMovement] Item after update:", updatedItem);
       }
 
       return movement;

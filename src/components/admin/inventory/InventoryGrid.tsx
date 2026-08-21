@@ -138,20 +138,15 @@ export function InventoryGrid(props: InventoryGridProps) {
       };
 
       const createdItem = await adminCreateInventoryItem(payload as any);
-      console.log("[Create Item] Response from adminCreateInventoryItem:", createdItem);
       const itemId = (createdItem as any)?.id;
       const sku = (createdItem as any)?.sku || "gerado";
 
       // Se houver quantidade inicial, registrar movimento
       const initialQty = newItem.initialQuantity?.trim();
-      console.log("[Create Item] initialQty from state:", initialQty);
-
       if (initialQty && parseFloat(initialQty) > 0 && itemId) {
         try {
           const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
-          console.log("[Create Item] Recording movement with:", { itemId, unitId, quantity: parseFloat(initialQty), type: "PURCHASE" });
-
-          const movementResult = await adminRecordMovement({
+          await adminRecordMovement({
             data: {
               itemId,
               type: "PURCHASE",
@@ -162,16 +157,11 @@ export function InventoryGrid(props: InventoryGridProps) {
               note: "Quantidade inicial registrada na criação do item",
             }
           } as any);
-
-          console.log("[Create Item] Movement result:", movementResult);
         } catch (movError) {
           console.error("Failed to record initial movement:", movError);
         }
-      } else {
-        console.log("[Create Item] Skipping movement - initialQty is empty or invalid");
       }
 
-      console.log("[Create Item] Calling fetchItems...");
       setShowCreateModal(false);
       setNewItem({
         name: "",
@@ -182,7 +172,6 @@ export function InventoryGrid(props: InventoryGridProps) {
       });
       setGeneratedSku("");
       fetchItems();
-      console.log("[Create Item] fetchItems called");
 
       const qtyMsg = initialQty ? `\nQuantidade inicial: ${initialQty}kg` : "\n(Sem quantidade inicial)";
       alert(`✅ Item "${newItem.name}" criado com sucesso!\n\nSKU: ${sku}${qtyMsg}`);
