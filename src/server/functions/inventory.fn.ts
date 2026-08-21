@@ -1,4 +1,5 @@
-import { action } from "@solidjs/router";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { getStoreFromSession } from "@/server/auth/session";
 import { InventoryService } from "@/server/services/inventory-service";
 import {
@@ -15,186 +16,201 @@ import { inventoryItemRepository } from "@/server/repositories";
 /**
  * Admin only: Create a new inventory item
  */
-export const adminCreateInventoryItem = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminCreateInventoryItem = createServerFn({ method: "POST" })
+  .validator(z.object({
+    name: z.string(),
+    sku: z.string().nullable().optional(),
+    barcode: z.string().nullable().optional(),
+    baseUnitId: z.string(),
+    cost: z.string().optional(),
+    itemType: z.string(),
+  }))
+  .handler(async ({ data }) => {
+    const store = await getStoreFromSession();
+    if (!store?.adminUser) {
+      throw new Error("Not authenticated");
+    }
 
-  const name = formData.get("name");
-  const sku = formData.get("sku");
-  const barcode = formData.get("barcode");
-  const baseUnitId = formData.get("baseUnitId");
-  const cost = formData.get("cost");
-  const itemType = formData.get("itemType");
+    const validated = createInventoryItemSchema.parse({
+      name: data.name,
+      sku: data.sku || null,
+      barcode: data.barcode || null,
+      baseUnitId: data.baseUnitId,
+      cost: data.cost ? parseFloat(data.cost) : undefined,
+      itemType: data.itemType,
+    });
 
-  const validated = createInventoryItemSchema.parse({
-    name,
-    sku: sku || null,
-    barcode: barcode || null,
-    baseUnitId,
-    cost: cost ? parseFloat(cost as string) : undefined,
-    itemType,
+    return InventoryService.createItem(store.id, validated);
   });
-
-  return InventoryService.createItem(store.id, validated);
-});
 
 /**
  * Admin only: Update inventory item
  */
-export const adminUpdateInventoryItem = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
+  .validator(z.object({
+    itemId: z.string(),
+    name: z.string().optional(),
+    sku: z.string().optional(),
+    barcode: z.string().optional(),
+    cost: z.string().optional(),
+    isActive: z.string().optional(),
+  }))
+  .handler(async ({ data }) => {
+    const store = await getStoreFromSession();
+    if (!store?.adminUser) {
+      throw new Error("Not authenticated");
+    }
 
-  const itemId = formData.get("itemId") as string;
-  const name = formData.get("name");
-  const sku = formData.get("sku");
-  const barcode = formData.get("barcode");
-  const cost = formData.get("cost");
-  const isActive = formData.get("isActive");
+    const validated = updateInventoryItemSchema.parse({
+      name: data.name || undefined,
+      sku: data.sku ? data.sku : undefined,
+      barcode: data.barcode ? data.barcode : undefined,
+      cost: data.cost ? parseFloat(data.cost) : undefined,
+      isActive: data.isActive === "true",
+    });
 
-  const validated = updateInventoryItemSchema.parse({
-    name: name || undefined,
-    sku: sku ? (sku as string) : undefined,
-    barcode: barcode ? (barcode as string) : undefined,
-    cost: cost ? parseFloat(cost as string) : undefined,
-    isActive: isActive === "true",
+    return InventoryService.updateItem(store.id, data.itemId, validated);
   });
-
-  return InventoryService.updateItem(store.id, itemId, validated);
-});
 
 /**
  * Admin only: Record a movement (PURCHASE, LOSS, ADJUSTMENT, etc)
  */
-export const adminRecordMovement = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminRecordMovement = createServerFn({ method: "POST" })
+  .validator(z.object({
+    itemId: z.string(),
+    type: z.string(),
+    quantity: z.string(),
+    unitId: z.string(),
+    reference: z.string().optional(),
+    referenceType: z.string().optional(),
+    note: z.string().optional(),
+  }))
+  .handler(async ({ data }) => {
+    const store = await getStoreFromSession();
+    if (!store?.adminUser) {
+      throw new Error("Not authenticated");
+    }
 
-  const itemId = formData.get("itemId") as string;
-  const type = formData.get("type") as string;
-  const quantity = formData.get("quantity") as string;
-  const unitId = formData.get("unitId") as string;
-  const reference = formData.get("reference");
-  const referenceType = formData.get("referenceType");
-  const note = formData.get("note");
+    const validated = createInventoryMovementSchema.parse({
+      itemId: data.itemId,
+      type: data.type,
+      quantity: parseFloat(data.quantity),
+      unitId: data.unitId,
+      reference: data.reference || undefined,
+      referenceType: data.referenceType || undefined,
+      note: data.note || undefined,
+      authorType: "ADMIN",
+      authorId: store.adminUser.id,
+      authorName: store.adminUser.name,
+    });
 
-  const validated = createInventoryMovementSchema.parse({
-    itemId,
-    type,
-    quantity: parseFloat(quantity),
-    unitId,
-    reference: reference || undefined,
-    referenceType: referenceType || undefined,
-    note: note || undefined,
-    authorType: "ADMIN",
-    authorId: store.adminUser.id,
-    authorName: store.adminUser.name,
+    // Generate idempotency key
+    const idempotencyKey = `${store.id}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}#0`;
+
+    return InventoryService.recordMovement(store.id, {
+      ...validated,
+      idempotencyKey,
+    });
   });
-
-  // Generate idempotency key
-  const idempotencyKey = `${store.id}#${referenceType}#${reference}#${type}#${itemId}#0`;
-
-  return InventoryService.recordMovement(store.id, {
-    ...validated,
-    idempotencyKey,
-  });
-});
 
 /**
  * Admin only: Reverse a movement
  */
-export const adminReverseMovement = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminReverseMovement = createServerFn({ method: "POST" })
+  .validator(z.object({
+    originalMovementId: z.string(),
+  }))
+  .handler(async ({ data }) => {
+    const store = await getStoreFromSession();
+    if (!store?.adminUser) {
+      throw new Error("Not authenticated");
+    }
 
-  const originalMovementId = formData.get("originalMovementId") as string;
+    const validated = createReversalSchema.parse({
+      originalMovementId: data.originalMovementId,
+      authorType: "ADMIN",
+      authorId: store.adminUser.id,
+      authorName: store.adminUser.name,
+    });
 
-  const validated = createReversalSchema.parse({
-    originalMovementId,
-    authorType: "ADMIN",
-    authorId: store.adminUser.id,
-    authorName: store.adminUser.name,
+    return InventoryService.reverseMovement(store.id, validated.originalMovementId, {
+      authorType: validated.authorType,
+      authorId: validated.authorId,
+      authorName: validated.authorName,
+    });
   });
-
-  return InventoryService.reverseMovement(store.id, validated.originalMovementId, {
-    authorType: validated.authorType,
-    authorId: validated.authorId,
-    authorName: validated.authorName,
-  });
-});
 
 /**
  * System: Reserve quantity for an order (called on ORDER RECEIVED)
  */
-export const systemReserveForOrder = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store) {
-    throw new Error("Not authenticated");
-  }
+export const systemReserveForOrder = createServerFn({ method: "POST" })
+  .validator(z.object({
+    itemId: z.string(),
+    quantity: z.string(),
+    orderId: z.string(),
+  }))
+  .handler(async ({ data }) => {
+    const store = await getStoreFromSession();
+    if (!store) {
+      throw new Error("Not authenticated");
+    }
 
-  const itemId = formData.get("itemId") as string;
-  const quantity = formData.get("quantity") as string;
-  const orderId = formData.get("orderId") as string;
-
-  return InventoryService.reserveForOrder(
-    store.id,
-    itemId,
-    parseFloat(quantity),
-    orderId
-  );
-});
+    return InventoryService.reserveForOrder(
+      store.id,
+      data.itemId,
+      parseFloat(data.quantity),
+      data.orderId
+    );
+  });
 
 /**
  * System: Consume quantity for an order (called on PREPARING)
  */
-export const systemConsumeForOrder = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store) {
-    throw new Error("Not authenticated");
-  }
+export const systemConsumeForOrder = createServerFn({ method: "POST" })
+  .validator(z.object({
+    itemId: z.string(),
+    quantity: z.string(),
+    orderId: z.string(),
+  }))
+  .handler(async ({ data }) => {
+    const store = await getStoreFromSession();
+    if (!store) {
+      throw new Error("Not authenticated");
+    }
 
-  const itemId = formData.get("itemId") as string;
-  const quantity = formData.get("quantity") as string;
-  const orderId = formData.get("orderId") as string;
-
-  return InventoryService.consumeForOrder(
-    store.id,
-    itemId,
-    parseFloat(quantity),
-    orderId
-  );
-});
+    return InventoryService.consumeForOrder(
+      store.id,
+      data.itemId,
+      parseFloat(data.quantity),
+      data.orderId
+    );
+  });
 
 /**
  * Public: Get store inventory (active items only)
  */
-export const getStoreInventory = action(async () => {
-  const store = await getStoreFromSession();
-  if (!store) {
-    throw new Error("Not authenticated");
-  }
+export const getStoreInventory = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const store = await getStoreFromSession();
+    if (!store) {
+      throw new Error("Not authenticated");
+    }
 
-  return inventoryItemRepository.findAll(store.id, { includeInactive: false });
-});
+    return inventoryItemRepository.findAll(store.id, { includeInactive: false });
+  });
 
 /**
  * Public: Get item details with quantities
  */
-export const getItemDetails = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store) {
-    throw new Error("Not authenticated");
-  }
+export const getItemDetails = createServerFn({ method: "POST" })
+  .validator(z.object({
+    itemId: z.string(),
+  }))
+  .handler(async ({ data }) => {
+    const store = await getStoreFromSession();
+    if (!store) {
+      throw new Error("Not authenticated");
+    }
 
-  const itemId = formData.get("itemId") as string;
-
-  return inventoryItemRepository.getSummary(store.id, itemId);
-});
+    return inventoryItemRepository.getSummary(store.id, data.itemId);
+  });
