@@ -133,10 +133,10 @@ export function InventoryGrid(props: InventoryGridProps) {
 
     try {
       const createdItem = await adminCreateInventoryItem({
-        name: newItem.name,
-        baseUnitId: newItem.baseUnitId,
-        itemType: newItem.itemType,
-        ...(newItem.cost && newItem.cost.trim() ? { cost: newItem.cost } : {}),
+        name: newItem.name || "",
+        baseUnitId: newItem.baseUnitId || "kg",
+        itemType: newItem.itemType || "INGREDIENT",
+        cost: newItem.cost && newItem.cost.trim() ? newItem.cost : null,
       });
 
       setShowCreateModal(false);
