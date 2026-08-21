@@ -77,7 +77,9 @@ export function AuditLog(props: AuditLogProps) {
                 const formatDate = (dateStr: string) => {
                   if (!dateStr) return "—";
                   const date = new Date(dateStr);
-                  return date.toLocaleDateString("pt-BR", { year: "numeric", month: "2-digit", day: "2-digit" });
+                  const datePart = date.toLocaleDateString("pt-BR", { year: "numeric", month: "2-digit", day: "2-digit" });
+                  const timePart = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                  return `${datePart} ${timePart}`;
                 };
                 return (
                   <tr key={mov.id}>
