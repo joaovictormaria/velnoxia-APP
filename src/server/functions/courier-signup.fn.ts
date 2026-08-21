@@ -4,6 +4,7 @@ import { prisma } from "../db/client";
 import { hashPassword } from "../auth/password";
 import { startSessionFor } from "../auth/session";
 import { hashInviteCode } from "../auth/invite-code";
+import { permitido } from "../security/rate-limit";
 
 /**
  * Redeems an invite: the courier turns a code into their own account.
@@ -22,6 +23,11 @@ export const redeemCourierInviteFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    // O codigo tem 8 caracteres de um alfabeto de 32 (~2^40). Sem teto, um
+    // script poderia varre-lo; 5 por minuto por origem torna isso inviavel.
+    if (!permitido("courier-invite", { max: 5, janelaMs: 60_000 })) {
+      return { ok: false as const, error: "Muitas tentativas. Espere um minuto." };
+    }
     const invite = await prisma.courierInvite.findUnique({
       where: { codeHash: hashInviteCode(data.code) },
     });

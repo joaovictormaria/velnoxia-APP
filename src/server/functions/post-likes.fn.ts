@@ -3,6 +3,7 @@ import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
 import { listLikedPostIds, togglePostLike } from "../repositories/post-repository";
+import { permitido } from "../security/rate-limit";
 
 const visitorId = z.string().trim().min(8).max(64);
 
@@ -22,6 +23,11 @@ export const listLikedPostsFn = createServerFn({ method: "GET" })
 export const togglePostLikeFn = createServerFn({ method: "POST" })
   .validator(z.object({ storeSlug: z.string().min(1), postId: z.string(), visitorId }))
   .handler(async ({ data }) => {
+    // O visitorId vem do navegador: gerando ids novos, o mesmo dispositivo
+    // curte sem parar e infla o contador. O teto por origem barra o volume.
+    if (!permitido("post-like", { max: 15, janelaMs: 60_000 })) {
+      return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+    }
     const store = await servableStore(data.storeSlug);
     const result = await togglePostLike(store.id, data.postId, data.visitorId);
     if (!result) return { ok: false as const, error: "Publicação não encontrada." };

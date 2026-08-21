@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { logoutFn } from "@/server/functions/auth.fn";
 import { useCourierLocation } from "@/lib/use-courier-location";
+import { rotaNoMapa } from "@/lib/endereco";
 import {
   listMyDeliveriesFn,
   markDeliveryDoneFn,
@@ -30,6 +31,7 @@ const PAGAMENTO: Record<string, string> = {
   CREDIT_CARD: "Cartão de crédito",
   DEBIT_CARD: "Cartão de débito",
   CASH: "Dinheiro",
+  PAYROLL: "Desconto em folha",
 };
 
 type Entrega = Awaited<ReturnType<typeof listMyDeliveriesFn>>["emRota"][number];
@@ -172,13 +174,24 @@ function CartaoDeEntrega({
   const complemento = [entrega.deliveryComplement, entrega.deliveryNeighborhood]
     .filter(Boolean)
     .join(" - ");
-  const buscaNoMapa = [endereco, entrega.deliveryNeighborhood, entrega.deliveryCity]
-    .filter(Boolean)
-    .join(", ");
+  // Rota, e não busca: com o endereço inteiro — estado, CEP e país inclusive —
+  // e já traçada a partir de onde ele está.
+  const rota = rotaNoMapa({
+    street: entrega.deliveryStreet,
+    neighborhood: entrega.deliveryNeighborhood,
+    city: entrega.deliveryCity,
+    state: entrega.deliveryState,
+    zipCode: entrega.deliveryZipCode,
+  });
 
   // Só o que ainda não foi pago é dinheiro para receber na porta. Pix e cartão
   // já quitados viram uma linha informativa, não uma cobrança.
-  const receberNaEntrega = entrega.paymentStatus !== "PAID";
+  //
+  // Desconto em folha fica de fora: o pedido segue em aberto de propósito, mas
+  // quem acerta é a loja no salário — mandar o entregador cobrar na porta seria
+  // pedir duas vezes pela mesma comida.
+  const receberNaEntrega =
+    entrega.paymentStatus !== "PAID" && entrega.paymentMethod !== "PAYROLL";
 
   return (
     <article className="rounded-2xl bg-white p-5 shadow-sm">
@@ -222,15 +235,19 @@ function CartaoDeEntrega({
           <Phone className="size-4" />
           Ligar
         </a>
-        <a
-          href={"https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(buscaNoMapa)}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center justify-center gap-2 rounded-xl border border-neutral-300 py-3 text-sm font-semibold text-neutral-700"
-        >
-          <MapPin className="size-4" />
-          Rota
-        </a>
+        {/* Sem rua nem CEP não há o que abrir: o botão sairia da tela em vez de
+            mandar o entregador para o centro da cidade. */}
+        {rota && (
+          <a
+            href={rota}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-center gap-2 rounded-xl border border-neutral-300 py-3 text-sm font-semibold text-neutral-700"
+          >
+            <MapPin className="size-4" />
+            Rota
+          </a>
+        )}
       </div>
 
       {/* Confirmação em dois toques: marcar entregue finaliza o pedido e não tem

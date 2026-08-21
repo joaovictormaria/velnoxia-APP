@@ -304,6 +304,9 @@ export type RascunhoDeExtra = {
   name: string;
   price: number;
   isActive: boolean;
+  /** Onde ele vale. A prévia lista tudo, mas o formato tem de ser o mesmo. */
+  categoryIds?: string[];
+  productIds?: string[];
 };
 
 /**
@@ -326,6 +329,8 @@ export function aplicarRascunhoDeExtra(
     id: rascunho.id ?? "__previa-extra-novo",
     name: rascunho.name,
     price: rascunho.price,
+    categoryIds: rascunho.categoryIds ?? [],
+    productIds: rascunho.productIds ?? [],
   };
   const onde = posicao < 0 ? semEle.length : posicao;
   return { ...payload, extras: [...semEle.slice(0, onde), atualizado, ...semEle.slice(onde)] };

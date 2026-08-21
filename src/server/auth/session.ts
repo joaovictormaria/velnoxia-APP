@@ -5,6 +5,13 @@ import { verifyPassword } from "./password";
 
 type AdminSessionData = {
   adminUserId?: string;
+  /**
+   * A versão da conta no momento em que o cookie foi selado. Comparada com a
+   * do banco a cada request: se a conta trocou de senha (ou foi desativada) e
+   * incrementou a versão, o cookie antigo não bate mais e a sessão cai. Sem
+   * isto, uma redefinição de senha não expulsava quem já tinha um cookie.
+   */
+  sessionVersion?: number;
 };
 
 function sessionConfig() {
@@ -68,6 +75,7 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
       email: true,
       role: true,
       isActive: true,
+      sessionVersion: true,
       storeId: true,
       store: {
         select: {
@@ -85,6 +93,15 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
     },
   });
   if (!admin || !admin.isActive) return null;
+
+  /*
+   * O cookie carrega a versão que a conta tinha no login. Divergiu — troca de
+   * senha ou desativação incrementaram a versão no banco — e este cookie é de
+   * antes: a sessão cai. Um cookie antigo sem a versão (selado antes desta
+   * mudança) também não bate com a versão atual e é derrubado no primeiro
+   * request, forçando um login novo, que é o comportamento seguro.
+   */
+  if ((session.data.sessionVersion ?? -1) !== admin.sessionVersion) return null;
 
   return {
     id: admin.id,
@@ -159,7 +176,10 @@ export async function loginAdmin(email: string, password: string): Promise<Curre
   const valid = await verifyPassword(password, admin.passwordHash);
   if (!valid) return null;
 
-  await updateSession<AdminSessionData>(sessionConfig(), { adminUserId: admin.id });
+  await updateSession<AdminSessionData>(sessionConfig(), {
+    adminUserId: admin.id,
+    sessionVersion: admin.sessionVersion,
+  });
   await prisma.adminUser.update({
     where: { id: admin.id },
     data: { lastLoginAt: new Date() },
@@ -171,7 +191,17 @@ export async function loginAdmin(email: string, password: string): Promise<Curre
 
 /** Establishes the session for a freshly created account (signup flow). */
 export async function startSessionFor(adminUserId: string): Promise<void> {
-  await updateSession<AdminSessionData>(sessionConfig(), { adminUserId });
+  // Lê a versão em vez de assumir 0: o cookie nunca deve nascer sem ela, senão
+  // cairia na primeira comparação de getCurrentAdmin. Uma conta recém-criada é
+  // 0, mas depender disso quebraria se este caminho fosse reusado.
+  const conta = await prisma.adminUser.findUnique({
+    where: { id: adminUserId },
+    select: { sessionVersion: true },
+  });
+  await updateSession<AdminSessionData>(sessionConfig(), {
+    adminUserId,
+    sessionVersion: conta?.sessionVersion ?? 0,
+  });
 }
 
 export async function logoutAdmin(): Promise<void> {

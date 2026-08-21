@@ -16,7 +16,6 @@ import {
   DispatchDialog,
   type DispatchTarget,
 } from "@/components/admin/orders/DispatchDialog";
-import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
 import { listKanbanOrdersFn, updateOrderStatusFn } from "@/server/functions/orders.fn";
 
@@ -161,8 +160,6 @@ function KanbanPage() {
           accent="#059669"
         />
       </div>
-
-      <NewOrderDialog />
 
       {dispatching && (
         <DispatchDialog order={dispatching} onClose={() => setDispatching(null)} />

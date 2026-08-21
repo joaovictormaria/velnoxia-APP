@@ -6,6 +6,7 @@ import { startSessionFor } from "../auth/session";
 import { generateUniqueSlug, isEmailTaken } from "../repositories/store-repository";
 import { WEEKDAYS } from "../repositories/store-settings-repository";
 import { getStarterCatalog, STARTER_CATALOGS } from "../catalog/starter-catalogs";
+import { permitido } from "../security/rate-limit";
 
 /** How long a new store can use the system before it needs to be paid. */
 const TRIAL_DAYS = 14;
@@ -26,6 +27,11 @@ const signupSchema = z.object({
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
+    // 3 cadastros por hora por origem: um lojista de verdade cria uma conta;
+    // o teto barra criacao de contas em massa por script.
+    if (!permitido("signup", { max: 3, janelaMs: 3_600_000 })) {
+      return { ok: false as const, error: "Muitas tentativas. Tente mais tarde." };
+    }
     if (await isEmailTaken(data.email)) {
       return { ok: false as const, error: "Já existe uma conta com este e-mail." };
     }

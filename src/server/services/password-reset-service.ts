@@ -154,7 +154,10 @@ export async function redefinirSenha(
 
       await tx.adminUser.update({
         where: { id: pedido.adminUserId },
-        data: { passwordHash },
+        // Incrementar a versão derruba toda sessão aberta com a senha antiga —
+        // o ponto de redefinir senha para recuperar uma conta invadida é
+        // justamente expulsar quem já estava dentro.
+        data: { passwordHash, sessionVersion: { increment: 1 } },
       });
     });
   } catch {

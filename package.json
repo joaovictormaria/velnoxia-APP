@@ -84,5 +84,8 @@
     "typescript": "^5.9.3",
     "vite": "^8.2.1",
     "vite-tsconfig-paths": "^6.1.1"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.1"
   }
 }

@@ -16,6 +16,120 @@ const faturados = (storeId: string, from: Date) => ({
   status: { in: [...FATURADO] },
 });
 
+export type LinhaDoFuncionario = {
+  employeeId: string | null;
+  nome: string;
+  /** Ainda está no cadastro. Falso quando a ficha foi apagada depois. */
+  cadastrado: boolean;
+  pedidos: number;
+  /** Unidades que saíram dentro da cota. */
+  itens: number;
+  desconto: number;
+  pago: number;
+  /** Pedidos em folha ainda não quitados, e quanto somam. */
+  emFolha: number;
+  pedidosEmFolha: number;
+};
+
+/**
+ * O que cada funcionário pegou no período, e por quanto.
+ *
+ * Sai dos pedidos, como todo o resto deste arquivo — o consumo do funcionário
+ * é uma venda como outra qualquer, só que marcada. É por isso que o número
+ * bate com o faturamento em vez de correr por fora dele.
+ *
+ * A linha sobrevive à exclusão do cadastro: o nome está copiado no pedido, e o
+ * mês passado continua tendo a resposta mesmo depois de a pessoa sair.
+ */
+export async function employeeReport(
+  storeId: string,
+  days: number,
+): Promise<LinhaDoFuncionario[]> {
+  const from = periodStart(days);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      ...faturados(storeId, from),
+      OR: [{ employeeId: { not: null } }, { employeeNameSnapshot: { not: null } }],
+    },
+    select: {
+      employeeId: true,
+      employeeNameSnapshot: true,
+      employeeDiscount: true,
+      total: true,
+      paymentMethod: true,
+      paymentStatus: true,
+      employee: { select: { id: true, name: true } },
+      items: { select: { benefitQuantity: true } },
+    },
+  });
+
+  const porPessoa = new Map<string, LinhaDoFuncionario>();
+
+  for (const pedido of orders) {
+    // Sem ficha, agrupa pelo nome copiado: dois pedidos do mesmo ex-funcionário
+    // continuam sendo uma linha só.
+    const chave = pedido.employeeId ?? `apagado:${pedido.employeeNameSnapshot}`;
+    const linha =
+      porPessoa.get(chave) ??
+      ({
+        employeeId: pedido.employeeId,
+        nome: pedido.employee?.name ?? pedido.employeeNameSnapshot ?? "Sem nome",
+        cadastrado: pedido.employee !== null,
+        pedidos: 0,
+        itens: 0,
+        desconto: 0,
+        pago: 0,
+        emFolha: 0,
+        pedidosEmFolha: 0,
+      } satisfies LinhaDoFuncionario);
+
+    linha.pedidos += 1;
+    linha.itens += pedido.items.reduce((s, i) => s + i.benefitQuantity, 0);
+    linha.desconto += pedido.employeeDiscount;
+    linha.pago += pedido.total;
+    if (pedido.paymentMethod === "PAYROLL" && pedido.paymentStatus === "PENDING") {
+      linha.emFolha += pedido.total;
+      linha.pedidosEmFolha += 1;
+    }
+
+    porPessoa.set(chave, linha);
+  }
+
+  const centavos = (v: number) => Math.round(v * 100) / 100;
+  return [...porPessoa.values()]
+    .map((l) => ({
+      ...l,
+      desconto: centavos(l.desconto),
+      pago: centavos(l.pago),
+      emFolha: centavos(l.emFolha),
+    }))
+    // Quem mais consumiu primeiro: é a linha sobre a qual o dono tem alguma
+    // decisão a tomar.
+    .sort((a, b) => b.desconto - a.desconto || a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/**
+ * Quita o que estava para descontar em folha.
+ *
+ * Marca como pagos os pedidos em folha ainda pendentes daquele funcionário —
+ * é o registro de que o acerto do mês aconteceu. Sem isto, o valor a descontar
+ * cresceria para sempre.
+ */
+export async function settlePayroll(storeId: string, employeeId: string) {
+  const r = await prisma.order.updateMany({
+    where: {
+      storeId,
+      employeeId,
+      paymentMethod: "PAYROLL",
+      paymentStatus: "PENDING",
+      status: { in: [...FATURADO] },
+    },
+    data: { paymentStatus: "PAID" },
+  });
+  return r.count;
+}
+
 /**
  * Headline numbers plus a daily series for the chosen window, and the same
  * window immediately before it so the screen can say whether things are going

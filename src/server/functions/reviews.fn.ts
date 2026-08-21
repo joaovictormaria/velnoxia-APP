@@ -13,6 +13,7 @@ import {
   setReviewHidden,
   toggleLike,
 } from "../repositories/review-repository";
+import { permitido } from "../security/rate-limit";
 
 /** The visitor id is a random string the browser keeps; it identifies a device,
  *  never a person, and is only used to stop double voting. */
@@ -46,6 +47,11 @@ export const submitReviewFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
+    // Uma avaliação por aparelho já é a regra; o teto por origem barra o
+    // script que forja avaliação com visitorId novo a cada chamada.
+    if (!permitido("review", { max: 5, janelaMs: 60_000 })) {
+      return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+    }
     const store = await servableStore(data.storeSlug);
     if (await findReviewByVisitor(store.id, data.visitorId)) {
       return { ok: false as const, error: "Você já avaliou esta loja neste aparelho." };
@@ -62,6 +68,11 @@ export const submitReviewFn = createServerFn({ method: "POST" })
 export const toggleReviewLikeFn = createServerFn({ method: "POST" })
   .validator(z.object({ storeSlug: z.string().min(1), reviewId: z.string(), visitorId }))
   .handler(async ({ data }) => {
+    // Mesmo motivo do like de publicação: o visitorId é do cliente, então o
+    // teto por origem é o que segura a inflação de curtidas.
+    if (!permitido("review-like", { max: 15, janelaMs: 60_000 })) {
+      return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+    }
     const store = await servableStore(data.storeSlug);
     const result = await toggleLike(store.id, data.reviewId, data.visitorId);
     if (!result) return { ok: false as const, error: "Avaliação não encontrada." };

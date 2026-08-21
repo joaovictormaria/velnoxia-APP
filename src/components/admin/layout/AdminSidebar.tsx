@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+  BadgePercent,
   BarChart3,
   Bike,
   ChevronDown,
@@ -83,6 +84,13 @@ const MENU: (Item | Grupo)[] = [
     itens: [
       { to: "/admin/clientes", label: "Clientes", icon: User },
       { to: "/admin/entregadores", label: "Entregadores", icon: Bike },
+      {
+        to: "/admin/funcionarios",
+        label: "Funcionários",
+        icon: BadgePercent,
+        excluir: ["/admin/funcionarios/planos"],
+      },
+      { to: "/admin/funcionarios/planos", label: "Planos de benefício", icon: Tags },
     ],
   },
   {
@@ -92,6 +100,7 @@ const MENU: (Item | Grupo)[] = [
     itens: [
       { to: "/admin/relatorios", label: "Visão Geral", icon: PieChart, exact: true },
       { to: "/admin/relatorios/produtos", label: "Produtos", icon: BarChart3 },
+      { to: "/admin/relatorios/funcionarios", label: "Funcionários", icon: BadgePercent },
     ],
   },
   { to: "/admin/assinatura", label: "Assinatura", icon: CreditCard },

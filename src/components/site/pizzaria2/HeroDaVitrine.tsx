@@ -30,6 +30,7 @@ export function HeroDaVitrine() {
   const {
     storeName: businessName,
     whatsappHref: buildWhatsappHref,
+    whatsappNumber,
     businessType,
     addressLines,
     hasAddress,
@@ -39,7 +40,9 @@ export function HeroDaVitrine() {
     deliveryFee,
     estimatedDeliveryMinMax,
   } = useStore();
-  const whatsappHref = buildWhatsappHref();
+  // A conversa ja abre dizendo a que veio: quem clica aqui esta com uma
+  // duvida, e a mensagem pronta evita que ela comece com um pedido.
+  const whatsappHref = buildWhatsappHref("Olá! Tenho uma dúvida.");
   const { products } = useMenu();
 
   const {
@@ -156,8 +159,16 @@ export function HeroDaVitrine() {
       icon: WhatsAppIcon,
       iconClassName: "animate-phone-ring",
       tone: "tomato",
-      title: "Dúvidas ou pedidos?",
-      detail: ["Fale com a gente"],
+      /*
+       * Só dúvida, nunca pedido.
+       *
+       * "Dúvidas ou pedidos?" convidava a pedir pelo WhatsApp, e o pedido que
+       * chega por lá não entra no sistema: fica fora do quadro, fora do
+       * faturamento e fora do acompanhamento do cliente. A loja passava a ter
+       * dois lugares para olhar, e o site virava o menos confiável dos dois.
+       */
+      title: "Dúvidas?",
+      detail: [whatsappNumber, "Pedidos só pelo site"].filter(Boolean) as string[],
       action: { label: "Chamar no WhatsApp →", href: whatsappHref },
     },
   ];

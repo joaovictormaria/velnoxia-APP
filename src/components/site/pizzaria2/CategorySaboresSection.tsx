@@ -91,17 +91,7 @@ export function CategorySaboresSection({
   defaultCategorySlug?: CategorySlug;
 }) {
   const { addLine } = useCart();
-  const { categories, products, extras, categoryBySlug, productsByCategory } =
-    useMenu();
-
-  /*
-   * The produto screen is where sizes and extras are chosen. It was reachable
-   * only from pizza categories, so a hamburgueria with "Bacon extra" cadastrado
-   * never offered it: every burger went straight to the cart. It opens whenever
-   * there is something to choose — and when there is nothing, the direct add
-   * stays, because a screen with no choices is a wasted step.
-   */
-  const hasExtras = extras.length > 0;
+  const { categories, products, categoryBySlug, productsByCategory } = useMenu();
   const { slug: storeSlug, businessType } = useStore();
   const { fullMenuTeaser, trustLabels, browseAllBlurb } = heroFor(businessType);
 

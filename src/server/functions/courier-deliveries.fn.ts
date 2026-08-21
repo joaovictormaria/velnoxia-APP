@@ -20,6 +20,7 @@ const CAMPOS_DA_ENTREGA = {
   deliveryComplement: true,
   deliveryNeighborhood: true,
   deliveryCity: true,
+  deliveryState: true,
   deliveryZipCode: true,
   createdAt: true,
   updatedAt: true,

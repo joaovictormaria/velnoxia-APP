@@ -42,16 +42,7 @@ export function CardapioPicker({
 }) {
   const { addLine, itemCount, total } = useCart();
   const { slug: storeSlug } = useStore();
-  const {
-    categories,
-    products: allProducts,
-    extras,
-    productsByCategory,
-    categoryBySlug,
-  } = useMenu();
-  /** See CategorySaboresSection: the produto screen opens whenever there is a
-   *  size or an extra to pick, not only for pizza. */
-  const hasExtras = extras.length > 0;
+  const { categories, products: allProducts, productsByCategory, categoryBySlug } = useMenu();
   const [activeSlug, setActiveSlug] = useState<CategorySlug>(
     categories[0]?.slug ?? "tradicionais",
   );

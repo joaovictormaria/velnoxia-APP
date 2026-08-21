@@ -41,10 +41,13 @@ import { Route as AdminClientesIndexRouteImport } from './routes/admin/clientes/
 import { Route as AdminConfiguracoesIndexRouteImport } from './routes/admin/configuracoes/index'
 import { Route as AdminCuponsIndexRouteImport } from './routes/admin/cupons/index'
 import { Route as AdminEntregadoresIndexRouteImport } from './routes/admin/entregadores/index'
+import { Route as AdminFuncionariosIndexRouteImport } from './routes/admin/funcionarios/index'
+import { Route as AdminFuncionariosPlanosRouteImport } from './routes/admin/funcionarios/planos'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
 import { Route as AdminPedidosOrderIdRouteImport } from './routes/admin/pedidos/$orderId'
 import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoes/index'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
+import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
 
 const IndexRoute = IndexRouteImport.update({
@@ -208,6 +211,16 @@ const AdminEntregadoresIndexRoute = AdminEntregadoresIndexRouteImport.update({
   path: '/entregadores/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminFuncionariosIndexRoute = AdminFuncionariosIndexRouteImport.update({
+  id: '/funcionarios/',
+  path: '/funcionarios/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminFuncionariosPlanosRoute = AdminFuncionariosPlanosRouteImport.update({
+  id: '/funcionarios/planos',
+  path: '/funcionarios/planos',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -228,6 +241,12 @@ const AdminRelatoriosIndexRoute = AdminRelatoriosIndexRouteImport.update({
   path: '/relatorios/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminRelatoriosFuncionariosRoute =
+  AdminRelatoriosFuncionariosRouteImport.update({
+    id: '/relatorios/funcionarios',
+    path: '/relatorios/funcionarios',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 const AdminRelatoriosProdutosRoute = AdminRelatoriosProdutosRouteImport.update({
   id: '/relatorios/produtos',
   path: '/relatorios/produtos',
@@ -261,7 +280,9 @@ export interface FileRoutesByFullPath {
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
+  '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
+  '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -269,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons/': typeof AdminCuponsIndexRoute
   '/admin/entregadores/': typeof AdminEntregadoresIndexRoute
+  '/admin/funcionarios/': typeof AdminFuncionariosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
@@ -297,7 +319,9 @@ export interface FileRoutesByTo {
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
+  '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
+  '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio': typeof AdminCardapioIndexRoute
@@ -305,6 +329,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons': typeof AdminCuponsIndexRoute
   '/admin/entregadores': typeof AdminEntregadoresIndexRoute
+  '/admin/funcionarios': typeof AdminFuncionariosIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/promocoes': typeof AdminPromocoesIndexRoute
   '/admin/relatorios': typeof AdminRelatoriosIndexRoute
@@ -337,7 +362,9 @@ export interface FileRoutesById {
   '/admin/cardapio/categorias': typeof AdminCardapioCategoriasRoute
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
+  '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
+  '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -345,6 +372,7 @@ export interface FileRoutesById {
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
   '/admin/cupons/': typeof AdminCuponsIndexRoute
   '/admin/entregadores/': typeof AdminEntregadoresIndexRoute
+  '/admin/funcionarios/': typeof AdminFuncionariosIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
@@ -378,7 +406,9 @@ export interface FileRouteTypes {
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
+    | '/admin/funcionarios/planos'
     | '/admin/pedidos/$orderId'
+    | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
@@ -386,6 +416,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/admin/cupons/'
     | '/admin/entregadores/'
+    | '/admin/funcionarios/'
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
@@ -414,7 +445,9 @@ export interface FileRouteTypes {
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
+    | '/admin/funcionarios/planos'
     | '/admin/pedidos/$orderId'
+    | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
     | '/admin/avaliacoes'
     | '/admin/cardapio'
@@ -422,6 +455,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes'
     | '/admin/cupons'
     | '/admin/entregadores'
+    | '/admin/funcionarios'
     | '/admin/pedidos'
     | '/admin/promocoes'
     | '/admin/relatorios'
@@ -453,7 +487,9 @@ export interface FileRouteTypes {
     | '/admin/cardapio/categorias'
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
+    | '/admin/funcionarios/planos'
     | '/admin/pedidos/$orderId'
+    | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
@@ -461,6 +497,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/'
     | '/admin/cupons/'
     | '/admin/entregadores/'
+    | '/admin/funcionarios/'
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
@@ -705,6 +742,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminEntregadoresIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/funcionarios/': {
+      id: '/admin/funcionarios/'
+      path: '/funcionarios'
+      fullPath: '/admin/funcionarios/'
+      preLoaderRoute: typeof AdminFuncionariosIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/funcionarios/planos': {
+      id: '/admin/funcionarios/planos'
+      path: '/funcionarios/planos'
+      fullPath: '/admin/funcionarios/planos'
+      preLoaderRoute: typeof AdminFuncionariosPlanosRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -731,6 +782,13 @@ declare module '@tanstack/react-router' {
       path: '/relatorios'
       fullPath: '/admin/relatorios/'
       preLoaderRoute: typeof AdminRelatoriosIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/relatorios/funcionarios': {
+      id: '/admin/relatorios/funcionarios'
+      path: '/relatorios/funcionarios'
+      fullPath: '/admin/relatorios/funcionarios'
+      preLoaderRoute: typeof AdminRelatoriosFuncionariosRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/relatorios/produtos': {
@@ -772,7 +830,9 @@ interface AdminRouteRouteChildren {
   AdminCardapioCategoriasRoute: typeof AdminCardapioCategoriasRoute
   AdminCardapioExtrasRoute: typeof AdminCardapioExtrasRoute
   AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
+  AdminFuncionariosPlanosRoute: typeof AdminFuncionariosPlanosRoute
   AdminPedidosOrderIdRoute: typeof AdminPedidosOrderIdRoute
+  AdminRelatoriosFuncionariosRoute: typeof AdminRelatoriosFuncionariosRoute
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
   AdminAvaliacoesIndexRoute: typeof AdminAvaliacoesIndexRoute
   AdminCardapioIndexRoute: typeof AdminCardapioIndexRoute
@@ -780,6 +840,7 @@ interface AdminRouteRouteChildren {
   AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
   AdminCuponsIndexRoute: typeof AdminCuponsIndexRoute
   AdminEntregadoresIndexRoute: typeof AdminEntregadoresIndexRoute
+  AdminFuncionariosIndexRoute: typeof AdminFuncionariosIndexRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
   AdminPromocoesIndexRoute: typeof AdminPromocoesIndexRoute
   AdminRelatoriosIndexRoute: typeof AdminRelatoriosIndexRoute
@@ -796,7 +857,9 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCardapioCategoriasRoute: AdminCardapioCategoriasRoute,
   AdminCardapioExtrasRoute: AdminCardapioExtrasRoute,
   AdminCardapioNovoRoute: AdminCardapioNovoRoute,
+  AdminFuncionariosPlanosRoute: AdminFuncionariosPlanosRoute,
   AdminPedidosOrderIdRoute: AdminPedidosOrderIdRoute,
+  AdminRelatoriosFuncionariosRoute: AdminRelatoriosFuncionariosRoute,
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
   AdminAvaliacoesIndexRoute: AdminAvaliacoesIndexRoute,
   AdminCardapioIndexRoute: AdminCardapioIndexRoute,
@@ -804,6 +867,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,
   AdminCuponsIndexRoute: AdminCuponsIndexRoute,
   AdminEntregadoresIndexRoute: AdminEntregadoresIndexRoute,
+  AdminFuncionariosIndexRoute: AdminFuncionariosIndexRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
   AdminPromocoesIndexRoute: AdminPromocoesIndexRoute,
   AdminRelatoriosIndexRoute: AdminRelatoriosIndexRoute,

@@ -3,6 +3,7 @@ import { Mail, MapPin, Pizza } from "lucide-react";
 import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { useStore } from "@/lib/pizzaria2/store-provider";
+import { usePedidoEmAndamento } from "@/lib/pizzaria2/pedido-em-andamento";
 
 export function Footer() {
   const goToCardapio = useGoToCardapio();
@@ -20,6 +21,8 @@ export function Footer() {
     openingHoursSummary,
     whatsappHref,
   } = useStore();
+
+  const pedidoEmAndamento = usePedidoEmAndamento(storeSlug);
 
   return (
     <footer className="border-t border-charcoal/8 bg-cream">
@@ -83,7 +86,25 @@ export function Footer() {
                   Cardápio
                 </a>
               </li>
-              <li className="cursor-default text-sm text-charcoal/35">Acompanhar pedido</li>
+              {/* Acende enquanto houver pedido para acompanhar, e apaga quando
+                  ele é entregue. Sem isto, quem fechava a aba depois de pedir
+                  perdia o link para sempre — o token só aparece uma vez. */}
+              <li>
+                {pedidoEmAndamento ? (
+                  <Link
+                    to="/$storeSlug/acompanhar/$token"
+                    params={{ storeSlug, token: pedidoEmAndamento.token }}
+                    className="text-sm text-charcoal/60 transition-colors hover:text-tomato"
+                    activeProps={{ className: "!text-tomato" }}
+                  >
+                    Acompanhar pedido #{pedidoEmAndamento.number}
+                  </Link>
+                ) : (
+                  <span className="cursor-default text-sm text-charcoal/35">
+                    Acompanhar pedido
+                  </span>
+                )}
+              </li>
               <li className="cursor-default text-sm text-charcoal/35">Contato</li>
             </ul>
           </div>

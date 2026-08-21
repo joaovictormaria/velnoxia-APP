@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
+  BadgePercent,
   Bike,
   ChefHat,
   CircleCheck,
@@ -69,6 +70,9 @@ export type KanbanOrder = {
   }[];
   discount: number;
   coupon: { code: string } | null;
+  /** O nome do funcionário, copiado no momento do pedido. */
+  employeeNameSnapshot: string | null;
+  employeeDiscount: number;
   /** Preenchido quando o pedido está pronto e sem quem o leve. */
   awaitingCourierSince: string | Date | null;
   courier: { name: string } | null;
@@ -217,6 +221,14 @@ function OrderCard({
             <span className="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
               {order.coupon ? order.coupon.code + " · " : ""}-
               {currency.format(order.discount)}
+            </span>
+          )}
+          {/* Pedido de funcionário fica marcado no cartão: o valor menor tem
+              uma explicação, e quem monta o pedido a vê antes de estranhar. */}
+          {order.employeeNameSnapshot && (
+            <span className="flex items-center gap-1 rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
+              <BadgePercent className="size-3" />
+              {order.employeeNameSnapshot}
             </span>
           )}
           {esperando && (
