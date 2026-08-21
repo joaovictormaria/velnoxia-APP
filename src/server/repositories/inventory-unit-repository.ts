@@ -1,5 +1,4 @@
 import { prisma } from "@/server/db/client";
-import { Decimal } from "@prisma/client/runtime/library";
 
 export const inventoryUnitRepository = {
   /**
@@ -47,9 +46,9 @@ export const inventoryUnitRepository = {
   async getConversionFactor(
     fromUnitId: string,
     toUnitId: string
-  ): Promise<Decimal | null> {
+  ): Promise<number | null> {
     if (fromUnitId === toUnitId) {
-      return new Decimal(1);
+      return 1;
     }
 
     const conversion = await prisma.inventoryUnitConversion.findUnique({
@@ -61,7 +60,7 @@ export const inventoryUnitRepository = {
       },
     });
 
-    return conversion?.conversionFactor ?? null;
+    return conversion?.conversionFactor ? Number(conversion.conversionFactor) : null;
   },
 
   /**
@@ -71,16 +70,14 @@ export const inventoryUnitRepository = {
   async convertQuantity(
     fromUnitId: string,
     toUnitId: string,
-    quantity: Decimal | number
-  ): Promise<Decimal | null> {
+    quantity: number
+  ): Promise<number | null> {
     const factor = await this.getConversionFactor(fromUnitId, toUnitId);
     if (factor === null) {
       return null;
     }
 
-    const decimalQty =
-      quantity instanceof Decimal ? quantity : new Decimal(quantity);
-    return decimalQty.mul(factor);
+    return quantity * factor;
   },
 
   /**
@@ -133,7 +130,7 @@ export const inventoryUnitRepository = {
   async createConversion(
     fromUnitId: string,
     toUnitId: string,
-    conversionFactor: Decimal | number
+    conversionFactor: number
   ) {
     // Validação 1: Unidades diferentes
     if (fromUnitId === toUnitId) {
@@ -179,10 +176,7 @@ export const inventoryUnitRepository = {
       data: {
         fromUnitId,
         toUnitId,
-        conversionFactor:
-          conversionFactor instanceof Decimal
-            ? conversionFactor
-            : new Decimal(conversionFactor),
+        conversionFactor,
       },
       include: { fromUnit: true, toUnit: true },
     });
