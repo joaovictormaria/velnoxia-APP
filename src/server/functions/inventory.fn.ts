@@ -40,42 +40,11 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
     const admin = await requireAdminSession();
 
-    // Listar TODAS as chaves
+    // Inspecionar e retornar o que recebeu para debug
+    const data = context?.data || context;
     const keys = Object.keys(context || {});
-    const propsStr = keys.join(', ');
 
-    // Tentar pegar dados
-    let data = context;
-
-    // Se context.data existe, usar isso
-    if (context?.data) {
-      data = context.data;
-    }
-
-    throw new Error(`Context keys: [${propsStr}]. Data: name="${data?.name}", baseUnitId="${data?.baseUnitId}", itemType="${data?.itemType}". Full data: ${JSON.stringify({ name: data?.name, baseUnitId: data?.baseUnitId, itemType: data?.itemType, cost: data?.cost })}`);
-  });
-
-    let unitId = data.baseUnitId;
-    if (!data.baseUnitId.includes('-')) {
-      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
-      if (!unit) {
-        throw new Error(`Unit "${data.baseUnitId}" not found`);
-      }
-      unitId = unit.id;
-    }
-
-    const sku = data.sku || generateSKU(data.itemType || "INGREDIENT");
-
-    const itemData = createInventoryItemSchema.parse({
-      name: data.name,
-      sku: sku,
-      barcode: data.barcode || null,
-      baseUnitId: unitId,
-      cost: data.cost ? parseFloat(data.cost) : undefined,
-      itemType: data.itemType || "INGREDIENT",
-    });
-
-    return InventoryService.createItem(admin.storeId, itemData);
+    throw new Error(`[DEBUG] Keys: ${keys.join(',')} | name="${data?.name}" baseUnitId="${data?.baseUnitId}"`);
   });
 
 /**
