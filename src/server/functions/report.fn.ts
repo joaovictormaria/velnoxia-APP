@@ -4,15 +4,11 @@ import { requireAdminSession } from "@/server/auth/session";
 import { reportRepository } from "@/server/repositories/report-repository";
 
 export const adminGetStockReport = createServerFn({ method: "POST" })
-  .validator(z.object({
-    sortBy: z.string().optional(),
-    limit: z.string().optional(),
-  }))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
 
-    const sortBy = (data.sortBy || "name") as any;
-    const limit = parseInt(data.limit || "100") || 100;
+    const sortBy = (data?.sortBy || "name") as any;
+    const limit = parseInt(data?.limit || "100") || 100;
 
     return reportRepository.getStockLevelsByStore(admin.storeId, { sortBy, limit });
   });
@@ -63,14 +59,14 @@ export const adminGetMovementStats = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getMovementStats(store.id);
+    return reportRepository.getMovementStats(admin.storeId);
   });
 
 export const adminGetOrderFulfillmentStats = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getOrderFulfillmentStats(store.id);
+    return reportRepository.getOrderFulfillmentStats(admin.storeId);
   });
 
 export const adminGetInventoryValueReport = createServerFn({ method: "GET" })
