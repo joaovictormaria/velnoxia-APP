@@ -18,7 +18,7 @@ export function AuditLog(props: AuditLogProps) {
         const data = await adminGetMovementHistory({
           itemId: props.itemId,
           limit: "50",
-        } as any);
+        });
         if (Array.isArray(data)) {
           setMovements(data);
         }
