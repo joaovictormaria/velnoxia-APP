@@ -36,11 +36,11 @@ export function InventoryGrid(props: InventoryGridProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newItem, setNewItem] = useState({
     name: "",
-    sku: "",
     baseUnitId: "kg", // Default to kg
     cost: "",
     itemType: "INGREDIENT",
   });
+  const [generatedSku, setGeneratedSku] = useState<string>("");
 
   const fetchItems = async () => {
     setLoading(true);
@@ -133,9 +133,8 @@ export function InventoryGrid(props: InventoryGridProps) {
     }
 
     try {
-      await adminCreateInventoryItem({
+      const createdItem = await adminCreateInventoryItem({
         name: newItem.name,
-        sku: newItem.sku || undefined,
         baseUnitId: newItem.baseUnitId,
         cost: newItem.cost ? newItem.cost : undefined,
         itemType: newItem.itemType,
@@ -144,13 +143,16 @@ export function InventoryGrid(props: InventoryGridProps) {
       setShowCreateModal(false);
       setNewItem({
         name: "",
-        sku: "",
         baseUnitId: "kg",
         cost: "",
         itemType: "INGREDIENT",
       });
+      setGeneratedSku("");
       fetchItems();
-      alert("Item criado com sucesso!");
+
+      // Mostrar SKU gerado
+      const sku = (createdItem as any)?.sku || "gerado";
+      alert(`✅ Item "${newItem.name}" criado com sucesso!\n\nSKU: ${sku}\n\nProxima etapa: Ir para "Movimentações" para registrar a quantidade inicial.`);
     } catch (error) {
       console.error("Failed to create item:", error);
       alert("Erro ao criar item: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -185,15 +187,10 @@ export function InventoryGrid(props: InventoryGridProps) {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">SKU (Opcional)</label>
-              <input
-                type="text"
-                value={newItem.sku}
-                onChange={(e) => setNewItem({ ...newItem, sku: e.target.value })}
-                placeholder="Ex: FAR-001"
-                className="w-full px-3 py-2 border rounded bg-background text-foreground"
-              />
+            <div className="bg-blue-50 p-3 rounded">
+              <p className="text-sm text-blue-900">
+                ℹ️ <strong>SKU gerado automaticamente</strong> pelo sistema (sem duplicação)
+              </p>
             </div>
 
             <div>

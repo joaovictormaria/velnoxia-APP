@@ -14,6 +14,25 @@ import {
 import { inventoryItemRepository } from "@/server/repositories";
 
 /**
+ * Generate unique SKU automatically
+ * Format: {ITEMTYPE}-{TIMESTAMP}-{RANDOM}
+ * Example: ING-1724272800-A7K9
+ */
+function generateSKU(itemType: string): string {
+  const typePrefix = {
+    INGREDIENT: "ING",
+    RESALE: "RSL",
+    PRODUCED: "PRD",
+    PACKAGING: "PKG",
+  }[itemType] || "ITM";
+
+  const timestamp = Math.floor(Date.now() / 1000);
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  return `${typePrefix}-${timestamp}-${random}`;
+}
+
+/**
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
@@ -31,9 +50,12 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       throw new Error("Not authenticated");
     }
 
+    // Gerar SKU automaticamente se não fornecido
+    const sku = data.sku || generateSKU(data.itemType);
+
     const validated = createInventoryItemSchema.parse({
       name: data.name,
-      sku: data.sku || null,
+      sku: sku,
       barcode: data.barcode || null,
       baseUnitId: data.baseUnitId,
       cost: data.cost ? parseFloat(data.cost) : undefined,
