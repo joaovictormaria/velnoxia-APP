@@ -40,8 +40,6 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
 
-    console.log("📦 adminCreateInventoryItem received:", { data });
-
     // Gerar valores padrão se não fornecidos
     const baseUnitId = data?.baseUnitId || "kg";
     const itemType = data?.itemType || "INGREDIENT";

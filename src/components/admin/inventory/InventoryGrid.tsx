@@ -127,13 +127,14 @@ export function InventoryGrid(props: InventoryGridProps) {
 
   const handleCreateItem = async () => {
     try {
-      const formData = new FormData();
-      formData.append("name", newItem.name || "");
-      formData.append("baseUnitId", newItem.baseUnitId || "kg");
-      formData.append("itemType", newItem.itemType || "INGREDIENT");
-      formData.append("cost", newItem.cost && newItem.cost.trim() ? newItem.cost : "");
+      const payload = {
+        name: newItem.name || "",
+        baseUnitId: newItem.baseUnitId || "kg",
+        itemType: newItem.itemType || "INGREDIENT",
+        cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+      };
 
-      const createdItem = await adminCreateInventoryItem(formData);
+      const createdItem = await adminCreateInventoryItem(payload as any);
 
       setShowCreateModal(false);
       setNewItem({
