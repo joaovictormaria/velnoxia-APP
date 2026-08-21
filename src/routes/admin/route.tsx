@@ -7,8 +7,11 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { VolumeX } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
 import { ContagemDoTeste } from "@/components/admin/layout/ContagemDoTeste";
+import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
+import { useSomDePedido } from "@/lib/alerta-sonoro";
 import { registrarPainelInstalavel } from "@/lib/painel-instalavel";
 import { precoEscrito } from "@/lib/plano";
 import { getCurrentAdminFn, logoutFn } from "@/server/functions/auth.fn";
@@ -130,6 +133,39 @@ function AdminLayout() {
           <Outlet />
         </div>
       </main>
+      {/*
+       * O aviso de pedido novo mora na moldura, e não na tela de pedidos: o PC
+       * do balcão fica ligado o dia inteiro e nem sempre na tela certa. Alguém
+       * abrir o cardápio para corrigir um preço não pode desligar o alarme da
+       * loja.
+       */}
+      <NewOrderDialog />
+      <AvisoDeSomBloqueado />
+    </div>
+  );
+}
+
+/**
+ * O navegador não deixa a página tocar som antes de alguém interagir com ela, e
+ * o painel do balcão abre sozinho com o Windows. Sem este aviso, a loja passaria
+ * o dia achando que seria chamada por um som que nunca ia sair.
+ *
+ * Some ao primeiro clique em qualquer lugar — inclusive neste botão, que existe
+ * mais para explicar o silêncio do que para ser o único jeito de resolvê-lo.
+ */
+function AvisoDeSomBloqueado() {
+  const { bloqueado } = useSomDePedido();
+  if (!bloqueado) return null;
+
+  return (
+    <div className="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 px-4">
+      <button
+        type="button"
+        className="flex items-center gap-2 rounded-full bg-[#E11D2E] px-5 py-3 text-sm font-semibold text-white shadow-lg"
+      >
+        <VolumeX className="size-4" />
+        Toque aqui para ativar o som dos pedidos
+      </button>
     </div>
   );
 }

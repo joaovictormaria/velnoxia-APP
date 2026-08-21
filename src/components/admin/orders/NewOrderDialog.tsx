@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, CheckSquare, Clock, PartyPopper, X } from "lucide-react";
+import { tocarAvisoDePedido } from "@/lib/alerta-sonoro";
 import {
   getOrderFn,
   listPendingOrdersFn,
@@ -36,6 +37,10 @@ export function NewOrderDialog() {
     queryKey: ["orders", "pending"],
     queryFn: () => listPendingOrdersFn(),
     refetchInterval: 5_000,
+    // Sem isto o padrão do react-query congela a busca quando a janela perde o
+    // foco — que é exatamente o estado do painel de balcão a maior parte do
+    // expediente. O pedido só apareceria quando alguém clicasse na janela.
+    refetchIntervalInBackground: true,
   });
 
   useEffect(() => {
@@ -61,6 +66,18 @@ export function NewOrderDialog() {
     queryFn: () => getOrderFn({ data: { id: activeId! } }),
     enabled: Boolean(activeId),
   });
+
+  /**
+   * O aviso se repete enquanto o pedido não for atendido. Um toque só se perde
+   * numa cozinha barulhenta, e a janela pode estar minimizada — o que para é
+   * alguém decidir sobre o pedido, não o tempo passar.
+   */
+  useEffect(() => {
+    if (!activeId) return;
+    tocarAvisoDePedido();
+    const repetir = setInterval(tocarAvisoDePedido, 10_000);
+    return () => clearInterval(repetir);
+  }, [activeId]);
 
   const decide = useMutation({
     mutationFn: (status: "PREPARING" | "CANCELLED") =>
