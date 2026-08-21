@@ -4,7 +4,6 @@ import {
   inventoryMovementRepository,
   inventoryUnitRepository,
 } from "@/server/repositories";
-import { Decimal } from "@prisma/client/runtime/library";
 import type {
   CreateInventoryItemInput,
   UpdateInventoryItemInput,
@@ -164,7 +163,7 @@ export class InventoryService {
       const updates = this.calculateQuantityUpdates(
         item,
         data.type,
-        new Decimal(data.quantity)
+        data.quantity
       );
 
       if (Object.keys(updates).length > 0) {
@@ -266,7 +265,7 @@ export class InventoryService {
       idempotencyKey: reservationKey,
       itemId,
       type: "RESERVATION",
-      quantity: new Decimal(quantity),
+      quantity,
       unitId: item.baseUnitId,
       reference: orderId,
       referenceType: "ORDER",
@@ -301,7 +300,7 @@ export class InventoryService {
       idempotencyKey: consumptionKey,
       itemId,
       type: "CONSUMPTION",
-      quantity: new Decimal(-quantity), // NEGATIVE = deduction
+      quantity: -quantity,
       unitId: item.baseUnitId,
       reference: orderId,
       referenceType: "ORDER",
@@ -314,9 +313,9 @@ export class InventoryService {
    * Returns { quantityOnHand?, quantityReserved? }
    */
   private static calculateQuantityUpdates(
-    item: { quantityOnHand: Decimal; quantityReserved: Decimal },
+    item: { quantityOnHand: number; quantityReserved: number },
     type: string,
-    quantity: Decimal
+    quantity: number
   ): Record<string, any> {
     const updates: Record<string, any> = {};
 
@@ -325,24 +324,24 @@ export class InventoryService {
       case "RETURN":
       case "PRODUCTION":
         // Increase quantityOnHand
-        updates.quantityOnHand = item.quantityOnHand.add(quantity);
+        updates.quantityOnHand = item.quantityOnHand + quantity;
         break;
 
       case "CONSUMPTION":
         // Decrease both quantityOnHand and quantityReserved
-        updates.quantityOnHand = item.quantityOnHand.add(quantity); // quantity is negative
-        updates.quantityReserved = item.quantityReserved.add(quantity); // quantity is negative
+        updates.quantityOnHand = item.quantityOnHand + quantity; // quantity is negative
+        updates.quantityReserved = item.quantityReserved + quantity; // quantity is negative
         break;
 
       case "LOSS":
       case "ADJUSTMENT":
         // Direct change to quantityOnHand
-        updates.quantityOnHand = item.quantityOnHand.add(quantity);
+        updates.quantityOnHand = item.quantityOnHand + quantity;
         break;
 
       case "RESERVATION":
         // Increase quantityReserved only (no physical change)
-        updates.quantityReserved = item.quantityReserved.add(quantity);
+        updates.quantityReserved = item.quantityReserved + quantity;
         break;
 
       case "REVERSAL":
