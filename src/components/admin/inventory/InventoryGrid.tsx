@@ -126,11 +126,6 @@ export function InventoryGrid(props: InventoryGridProps) {
   };
 
   const handleCreateItem = async () => {
-    if (!newItem.name.trim()) {
-      alert("Nome é obrigatório");
-      return;
-    }
-
     try {
       const formData = new FormData();
       formData.append("name", newItem.name || "");
