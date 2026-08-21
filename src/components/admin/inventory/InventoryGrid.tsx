@@ -128,10 +128,12 @@ export function InventoryGrid(props: InventoryGridProps) {
   const handleCreateItem = async () => {
     try {
       const payload = {
-        name: newItem.name || "",
-        baseUnitId: newItem.baseUnitId || "kg",
-        itemType: newItem.itemType || "INGREDIENT",
-        cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+        data: {
+          name: newItem.name || "",
+          baseUnitId: newItem.baseUnitId || "kg",
+          itemType: newItem.itemType || "INGREDIENT",
+          cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+        }
       };
 
       const createdItem = await adminCreateInventoryItem(payload as any);
