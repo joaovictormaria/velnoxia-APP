@@ -40,11 +40,11 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
     const admin = await requireAdminSession();
 
-    // Inspecionar e retornar o que recebeu para debug
-    const data = context?.data || context;
-    const keys = Object.keys(context || {});
+    // Os dados devem estar em alguma dessas propriedades
+    const dataFromRequest = context?.request?.body || context?.request?.data;
+    const dataFromInner = context?.context?.data;
 
-    throw new Error(`[DEBUG] Keys: ${keys.join(',')} | name="${data?.name}" baseUnitId="${data?.baseUnitId}"`);
+    throw new Error(`[DEBUG] Request body type: ${typeof dataFromRequest}, Inner data type: ${typeof dataFromInner}, Request.body: ${JSON.stringify(dataFromRequest)}, Context.data: ${JSON.stringify(dataFromInner)}`);
   });
 
 /**
