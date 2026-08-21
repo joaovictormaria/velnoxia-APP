@@ -123,30 +123,16 @@ export class OrderInventoryHandler {
   }
 
   /**
-   * Pedido completo: Atualizar referência do movimento
+   * Pedido completo: Nenhuma movimentação é necessária
    * Chamado quando Order.status = COMPLETED
+   *
+   * InventoryMovement é imutável: NUNCA é atualizado.
+   * Os movimentos RESERVATION (RECEIVED) e CONSUMPTION (PREPARING) já foram criados.
+   * COMPLETED apenas muda o status do pedido, não do estoque.
    */
   static async onOrderCompleted(orderId: string) {
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order || !order.storeId) {
-      return;
-    }
-
-    // Atualizar todos movimentos linked a este pedido
-    await prisma.inventoryMovement.updateMany({
-      where: {
-        storeId: order.storeId,
-        reference: orderId,
-        referenceType: "ORDER",
-      },
-      data: {
-        // Note: apenas atualizar metadata se necessário
-        // (ex: marcar como completado, adicionar timestamp)
-      },
-    });
+    // Nop: Não há operação de estoque necessária
+    // Historicamente, todos movimentos já foram registrados
   }
 
   /**

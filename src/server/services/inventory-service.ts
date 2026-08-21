@@ -151,6 +151,7 @@ export class InventoryService {
           referenceType: data.referenceType,
           originalMovementId: data.originalMovementId,
           compositionId: data.compositionId,
+          costAtTime: item.cost, // Congelar custo no momento da movimentação
           note: data.note,
           authorType: data.authorType,
           authorId: data.authorId,

@@ -102,4 +102,89 @@ export const inventoryUnitRepository = {
       include: { fromUnit: true },
     });
   },
+
+  /**
+   * Deactivate a unit (logical delete)
+   * Protects built-in units from being deactivated
+   */
+  async deactivateUnit(unitId: string) {
+    const unit = await this.findById(unitId);
+    if (!unit) {
+      throw new Error("Unit not found");
+    }
+
+    if (unit.isBuiltIn) {
+      throw new Error("Cannot deactivate built-in unit");
+    }
+
+    return prisma.inventoryUnit.update({
+      where: { id: unitId },
+      data: { isBuiltIn: false }, // Mark as deactivated
+    });
+  },
+
+  /**
+   * Create a conversion with validation
+   * Ensures:
+   * - fromUnitId !== toUnitId
+   * - Both units exist
+   * - Both units in same system
+   */
+  async createConversion(
+    fromUnitId: string,
+    toUnitId: string,
+    conversionFactor: Decimal | number
+  ) {
+    // Validação 1: Unidades diferentes
+    if (fromUnitId === toUnitId) {
+      throw new Error("Cannot create conversion from a unit to itself");
+    }
+
+    // Validação 2: Unidades existem
+    const [fromUnit, toUnit] = await Promise.all([
+      this.findById(fromUnitId),
+      this.findById(toUnitId),
+    ]);
+
+    if (!fromUnit) {
+      throw new Error(`fromUnit not found: ${fromUnitId}`);
+    }
+    if (!toUnit) {
+      throw new Error(`toUnit not found: ${toUnitId}`);
+    }
+
+    // Validação 3: Mesmo sistema
+    if (fromUnit.system !== toUnit.system) {
+      throw new Error(
+        `Cannot convert between different systems: ${fromUnit.system} and ${toUnit.system}`
+      );
+    }
+
+    // Verificar conversão inversa já existe (evitar duplicação)
+    const existingReverse = await prisma.inventoryUnitConversion.findUnique({
+      where: {
+        fromUnitId_toUnitId: {
+          fromUnitId: toUnitId,
+          toUnitId: fromUnitId,
+        },
+      },
+    });
+
+    if (existingReverse) {
+      throw new Error("Reverse conversion already exists");
+    }
+
+    // Criar conversão
+    return prisma.inventoryUnitConversion.create({
+      data: {
+        fromUnitId,
+        toUnitId,
+        conversionFactor:
+          conversionFactor instanceof Decimal
+            ? conversionFactor
+            : new Decimal(conversionFactor),
+      },
+      include: { fromUnit: true, toUnit: true },
+    });
+  },
 };
