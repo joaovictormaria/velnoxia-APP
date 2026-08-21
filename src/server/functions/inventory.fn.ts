@@ -38,8 +38,10 @@ function generateSKU(itemType: string): string {
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data: rawData }) => {
-    console.log("📥 Dados recebidos no servidor:", rawData);
-    console.log("📥 Tipo de dados:", typeof rawData);
+    console.log("📥 Dados recebidos:", JSON.stringify(rawData));
+    console.log("📥 Tipo:", typeof rawData);
+    console.log("📥 Keys:", Object.keys(rawData || {}));
+    console.log("📥 baseUnitId:", (rawData as any)?.baseUnitId);
     const data = rawData as any;
     const admin = await requireAdminSession();
 
