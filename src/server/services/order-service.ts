@@ -8,6 +8,7 @@ import { randomBytes } from "node:crypto";
 import { prisma } from "../db/client";
 import { verifyPassword } from "../auth/password";
 import { findEmployeeForCheckout, lerUsoDoDia } from "../repositories/employee-repository";
+import { extrasPermitidosPorProduto } from "../repositories/extra-repository";
 import {
   calcularBeneficio,
   type LinhaParaBeneficio,
@@ -165,6 +166,20 @@ export async function precificarItens(
     : [];
   const extraById = new Map(extras.map((e) => [e.id, e]));
 
+  /**
+   * Onde cada adicional pode ser pedido.
+   *
+   * Sem isto, "existe nesta loja" era a única condição: dava para mandar borda
+   * de catupiry num refrigerante e o pedido saía com a borda cobrada. A tela
+   * não oferece, mas quem chama o servidor direto não passa pela tela.
+   */
+  const permitidosPorProduto = extraIds.length
+    ? await extrasPermitidosPorProduto(
+        storeId,
+        products.map((p) => ({ id: p.id, categoryId: p.categoryId })),
+      )
+    : new Map<string, Set<string>>();
+
   const lines: LinhaDoPedido[] = [];
 
   let subtotal = 0;
@@ -225,6 +240,17 @@ export async function precificarItens(
 
     const opcoes = conferirOpcoes(gruposPorProduto.get(product.id) ?? [], item.optionIds ?? []);
     if (!opcoes.ok) return { ok: false, error: opcoes.error };
+
+    const permitidos = permitidosPorProduto.get(product.id) ?? new Set<string>();
+    const naoPermitido = item.extraIds.find((id) => !permitidos.has(id));
+    if (naoPermitido) {
+      // Diz o nome do produto, e não o do adicional: quem lê é quem montou o
+      // carrinho, e o que ele precisa saber é onde a escolha não cabe.
+      return {
+        ok: false,
+        error: `Um dos adicionais escolhidos não é oferecido em "${product.name}".`,
+      };
+    }
 
     const lineExtras = item.extraIds.map((id) => {
       const extra = extraById.get(id);

@@ -7,7 +7,7 @@ import { CheckoutForm } from "@/components/site/pizzaria2/CheckoutForm";
 import { MenuThumb } from "@/components/site/pizzaria2/MenuThumb";
 import { PriceTag } from "@/components/site/pizzaria2/PriceTag";
 import { useCart } from "@/lib/pizzaria2/cart";
-import { formatCurrency, suggestedDrinkSlugs } from "@/lib/pizzaria2/menu";
+import { formatCurrency, sugestoesParaOPedido } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 
@@ -37,7 +37,7 @@ function PizzariaCarrinho() {
   const { pagar } = Route.useSearch();
   const { lines, addLine, removeLine, clearCart, subtotal, deliveryFee, total } = useCart();
   const store = useStore();
-  const { categories, productBySlug, productsByCategory } = useMenu();
+  const { categories, products, productsByCategory } = useMenu();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   /*
    * Abre o pagamento sozinho para quem veio pelo "Finalizar compras".
@@ -61,9 +61,10 @@ function PizzariaCarrinho() {
   const cardapioAnchorSlug =
     productsByCategory(categories[0]?.slug ?? "")[0]?.slug ?? "";
 
-  const suggestedDrinks = suggestedDrinkSlugs
-    .map((slug) => productBySlug(slug))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  const suggestedDrinks = sugestoesParaOPedido(
+    products,
+    lines.map((l) => l.productSlug).filter((s): s is string => Boolean(s)),
+  );
 
   const whatsappHref = store.whatsappHref(
     `Oi! Quero fazer este pedido:\n${lines
@@ -118,6 +119,10 @@ function PizzariaCarrinho() {
           </div>
 
           <div className="flex flex-col gap-6">
+            {/* Sem sugestão, a caixa inteira sai da tela. Antes ela ficava com
+                o título e nada embaixo — um quadro vazio ao lado do total, que
+                parecia coisa que não carregou. */}
+            {suggestedDrinks.length > 0 && (
             <div className="rounded-2xl border border-charcoal/8 bg-mozzarella p-5">
               <h2 className="font-display text-sm font-bold text-charcoal">
                 Que tal completar seu pedido?
@@ -158,6 +163,7 @@ function PizzariaCarrinho() {
                 ))}
               </div>
             </div>
+            )}
 
             <div className="rounded-2xl border border-charcoal/8 bg-mozzarella p-5">
               <div className="flex items-center justify-between text-sm text-charcoal/60">

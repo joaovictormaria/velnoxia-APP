@@ -64,13 +64,44 @@ export type Product = {
   image?: string;
   icon?: LucideIcon;
   categorySlug: CategorySlug;
+  /** Ids do banco. Vêm junto porque o alcance dos adicionais é por id. */
+  id: string;
+  categoryId: string;
   tag?: string;
   allowHalfAndHalf?: boolean;
   /** Absolute price per size, as configured in the admin panel. */
   sizes?: ProductSize[];
 };
 
-export type Extra = { id: string; label: string; price: number };
+/**
+ * Um adicional e onde ele pode ser pedido.
+ *
+ * Os ids de alcance viajam para o navegador porque o cardápio inteiro vem numa
+ * resposta só: filtrar por produto aqui é uma varredura numa lista pequena que
+ * já está na memória, e não uma ida ao servidor a cada produto aberto.
+ */
+export type Extra = {
+  id: string;
+  label: string;
+  price: number;
+  /** Categorias em que ele vale por inteiro. */
+  categoryIds: string[];
+  /** Produtos avulsos em que ele foi marcado. */
+  productIds: string[];
+};
+
+/** Os adicionais que este produto oferece: os da categoria dele mais os dele. */
+export function extrasDoProduto(
+  extras: Extra[],
+  produto: { id: string; categoryId?: string } | null | undefined,
+): Extra[] {
+  if (!produto) return [];
+  return extras.filter(
+    (e) =>
+      e.productIds.includes(produto.id) ||
+      (produto.categoryId !== undefined && e.categoryIds.includes(produto.categoryId)),
+  );
+}
 
 /**
  * Uma pergunta que o cardápio faz antes de o item ir para o carrinho: o sabor
@@ -115,8 +146,46 @@ export function formatCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace(".", ",")}`;
 }
 
-export const suggestedDrinkSlugs = [
-  "coca-cola-2l",
-  "guarana-antarctica-2l",
-  "ice-tea-limao-2l",
-];
+/**
+ * Categorias que valem como "para acompanhar", pelo slug da categoria.
+ *
+ * Heurística, e assumidamente imperfeita: o cardápio não tem um campo dizendo
+ * "isto é bebida", e inventar um obrigaria todo lojista a preencher mais uma
+ * coisa. Errar aqui custa uma sugestão fraca, nunca um pedido errado.
+ */
+const PARECE_ACOMPANHAMENTO = /bebida|drink|suco|refrigerante|cerveja|caf|sobremesa|doce/i;
+
+/**
+ * O que oferecer para completar o pedido, tirado do cardápio da própria loja.
+ *
+ * Antes isto era uma lista de três slugs escritos no código —
+ * "coca-cola-2l", "guarana-antarctica-2l", "ice-tea-limao-2l" — vindos de um
+ * catálogo de demonstração. Nenhuma loja de verdade tem esses slugs, então a
+ * busca não achava nada e a caixa "Que tal completar seu pedido?" aparecia com
+ * o título e nada embaixo. Em todas as lojas, o tempo inteiro.
+ *
+ * A regra agora é a que um atendente usaria: oferecer o que a pessoa **ainda
+ * não pediu**, preferindo bebida e sobremesa. Quem já tem refrigerante no
+ * carrinho não ouve "que tal um refrigerante?".
+ */
+export function sugestoesParaOPedido(
+  products: Product[],
+  noCarrinho: string[],
+  limite = 3,
+): Product[] {
+  const fora = products.filter((p) => !noCarrinho.includes(p.slug));
+
+  const categoriasNoCarrinho = new Set(
+    products.filter((p) => noCarrinho.includes(p.slug)).map((p) => p.categorySlug),
+  );
+
+  // Primeiro o que acompanha e ainda não está no carrinho; depois qualquer
+  // coisa de uma categoria que o pedido ainda não tem. Sugerir outra pizza a
+  // quem já pediu pizza não completa nada.
+  const acompanhamentos = fora.filter((p) => PARECE_ACOMPANHAMENTO.test(p.categorySlug));
+  const outrasCategorias = fora.filter(
+    (p) => !categoriasNoCarrinho.has(p.categorySlug) && !acompanhamentos.includes(p),
+  );
+
+  return [...acompanhamentos, ...outrasCategorias].slice(0, limite);
+}

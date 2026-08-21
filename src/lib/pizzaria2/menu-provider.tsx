@@ -65,7 +65,7 @@ export type MenuPayload = {
       sizes: { categorySize: { id: string; label: string }; price: number }[];
     }[];
   }[];
-  extras: { id: string; name: string; price: number }[];
+  extras: { id: string; name: string; price: number; categoryIds: string[]; productIds: string[] }[];
   promotions: {
     id: string;
     eyebrow: string;
@@ -122,6 +122,8 @@ function adapt(payload: MenuPayload): MenuApi {
       image: p.imageUrl ?? undefined,
       icon: !p.imageUrl && c.icon ? ICONS[c.icon] : undefined,
       categorySlug: c.slug,
+      id: p.id,
+      categoryId: c.id,
       tag: p.tag ?? undefined,
       allowHalfAndHalf: p.allowHalfAndHalf,
       optionGroups: paraGrupos(p.optionGroups),
@@ -137,6 +139,8 @@ function adapt(payload: MenuPayload): MenuApi {
     id: x.id,
     label: x.name,
     price: x.price,
+    categoryIds: x.categoryIds ?? [],
+    productIds: x.productIds ?? [],
   }));
 
   return {

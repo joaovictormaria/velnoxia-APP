@@ -317,6 +317,7 @@ model Category {
   sizes      CategorySize[]
   optionGroups OptionGroup[]
   employeeBenefitRules EmployeeBenefitRule[]
+  extraScopes  ExtraScope[]
 
   @@unique([storeId, slug])
   @@index([storeId, sortOrder])
@@ -345,6 +346,7 @@ model Product {
   orderItems   OrderItem[]
   optionGroups OptionGroup[]
   employeeBenefitRules EmployeeBenefitRule[]
+  extraScopes  ExtraScope[]
 
   @@unique([storeId, slug])
   @@index([categoryId, isActive])
@@ -451,8 +453,40 @@ model Extra {
   updatedAt DateTime @updatedAt
 
   orderItemExtras OrderItemExtra[]
+  /// Onde ele pode ser pedido. Sem nenhum alcance, não aparece em lugar algum.
+  scopes          ExtraScope[]
 
   @@index([storeId, isActive])
+}
+
+/**
+ * Onde um adicional pode ser pedido: numa categoria inteira ou num produto —
+ * nunca nos dois na mesma linha, como nos `OptionGroup`.
+ *
+ * Antes disto o adicional era da loja e valia para tudo: dava para pedir borda
+ * de catupiry num refrigerante, e o sistema aceitava e cobrava. O dono não
+ * tinha onde dizer que não.
+ *
+ * A categoria existe porque sem ela o cadastro seria impraticável: numa
+ * pizzaria de quarenta sabores, "Borda de catupiry" exigiria quarenta marcações
+ * e mais uma a cada pizza nova — e a que fosse esquecida viraria uma borda que
+ * some da vitrine sem ninguém entender. Marcando a categoria, produto novo já
+ * nasce oferecendo o que os irmãos oferecem.
+ */
+model ExtraScope {
+  id         String    @id @default(cuid())
+  extraId    String
+  extra      Extra     @relation(fields: [extraId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// Um alcance por alvo: duas linhas iguais só ofereceriam o mesmo duas vezes.
+  @@unique([extraId, categoryId])
+  @@unique([extraId, productId])
+  @@index([categoryId])
+  @@index([productId])
 }
 
 model Coupon {

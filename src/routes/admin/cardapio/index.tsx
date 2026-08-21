@@ -14,6 +14,29 @@ export const Route = createFileRoute("/admin/cardapio/")({
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+type Produto = Awaited<ReturnType<typeof listProductsFn>>["products"][number];
+
+/**
+ * Os produtos em blocos, um por categoria.
+ *
+ * Uma lista corrida de trinta itens obrigava a ler a coluna "Categoria" linha a
+ * linha para saber onde cada um estava — e é por categoria que o dono pensa o
+ * cardápio, tanto que é assim que a vitrine o mostra ao cliente.
+ *
+ * Agrupa por um Map, e não comparando com a linha anterior: hoje o banco já
+ * devolve ordenado por categoria, mas se um dia a ordem mudar, a versão por
+ * vizinhança quebraria em silêncio, repetindo a mesma categoria em dois blocos.
+ */
+function agruparPorCategoria(produtos: Produto[]) {
+  const grupos = new Map<string, { nome: string; produtos: Produto[] }>();
+  for (const p of produtos) {
+    const grupo = grupos.get(p.category.id);
+    if (grupo) grupo.produtos.push(p);
+    else grupos.set(p.category.id, { nome: p.category.name, produtos: [p] });
+  }
+  return [...grupos.entries()].map(([id, g]) => ({ id, ...g }));
+}
+
 function ProductsPage() {
   const queryClient = useQueryClient();
   const [categoryId, setCategoryId] = useState<string>("");
@@ -82,30 +105,42 @@ function ProductsPage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
             <tr>
+              {/* Sem coluna "Categoria": ela agora é o título de cada bloco, e
+                  repeti-la em toda linha só gastaria largura. */}
               <th className="px-5 py-3 font-medium">Produto</th>
-              <th className="px-5 py-3 font-medium">Categoria</th>
               <th className="px-5 py-3 font-medium">Preço</th>
               <th className="px-5 py-3 font-medium">Tamanhos</th>
               <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 text-right font-medium">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100">
-            {isPending && (
+
+          {(isPending || data?.products.length === 0) && (
+            <tbody>
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-neutral-500">
-                  Carregando...
+                <td colSpan={5} className="px-5 py-10 text-center text-neutral-500">
+                  {isPending ? "Carregando..." : "Nenhum produto encontrado."}
                 </td>
               </tr>
-            )}
-            {data?.products.length === 0 && (
+            </tbody>
+          )}
+
+          {agruparPorCategoria(data?.products ?? []).map((grupo) => (
+            <tbody key={grupo.id} className="divide-y divide-neutral-100">
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-neutral-500">
-                  Nenhum produto encontrado.
-                </td>
+                <th
+                  colSpan={5}
+                  scope="colgroup"
+                  className="border-y border-neutral-200 bg-neutral-50 px-5 py-2.5 text-left"
+                >
+                  <span className="text-sm font-bold text-neutral-900">{grupo.nome}</span>
+                  <span className="ml-2 text-xs font-normal text-neutral-500">
+                    {grupo.produtos.length}{" "}
+                    {grupo.produtos.length === 1 ? "produto" : "produtos"}
+                  </span>
+                </th>
               </tr>
-            )}
-            {data?.products.map((p) => (
+              {grupo.produtos.map((p) => (
               <tr key={p.id} className="hover:bg-neutral-50">
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
@@ -123,7 +158,6 @@ function ProductsPage() {
                     <span className="font-medium text-neutral-900">{p.name}</span>
                   </div>
                 </td>
-                <td className="px-5 py-3 text-neutral-600">{p.category.name}</td>
                 <td className="px-5 py-3 text-neutral-900">{currency.format(p.basePrice)}</td>
                 <td className="px-5 py-3 text-neutral-600">
                   {p.sizes.length === 0
@@ -169,9 +203,10 @@ function ProductsPage() {
                     </button>
                   </div>
                 </td>
-              </tr>
-            ))}
-          </tbody>
+                </tr>
+              ))}
+            </tbody>
+          ))}
         </table>
       </div>
     </div>

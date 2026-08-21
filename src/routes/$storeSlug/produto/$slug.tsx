@@ -13,9 +13,10 @@ import { useCart } from "@/lib/pizzaria2/cart";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import {
   availableSizes,
+  extrasDoProduto,
   formatCurrency,
   sizePrice,
-  suggestedDrinkSlugs,
+  sugestoesParaOPedido,
 } from "@/lib/pizzaria2/menu";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
 import { cn } from "@/lib/utils";
@@ -55,7 +56,7 @@ function PizzariaPersonalizacao() {
   const {
     categories,
     products,
-    extras: extrasCatalog,
+    extras: todosOsExtras,
     categoryBySlug,
     productBySlug,
   } = useMenu();
@@ -74,6 +75,13 @@ function PizzariaPersonalizacao() {
     null,
   );
   const product = productBySlug(activeSlug);
+
+  /*
+   * Só os adicionais deste produto: os marcados na categoria dele mais os
+   * marcados nele. Antes a tela oferecia a lista inteira da loja, e dava para
+   * pôr borda de catupiry num refrigerante.
+   */
+  const extrasCatalog = extrasDoProduto(todosOsExtras, product);
 
   const [mode, setMode] = useState<"inteira" | "meia">("inteira");
   // Guarda o id do tamanho, não um nome fixo: "media" só existia numa
@@ -253,7 +261,8 @@ function PizzariaPersonalizacao() {
     });
   }
 
-  const suggestedDrink = productBySlug(suggestedDrinkSlugs[0]);
+  // Sai do cardápio da loja, e não de uma lista fixa que nenhuma loja tem.
+  const suggestedDrink = sugestoesParaOPedido(products, product ? [product.slug] : [], 1)[0];
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-8 sm:px-6 sm:py-12">

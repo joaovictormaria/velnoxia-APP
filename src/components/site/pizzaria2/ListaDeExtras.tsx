@@ -18,6 +18,11 @@ export function ListaDeExtras({
   selecionados: string[];
   onAlternar: (id: string) => void;
 }) {
+  // Produto sem adicional nenhum não ganha um "Adicione extras" seguido de
+  // nada. Antes os adicionais eram da loja inteira e a lista nunca vinha
+  // vazia; agora ela vem, sempre que o produto não tiver nenhum ligado.
+  if (extras.length === 0) return null;
+
   return (
     <>
       <h2 className="font-display text-base font-bold text-charcoal">Adicione extras</h2>
