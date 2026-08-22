@@ -43,10 +43,15 @@ function KanbanPage() {
 
   const { data, isPending } = useQuery({
     queryKey: ["orders", "kanban", date, search],
-    queryFn: () => listKanbanOrdersFn({ data: { date, search: search || undefined } }),
+    queryFn: async () => {
+      console.log("📡 [Kanban] Fetching orders...", { date, search });
+      const result = await listKanbanOrdersFn({ data: { date, search: search || undefined } });
+      console.log("📡 [Kanban] Received data:", result?.columns?.length, "columns");
+      return result;
+    },
     refetchInterval: 8_000,
-    staleTime: 8_000, // Não marcar como stale até depois do refetch
-    gcTime: 10 * 60 * 1000, // Manter em cache por 10 min
+    staleTime: 8_000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const advance = useMutation({
