@@ -304,12 +304,9 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
         return;
       }
       setError(null);
-      // Limpar tableId do localStorage após pedido bem-sucedido
-      if (tableId) {
-        localStorage.removeItem("tableId");
-        localStorage.removeItem("tableIdExpiresAt");
-        localStorage.removeItem("tableNumber");
-      }
+      // NÃO limpar tableId aqui! A mesa fica aberta por 24h para novos pedidos.
+      // tableId só é removido quando a mesa é finalizada (COMPLETED) pelo admin.
+
       // Saved only after the order is accepted, so a rejected attempt never
       // becomes the address suggested next time.
       saveCustomerDetails(storeInfo.slug, {
