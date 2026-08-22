@@ -107,8 +107,6 @@ export function KanbanBoard({
   /** Falso numa loja que só faz retirada — ver listKanbanOrders. */
   mostrarEntrega?: boolean;
 }) {
-  console.log("🎨 [KanbanBoard] Rendering with", columns.length, "columns, total orders:", columns.reduce((sum, c) => sum + c.orders.length, 0));
-
   const colunas = mostrarEntrega
     ? COLUMNS
     : COLUMNS.filter((c) => c.status !== "OUT_FOR_DELIVERY");
