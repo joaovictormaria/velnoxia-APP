@@ -49,7 +49,6 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [couponCode, setCouponCode] = useState("");
   const [tableId, setTableId] = useState<string | null>(null);
-  const [tableNumber, setTableNumber] = useState<number | null>(null);
   /** null = not checked yet. The order service checks again when the order is
    *  placed; this only lets the customer see the discount before confirming. */
   const [couponResult, setCouponResult] = useState<
@@ -64,16 +63,11 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   /** O telefone digitado é de funcionário — o campo do PIN se abre sozinho. */
   const [employeeRecognized, setEmployeeRecognized] = useState(false);
 
-  // Carregar tableId e tableNumber do localStorage quando o componente monta
+  // Carregar tableId do localStorage quando o componente monta
   useEffect(() => {
-    const storedTableId = localStorage.getItem("tableId");
-    if (storedTableId) {
-      setTableId(storedTableId);
-    }
-
-    const storedTableNumber = localStorage.getItem("tableNumber");
-    if (storedTableNumber) {
-      setTableNumber(parseInt(storedTableNumber, 10));
+    const stored = localStorage.getItem("tableId");
+    if (stored) {
+      setTableId(stored);
     }
   }, []);
 
@@ -289,7 +283,6 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           employeePin: employeeResult?.ok ? employeePin : undefined,
           customerNote: note.trim() || undefined,
           tableId: tableId ?? undefined,
-          tableNumber: tableNumber ?? undefined,
           delivery:
             type === "DELIVERY"
               ? { street, number, complement, neighborhood, city, state, zipCode: normalizeCep(cep) }
@@ -302,11 +295,10 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
         return;
       }
       setError(null);
-      // Limpar tableId e tableNumber do localStorage após pedido bem-sucedido
+      // Limpar tableId do localStorage após pedido bem-sucedido
       if (tableId) {
         localStorage.removeItem("tableId");
         localStorage.removeItem("tableIdExpiresAt");
-        localStorage.removeItem("tableNumber");
       }
       // Saved only after the order is accepted, so a rejected attempt never
       // becomes the address suggested next time.
