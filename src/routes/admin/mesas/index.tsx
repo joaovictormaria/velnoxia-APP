@@ -18,7 +18,8 @@ interface GeneratedQRCode {
 }
 
 function MesasPage() {
-  const { admin } = Route.useRouteContext();
+  const context = Route.useRouteContext() as any;
+  const admin = context?.admin;
   const [qrcodes, setQrcodes] = useState<GeneratedQRCode[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -26,9 +27,15 @@ function MesasPage() {
   const generateQRCode = async () => {
     setGenerating(true);
     try {
+      if (!admin?.store?.slug) {
+        alert("Erro: Não foi possível obter informações da loja");
+        setGenerating(false);
+        return;
+      }
+
       const newId = generateUUID();
       const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://velnoxia.app";
-      const storeSlug = admin?.store.slug || "default";
+      const storeSlug = admin.store.slug;
       const qrUrl = `${baseUrl}/qr/${storeSlug}/${newId}`;
       const qrImage = await generateQRCodeDataUrl(qrUrl);
 
