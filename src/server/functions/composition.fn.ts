@@ -267,3 +267,31 @@ export const adminGetAllProducts = createServerFn({ method: "POST" })
 
     return products;
   });
+
+/**
+ * Admin: Consume a composition (recipe) and decrease inventory items
+ * Handles unit conversion automatically
+ */
+export const adminConsumeComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
+
+    const compositionId = data?.compositionId;
+    const quantity = parseInt(data?.quantity || "1") || 1;
+
+    if (!compositionId) {
+      throw new Error("Composition ID is required");
+    }
+
+    return CompositionService.consumeComposition(
+      admin.storeId,
+      compositionId,
+      quantity,
+      {
+        authorType: "ADMIN",
+        authorId: admin.id,
+        authorName: admin.name,
+      }
+    );
+  });

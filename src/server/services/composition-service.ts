@@ -4,11 +4,13 @@ import {
   compositionItemRepository,
   inventoryUnitRepository,
   inventoryItemRepository,
+  inventoryMovementRepository,
 } from "@/server/repositories";
 import type {
   CreateProductCompositionInput,
   UpdateProductCompositionInput,
 } from "@/lib/estoque-schemas";
+import { InventoryService } from "./inventory-service";
 
 export class CompositionService {
   /**
@@ -264,5 +266,82 @@ export class CompositionService {
    */
   static async markAsUsed(compositionId: string) {
     return productCompositionRepository.markAsUsed(compositionId);
+  }
+
+  /**
+   * Consume ingredients from a composition (recipe)
+   * Decreases inventory items based on recipe quantities
+   * Handles unit conversion (e.g., grams to potes)
+   */
+  static async consumeComposition(
+    storeId: string,
+    compositionId: string,
+    quantityToProduce: number = 1,
+    authorData?: { authorType?: string; authorId?: string; authorName?: string }
+  ) {
+    const composition = await productCompositionRepository.findById(
+      storeId,
+      compositionId
+    );
+    if (!composition) {
+      throw new Error("Composition not found");
+    }
+
+    if (!composition.items || composition.items.length === 0) {
+      throw new Error("Composition has no items");
+    }
+
+    return prisma.$transaction(async (tx) => {
+      // For each item in the composition, create a CONSUMPTION movement
+      for (const compItem of composition.items) {
+        const inventoryItem = await inventoryItemRepository.findById(
+          storeId,
+          compItem.inventoryItemId
+        );
+        if (!inventoryItem) continue;
+
+        // Calculate quantity to consume
+        // compItem.quantity is in the unit specified by compItem.unit
+        // We need to convert to the inventory item's base unit if they differ
+        let quantityToConsume = compItem.quantity * quantityToProduce;
+
+        // If units are different, convert using contentSize
+        if (compItem.unit.id !== inventoryItem.baseUnit.id) {
+          // The composition specifies quantity in compItem.unit
+          // But inventory is tracked in baseUnit
+          // If contentSize exists, use it for conversion
+          if (inventoryItem.contentSize) {
+            // contentSize = how many base units are in 1 unit of the product
+            // e.g., 1 pote = 500g, so contentSize = 500
+            // If recipe uses 45g and product is in potes (500g/pote):
+            // quantityToConsume in potes = 45 / 500 = 0.09 potes
+            quantityToConsume = quantityToConsume / Number(inventoryItem.contentSize);
+          }
+        }
+
+        // Record CONSUMPTION movement
+        const idempotencyKey = `${storeId}#COMPOSITION#${compositionId}#${compItem.inventoryItemId}#${Date.now()}`;
+
+        await InventoryService.recordMovement(storeId, {
+          itemId: compItem.inventoryItemId,
+          type: "CONSUMPTION",
+          quantity: -quantityToConsume, // Negative for consumption
+          unitId: inventoryItem.baseUnit.id,
+          reference: compositionId,
+          referenceType: "COMPOSITION",
+          note: `Consumido por receita (${quantityToProduce}x)`,
+          authorType: authorData?.authorType || "SYSTEM",
+          authorId: authorData?.authorId,
+          authorName: authorData?.authorName,
+          idempotencyKey,
+          compositionId,
+        });
+      }
+
+      // Mark composition as used
+      await productCompositionRepository.markAsUsed(compositionId);
+
+      return composition;
+    });
   }
 }
