@@ -78,7 +78,7 @@ export const listPendingOrdersFn = createServerFn({ method: "GET" }).handler(asy
 });
 
 /**
- * Get count of open orders (not COMPLETED) grouped by table number.
+ * Get count of open orders (not COMPLETED) grouped by table ID.
  * Used to show which tables have active orders in the admin mesas page.
  */
 export const getTableOrderCountsFn = createServerFn({ method: "GET" })
@@ -87,16 +87,16 @@ export const getTableOrderCountsFn = createServerFn({ method: "GET" })
     const orders = await prisma.order.findMany({
       where: {
         storeId,
-        tableNumber: { not: null },
+        tableId: { not: null },
         status: { not: "COMPLETED" },
       },
-      select: { tableNumber: true },
+      select: { tableId: true },
     });
 
-    const counts = new Map<number, number>();
+    const counts = new Map<string, number>();
     for (const order of orders) {
-      if (order.tableNumber !== null) {
-        counts.set(order.tableNumber, (counts.get(order.tableNumber) ?? 0) + 1);
+      if (order.tableId !== null) {
+        counts.set(order.tableId, (counts.get(order.tableId) ?? 0) + 1);
       }
     }
 

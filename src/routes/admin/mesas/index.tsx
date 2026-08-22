@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { generateUUID } from "@/lib/uuid";
 import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
 import { getTableOrderCountsFn } from "@/server/functions/orders.fn";
+import { createTableFn } from "@/routes/api/tables/create";
 
 export const Route = createFileRoute("/admin/mesas/")({
   component: MesasPage,
@@ -58,7 +59,7 @@ function MesasPage() {
   const generateQRCode = async () => {
     setGenerating(true);
     try {
-      if (!admin?.store?.slug) {
+      if (!admin?.store?.slug || !admin?.store?.id) {
         alert("Erro: Não foi possível obter informações da loja");
         setGenerating(false);
         return;
@@ -71,6 +72,22 @@ function MesasPage() {
       const storeSlug = admin.store.slug;
       const qrUrl = `${baseUrl}/qr/${storeSlug}/${newId}`;
       const qrImage = await generateQRCodeDataUrl(qrUrl);
+
+      // Criar Table no banco de dados
+      const result = await createTableFn({
+        data: {
+          id: newId,
+          storeId: admin.store.id,
+          number: tableNumber,
+          capacity: 4,
+          qrcodeUrl: qrUrl,
+          qrcodeData: qrImage,
+        },
+      });
+
+      if (!result.ok) {
+        throw new Error(result.error || "Falha ao criar mesa no banco de dados");
+      }
 
       const newQRCode: GeneratedQRCode = {
         id: newId,
