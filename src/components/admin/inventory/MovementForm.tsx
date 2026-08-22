@@ -90,6 +90,13 @@ export function MovementForm(props: MovementFormProps) {
       console.log("MovementForm - Sending payload:", payload);
       const result = await adminRecordMovement(payload as any);
       console.log("MovementForm - Result:", result);
+
+      if (!result) {
+        console.error("MovementForm - Result is empty/undefined!");
+        alert("Erro: resposta vazia do servidor");
+        return;
+      }
+
       props.onSuccess?.();
       invalidate();
 
@@ -104,7 +111,10 @@ export function MovementForm(props: MovementFormProps) {
       setSelectedItem(null);
     } catch (error) {
       console.error("Movement creation failed:", error);
-      alert("Erro ao registrar movimentação. Tente novamente.");
+      if (error instanceof Error) {
+        console.error("Error details:", error.message, error.stack);
+      }
+      alert("Erro ao registrar movimentação: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setSubmitting(false);
     }

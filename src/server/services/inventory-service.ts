@@ -149,9 +149,11 @@ export class InventoryService {
     }
 
     // 5. Create movement and update quantities (ATOMIC)
-    return prisma.$transaction(async (tx) => {
-      // Create the movement
-      const movement = await tx.inventoryMovement.create({
+    try {
+      console.log("InventoryService.recordMovement - Starting transaction for type:", data.type, "quantity:", data.quantity);
+      return await prisma.$transaction(async (tx) => {
+        // Create the movement
+        const movement = await tx.inventoryMovement.create({
         data: {
           storeId,
           idempotencyKey: data.idempotencyKey,
@@ -199,6 +201,10 @@ export class InventoryService {
 
       return movement;
     });
+    } catch (err) {
+      console.error("InventoryService.recordMovement - Transaction failed:", err);
+      throw err;
+    }
   }
 
   /**

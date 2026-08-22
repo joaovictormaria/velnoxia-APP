@@ -141,33 +141,40 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
       idempotencyKey,
     });
 
-    console.log("adminRecordMovement - Result:", {
+    console.log("adminRecordMovement - Result from service:", {
       id: result.id,
       type: result.type,
       quantityRecorded: result.quantity,
     });
 
-    // Serialize Decimal values - convert ALL numeric fields
-    return {
-      id: result.id,
-      storeId: result.storeId,
-      itemId: result.itemId,
-      type: result.type,
-      quantity: Number(result.quantity ?? 0),
-      unitId: result.unitId,
-      reference: result.reference,
-      referenceType: result.referenceType,
-      originalMovementId: result.originalMovementId,
-      compositionId: result.compositionId,
-      costAtTime: result.costAtTime ? Number(result.costAtTime) : null,
-      note: result.note,
-      authorType: result.authorType,
-      authorId: result.authorId,
-      authorName: result.authorName,
-      idempotencyKey: result.idempotencyKey,
-      createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-    };
+    try {
+      // Serialize Decimal values - convert ALL numeric fields
+      const serialized = {
+        id: result.id,
+        storeId: result.storeId,
+        itemId: result.itemId,
+        type: result.type,
+        quantity: Number(result.quantity ?? 0),
+        unitId: result.unitId,
+        reference: result.reference,
+        referenceType: result.referenceType,
+        originalMovementId: result.originalMovementId,
+        compositionId: result.compositionId,
+        costAtTime: result.costAtTime ? Number(result.costAtTime) : null,
+        note: result.note,
+        authorType: result.authorType,
+        authorId: result.authorId,
+        authorName: result.authorName,
+        idempotencyKey: result.idempotencyKey,
+        createdAt: result.createdAt,
+        updatedAt: result.updatedAt,
+      };
+      console.log("adminRecordMovement - Serialized result:", serialized);
+      return serialized;
+    } catch (err) {
+      console.error("adminRecordMovement - Serialization error:", err);
+      throw err;
+    }
   });
 
 /**
