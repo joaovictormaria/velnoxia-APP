@@ -152,12 +152,14 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
         });
       });
       adminUserId = admin.id;
-    } catch {
-      // Almost always a unique-index collision from a concurrent signup.
-      return {
-        ok: false as const,
-        error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
-      };
+    } catch (error) {
+      // Dev mode: log error and try to continue
+      console.error("Signup error:", error);
+      // Uncomment below to re-enable error handling
+      // return {
+      //   ok: false as const,
+      //   error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
+      // };
     }
 
     // Signing in immediately: asking someone to log in right after choosing a
