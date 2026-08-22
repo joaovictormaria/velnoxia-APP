@@ -32,8 +32,8 @@ const checkoutSchema = z.object({
     .regex(/^\d{4}$/)
     .optional(),
   customerNote: z.string().max(500).optional(),
-  /** Token de sessão segura da mesa. */
-  tableSessionToken: z.string().optional(),
+  /** Mesa QRCode ID para pedidos de balcão/mesa. */
+  tableId: z.string().uuid().optional(),
   delivery: z
     .object({
       street: z.string().optional(),
