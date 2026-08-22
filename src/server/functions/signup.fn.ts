@@ -27,10 +27,10 @@ const signupSchema = z.object({
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    // Rate limit desabilitado para dev
-    if (await isEmailTaken(data.email)) {
-      return { ok: false as const, error: "Já existe uma conta com este e-mail." };
-    }
+    // Email check desabilitado para dev
+    // if (await isEmailTaken(data.email)) {
+    //   return { ok: false as const, error: "Já existe uma conta com este e-mail." };
+    // }
 
     // Derived from the store name plus a verifier code, so the owner never has
     // to pick an address and two lanchonetes with the same name never clash.
