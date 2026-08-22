@@ -133,8 +133,11 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
       quantity: validated.quantity,
     });
 
-    // Generate idempotency key
-    const idempotencyKey = `${admin.storeId}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}#0`;
+    // Generate idempotency key - use timestamp for manual movements (no reference)
+    const timestamp = Date.now();
+    const idempotencyKey = data.reference
+      ? `${admin.storeId}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}`
+      : `${admin.storeId}#MANUAL#${data.type}#${data.itemId}#${timestamp}`;
 
     const result = await InventoryService.recordMovement(admin.storeId, {
       ...validated,
