@@ -171,6 +171,7 @@ const NEXT_STATUS: Partial<
 > = {
   RECEIVED: { status: "PREPARING", label: "Colocar na fila" },
   PREPARING: { status: "OUT_FOR_DELIVERY", label: "Saiu para entrega" },
+  TABLE_READY: { status: "COMPLETED", label: "Finalizar pagamento" },
   OUT_FOR_DELIVERY: { status: "COMPLETED", label: "Finalizar" },
 };
 
@@ -187,11 +188,19 @@ function OrderCard({
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
   onDispatch: (order: KanbanOrder) => void;
 }) {
+  // Pedidos de mesa vão para TABLE_READY em vez de saírem para entrega
   // Pickup orders skip the delivery step entirely.
-  const next =
-    status === "PREPARING" && order.type === "PICKUP"
-      ? { status: "COMPLETED" as OrderStatus, label: "Finalizar" }
-      : NEXT_STATUS[status];
+  let next = NEXT_STATUS[status];
+
+  if (status === "PREPARING") {
+    if (order.tableId) {
+      // Mesa: vai para "Mesas Abertas"
+      next = { status: "TABLE_READY" as OrderStatus, label: "Pronto (Mesa aberta)" };
+    } else if (order.type === "PICKUP") {
+      // Retirada: vai direto para finalizado
+      next = { status: "COMPLETED" as OrderStatus, label: "Finalizar" };
+    }
+  }
 
   // Sair para entrega é escolher quem leva: o botão abre a escolha em vez de
   // mudar o status, que o servidor recusaria sem entregador.
