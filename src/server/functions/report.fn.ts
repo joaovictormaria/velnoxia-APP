@@ -24,8 +24,9 @@ export const adminGetStockReport = createServerFn({ method: "POST" })
 
     const sortBy = (data?.sortBy || "name") as any;
     const limit = parseInt(data?.limit || "100") || 100;
+    const includeInactive = data?.includeInactive === true;
 
-    const items = await reportRepository.getStockLevelsByStore(admin.storeId, { sortBy, limit });
+    const items = await reportRepository.getStockLevelsByStore(admin.storeId, { sortBy, limit, includeInactive });
     return items.map(serializeItem);
   });
 

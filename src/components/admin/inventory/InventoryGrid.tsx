@@ -55,9 +55,12 @@ export function InventoryGrid(props: InventoryGridProps) {
     setLoading(true);
     try {
       const data = await adminGetStockReport({
-        sortBy: sortConfig.field === "quantityOnHand" ? "quantity" : sortConfig.field,
-        limit: "100",
-      });
+        data: {
+          sortBy: sortConfig.field === "quantityOnHand" ? "quantity" : sortConfig.field,
+          limit: "100",
+          includeInactive: true,
+        }
+      } as any);
       if (Array.isArray(data)) {
         setItems(data);
       }
@@ -146,6 +149,22 @@ export function InventoryGrid(props: InventoryGridProps) {
     } catch (error) {
       console.error("Failed to delete item:", error);
       alert("Erro ao deletar item: " + (error instanceof Error ? error.message : "Unknown error"));
+    }
+  };
+
+  const handleActivateItem = async (itemId: string) => {
+    try {
+      await adminUpdateInventoryItem({
+        data: {
+          itemId,
+          isActive: "true",
+        }
+      } as any);
+      fetchItems();
+      showToast("✅ Item reativado com sucesso!");
+    } catch (error) {
+      console.error("Failed to activate item:", error);
+      alert("Erro ao reativar item: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   };
 
@@ -479,7 +498,12 @@ export function InventoryGrid(props: InventoryGridProps) {
                       </button>
                     </>
                   ) : (
-                    <span className="text-xs text-neutral-600">Inativo</span>
+                    <button
+                      className="text-xs text-black hover:underline"
+                      onClick={() => handleActivateItem(item.id)}
+                    >
+                      Ativar
+                    </button>
                   )}
                 </td>
               </tr>
