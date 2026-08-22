@@ -151,12 +151,11 @@ export function InventoryGrid(props: InventoryGridProps) {
     try {
       if (editingItemId) {
         // Modo edição
-        const fd = new FormData();
-        fd.append("itemId", editingItemId);
-        fd.append("name", newItem.name || "");
-        fd.append("cost", newItem.cost && newItem.cost.trim() ? newItem.cost : "");
-
-        await adminUpdateInventoryItem(fd);
+        await adminUpdateInventoryItem({
+          itemId: editingItemId,
+          name: newItem.name || "",
+          cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+        } as any);
         showToast(`✅ Item "${newItem.name}" atualizado com sucesso!`);
       } else {
         // Modo criação
