@@ -87,7 +87,9 @@ export function MovementForm(props: MovementFormProps) {
         }
       };
 
-      await adminRecordMovement(payload as any);
+      console.log("MovementForm - Sending payload:", payload);
+      const result = await adminRecordMovement(payload as any);
+      console.log("MovementForm - Result:", result);
       props.onSuccess?.();
       invalidate();
 
