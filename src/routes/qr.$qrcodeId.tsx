@@ -10,9 +10,17 @@ function QRCodeRedirect() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Redirecionar para a página de pedidos com tableId
-    // Formato esperado: qrcodeId é o UUID/ID da mesa
-    navigate({ to: `/pedidos?tableId=${qrcodeId}` });
+    // Armazenar tableId no localStorage para manter durante navegação
+    if (qrcodeId) {
+      localStorage.setItem("tableId", qrcodeId);
+      localStorage.setItem("tableIdExpiresAt", (Date.now() + 1000 * 60 * 60 * 24).toString());
+    }
+
+    // Redirecionar para a página de pedidos com tableId como parâmetro
+    navigate({
+      to: "/pedidos",
+      search: { tableId: qrcodeId }
+    });
   }, [qrcodeId, navigate]);
 
   return (
