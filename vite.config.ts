@@ -42,7 +42,7 @@ export default defineConfig({
   },
   build: {
     rolldownOptions: {
-      external: ["react-is"],
+      external: [],
     },
   },
   plugins: [
