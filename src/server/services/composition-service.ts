@@ -109,7 +109,7 @@ export class CompositionService {
   }
 
   /**
-   * Update a composition (only if not yet used)
+   * Update a composition (can be edited even after being used)
    */
   static async updateComposition(
     storeId: string,
@@ -122,10 +122,8 @@ export class CompositionService {
       throw new Error("Composition not found");
     }
 
-    // Check if can be edited
-    if (composition.firstUsedAt) {
-      throw new Error("Cannot update composition that has been used");
-    }
+    // Permitir edição mesmo após uso
+    // O campo firstUsedAt é apenas histórico, não congela a receita
 
     // If items provided, replace all
     if (data.items) {
