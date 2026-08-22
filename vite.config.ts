@@ -23,6 +23,7 @@ export default defineConfig({
     ssr: {
       build: {
         rollupOptions: {
+          external: ["react-is"],
           output: {
             /**
              * Without this the SSR bundle splits createCsrfMiddleware into a
@@ -37,6 +38,11 @@ export default defineConfig({
           },
         },
       },
+    },
+  },
+  build: {
+    rolldownOptions: {
+      external: ["react-is"],
     },
   },
   plugins: [
