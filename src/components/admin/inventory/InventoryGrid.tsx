@@ -136,8 +136,10 @@ export function InventoryGrid(props: InventoryGridProps) {
 
     try {
       await adminUpdateInventoryItem({
-        itemId,
-        isActive: "false",
+        data: {
+          itemId,
+          isActive: "false",
+        }
       } as any);
       fetchItems();
       showToast("✅ Item deletado com sucesso!");
@@ -152,9 +154,11 @@ export function InventoryGrid(props: InventoryGridProps) {
       if (editingItemId) {
         // Modo edição
         await adminUpdateInventoryItem({
-          itemId: editingItemId,
-          name: newItem.name || "",
-          cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+          data: {
+            itemId: editingItemId,
+            name: newItem.name || "",
+            cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+          }
         } as any);
         showToast(`✅ Item "${newItem.name}" atualizado com sucesso!`);
       } else {
