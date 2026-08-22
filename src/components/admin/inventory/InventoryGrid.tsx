@@ -461,20 +461,20 @@ export function InventoryGrid(props: InventoryGridProps) {
                   {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
-                <td className="px-4 py-2 text-center space-x-2">
+                <td className="px-4 py-2 text-center space-x-3">
                   {item.isActive ? (
                     <>
                       <button
-                        className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                        className="text-xs text-black hover:underline"
                         onClick={() => handleEditItem(item)}
                       >
-                        ✏️ Editar
+                        Editar
                       </button>
                       <button
-                        className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                        className="text-xs text-black hover:underline"
                         onClick={() => handleDeleteItem(item.id)}
                       >
-                        🗑️ Deletar
+                        Deletar
                       </button>
                     </>
                   ) : (
