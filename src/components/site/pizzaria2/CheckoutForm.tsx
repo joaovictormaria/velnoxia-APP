@@ -259,8 +259,11 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
         : 0;
 
   const submit = useMutation({
-    mutationFn: () =>
-      submitCheckoutFn({
+    mutationFn: () => {
+      // Se for pedido via QRCode, usar "Mesa X" como nome
+      const customerName = tableId && tableNumber ? `Mesa ${tableNumber}` : name.trim();
+
+      return submitCheckoutFn({
         data: {
           storeSlug: storeInfo.slug,
           items: lines.map((l) => ({
@@ -272,7 +275,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
             quantity: l.qty,
             note: l.note,
           })),
-          customerName: name.trim(),
+          customerName,
           customerPhone: phone,
           type,
           paymentMethod: paymentMethod as "PIX",
@@ -288,7 +291,8 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
               ? { street, number, complement, neighborhood, city, state, zipCode: normalizeCep(cep) }
               : undefined,
         },
-      }),
+      });
+    },
     onSuccess: (res) => {
       if (!res.ok) {
         setError(res.error);
