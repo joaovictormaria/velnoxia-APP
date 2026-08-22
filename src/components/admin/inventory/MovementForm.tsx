@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { adminRecordMovement } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
+import { useEstoque } from "@/lib/estoque-store";
 
 export interface MovementFormProps {
   storeId: string;
@@ -20,6 +21,7 @@ interface InventoryItem {
 type MovementType = "PURCHASE" | "LOSS" | "ADJUSTMENT";
 
 export function MovementForm(props: MovementFormProps) {
+  const { invalidate } = useEstoque();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -87,6 +89,7 @@ export function MovementForm(props: MovementFormProps) {
 
       await adminRecordMovement(payload as any);
       props.onSuccess?.();
+      invalidate();
 
       setFormData({
         itemId: "",

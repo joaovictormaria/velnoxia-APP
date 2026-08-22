@@ -326,39 +326,43 @@ export class InventoryService {
    * Returns { quantityOnHand?, quantityReserved? }
    */
   private static calculateQuantityUpdates(
-    item: { quantityOnHand: number; quantityReserved: number },
+    item: { quantityOnHand: any; quantityReserved: any },
     type: string,
     quantity: number
   ): Record<string, any> {
     const updates: Record<string, any> = {};
+
+    // Convert Decimals to Numbers for arithmetic operations
+    const currentQuantity = Number(item.quantityOnHand ?? 0);
+    const currentReserved = Number(item.quantityReserved ?? 0);
 
     switch (type) {
       case "PURCHASE":
       case "RETURN":
       case "PRODUCTION":
         // Increase quantityOnHand
-        updates.quantityOnHand = item.quantityOnHand + quantity;
+        updates.quantityOnHand = currentQuantity + quantity;
         break;
 
       case "CONSUMPTION":
         // Decrease both quantityOnHand and quantityReserved
-        updates.quantityOnHand = item.quantityOnHand + quantity; // quantity is negative
-        updates.quantityReserved = item.quantityReserved + quantity; // quantity is negative
+        updates.quantityOnHand = currentQuantity + quantity; // quantity is negative
+        updates.quantityReserved = currentReserved + quantity; // quantity is negative
         break;
 
       case "LOSS":
         // Decrease quantityOnHand for losses
-        updates.quantityOnHand = item.quantityOnHand - quantity;
+        updates.quantityOnHand = currentQuantity - quantity;
         break;
 
       case "ADJUSTMENT":
         // Direct change to quantityOnHand (quantity can be positive or negative)
-        updates.quantityOnHand = item.quantityOnHand + quantity;
+        updates.quantityOnHand = currentQuantity + quantity;
         break;
 
       case "RESERVATION":
         // Increase quantityReserved only (no physical change)
-        updates.quantityReserved = item.quantityReserved + quantity;
+        updates.quantityReserved = currentReserved + quantity;
         break;
 
       case "REVERSAL":

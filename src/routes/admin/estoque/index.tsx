@@ -138,11 +138,18 @@ function EstoquePage() {
                 <MovementForm
                   storeId={admin.storeId}
                   onItemSelected={setSelectedMovementItemId}
+                  onSuccess={() => {
+                    // Força recarregar o histórico após registrar uma movimentação
+                    if (selectedMovementItemId) {
+                      setSelectedMovementItemId("");
+                      setTimeout(() => setSelectedMovementItemId(selectedMovementItemId), 100);
+                    }
+                  }}
                 />
               </div>
               <div className="lg:col-span-2">
                 {selectedMovementItemId ? (
-                  <AuditLog storeId={admin.storeId} itemId={selectedMovementItemId} />
+                  <AuditLog key={selectedMovementItemId} storeId={admin.storeId} itemId={selectedMovementItemId} />
                 ) : (
                   <div className="p-8 text-center border-2 border-dashed rounded bg-neutral-50 text-neutral-600">
                     <p className="text-sm">Selecione um item para ver o histórico de movimentações</p>

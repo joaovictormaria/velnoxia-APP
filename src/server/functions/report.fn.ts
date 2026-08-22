@@ -43,11 +43,19 @@ export const adminGetMovementHistory = createServerFn({ method: "POST" })
     const data = context?.data || {};
     const limit = parseInt(data.limit || "100") || 100;
 
-    return reportRepository.getMovementHistory(admin.storeId, {
+    const movements = await reportRepository.getMovementHistory(admin.storeId, {
       itemId: data.itemId || undefined,
       type: data.type || undefined,
       limit,
     });
+
+    // Serialize Decimal values - convert to JSON and back to ensure all Decimals are converted
+    return JSON.parse(JSON.stringify(movements, (key, value) => {
+      if (value && typeof value === 'object' && value.constructor.name === 'Decimal') {
+        return Number(value);
+      }
+      return value;
+    }));
   });
 
 export const adminGetCostAnalysis = createServerFn({ method: "POST" })

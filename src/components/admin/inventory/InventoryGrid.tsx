@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { adminCreateInventoryItem, adminUpdateInventoryItem, adminRecordMovement } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
+import { useEstoque } from "@/lib/estoque-store";
 
 export interface InventoryGridProps {
   storeId: string;
@@ -25,6 +26,7 @@ interface SortConfig {
 }
 
 export function InventoryGrid(props: InventoryGridProps) {
+  const { refreshTrigger } = useEstoque();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [filterType, setFilterType] = useState<string>("");
@@ -67,7 +69,7 @@ export function InventoryGrid(props: InventoryGridProps) {
 
   useEffect(() => {
     fetchItems();
-  }, [props.storeId]);
+  }, [props.storeId, refreshTrigger]);
 
   const handleSort = (field: SortConfig["field"]) => {
     setSortConfig((prev) => ({
