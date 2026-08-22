@@ -532,7 +532,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   {(item.quantityUsedInRecipes ?? 0).toFixed(2)} {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right font-semibold">
-                  {(item.quantityOnHand + item.quantityReserved).toFixed(2)}{" "}
+                  {Number(item.maximumQuantity ?? 0).toFixed(2)}{" "}
                   {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
