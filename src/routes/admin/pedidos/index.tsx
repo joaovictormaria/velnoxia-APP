@@ -56,7 +56,7 @@ function KanbanPage() {
         return;
       }
       setError(null);
-      await queryClient.invalidateQueries({ queryKey: ["orders"] });
+      await queryClient.invalidateQueries({ queryKey: ["orders", "kanban"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
