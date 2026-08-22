@@ -45,10 +45,15 @@ function KanbanPage() {
     queryKey: ["orders", "kanban", date, search],
     queryFn: async () => {
       console.log("📡 [Kanban] Fetching orders...", { date, search });
-      const result = await listKanbanOrdersFn({ data: { date, search: search || undefined } });
-      console.log("📡 [Kanban] Received full data:", result);
-      console.log("📡 [Kanban] Columns count:", result?.columns?.length);
-      return result;
+      try {
+        const result = await listKanbanOrdersFn({ data: { date, search: search || undefined } });
+        console.log("📡 [Kanban] Received full data:", result);
+        console.log("📡 [Kanban] Columns count:", result?.columns?.length);
+        return result;
+      } catch (error) {
+        console.error("❌ [Kanban] Error fetching:", error);
+        throw error;
+      }
     },
     refetchInterval: 8_000,
     staleTime: 8_000,
