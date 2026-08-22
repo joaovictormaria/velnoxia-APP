@@ -515,8 +515,12 @@ export function InventoryGrid(props: InventoryGridProps) {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {getSortedAndFilteredItems().map((item) => (
-              <tr key={item.id} className={item.isActive ? "" : "opacity-50"}>
+            {getSortedAndFilteredItems().map((item) => {
+              const threshold = Number(item.maximumQuantity ?? 0) * 0.3;
+              const isLowStock = Number(item.quantityOnHand ?? 0) <= threshold && threshold > 0;
+
+              return (
+              <tr key={item.id} className={`${item.isActive ? "" : "opacity-50"} ${isLowStock ? "border-2 border-red-500" : ""}`}>
                 <td className="px-4 py-2">{item.name}</td>
                 <td className="px-4 py-2 text-sm text-neutral-600">
                   {item.sku || item.barcode || "—"}
@@ -547,7 +551,8 @@ export function InventoryGrid(props: InventoryGridProps) {
                   </button>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
