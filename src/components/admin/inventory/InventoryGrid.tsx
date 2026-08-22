@@ -508,7 +508,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   </span>
                 </button>
               </th>
-              <th className="px-4 py-2 text-right">Produtos utilizando</th>
+              <th className="px-4 py-2 text-right">Total a ser usado em Prod.</th>
               <th className="px-4 py-2 text-right">Última atualização</th>
               <th className="px-4 py-2 text-right">Custo Unit.</th>
               <th className="px-4 py-2 text-center">Ações</th>
