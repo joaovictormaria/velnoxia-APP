@@ -92,10 +92,8 @@ export function MovementForm(props: MovementFormProps) {
 
       const result = await adminRecordMovement(payload as any);
 
-      console.log("[MovementForm] Movement recorded, calling invalidate()");
       props.onSuccess?.();
       invalidate();
-      console.log("[MovementForm] invalidate() called successfully");
 
       setFormData({
         itemId: "",
