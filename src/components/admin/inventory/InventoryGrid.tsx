@@ -525,7 +525,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   {item.quantityOnHand.toFixed(2)} {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right text-amber-600">
-                  {item.quantityReserved.toFixed(2)} {item.baseUnit.code}
+                  {(item.quantityUsedInRecipes ?? 0).toFixed(2)} {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right font-semibold">
                   {(item.quantityOnHand + item.quantityReserved).toFixed(2)}{" "}
