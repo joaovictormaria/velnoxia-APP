@@ -27,10 +27,7 @@ const signupSchema = z.object({
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    // 100 cadastros por hora por origem (dev mode)
-    if (!permitido("signup", { max: 100, janelaMs: 3_600_000 })) {
-      return { ok: false as const, error: "Muitas tentativas. Tente mais tarde." };
-    }
+    // Rate limit desabilitado para dev
     if (await isEmailTaken(data.email)) {
       return { ok: false as const, error: "Já existe uma conta com este e-mail." };
     }
