@@ -120,12 +120,12 @@ export function KanbanBoard({
         return (
           <section key={col.status} className="flex flex-col">
             <header
-              className={`flex items-center justify-between rounded-t-2xl px-4 py-3 text-white ${col.header}`}
+              className={`flex items-center justify-center rounded-t-2xl px-4 py-3 text-white relative ${col.header}`}
             >
               <h2 className="text-sm font-bold">
                 {col.label} ({total})
               </h2>
-              <Icon className="size-5" />
+              <Icon className="size-5 absolute right-4" />
             </header>
 
             <div className="h-[400px] space-y-3 overflow-y-auto rounded-b-2xl border border-t-0 border-neutral-200 bg-white p-3">
