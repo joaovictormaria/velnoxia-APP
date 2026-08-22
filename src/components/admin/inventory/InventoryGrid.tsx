@@ -469,8 +469,6 @@ export function InventoryGrid(props: InventoryGridProps) {
         </select>
       </div>
 
-      {loading && <p className="text-neutral-600">Carregando...</p>}
-
       {!loading && getSortedAndFilteredItems().length === 0 && (
         <p className="text-neutral-600">Nenhum item encontrado</p>
       )}
@@ -553,6 +551,8 @@ export function InventoryGrid(props: InventoryGridProps) {
           </tbody>
         </table>
       </div>
+
+      {loading && <p className="text-neutral-600 mt-4">Carregando...</p>}
     </div>
   );
 }
