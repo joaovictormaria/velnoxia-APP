@@ -27,21 +27,34 @@ const signupSchema = z.object({
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    if (await isEmailTaken(data.email)) {
+    console.log("📥 [SIGNUP] Dados recebidos:", {
+      storeName: data.storeName,
+      adminName: data.adminName,
+      email: data.email,
+      businessType: data.businessType,
+    });
+
+    const emailTaken = await isEmailTaken(data.email);
+    console.log(`📧 [SIGNUP] Email ${data.email} já existe?`, emailTaken);
+
+    if (emailTaken) {
       return { ok: false as const, error: "Já existe uma conta com este e-mail." };
     }
 
     // Derived from the store name plus a verifier code, so the owner never has
     // to pick an address and two lanchonetes with the same name never clash.
     const slug = await generateUniqueSlug(data.storeName);
+    console.log(`🔖 [SIGNUP] Slug gerado:`, slug);
 
     const catalog = getStarterCatalog(data.businessType);
     const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
     const passwordHash = await hashPassword(data.password);
 
     let adminUserId: string;
+    console.log(`🏪 [SIGNUP] Iniciando transação para criar store...`);
     try {
       const admin = await prisma.$transaction(async (tx) => {
+        console.log(`🏢 [SIGNUP] Criando store: ${data.storeName} (${slug})`);
         const store = await tx.store.create({
           data: {
             slug,
@@ -139,6 +152,7 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
           });
         }
 
+        console.log(`👤 [SIGNUP] Criando admin user para store ${store.id}`);
         return tx.adminUser.create({
           data: {
             storeId: store.id,
@@ -151,7 +165,9 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
         });
       });
       adminUserId = admin.id;
+      console.log(`✅ [SIGNUP] Transação concluída, adminUserId: ${adminUserId}`);
     } catch (error) {
+      console.error(`💥 [SIGNUP] Erro na transação:`, error);
       return {
         ok: false as const,
         error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
@@ -160,8 +176,10 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
 
     // Signing in immediately: asking someone to log in right after choosing a
     // password is friction with no security benefit.
+    console.log(`🔑 [SIGNUP] Iniciando sessão para adminUserId: ${adminUserId}`);
     await startSessionFor(adminUserId);
 
+    console.log(`🎉 [SIGNUP] Sucesso! Loja criada: ${slug}`);
     return { ok: true as const, slug, trialEndsAt, trialDays: TRIAL_DAYS };
   });
 

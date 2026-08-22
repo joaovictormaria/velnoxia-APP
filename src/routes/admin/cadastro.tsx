@@ -34,6 +34,9 @@ function SignupPage() {
     setPending(true);
     setError(null);
 
+    const payload = { storeName, businessType, adminName, email, password, whatsappNumber };
+    console.log("📤 Enviando para servidor:", payload);
+
     /*
      * O try existe porque a recusa de validação não volta em `result` — ela
      * rejeita a promessa. Sem ele, um e-mail mal digitado deixava o botão preso
@@ -41,17 +44,22 @@ function SignupPage() {
      */
     try {
       const result = await createStoreAccountFn({
-        data: { storeName, businessType, adminName, email, password, whatsappNumber },
+        data: payload,
       });
 
+      console.log("📥 Resposta do servidor:", result);
+
       if (!result.ok) {
+        console.error("❌ Erro retornado:", result.error);
         setError(result.error);
         return;
       }
 
+      console.log("✅ Conta criada com sucesso!");
       await router.invalidate();
       router.navigate({ to: "/admin" });
     } catch (erro) {
+      console.error("🔥 Exceção no cliente:", erro);
       setError(mensagemDoErro(erro, "Não foi possível criar a conta. Confira os dados e tente de novo."));
     } finally {
       // No finally, e não em cada saída: é o que garante que o botão volte
