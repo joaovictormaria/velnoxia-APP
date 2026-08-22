@@ -608,8 +608,6 @@ export async function transitionOrderStatus(
   status: OrderStatus,
   author: { authorType: StatusAuthorType; authorName?: string; note?: string },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  console.log(`[transitionOrderStatus] Mudando pedido ${orderId} para status: ${status}`);
-
   // storeId is part of the lookup: an order id from another store must simply
   // not be found, not be moved.
   const order = await prisma.order.findFirst({
