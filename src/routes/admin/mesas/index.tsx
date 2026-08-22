@@ -26,6 +26,7 @@ function MesasPage() {
   const [qrcodes, setQrcodes] = useState<GeneratedQRCode[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [qrImageCache, setQrImageCache] = useState<Record<string, string>>({});
 
   // Carregar contagem de pedidos abertos por mesa
   const { data: tableOrderCounts = {} } = useQuery({
@@ -40,40 +41,19 @@ function MesasPage() {
     const storeSlugKey = `tableNumbers_${admin.store.slug}`;
     const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
 
-    // Converter mapa de IDs em QRCodes, mantendo apenas mesas com pedidos abertos
     const generatedQRCodes: GeneratedQRCode[] = Object.entries(tableNumberMap)
       .map(([id, number]) => ({
         id,
         number: number as number,
         url: `${window.location.origin}/qr/${admin.store.slug}/${id}`,
-        qrImage: "", // Será gerado à demanda
+        qrImage: qrImageCache[id] || "", // Usar cache se existir
         createdAt: new Date(),
         ordersCount: (tableOrderCounts[number as any] ?? 0) as number,
       }))
-      .filter((qr) => qr.ordersCount > 0); // Apenas mesas com pedidos abertos
+      .filter((qr) => qr.ordersCount > 0 || Object.keys(tableNumberMap).length <= 10); // Mostrar todas se menos de 10
 
     setQrcodes(generatedQRCodes);
-  }, [admin, tableOrderCounts]);
-
-  // Gerar imagens QR para todos os QRCodes quando a lista mudar
-  useEffect(() => {
-    const generateImages = async () => {
-      for (const qr of qrcodes) {
-        if (!qr.qrImage) {
-          try {
-            const image = await generateQRCodeDataUrl(qr.url);
-            setQrcodes((prev) =>
-              prev.map((q) => (q.id === qr.id ? { ...q, qrImage: image } : q))
-            );
-          } catch (error) {
-            console.error(`Erro ao gerar QR ${qr.id}:`, error);
-          }
-        }
-      }
-    };
-
-    generateImages();
-  }, [qrcodes]);
+  }, [admin, admin?.store?.slug]);
 
   const generateQRCode = async () => {
     setGenerating(true);
@@ -107,6 +87,8 @@ function MesasPage() {
       existingMap[newId] = tableNumber;
       localStorage.setItem(storeSlugKey, JSON.stringify(existingMap));
 
+      // Armazenar imagem no cache
+      setQrImageCache((prev) => ({ ...prev, [newId]: qrImage }));
       setQrcodes([newQRCode, ...qrcodes]);
     } catch (error) {
       console.error("Erro ao gerar QRCode:", error);
@@ -140,6 +122,11 @@ function MesasPage() {
   const deleteQRCode = (id: string) => {
     if (confirm(`Deletar QRCode Mesa?`)) {
       setQrcodes(qrcodes.filter(q => q.id !== id));
+      setQrImageCache((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
 
       // Remover do localStorage também
       if (admin?.store?.slug) {
