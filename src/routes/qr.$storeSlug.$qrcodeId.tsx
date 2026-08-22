@@ -10,10 +10,9 @@ function QRCodeRedirect() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Armazenar tableId no localStorage
+    // Armazenar tableId no localStorage (expira ao confirmar pedido)
     if (qrcodeId) {
       localStorage.setItem("tableId", qrcodeId);
-      localStorage.setItem("tableIdExpiresAt", (Date.now() + 1000 * 60 * 60 * 24).toString());
 
       // Buscar número da mesa do mapeamento
       const storeSlugKey = `tableNumbers_${storeSlug}`;

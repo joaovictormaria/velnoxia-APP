@@ -17,7 +17,7 @@ import {
   type DispatchTarget,
 } from "@/components/admin/orders/DispatchDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
-import { listKanbanOrdersFn, updateOrderStatusFn } from "@/server/functions/orders.fn";
+import { listKanbanOrdersFn, updateOrderStatusFn, getOpenTablesFn } from "@/server/functions/orders.fn";
 
 export const Route = createFileRoute("/admin/pedidos/")({
   component: KanbanPage,
@@ -44,6 +44,12 @@ function KanbanPage() {
   const { data, isPending } = useQuery({
     queryKey: ["orders", "kanban", date, search],
     queryFn: () => listKanbanOrdersFn({ data: { date, search: search || undefined } }),
+    refetchInterval: 8_000,
+  });
+
+  const { data: openTables = [] } = useQuery({
+    queryKey: ["orders", "openTables"],
+    queryFn: () => getOpenTablesFn({}),
     refetchInterval: 8_000,
   });
 
@@ -119,6 +125,7 @@ function KanbanPage() {
         <KanbanBoard
           columns={data?.columns ?? []}
           mostrarEntrega={data?.mostrarEntrega ?? true}
+          openTables={openTables}
           onAdvance={handleAdvance}
           onDispatch={(order) =>
             setDispatching({

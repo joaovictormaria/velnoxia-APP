@@ -89,7 +89,7 @@ function MesasPage() {
 
       // Armazenar imagem no cache
       setQrImageCache((prev) => ({ ...prev, [newId]: qrImage }));
-      setQrcodes([newQRCode, ...qrcodes]);
+      setQrcodes([...qrcodes, newQRCode]);
     } catch (error) {
       console.error("Erro ao gerar QRCode:", error);
       alert("Erro ao gerar QRCode. Tente novamente.");
@@ -164,17 +164,17 @@ function MesasPage() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-          <p className="text-sm text-neutral-400">Total de QRCodes</p>
-          <p className="text-2xl font-bold text-blue-400">{qrcodes.length}</p>
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+          <p className="text-sm text-neutral-600">Total de QRCodes</p>
+          <p className="text-2xl font-bold text-blue-600">{qrcodes.length}</p>
         </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-          <p className="text-sm text-neutral-400">Mesas Abertas</p>
-          <p className="text-2xl font-bold text-red-400">{qrcodes.filter(q => q.ordersCount > 0).length}</p>
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+          <p className="text-sm text-neutral-600">Mesas Abertas</p>
+          <p className="text-2xl font-bold text-red-600">{qrcodes.filter(q => q.ordersCount > 0).length}</p>
         </div>
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-          <p className="text-sm text-neutral-400">Pedidos Abertos</p>
-          <p className="text-2xl font-bold text-yellow-400">{qrcodes.reduce((sum, q) => sum + q.ordersCount, 0)}</p>
+        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+          <p className="text-sm text-neutral-600">Pedidos Abertos</p>
+          <p className="text-2xl font-bold text-yellow-600">{qrcodes.reduce((sum, q) => sum + q.ordersCount, 0)}</p>
         </div>
       </div>
 
@@ -186,37 +186,23 @@ function MesasPage() {
           <Button onClick={generateQRCode} className="mt-4">Gerar Primeiro QRCode</Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-wrap gap-2">
           {qrcodes.map((qr) => (
-            <div key={qr.id} className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-              <div className="mb-4 flex justify-center rounded-lg bg-white p-3">
-                <img src={qr.qrImage} alt={qr.id} className="size-48" />
-              </div>
-
-              <div className="mb-4 space-y-2 text-sm">
+            <div key={qr.id} className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 w-48 aspect-square flex flex-col justify-between">
+              <div className="mb-4 space-y-2 text-center text-sm">
                 <div>
-                  <p className="text-neutral-400">Mesa</p>
-                  <p className="text-xl font-bold text-white">Mesa {qr.number}</p>
+                  <p className="text-neutral-600">Mesa</p>
+                  <p className="text-xl font-bold text-neutral-900">Mesa {qr.number}</p>
                 </div>
                 <div>
-                  <p className="text-neutral-400">Pedidos Abertos</p>
-                  <p className={`font-bold ${qr.ordersCount > 0 ? "text-red-400" : "text-green-400"}`}>
+                  <p className="text-neutral-600">Pedidos Abertos</p>
+                  <p className={`font-bold ${qr.ordersCount > 0 ? "text-red-600" : "text-green-600"}`}>
                     {qr.ordersCount}
                   </p>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Button
-                  onClick={() => copyLink(qr.url)}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  <Copy className="mr-1 size-4" />
-                  {copied === qr.url ? "Copiado!" : "Copiar Link"}
-                </Button>
-
                 <Button
                   onClick={() => downloadQR(qr)}
                   variant="outline"
