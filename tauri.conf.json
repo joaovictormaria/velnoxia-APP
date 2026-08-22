@@ -12,9 +12,10 @@
     "windows": [
       {
         "title": "Velnox.app",
-        "width": 1200,
-        "height": 800,
-        "resizable": true
+        "width": 1280,
+        "height": 720,
+        "resizable": true,
+        "fullscreen": false
       }
     ],
     "security": {
@@ -24,6 +25,8 @@
   "bundle": {
     "active": true,
     "targets": ["msi"],
-    "icon": ["icons/icon.ico"]
+    "icon": [
+      "icons/icon.ico"
+    ]
   }
 }
