@@ -26,3 +26,7 @@ velnox-landing/
 fotos-nao-usadas/
 RECUPERACAO-senha.txt
 ROTACAO-FINAL.txt
+
+# Tauri desktop (compilar localmente apenas)
+src-tauri/
+target/
