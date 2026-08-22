@@ -49,6 +49,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [couponCode, setCouponCode] = useState("");
   const [tableId, setTableId] = useState<string | null>(null);
+  const [tableNumber, setTableNumber] = useState<number | null>(null);
   /** null = not checked yet. The order service checks again when the order is
    *  placed; this only lets the customer see the discount before confirming. */
   const [couponResult, setCouponResult] = useState<
@@ -63,11 +64,15 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   /** O telefone digitado é de funcionário — o campo do PIN se abre sozinho. */
   const [employeeRecognized, setEmployeeRecognized] = useState(false);
 
-  // Carregar tableId do localStorage quando o componente monta
+  // Carregar tableId e tableNumber do localStorage quando o componente monta
   useEffect(() => {
-    const stored = localStorage.getItem("tableId");
-    if (stored) {
-      setTableId(stored);
+    const storedTableId = localStorage.getItem("tableId");
+    const storedTableNumber = localStorage.getItem("tableNumber");
+    if (storedTableId) {
+      setTableId(storedTableId);
+    }
+    if (storedTableNumber) {
+      setTableNumber(parseInt(storedTableNumber, 10));
     }
   }, []);
 
