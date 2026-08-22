@@ -54,8 +54,8 @@ import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoe
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
-import { Route as publicStoreSlugAcompanharMesaTableIdRouteImport } from './routes/(public)./$storeSlug.acompanhar-mesa./$tableId'
-import { Route as publicStoreSlugMesaTableIdIndexRouteImport } from './routes/(public)./$storeSlug.mesa./$tableId.index'
+import { Route as publicStoreSlugAcompanharMesaTableIdRouteImport } from './routes/(public)/$storeSlug.acompanhar-mesa.$tableId'
+import { Route as publicStoreSlugMesaTableIdRouteImport } from './routes/(public)/$storeSlug.mesa.$tableId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -290,10 +290,10 @@ const publicStoreSlugAcompanharMesaTableIdRoute =
     path: '/$storeSlug/acompanhar-mesa/$tableId',
     getParentRoute: () => rootRouteImport,
   } as any)
-const publicStoreSlugMesaTableIdIndexRoute =
-  publicStoreSlugMesaTableIdIndexRouteImport.update({
-    id: '/(public)/$storeSlug/mesa/$tableId/',
-    path: '/$storeSlug/mesa/$tableId/',
+const publicStoreSlugMesaTableIdRoute =
+  publicStoreSlugMesaTableIdRouteImport.update({
+    id: '/(public)/$storeSlug/mesa/$tableId',
+    path: '/$storeSlug/mesa/$tableId',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -344,7 +344,7 @@ export interface FileRoutesByFullPath {
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
   '/$storeSlug/acompanhar-mesa/$tableId': typeof publicStoreSlugAcompanharMesaTableIdRoute
-  '/$storeSlug/mesa/$tableId/': typeof publicStoreSlugMesaTableIdIndexRoute
+  '/$storeSlug/mesa/$tableId': typeof publicStoreSlugMesaTableIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -390,7 +390,7 @@ export interface FileRoutesByTo {
   '/admin/promocoes': typeof AdminPromocoesIndexRoute
   '/admin/relatorios': typeof AdminRelatoriosIndexRoute
   '/$storeSlug/acompanhar-mesa/$tableId': typeof publicStoreSlugAcompanharMesaTableIdRoute
-  '/$storeSlug/mesa/$tableId': typeof publicStoreSlugMesaTableIdIndexRoute
+  '/$storeSlug/mesa/$tableId': typeof publicStoreSlugMesaTableIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -440,7 +440,7 @@ export interface FileRoutesById {
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
   '/(public)/$storeSlug/acompanhar-mesa/$tableId': typeof publicStoreSlugAcompanharMesaTableIdRoute
-  '/(public)/$storeSlug/mesa/$tableId/': typeof publicStoreSlugMesaTableIdIndexRoute
+  '/(public)/$storeSlug/mesa/$tableId': typeof publicStoreSlugMesaTableIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -491,7 +491,7 @@ export interface FileRouteTypes {
     | '/admin/promocoes/'
     | '/admin/relatorios/'
     | '/$storeSlug/acompanhar-mesa/$tableId'
-    | '/$storeSlug/mesa/$tableId/'
+    | '/$storeSlug/mesa/$tableId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -586,7 +586,7 @@ export interface FileRouteTypes {
     | '/admin/promocoes/'
     | '/admin/relatorios/'
     | '/(public)/$storeSlug/acompanhar-mesa/$tableId'
-    | '/(public)/$storeSlug/mesa/$tableId/'
+    | '/(public)/$storeSlug/mesa/$tableId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -601,7 +601,7 @@ export interface RootRouteChildren {
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiUploadRoute: typeof ApiUploadRoute
   publicStoreSlugAcompanharMesaTableIdRoute: typeof publicStoreSlugAcompanharMesaTableIdRoute
-  publicStoreSlugMesaTableIdIndexRoute: typeof publicStoreSlugMesaTableIdIndexRoute
+  publicStoreSlugMesaTableIdRoute: typeof publicStoreSlugMesaTableIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -928,11 +928,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof publicStoreSlugAcompanharMesaTableIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(public)/$storeSlug/mesa/$tableId/': {
-      id: '/(public)/$storeSlug/mesa/$tableId/'
+    '/(public)/$storeSlug/mesa/$tableId': {
+      id: '/(public)/$storeSlug/mesa/$tableId'
       path: '/$storeSlug/mesa/$tableId'
-      fullPath: '/$storeSlug/mesa/$tableId/'
-      preLoaderRoute: typeof publicStoreSlugMesaTableIdIndexRouteImport
+      fullPath: '/$storeSlug/mesa/$tableId'
+      preLoaderRoute: typeof publicStoreSlugMesaTableIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -1051,7 +1051,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiUploadRoute: ApiUploadRoute,
   publicStoreSlugAcompanharMesaTableIdRoute:
     publicStoreSlugAcompanharMesaTableIdRoute,
-  publicStoreSlugMesaTableIdIndexRoute: publicStoreSlugMesaTableIdIndexRoute,
+  publicStoreSlugMesaTableIdRoute: publicStoreSlugMesaTableIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
