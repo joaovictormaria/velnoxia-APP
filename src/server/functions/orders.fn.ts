@@ -102,56 +102,11 @@ export const getTableOrderCountsFn = createServerFn({ method: "GET" })
     return Object.fromEntries(counts);
   });
 
-/**
- * Get all open table orders grouped by table number.
- * Returns mesas abertas for the Kanban view.
- */
-export const getOpenTablesFn = createServerFn({ method: "GET" })
-  .handler(async () => {
-    const { storeId } = await requireAdminSession();
-    const orders = await prisma.order.findMany({
-      where: {
-        storeId,
-        tableNumber: { not: null },
-        status: { not: "COMPLETED" },
-      },
-      select: {
-        tableNumber: true,
-        status: true,
-        total: true,
-        createdAt: true,
-      },
-      orderBy: { tableNumber: "asc" },
-    });
-
-    const tableMap = new Map<number, {
-      tableNumber: number;
-      orderCount: number;
-      total: number;
-      createdAt: Date;
-      status: string;
-    }>();
-
-    for (const order of orders) {
-      if (order.tableNumber !== null) {
-        const existing = tableMap.get(order.tableNumber);
-        if (existing) {
-          existing.orderCount += 1;
-          existing.total += order.total;
-        } else {
-          tableMap.set(order.tableNumber, {
-            tableNumber: order.tableNumber,
-            orderCount: 1,
-            total: order.total,
-            createdAt: order.createdAt,
-            status: order.status,
-          });
-        }
-      }
-    }
-
-    return Array.from(tableMap.values());
-  });
+// Disabled for now - tableNumber doesn't exist on Order model
+// export const getOpenTablesFn = createServerFn({ method: "GET" })
+//   .handler(async () => {
+//     return [];
+//   });
 
 export const markOrderNotificationsReadFn = createServerFn({ method: "POST" })
   .validator(z.object({ orderId: z.string() }))
