@@ -116,6 +116,15 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
 /**
  * Admin only: Update a recipe (only if not yet used)
  */
+function serializeComposition(comp: any) {
+  return JSON.parse(JSON.stringify(comp, (key, value) => {
+    if (value && typeof value === 'object' && value.constructor.name === 'Decimal') {
+      return Number(value);
+    }
+    return value;
+  }));
+}
+
 export const adminUpdateComposition = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
     const admin = await requireAdminSession();
@@ -133,11 +142,13 @@ export const adminUpdateComposition = createServerFn({ method: "POST" })
 
     const validated = updateProductCompositionSchema.parse(updateData);
 
-    return CompositionService.updateComposition(
+    const result = await CompositionService.updateComposition(
       admin.storeId,
       data.compositionId,
       validated
     );
+
+    return serializeComposition(result);
   });
 
 /**
