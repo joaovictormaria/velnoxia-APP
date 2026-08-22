@@ -24,7 +24,7 @@ const productSchema = z.object({
   slug: z
     .string()
     .min(1)
-    .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífens."),
+    .regex(/^[a-z0-9\-áàâãéèêíïóôõöúçñ]+$/, "Use apenas letras, números e hífens."),
   description: z.string().default(""),
   categoryId: z.string().min(1, "Escolha uma categoria."),
   basePrice: z.number().nonnegative(),

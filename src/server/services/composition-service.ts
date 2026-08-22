@@ -20,13 +20,7 @@ export class CompositionService {
     productId: string,
     data: CreateProductCompositionInput
   ) {
-    // Validate product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-    });
-    if (!product) {
-      throw new Error("Product not found");
-    }
+    // productId é apenas um identificador para a receita, não precisa validar se existe na tabela Product
 
     // Validate all items and units exist
     for (const item of data.items) {
@@ -79,7 +73,7 @@ export class CompositionService {
         });
       }
 
-      return tx.productComposition.findUnique({
+      const result = await tx.productComposition.findUnique({
         where: { id: composition.id },
         include: {
           items: {
@@ -88,6 +82,27 @@ export class CompositionService {
           },
         },
       });
+
+      // Serialize ALL Decimals to Numbers
+      if (result) {
+        return {
+          ...result,
+          items: (result?.items || []).map((item) => ({
+            ...item,
+            quantity: Number(item.quantity),
+            inventoryItem: item.inventoryItem ? {
+              ...item.inventoryItem,
+              quantityOnHand: Number(item.inventoryItem.quantityOnHand ?? 0),
+              quantityReserved: Number(item.inventoryItem.quantityReserved ?? 0),
+              cost: item.inventoryItem.cost ? Number(item.inventoryItem.cost) : null,
+              contentSize: item.inventoryItem.contentSize ? Number(item.inventoryItem.contentSize) : null,
+              maximumQuantity: Number(item.inventoryItem.maximumQuantity ?? 0),
+            } : null,
+          })),
+        };
+      }
+
+      return result;
     });
   }
 

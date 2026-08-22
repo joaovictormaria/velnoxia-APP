@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
+import { prisma } from "@/server/db/client";
 import { InventoryService } from "@/server/services/inventory-service";
 import {
   createInventoryItemClientSchema,
@@ -70,7 +71,20 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       itemType: itemType,
     });
 
-    return InventoryService.createItem(admin.storeId, createData);
+    const createdItem = await InventoryService.createItem(admin.storeId, createData);
+
+    // Atualizar com contentSize e contentUnit se fornecidos
+    if (itemData?.contentSize || itemData?.contentUnit) {
+      await prisma.inventoryItem.update({
+        where: { id: (createdItem as any).id },
+        data: {
+          contentSize: itemData?.contentSize ? parseFloat(itemData.contentSize) : undefined,
+          contentUnit: itemData?.contentUnit || undefined,
+        },
+      });
+    }
+
+    return createdItem;
   });
 
 /**
@@ -97,6 +111,26 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
     });
 
     return InventoryService.updateItem(admin.storeId, data.itemId, validated);
+  });
+
+/**
+ * Admin only: Delete an inventory item (soft delete - mark as inactive)
+ */
+export const adminDeleteInventoryItem = createServerFn({ method: "POST" })
+  .validator(z.object({
+    itemId: z.string(),
+  }))
+  .handler(async ({ data }) => {
+    const admin = await requireAdminSession();
+
+    // Soft delete: marcar como inativo ao invés de deletar fisicamente
+    // Isso preserva o histórico de movimentos
+    await prisma.inventoryItem.update({
+      where: { id: data.itemId },
+      data: { isActive: false },
+    });
+
+    return { success: true };
   });
 
 /**
@@ -264,6 +298,7 @@ export const adminGetInventoryValue = createServerFn({ method: "POST" })
 
 /**
  * Admin only: Get low stock alerts
+ * Returns items where quantityOnHand < 30% of maximumQuantity
  */
 export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
   .handler(async () => {
@@ -273,8 +308,14 @@ export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
       includeInactive: false,
     });
 
-    return items.filter((item) => {
-      if (!item.minimumThreshold) return false;
-      return item.quantityOnHand <= item.minimumThreshold;
-    });
+    return items
+      .filter((item) => {
+        if (!item.maximumQuantity || Number(item.maximumQuantity) === 0) return false;
+        const alertThreshold = Number(item.maximumQuantity) * 0.3;
+        return Number(item.quantityOnHand) < alertThreshold;
+      })
+      .map((item) => ({
+        ...item,
+        alertThreshold: Number(item.maximumQuantity) * 0.3,
+      }));
   });

@@ -16,6 +16,7 @@ export class InventoryService {
       ...item,
       quantityOnHand: Number(item.quantityOnHand ?? 0),
       quantityReserved: Number(item.quantityReserved ?? 0),
+      maximumQuantity: Number(item.maximumQuantity ?? 0),
       cost: item.cost ? Number(item.cost) : null,
       minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
       idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
@@ -178,6 +179,12 @@ export class InventoryService {
         data.type,
         data.quantity
       );
+
+      // Update maximumQuantity if quantity increases
+      const newQuantity = updates.quantityOnHand ?? Number(item.quantityOnHand);
+      if (newQuantity > Number(item.maximumQuantity ?? 0)) {
+        updates.maximumQuantity = newQuantity;
+      }
 
       if (Object.keys(updates).length > 0) {
         await tx.inventoryItem.update({

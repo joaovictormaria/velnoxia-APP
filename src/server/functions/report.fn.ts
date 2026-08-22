@@ -9,8 +9,12 @@ function serializeItem(item: any) {
     quantityOnHand: Number(item.quantityOnHand ?? 0),
     quantityReserved: Number(item.quantityReserved ?? 0),
     quantityAvailable: Number(item.quantityAvailable ?? 0),
+    maximumQuantity: Number(item.maximumQuantity ?? 0),
+    contentSize: item.contentSize ? Number(item.contentSize) : null,
     cost: item.cost ? Number(item.cost) : null,
     minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
+    idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
+    maximumCapacity: item.maximumCapacity ? Number(item.maximumCapacity) : null,
   };
 }
 

@@ -1,6 +1,18 @@
 import { useEffect, useState } from "react";
-import { adminCreateInventoryItem, adminUpdateInventoryItem, adminRecordMovement } from "@/server/functions/inventory.fn";
+import { adminCreateInventoryItem, adminUpdateInventoryItem, adminRecordMovement, adminDeleteInventoryItem } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
+
+const alertStyle = `
+  @keyframes pulse-red {
+    0%, 100% { border-color: rgb(239, 68, 68); }
+    50% { border-color: rgb(127, 29, 29); }
+  }
+  .inventory-alert-row {
+    border: 2px solid rgb(239, 68, 68);
+    animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    background-color: rgba(254, 226, 226, 0.3);
+  }
+`;
 
 export interface InventoryGridProps {
   storeId: string;
@@ -17,6 +29,7 @@ interface InventoryItem {
   quantityReserved: number;
   cost: number;
   isActive: boolean;
+  maximumQuantity?: number;
 }
 
 interface SortConfig {
@@ -39,13 +52,23 @@ export function InventoryGrid(props: InventoryGridProps) {
     cost: "",
     itemType: "INGREDIENT",
     initialQuantity: "",
+    contentQuantity: "",
+    contentUnit: "g",
   });
   const [generatedSku, setGeneratedSku] = useState<string>("");
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editQuantity, setEditQuantity] = useState<string>("");
 
   const showToast = (message: string) => {
     setToast({ message, show: true });
     setTimeout(() => setToast({ message: "", show: false }), 3000);
+  };
+
+  const isItemInAlert = (item: InventoryItem): boolean => {
+    if (!item.maximumQuantity || item.maximumQuantity === 0) return false;
+    const alertThreshold = item.maximumQuantity * 0.3;
+    return item.quantityOnHand < alertThreshold;
   };
 
   const fetchItems = async () => {
@@ -132,14 +155,47 @@ export function InventoryGrid(props: InventoryGridProps) {
     }
   };
 
+  const handleEditQuantity = async (itemId: string) => {
+    try {
+      const fd = new FormData();
+      fd.append("itemId", itemId);
+      fd.append("storeId", props.storeId);
+      fd.append("quantityOnHand", editQuantity);
+
+      await adminUpdateInventoryItem(fd);
+      setEditingItemId(null);
+      fetchItems();
+      showToast("✅ Quantidade atualizada!");
+    } catch (error) {
+      console.error("Failed to update item:", error);
+      showToast("❌ Erro ao atualizar");
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!confirm("Tem certeza que deseja deletar este item? Esta ação não pode ser desfeita!")) return;
+
+    try {
+      await adminDeleteInventoryItem({ data: { itemId } } as any);
+      fetchItems();
+      showToast("✅ Item deletado!");
+    } catch (error) {
+      console.error("Failed to delete item:", error);
+      showToast("❌ Erro ao deletar");
+    }
+  };
+
   const handleCreateItem = async () => {
     try {
+      const contentQty = newItem.contentQuantity?.trim();
       const payload = {
         data: {
           name: newItem.name || "",
           baseUnitId: newItem.baseUnitId || "kg",
           itemType: newItem.itemType || "INGREDIENT",
           cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+          contentSize: contentQty && parseFloat(contentQty) > 0 ? parseFloat(contentQty) : undefined,
+          contentUnit: newItem.contentUnit || "g",
         }
       };
 
@@ -147,24 +203,28 @@ export function InventoryGrid(props: InventoryGridProps) {
       const itemId = (createdItem as any)?.id;
       const sku = (createdItem as any)?.sku || "gerado";
 
-      // Se houver quantidade inicial, registrar movimento
+      // Registrar movimento com quantidade inicial (ou padrão 1)
       const initialQty = newItem.initialQuantity?.trim();
-      if (initialQty && parseFloat(initialQty) > 0 && itemId) {
+      const qtyToAdd = initialQty && parseFloat(initialQty) > 0 ? parseFloat(initialQty) : 1;
+      if (itemId) {
         try {
           const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
-          await adminRecordMovement({
+          console.log("📦 Registrando movimento:", { itemId, unitId, qtyToAdd });
+          const movResult = await adminRecordMovement({
             data: {
               itemId,
               type: "PURCHASE",
-              quantity: parseFloat(initialQty),
+              quantity: qtyToAdd,
               unitId,
               reference: undefined,
               referenceType: undefined,
-              note: "Quantidade inicial registrada na criação do item",
+              note: initialQty ? "Quantidade inicial registrada na criação do item" : "Quantidade padrão (1 unidade)",
             }
           } as any);
+          console.log("✅ Movimento registrado:", movResult);
         } catch (movError) {
-          console.error("Failed to record initial movement:", movError);
+          console.error("❌ Failed to record initial movement:", movError);
+          showToast(`⚠️ Erro ao registrar quantidade: ${movError instanceof Error ? movError.message : String(movError)}`);
         }
       }
 
@@ -175,6 +235,8 @@ export function InventoryGrid(props: InventoryGridProps) {
         cost: "",
         itemType: "INGREDIENT",
         initialQuantity: "",
+        contentQuantity: "",
+        contentUnit: "g",
       });
       setGeneratedSku("");
       fetchItems();
@@ -189,6 +251,7 @@ export function InventoryGrid(props: InventoryGridProps) {
 
   return (
     <div className="inventory-grid space-y-4">
+      <style>{alertStyle}</style>
       {/* Toast Notification */}
       {toast.show && (
         <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300 z-50">
@@ -257,18 +320,53 @@ export function InventoryGrid(props: InventoryGridProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Quantidade Inicial (Opcional)</label>
+              <label className="block text-sm font-medium mb-1">
+                Quantidade Inicial (Opcional) - {newItem.baseUnitId}
+              </label>
               <input
                 type="number"
                 value={newItem.initialQuantity}
                 onChange={(e) => setNewItem({ ...newItem, initialQuantity: e.target.value })}
-                placeholder="Ex: 10"
+                placeholder="Ex: 500"
                 step="0.01"
                 className="w-full px-3 py-2 border rounded bg-background text-foreground"
               />
               <p className="text-xs text-neutral-600 mt-1">
-                Será registrada como compra (PURCHASE) automaticamente
+                {newItem.initialQuantity
+                  ? `Será adicionado: ${newItem.initialQuantity} ${newItem.baseUnitId}`
+                  : "Se vazio, será adicionado: 1 " + newItem.baseUnitId}
               </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-sm font-medium mb-1">Quantidade do Produto (Opcional)</label>
+                <input
+                  type="number"
+                  value={newItem.contentQuantity}
+                  onChange={(e) => setNewItem({ ...newItem, contentQuantity: e.target.value })}
+                  placeholder="Ex: 500"
+                  step="0.01"
+                  className="w-full px-3 py-2 border rounded bg-background text-foreground"
+                />
+                <p className="text-xs text-neutral-600 mt-1">Cada {newItem.baseUnitId} tem quantos {newItem.contentUnit}?</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Unidade do Produto</label>
+                <select
+                  value={newItem.contentUnit}
+                  onChange={(e) => setNewItem({ ...newItem, contentUnit: e.target.value })}
+                  className="w-full px-3 py-2 border rounded bg-background text-foreground"
+                >
+                  <option value="g">g (grama)</option>
+                  <option value="ml">ml (mililitro)</option>
+                  <option value="kg">kg (quilograma)</option>
+                  <option value="L">L (litro)</option>
+                  <option value="un">un (unidade)</option>
+                  <option value="m">m (metro)</option>
+                  <option value="cm">cm (centímetro)</option>
+                </select>
+              </div>
             </div>
 
             <div>
@@ -397,7 +495,12 @@ export function InventoryGrid(props: InventoryGridProps) {
           </thead>
           <tbody className="divide-y">
             {getSortedAndFilteredItems().map((item) => (
-              <tr key={item.id} className={item.isActive ? "" : "opacity-50"}>
+              <tr
+                key={item.id}
+                className={`${item.isActive ? "" : "opacity-50"} ${
+                  isItemInAlert(item) ? "inventory-alert-row" : ""
+                }`}
+              >
                 <td className="px-4 py-2">{item.name}</td>
                 <td className="px-4 py-2 text-sm text-neutral-600">
                   {item.sku || item.barcode || "—"}
@@ -414,16 +517,50 @@ export function InventoryGrid(props: InventoryGridProps) {
                 </td>
                 <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-center">
-                  {item.isActive ? (
-                    <button
-                      className="text-xs text-red-600 hover:underline"
-                      onClick={() => handleDeactivate(item.id)}
-                    >
-                      Desativar
-                    </button>
-                  ) : (
-                    <span className="text-xs text-neutral-600">Inativo</span>
-                  )}
+                  <div className="flex gap-2 justify-center flex-wrap">
+                    {editingItemId === item.id ? (
+                      <div className="flex gap-1">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={editQuantity}
+                          onChange={(e) => setEditQuantity(e.target.value)}
+                          className="w-20 px-2 py-1 border rounded text-xs"
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => handleEditQuantity(item.id)}
+                          className="text-xs px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => setEditingItemId(null)}
+                          className="text-xs px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          className="text-xs text-blue-600 hover:underline"
+                          onClick={() => {
+                            setEditingItemId(item.id);
+                            setEditQuantity(item.quantityOnHand.toString());
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          className="text-xs text-red-600 hover:underline"
+                          onClick={() => handleDeleteItem(item.id)}
+                        >
+                          Deletar
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

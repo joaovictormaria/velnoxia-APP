@@ -159,9 +159,9 @@ export type CreateAdjustmentInput = z.infer<typeof createAdjustmentSchema>;
  * Schema para CompositionItem (insumo de receita)
  */
 export const compositionItemSchema = z.object({
-  inventoryItemId: z.string().cuid(),
+  inventoryItemId: z.string().min(1), // Aceita CUID, UUID, ou qualquer ID
   quantity: z.number().positive(),
-  unitId: z.string().cuid(),
+  unitId: z.string().min(1), // Aceita CUID, UUID, ou qualquer ID
   sortOrder: z.number().nonnegative().default(0),
 });
 
@@ -171,7 +171,7 @@ export type CompositionItemInput = z.infer<typeof compositionItemSchema>;
  * Schema para criar ProductComposition (receita nova)
  */
 export const createProductCompositionSchema = z.object({
-  productId: z.string().cuid(),
+  productId: z.string().min(1), // Pode ser qualquer string (ID do produto)
   items: z.array(compositionItemSchema).min(1),
   isActive: z.boolean().default(true),
 });

@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * Serviço de Alertas de Estoque
@@ -13,6 +14,7 @@ export class InventoryAlertService {
     STOCK_CRITICAL: "STOCK_CRITICAL", // onHand < (minimumThreshold * 0.5)
     STOCK_OUT: "STOCK_OUT", // onHand = 0
     OVERSTOCKED: "OVERSTOCKED", // onHand > maximumCapacity
+    STOCK_LOW_30_PERCENT: "STOCK_LOW_30_PERCENT", // onHand < (maximumQuantity * 0.3)
   } as const;
 
   /**
@@ -39,6 +41,7 @@ export class InventoryAlertService {
         quantityReserved: true,
         minimumThreshold: true,
         maximumCapacity: true,
+        maximumQuantity: true,
         isActive: true,
       },
     });
@@ -64,6 +67,23 @@ export class InventoryAlertService {
         currentQty: item.quantityOnHand,
       });
       return alerts; // Não checar outros alertas se já zerou
+    }
+
+    // LOW_30_PERCENT: abaixo de 30% do máximo já alcançado
+    if (
+      item.maximumQuantity &&
+      (new Decimal(item.maximumQuantity) as any).greaterThan(0) &&
+      item.quantityOnHand.lessThan(
+        (new Decimal(item.maximumQuantity) as any).mul(new Decimal(0.3))
+      )
+    ) {
+      alerts.push({
+        type: this.ALERT_TYPES.STOCK_LOW_30_PERCENT,
+        severity: "WARNING",
+        message: `${item.name}: Estoque baixo! ${item.quantityOnHand} / máximo: ${item.maximumQuantity}`,
+        currentQty: item.quantityOnHand,
+        threshold: (new Decimal(item.maximumQuantity) as any).mul(new Decimal(0.3)),
+      });
     }
 
     // CRITICAL: menos de 50% do mínimo
@@ -153,6 +173,7 @@ export class InventoryAlertService {
         quantityReserved: true,
         minimumThreshold: true,
         maximumCapacity: true,
+        maximumQuantity: true,
       },
       orderBy: { quantityOnHand: "asc" },
     });
@@ -170,13 +191,19 @@ export class InventoryAlertService {
         status:
           item.quantityOnHand.isZero()
             ? "out_of_stock"
-            : item.minimumThreshold &&
-                item.quantityOnHand.lessThan(item.minimumThreshold)
-              ? "low"
-              : item.maximumCapacity &&
-                  item.quantityOnHand.greaterThan(item.maximumCapacity)
-                ? "overstocked"
-                : "ok",
+            : item.maximumQuantity &&
+                (new Decimal(item.maximumQuantity) as any).greaterThan(0) &&
+                item.quantityOnHand.lessThan(
+                  (new Decimal(item.maximumQuantity) as any).mul(new Decimal(0.3))
+                )
+              ? "low_30_percent"
+              : item.minimumThreshold &&
+                  item.quantityOnHand.lessThan(item.minimumThreshold)
+                ? "low"
+                : item.maximumCapacity &&
+                    item.quantityOnHand.greaterThan(item.maximumCapacity)
+                  ? "overstocked"
+                  : "ok",
       }))
       .filter((item) => item.status !== "ok");
   }
