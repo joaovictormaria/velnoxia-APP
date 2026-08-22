@@ -340,7 +340,7 @@ export async function createOrderFromCheckout(
   if (input.tableId) {
     const table = await prisma.table.findUnique({ where: { id: input.tableId } });
     if (!table || table.storeId !== storeId) {
-      return { ok: false, error: "Sessão de mesa expirada. Escaneie o QRCode novamente." };
+      return { ok: false, error: "Sua sessão de mesa expirou após 24 horas. Escaneie o QRCode da mesa novamente para continuar." };
     }
   }
 
