@@ -509,7 +509,6 @@ export function InventoryGrid(props: InventoryGridProps) {
                 </button>
               </th>
               <th className="px-4 py-2 text-right">Qtd sendo Usado em Produtos</th>
-              <th className="px-4 py-2 text-right">Última atualização</th>
               <th className="px-4 py-2 text-right">Custo Unit.</th>
               <th className="px-4 py-2 text-center">Ações</th>
             </tr>
@@ -530,10 +529,6 @@ export function InventoryGrid(props: InventoryGridProps) {
                 </td>
                 <td className="px-4 py-2 text-right text-amber-600">
                   {(item.quantityUsedInRecipes ?? 0).toFixed(2)} {item.baseUnit.code}
-                </td>
-                <td className="px-4 py-2 text-right font-semibold">
-                  {Number(item.maximumQuantity ?? 0).toFixed(2)}{" "}
-                  {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-center space-x-3">
