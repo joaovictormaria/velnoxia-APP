@@ -62,18 +62,10 @@ export class OrderInventoryHandler {
   }
 
   /**
-   * Pedido em preparação: Nenhuma ação de estoque
+   * Pedido em preparação: CONSUMIR itens (reduz quantityOnHand)
    * Chamado quando Order.status = PREPARING
    */
   static async onOrderPreparing(orderId: string) {
-    // Nop: estoque é decrementado apenas quando o pedido é pago (COMPLETED)
-  }
-
-  /**
-   * Pedido completo e pago: CONSUMIR itens (reduz quantityOnHand)
-   * Chamado quando Order.status = COMPLETED
-   */
-  static async onOrderCompleted(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { items: { include: { product: true } } },
@@ -138,6 +130,15 @@ export class OrderInventoryHandler {
         );
       }
     }
+  }
+
+  /**
+   * Pedido completo e pago: NENHUMA AÇÃO (já consumiu em PREPARING)
+   * Chamado quando Order.status = COMPLETED
+   */
+  static async onOrderCompleted(orderId: string) {
+    // Estoque foi consumido quando transitou para PREPARING
+    // Aqui apenas marca como finalizado se necessário (futuro)
   }
 
   /**
