@@ -20,6 +20,7 @@ import {
   Percent,
   PieChart,
   PlusSquare,
+  QrCode,
   Shapes,
   Star,
   Tags,
@@ -54,15 +55,7 @@ type Grupo = { id: string; label: string; icon: LucideIcon; itens: Item[] };
 const MENU: (Item | Grupo)[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutGrid, exact: true },
   { to: "/admin/pedidos", label: "Pedidos", icon: Inbox },
-  {
-    id: "mesas",
-    label: "Mesas",
-    icon: Grid3x3,
-    itens: [
-      { to: "/admin/mesas", label: "Gerenciar", icon: Grid3x3, exact: true },
-      { to: "/admin/mesas/dashboard", label: "Dashboard", icon: Grid3x3 },
-    ],
-  },
+  { to: "/admin/mesas", label: "Mesas", icon: QrCode },
   {
     id: "cardapio",
     label: "Cardápio",

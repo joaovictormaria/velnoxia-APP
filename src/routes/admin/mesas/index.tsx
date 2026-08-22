@@ -1,211 +1,181 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Trash2, Pencil, QrCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "@tanstack/react-router";
-import { StatusBadge } from "@/components/admin/tables/StatusBadge";
-import { QrcodeModal } from "@/components/admin/tables/QrcodeModal";
-import type { Table, TableStatus } from "@prisma/client";
 import { useState } from "react";
+import { QrCode, Copy, Download, Trash2, Loader } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { generateUUID } from "@/lib/uuid";
+import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
 
 export const Route = createFileRoute("/admin/mesas/")({
   component: MesasPage,
 });
 
-// Mock data para teste
-const mockTables: Table[] = [
-  {
-    id: "1",
-    storeId: "store-1",
-    number: 1,
-    capacity: 4,
-    status: "AVAILABLE",
-    qrcodeUrl: "https://velnox.app.br/mesa/1",
-    qrcodeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    storeId: "store-1",
-    number: 2,
-    capacity: 6,
-    status: "OCCUPIED",
-    qrcodeUrl: "https://velnox.app.br/mesa/2",
-    qrcodeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    storeId: "store-1",
-    number: 3,
-    capacity: 2,
-    status: "AVAILABLE",
-    qrcodeUrl: "https://velnox.app.br/mesa/3",
-    qrcodeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
+interface GeneratedQRCode {
+  id: string;
+  url: string;
+  qrImage: string;
+  createdAt: Date;
+  ordersCount: number;
+}
 
 function MesasPage() {
-  const navigate = useNavigate();
-  const [filterStatus, setFilterStatus] = useState<TableStatus | "ALL">("ALL");
-  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
-  const [showQrModal, setShowQrModal] = useState(false);
-  const [tables, setTables] = useState<Table[]>(mockTables);
+  const [qrcodes, setQrcodes] = useState<GeneratedQRCode[]>([]);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
 
-  const filteredTables = filterStatus === "ALL"
-    ? tables
-    : tables.filter(t => t.status === filterStatus);
+  const generateQRCode = async () => {
+    setGenerating(true);
+    try {
+      const newId = generateUUID();
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://velnoxia.app";
+      const qrUrl = `${baseUrl}/qr/${newId}`;
+      const qrImage = await generateQRCodeDataUrl(qrUrl);
 
-  const stats = {
-    total: tables.length,
-    available: tables.filter(t => t.status === "AVAILABLE").length,
-    occupied: tables.filter(t => t.status === "OCCUPIED").length,
-    reserved: tables.filter(t => t.status === "RESERVED").length,
+      const newQRCode: GeneratedQRCode = {
+        id: newId,
+        url: qrUrl,
+        qrImage,
+        createdAt: new Date(),
+        ordersCount: 0,
+      };
+      setQrcodes([newQRCode, ...qrcodes]);
+    } catch (error) {
+      console.error("Erro ao gerar QRCode:", error);
+      alert("Erro ao gerar QRCode. Tente novamente.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const copyLink = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopied(url);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const downloadQR = async (qr: GeneratedQRCode) => {
+    try {
+      const blob = await generateQRCodePNG(qr.url);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${qr.id}-qrcode.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erro ao baixar QRCode:", error);
+      alert("Erro ao baixar QRCode. Tente novamente.");
+    }
+  };
+
+  const deleteQRCode = (id: string) => {
+    if (confirm(`Deletar QRCode ${id}?`)) {
+      setQrcodes(qrcodes.filter(q => q.id !== id));
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Mesas</h1>
+          <h1 className="text-2xl font-bold text-white">Mesas (QRCode)</h1>
           <p className="text-sm text-neutral-400">
-            {stats.total} mesas • {stats.available} disponíveis • {stats.occupied} ocupadas
+            {qrcodes.length} QRCodes gerados • {qrcodes.reduce((sum, q) => sum + q.ordersCount, 0)} pedidos abertos
           </p>
         </div>
-        <Button
-          onClick={() => navigate({ to: "/admin/mesas/nova" })}
-          className="gap-2"
-        >
-          <Plus className="size-4" />
-          Nova Mesa
+        <Button onClick={generateQRCode} disabled={generating} className="gap-2">
+          {generating ? (
+            <>
+              <Loader className="size-4 animate-spin" />
+              Gerando...
+            </>
+          ) : (
+            <>
+              <QrCode className="size-4" />
+              Gerar Novo QRCode
+            </>
+          )}
         </Button>
       </div>
 
-      {/* Estatísticas */}
-      <div className="grid gap-4 sm:grid-cols-4">
-        {[
-          { label: "Total", value: stats.total, color: "text-blue-400" },
-          { label: "Disponíveis", value: stats.available, color: "text-green-400" },
-          { label: "Ocupadas", value: stats.occupied, color: "text-red-400" },
-          { label: "Reservadas", value: stats.reserved, color: "text-yellow-400" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
-            <p className="text-sm text-neutral-400">{stat.label}</p>
-            <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
-          </div>
-        ))}
+      {/* Stats */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <p className="text-sm text-neutral-400">Total de QRCodes</p>
+          <p className="text-2xl font-bold text-blue-400">{qrcodes.length}</p>
+        </div>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <p className="text-sm text-neutral-400">Mesas Abertas</p>
+          <p className="text-2xl font-bold text-red-400">{qrcodes.filter(q => q.ordersCount > 0).length}</p>
+        </div>
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+          <p className="text-sm text-neutral-400">Pedidos Abertos</p>
+          <p className="text-2xl font-bold text-yellow-400">{qrcodes.reduce((sum, q) => sum + q.ordersCount, 0)}</p>
+        </div>
       </div>
 
-      {/* Filtro de status */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {(["ALL", "AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE"] as const).map(
-          (status) => (
-            <button
-              key={status}
-              onClick={() => setFilterStatus(status)}
-              className={`whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                filterStatus === status
-                  ? "bg-[#E11D2E] text-white"
-                  : "bg-neutral-900 text-neutral-400 hover:bg-neutral-800"
-              }`}
-            >
-              {status === "ALL" ? "Todas" : status}
-            </button>
-          )
-        )}
-      </div>
-
-      {/* Grid de mesas */}
-      {filteredTables.length === 0 ? (
+      {/* QRCodes Grid */}
+      {qrcodes.length === 0 ? (
         <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-          <p className="text-neutral-400">Nenhuma mesa encontrada</p>
+          <QrCode className="mx-auto mb-4 size-12 text-neutral-600" />
+          <p className="text-neutral-400">Nenhum QRCode gerado ainda</p>
+          <Button onClick={generateQRCode} className="mt-4">Gerar Primeiro QRCode</Button>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredTables.map((table) => (
-            <TableCard
-              key={table.id}
-              table={table}
-              onDelete={() => {
-                if (confirm(`Deletar mesa #${table.number}?`)) {
-                  setTables(tables.filter(t => t.id !== table.id));
-                }
-              }}
-              onEdit={() => navigate({ to: `/admin/mesas/${table.id}` })}
-              onShowQr={() => {
-                setSelectedTable(table);
-                setShowQrModal(true);
-              }}
-            />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {qrcodes.map((qr) => (
+            <div key={qr.id} className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
+              <div className="mb-4 flex justify-center rounded-lg bg-white p-3">
+                <img src={qr.qrImage} alt={qr.id} className="size-48" />
+              </div>
+
+              <div className="mb-4 space-y-2 text-sm">
+                <div>
+                  <p className="text-neutral-400">ID</p>
+                  <p className="font-mono font-bold text-white">{qr.id}</p>
+                </div>
+                <div>
+                  <p className="text-neutral-400">Pedidos Abertos</p>
+                  <p className={`font-bold ${qr.ordersCount > 0 ? "text-red-400" : "text-green-400"}`}>
+                    {qr.ordersCount}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Button
+                  onClick={() => copyLink(qr.url)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <Copy className="mr-1 size-4" />
+                  {copied === qr.url ? "Copiado!" : "Copiar Link"}
+                </Button>
+
+                <Button
+                  onClick={() => downloadQR(qr)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <Download className="mr-1 size-4" />
+                  Baixar PNG
+                </Button>
+
+                <Button
+                  onClick={() => deleteQRCode(qr.id)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-red-400 hover:bg-red-900/20"
+                >
+                  <Trash2 className="mr-1 size-4" />
+                  Deletar
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}
-
-      {selectedTable && (
-        <QrcodeModal
-          isOpen={showQrModal}
-          onClose={() => setShowQrModal(false)}
-          tableNumber={selectedTable.number}
-          qrcodeUrl={selectedTable.qrcodeUrl}
-          qrcodeData={selectedTable.qrcodeData}
-        />
-      )}
-    </div>
-  );
-}
-
-function TableCard({
-  table,
-  onDelete,
-  onEdit,
-  onShowQr,
-}: {
-  table: Table;
-  onDelete: () => void;
-  onEdit: () => void;
-  onShowQr: () => void;
-}) {
-  return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4 hover:bg-neutral-800/50 transition-colors">
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-white">Mesa #{table.number}</h3>
-          <p className="text-sm text-neutral-400">{table.capacity} lugares</p>
-        </div>
-        <StatusBadge status={table.status} size="sm" />
-      </div>
-
-      <div className="mb-4 h-px bg-neutral-800" />
-
-      <div className="space-y-2">
-        <button
-          onClick={onShowQr}
-          className="flex w-full items-center gap-2 rounded-lg bg-neutral-800/50 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white transition-colors"
-        >
-          <QrCode className="size-4" />
-          Ver QRCode
-        </button>
-
-        <div className="flex gap-2">
-          <button
-            onClick={onEdit}
-            className="flex-1 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-neutral-300 hover:bg-neutral-700 hover:text-white transition-colors flex items-center justify-center gap-2"
-          >
-            <Pencil className="size-4" />
-            Editar
-          </button>
-          <button
-            onClick={onDelete}
-            className="flex-1 rounded-lg bg-red-900/20 px-3 py-2 text-sm text-red-400 hover:bg-red-900/40 transition-colors flex items-center justify-center gap-2"
-          >
-            <Trash2 className="size-4" />
-            Deletar
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
