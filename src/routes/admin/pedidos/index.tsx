@@ -142,13 +142,14 @@ function KanbanPage() {
       {mesas.length > 0 && (
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-neutral-900">Mesas Abertas ({mesas.length})</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-wrap gap-3">
             {mesas.map((mesa) => (
-              <MesaCard
-                key={mesa.tableId}
-                mesa={mesa}
-                onFinalize={(tableId, pedidoIds) => finalizarMesa.mutate(pedidoIds)}
-              />
+              <div key={mesa.tableId} className="w-64">
+                <MesaCard
+                  mesa={mesa}
+                  onFinalize={(tableId, pedidoIds) => finalizarMesa.mutate(pedidoIds)}
+                />
+              </div>
             ))}
           </div>
         </section>
