@@ -16,6 +16,7 @@ import {
 } from "./employee-benefit";
 import { conferirOpcoes } from "./option-pricing";
 import { orderStatusSync } from "./order-status-sync";
+import { validateTableSession } from "../functions/table-session.fn";
 
 /**
  * Secret for the tracking link the customer gets. Generated with crypto rather
@@ -51,8 +52,8 @@ export type CheckoutInput = {
    */
   employeePin?: string;
   customerNote?: string;
-  /** Mesa QRCode ID para pedidos de balcão/mesa. */
-  tableId?: string;
+  /** Token de sessão segura da mesa. */
+  tableSessionToken?: string;
   delivery?: {
     street?: string;
     number?: string;
@@ -454,6 +455,16 @@ export async function createOrderFromCheckout(
   const estimatedMinutes =
     input.type === "DELIVERY" ? settings.estimatedDeliveryMinMax : settings.estimatedPickupMinMax;
 
+  // Validar tableSessionToken se fornecido
+  let tableIdFromSession: string | null = null;
+  if (input.tableSessionToken) {
+    const session = await validateTableSession(storeId, input.tableSessionToken);
+    if (!session) {
+      return { ok: false, error: "Sessão da mesa expirou. Escaneie o QRCode novamente." };
+    }
+    tableIdFromSession = session.tableId;
+  }
+
   const order = await prisma.$transaction(async (tx) => {
     /*
      * A cota é relida aqui dentro, e o desconto refeito com ela.
@@ -513,7 +524,7 @@ export async function createOrderFromCheckout(
         discount,
         total,
         couponId,
-        tableId: input.tableId ?? null,
+        tableId: tableIdFromSession,
         employeeId: funcionario?.id ?? null,
         // O nome vai copiado: apagar a ficha do funcionário um dia não pode
         // apagar o registro de quem pegou o quê.

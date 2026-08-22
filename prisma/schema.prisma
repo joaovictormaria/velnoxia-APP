@@ -197,6 +197,22 @@ model Store {
   @@index([status])
 }
 
+// ---------- Mesas QRCode ----------
+
+/// Sessão temporária do cliente ao escanear QRCode da mesa.
+/// Auto-expira após 24h, nunca cresce muito porque é limpeza regular.
+model TableSession {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tableId   String   @unique
+  tableNumber Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([storeId, expiresAt])
+}
+
 // ---------- Auth ----------
 
 model AdminUser {
