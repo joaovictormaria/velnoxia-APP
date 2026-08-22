@@ -62,10 +62,18 @@ export class OrderInventoryHandler {
   }
 
   /**
-   * Pedido em preparação: CONSUMIR itens (reduz quantityOnHand)
+   * Pedido em preparação: Nenhuma ação de estoque
    * Chamado quando Order.status = PREPARING
    */
   static async onOrderPreparing(orderId: string) {
+    // Nop: estoque é decrementado apenas quando o pedido é pago (COMPLETED)
+  }
+
+  /**
+   * Pedido completo e pago: CONSUMIR itens (reduz quantityOnHand)
+   * Chamado quando Order.status = COMPLETED
+   */
+  static async onOrderCompleted(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { items: { include: { product: true } } },
@@ -81,18 +89,6 @@ export class OrderInventoryHandler {
 
     // Para cada item do pedido, consumir quantidade
     for (const orderItem of order.items) {
-      const inventoryItem = await prisma.inventoryItem.findFirst({
-        where: {
-          storeId: order.storeId,
-          // TODO: linkagem product.id
-        },
-      });
-
-      if (!inventoryItem) {
-        continue;
-      }
-
-      // Consumir quantidade (use composition se tiver receita)
       try {
         // Verificar se produto tem composição (receita)
         const composition = await prisma.productComposition.findFirst({
@@ -122,12 +118,20 @@ export class OrderInventoryHandler {
           );
         } else {
           // Se não tem receita, desconta direto (produto simples)
-          await InventoryService.consumeForOrder(
-            order.storeId,
-            inventoryItem.id,
-            Number(orderItem.quantity),
-            orderId
-          );
+          // Usar inventoryItemId do produto
+          const product = await prisma.product.findUnique({
+            where: { id: orderItem.productId },
+            select: { inventoryItemId: true }
+          });
+
+          if (product?.inventoryItemId) {
+            await InventoryService.consumeForOrder(
+              order.storeId,
+              product.inventoryItemId,
+              Number(orderItem.quantity),
+              orderId
+            );
+          }
         }
       } catch (error) {
         console.error(
@@ -136,19 +140,6 @@ export class OrderInventoryHandler {
         );
       }
     }
-  }
-
-  /**
-   * Pedido completo: Nenhuma movimentação é necessária
-   * Chamado quando Order.status = COMPLETED
-   *
-   * InventoryMovement é imutável: NUNCA é atualizado.
-   * Os movimentos RESERVATION (RECEIVED) e CONSUMPTION (PREPARING) já foram criados.
-   * COMPLETED apenas muda o status do pedido, não do estoque.
-   */
-  static async onOrderCompleted(orderId: string) {
-    // Nop: Não há operação de estoque necessária
-    // Historicamente, todos movimentos já foram registrados
   }
 
   /**

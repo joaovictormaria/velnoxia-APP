@@ -335,6 +335,9 @@ model Product {
   description          String
   categoryId           String
   category             Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  /// Linkagem para estoque: qual InventoryItem este produto usa
+  inventoryItemId      String?
+  inventoryItem        InventoryItem?       @relation("ProductInventory", fields: [inventoryItemId], references: [id], onDelete: SetNull)
   basePrice            Float
   imageUrl             String?
   tag                  String?
@@ -355,6 +358,7 @@ model Product {
   @@unique([storeId, slug])
   @@index([categoryId, isActive])
   @@index([storeId, isActive])
+  @@index([inventoryItemId])
 }
 
 /// Os tamanhos que uma categoria oferece, com o nome que o dono escolher:
@@ -1082,6 +1086,7 @@ model InventoryItem {
 
   movements    InventoryMovement[]
   compositions CompositionItem[]
+  products     Product[]          @relation("ProductInventory")
 
   @@unique([storeId, sku])
   @@unique([storeId, barcode])

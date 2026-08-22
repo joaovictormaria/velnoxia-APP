@@ -61,6 +61,14 @@ export function ReportsDashboard(props: ReportsDashboardProps) {
           ℹ️ Relatórios completos disponíveis nas abas Movimentações, Receitas e Gráficos
         </p>
       </div>
+
+      <div className="p-4 border rounded bg-green-50 space-y-2">
+        <p className="text-sm text-green-900 font-medium">✅ Proteção Automática</p>
+        <p className="text-xs text-green-800">
+          O sistema agora bloqueia qualquer movimento que deixaria as quantidades negativas.
+          Nenhum campo pode ir abaixo de 0.
+        </p>
+      </div>
     </div>
   );
 }

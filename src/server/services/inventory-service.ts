@@ -324,6 +324,7 @@ export class InventoryService {
   /**
    * Calculate how quantities should change based on movement type
    * Returns { quantityOnHand?, quantityReserved? }
+   * Throws error if quantities would go negative
    */
   private static calculateQuantityUpdates(
     item: { quantityOnHand: any; quantityReserved: any },
@@ -346,23 +347,45 @@ export class InventoryService {
 
       case "CONSUMPTION":
         // Decrease both quantityOnHand and quantityReserved
-        updates.quantityOnHand = currentQuantity + quantity; // quantity is negative
-        updates.quantityReserved = currentReserved + quantity; // quantity is negative
+        const newOnHand = currentQuantity + quantity; // quantity is negative
+        const newReserved = currentReserved + quantity; // quantity is negative
+
+        if (newOnHand < 0) {
+          throw new Error(`Não há estoque suficiente. Disponível: ${currentQuantity}, Solicitado: ${Math.abs(quantity)}`);
+        }
+        if (newReserved < 0) {
+          throw new Error(`Quantidade reservada não pode ser negativa. Atual: ${currentReserved}, Movimento: ${quantity}`);
+        }
+
+        updates.quantityOnHand = newOnHand;
+        updates.quantityReserved = newReserved;
         break;
 
       case "LOSS":
         // Decrease quantityOnHand for losses
-        updates.quantityOnHand = currentQuantity - quantity;
+        const newLossOnHand = currentQuantity - quantity;
+        if (newLossOnHand < 0) {
+          throw new Error(`Não há estoque suficiente para perda. Disponível: ${currentQuantity}, Solicitado: ${quantity}`);
+        }
+        updates.quantityOnHand = newLossOnHand;
         break;
 
       case "ADJUSTMENT":
         // Direct change to quantityOnHand (quantity can be positive or negative)
-        updates.quantityOnHand = currentQuantity + quantity;
+        const newAdjustment = currentQuantity + quantity;
+        if (newAdjustment < 0) {
+          throw new Error(`Ajuste resultaria em quantidade negativa. Atual: ${currentQuantity}, Ajuste: ${quantity}`);
+        }
+        updates.quantityOnHand = newAdjustment;
         break;
 
       case "RESERVATION":
         // Increase quantityReserved only (no physical change)
-        updates.quantityReserved = currentReserved + quantity;
+        const newReservation = currentReserved + quantity;
+        if (newReservation < 0) {
+          throw new Error(`Quantidade reservada não pode ser negativa. Atual: ${currentReserved}, Movimento: ${quantity}`);
+        }
+        updates.quantityReserved = newReservation;
         break;
 
       case "REVERSAL":
