@@ -6,7 +6,7 @@ export const Route = createFileRoute("/qr/$qrcodeId")({
 });
 
 function QRCodeRedirect() {
-  const { qrcodeId } = Route.useParams();
+  const { storeSlug, qrcodeId } = Route.useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,12 +16,13 @@ function QRCodeRedirect() {
       localStorage.setItem("tableIdExpiresAt", (Date.now() + 1000 * 60 * 60 * 24).toString());
     }
 
-    // Redirecionar para a página de pedidos com tableId como parâmetro
+    // Redirecionar para o cardápio da loja com tableId como parâmetro
     navigate({
-      to: "/pedidos",
+      to: "/$storeSlug",
+      params: { storeSlug },
       search: { tableId: qrcodeId }
     });
-  }, [qrcodeId, navigate]);
+  }, [storeSlug, qrcodeId, navigate]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-950">
