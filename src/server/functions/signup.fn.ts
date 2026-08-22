@@ -168,6 +168,14 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
       console.log(`✅ [SIGNUP] Transação concluída, adminUserId: ${adminUserId}`);
     } catch (error) {
       console.error(`💥 [SIGNUP] Erro na transação:`, error);
+      console.error(`📋 [SIGNUP] Stack:`, (error as Error).stack);
+      console.error(`📋 [SIGNUP] Message:`, (error as Error).message);
+      if (error instanceof Error && error.message.includes("Unique")) {
+        return {
+          ok: false as const,
+          error: "Este endereço ou e-mail já está em uso.",
+        };
+      }
       return {
         ok: false as const,
         error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
