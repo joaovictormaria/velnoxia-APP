@@ -111,7 +111,7 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
       sku: data.sku ? data.sku : undefined,
       barcode: data.barcode ? data.barcode : undefined,
       cost: data.cost ? parseFloat(data.cost) : undefined,
-      isActive: data.isActive === "true",
+      isActive: data.isActive !== undefined ? data.isActive === "true" : undefined,
     });
 
     const result = await InventoryService.updateItem(admin.storeId, data.itemId, validated);
