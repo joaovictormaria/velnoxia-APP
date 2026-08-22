@@ -63,7 +63,6 @@ export type KanbanOrder = {
   customerName: string;
   total: number;
   type: "DELIVERY" | "PICKUP";
-  tableLabel?: string | null;
   items: {
     productNameSnapshot: string;
     quantity: number;
@@ -200,7 +199,7 @@ function OrderCard({
       <article>
         <div className="flex items-baseline justify-between gap-2">
           <span className="min-w-0 truncate text-base font-bold text-neutral-900">
-            #{order.number} {order.tableLabel ? `(${order.tableLabel})` : ""} - {order.customerName}
+            #{order.number} - {order.customerName}
           </span>
           <span className="shrink-0 text-xs text-neutral-500">
             {time.format(new Date(order.createdAt))}

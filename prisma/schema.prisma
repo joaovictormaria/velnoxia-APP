@@ -766,10 +766,8 @@ model Order {
   internalNote String?
 
   /// Mesa onde o pedido foi feito (dine-in). Null para delivery/pickup.
-  tableId    String?
-  table      Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
-  /// Label da mesa (ex: "Mesa 1") para exibição. Null se delivery/pickup.
-  tableLabel String?
+  tableId String?
+  table   Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
 
   estimatedDeliveryAt DateTime?
   autoPrintRequested  Boolean   @default(false)

@@ -53,8 +53,6 @@ export type CheckoutInput = {
   customerNote?: string;
   /** Mesa QRCode ID para pedidos de balcão/mesa. */
   tableId?: string;
-  /** Label da mesa (ex: "Mesa 1") */
-  tableLabel?: string;
   delivery?: {
     street?: string;
     number?: string;
@@ -516,7 +514,6 @@ export async function createOrderFromCheckout(
         total,
         couponId,
         tableId: input.tableId ?? null,
-        tableLabel: input.tableLabel ?? null,
         employeeId: funcionario?.id ?? null,
         // O nome vai copiado: apagar a ficha do funcionário um dia não pode
         // apagar o registro de quem pegou o quê.
