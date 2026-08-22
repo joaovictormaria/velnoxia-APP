@@ -35,6 +35,7 @@ export function InventoryGrid(props: InventoryGridProps) {
     order: "asc",
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({
     name: "",
     baseUnitId: "kg",
@@ -118,8 +119,20 @@ export function InventoryGrid(props: InventoryGridProps) {
     return filtered;
   };
 
-  const handleDeactivate = async (itemId: string) => {
-    if (!confirm("Tem certeza que deseja desativar este item?")) return;
+  const handleEditItem = (item: InventoryItem) => {
+    setEditingItemId(item.id);
+    setNewItem({
+      name: item.name,
+      baseUnitId: item.baseUnit.code,
+      cost: item.cost?.toString() || "",
+      itemType: item.itemType,
+      initialQuantity: "",
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    if (!confirm("Tem certeza que deseja deletar este item?")) return;
 
     try {
       const fd = new FormData();
@@ -129,48 +142,66 @@ export function InventoryGrid(props: InventoryGridProps) {
 
       await adminUpdateInventoryItem(fd);
       fetchItems();
+      showToast("✅ Item deletado com sucesso!");
     } catch (error) {
-      console.error("Failed to deactivate item:", error);
+      console.error("Failed to delete item:", error);
+      alert("Erro ao deletar item: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   };
 
   const handleCreateItem = async () => {
     try {
-      const payload = {
-        data: {
-          name: newItem.name || "",
-          baseUnitId: newItem.baseUnitId || "kg",
-          itemType: newItem.itemType || "INGREDIENT",
-          cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
-        }
-      };
+      if (editingItemId) {
+        // Modo edição
+        const fd = new FormData();
+        fd.append("itemId", editingItemId);
+        fd.append("name", newItem.name || "");
+        fd.append("cost", newItem.cost && newItem.cost.trim() ? newItem.cost : "");
 
-      const createdItem = await adminCreateInventoryItem(payload as any);
-      const itemId = (createdItem as any)?.id;
-      const sku = (createdItem as any)?.sku || "gerado";
+        await adminUpdateInventoryItem(fd);
+        showToast(`✅ Item "${newItem.name}" atualizado com sucesso!`);
+      } else {
+        // Modo criação
+        const payload = {
+          data: {
+            name: newItem.name || "",
+            baseUnitId: newItem.baseUnitId || "kg",
+            itemType: newItem.itemType || "INGREDIENT",
+            cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+          }
+        };
 
-      // Se houver quantidade inicial, registrar movimento
-      const initialQty = newItem.initialQuantity?.trim();
-      if (initialQty && parseFloat(initialQty) > 0 && itemId) {
-        try {
-          const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
-          await adminRecordMovement({
-            data: {
-              itemId,
-              type: "PURCHASE",
-              quantity: parseFloat(initialQty),
-              unitId,
-              reference: undefined,
-              referenceType: undefined,
-              note: "Quantidade inicial registrada na criação do item",
-            }
-          } as any);
-        } catch (movError) {
-          console.error("Failed to record initial movement:", movError);
+        const createdItem = await adminCreateInventoryItem(payload as any);
+        const itemId = (createdItem as any)?.id;
+        const sku = (createdItem as any)?.sku || "gerado";
+
+        // Se houver quantidade inicial, registrar movimento
+        const initialQty = newItem.initialQuantity?.trim();
+        if (initialQty && parseFloat(initialQty) > 0 && itemId) {
+          try {
+            const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
+            await adminRecordMovement({
+              data: {
+                itemId,
+                type: "PURCHASE",
+                quantity: parseFloat(initialQty),
+                unitId,
+                reference: undefined,
+                referenceType: undefined,
+                note: "Quantidade inicial registrada na criação do item",
+              }
+            } as any);
+          } catch (movError) {
+            console.error("Failed to record initial movement:", movError);
+          }
         }
+
+        const qtyMsg = initialQty ? ` (${initialQty}un)` : "";
+        showToast(`✅ Item "${newItem.name}" criado com sucesso! SKU: ${sku}${qtyMsg}`);
       }
 
       setShowCreateModal(false);
+      setEditingItemId(null);
       setNewItem({
         name: "",
         baseUnitId: "kg",
@@ -180,12 +211,9 @@ export function InventoryGrid(props: InventoryGridProps) {
       });
       setGeneratedSku("");
       fetchItems();
-
-      const qtyMsg = initialQty ? ` (${initialQty}un)` : "";
-      showToast(`✅ Item "${newItem.name}" criado com sucesso! SKU: ${sku}${qtyMsg}`);
     } catch (error) {
-      console.error("Failed to create item:", error);
-      alert("Erro ao criar item: " + (error instanceof Error ? error.message : "Unknown error"));
+      console.error("Failed to create/update item:", error);
+      alert("Erro: " + (error instanceof Error ? error.message : "Unknown error"));
     }
   };
 
@@ -210,7 +238,7 @@ export function InventoryGrid(props: InventoryGridProps) {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full space-y-4">
-            <h3 className="text-lg font-bold">Criar Novo Item</h3>
+            <h3 className="text-lg font-bold">{editingItemId ? "Editar Item" : "Criar Novo Item"}</h3>
 
             <div>
               <label className="block text-sm font-medium mb-1">Nome *</label>
@@ -223,28 +251,32 @@ export function InventoryGrid(props: InventoryGridProps) {
               />
             </div>
 
-            <div className="bg-blue-50 p-3 rounded">
-              <p className="text-sm text-blue-900">
-                ℹ️ <strong>SKU gerado automaticamente</strong> pelo sistema (sem duplicação)
-              </p>
-            </div>
+            {!editingItemId && (
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="text-sm text-blue-900">
+                  ℹ️ <strong>SKU gerado automaticamente</strong> pelo sistema (sem duplicação)
+                </p>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Unidade *</label>
-              <select
-                value={newItem.baseUnitId}
-                onChange={(e) => setNewItem({ ...newItem, baseUnitId: e.target.value })}
-                className="w-full px-3 py-2 border rounded bg-background text-foreground"
-              >
-                <option value="kg">kg (quilograma)</option>
-                <option value="g">g (grama)</option>
-                <option value="L">L (litro)</option>
-                <option value="ml">ml (mililitro)</option>
-                <option value="un">un (unidade)</option>
-                <option value="m">m (metro)</option>
-                <option value="cm">cm (centímetro)</option>
-              </select>
-            </div>
+            {!editingItemId && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Unidade *</label>
+                <select
+                  value={newItem.baseUnitId}
+                  onChange={(e) => setNewItem({ ...newItem, baseUnitId: e.target.value })}
+                  className="w-full px-3 py-2 border rounded bg-background text-foreground"
+                >
+                  <option value="kg">kg (quilograma)</option>
+                  <option value="g">g (grama)</option>
+                  <option value="L">L (litro)</option>
+                  <option value="ml">ml (mililitro)</option>
+                  <option value="un">un (unidade)</option>
+                  <option value="m">m (metro)</option>
+                  <option value="cm">cm (centímetro)</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium mb-1">Custo (R$) (Opcional)</label>
@@ -258,33 +290,36 @@ export function InventoryGrid(props: InventoryGridProps) {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Quantidade Inicial (Opcional)</label>
-              <input
-                type="number"
-                value={newItem.initialQuantity}
-                onChange={(e) => setNewItem({ ...newItem, initialQuantity: e.target.value })}
-                placeholder="Ex: 10"
-                step="0.01"
-                className="w-full px-3 py-2 border rounded bg-background text-foreground"
-              />
-              <p className="text-xs text-neutral-600 mt-1">
-                Será registrada como compra (PURCHASE) automaticamente
-              </p>
-            </div>
+            {!editingItemId && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Quantidade Inicial (Opcional)</label>
+                <input
+                  type="number"
+                  value={newItem.initialQuantity}
+                  onChange={(e) => setNewItem({ ...newItem, initialQuantity: e.target.value })}
+                  placeholder="Ex: 10"
+                  step="0.01"
+                  className="w-full px-3 py-2 border rounded bg-background text-foreground"
+                />
+                <p className="text-xs text-neutral-600 mt-1">
+                  Será registrada como compra (PURCHASE) automaticamente
+                </p>
+              </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Tipo *</label>
-              <select
-                value={newItem.itemType}
-                onChange={(e) => setNewItem({ ...newItem, itemType: e.target.value })}
-                className="w-full px-3 py-2 border rounded bg-background text-foreground"
-              >
-                <option value="INGREDIENT">🧪 Ingrediente</option>
-                <option value="RESALE">🛒 Revenda</option>
-                <option value="PRODUCED">🍕 Produzido</option>
-                <option value="PACKAGING">📦 Embalagem</option>
-              </select>
+            {!editingItemId && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Tipo *</label>
+                <select
+                  value={newItem.itemType}
+                  onChange={(e) => setNewItem({ ...newItem, itemType: e.target.value })}
+                  className="w-full px-3 py-2 border rounded bg-background text-foreground"
+                >
+                  <option value="INGREDIENT">🧪 Ingrediente</option>
+                  <option value="RESALE">🛒 Revenda</option>
+                  <option value="PRODUCED">🍕 Produzido</option>
+                  <option value="PACKAGING">📦 Embalagem</option>
+                </select>
 
               {/* Descrição dinâmica do tipo selecionado */}
               <div className="mt-2 p-3 bg-gray-50 rounded text-xs text-gray-700 border border-gray-200">
@@ -317,11 +352,22 @@ export function InventoryGrid(props: InventoryGridProps) {
                   </>
                 )}
               </div>
-            </div>
+              </div>
+            )}
 
             <div className="flex gap-2 justify-end">
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setEditingItemId(null);
+                  setNewItem({
+                    name: "",
+                    baseUnitId: "kg",
+                    cost: "",
+                    itemType: "INGREDIENT",
+                    initialQuantity: "",
+                  });
+                }}
                 className="px-4 py-2 border rounded hover:bg-neutral-50"
               >
                 Cancelar
@@ -330,7 +376,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                 onClick={handleCreateItem}
                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
               >
-                Criar
+                {editingItemId ? "Salvar Alterações" : "Criar"}
               </button>
             </div>
           </div>
@@ -415,14 +461,22 @@ export function InventoryGrid(props: InventoryGridProps) {
                   {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
-                <td className="px-4 py-2 text-center">
+                <td className="px-4 py-2 text-center space-x-2">
                   {item.isActive ? (
-                    <button
-                      className="text-xs text-red-600 hover:underline"
-                      onClick={() => handleDeactivate(item.id)}
-                    >
-                      Desativar
-                    </button>
+                    <>
+                      <button
+                        className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700"
+                        onClick={() => handleEditItem(item)}
+                      >
+                        ✏️ Editar
+                      </button>
+                      <button
+                        className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+                        onClick={() => handleDeleteItem(item.id)}
+                      >
+                        🗑️ Deletar
+                      </button>
+                    </>
                   ) : (
                     <span className="text-xs text-neutral-600">Inativo</span>
                   )}
