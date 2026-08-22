@@ -87,15 +87,7 @@ export function MovementForm(props: MovementFormProps) {
         }
       };
 
-      console.log("MovementForm - Sending payload:", payload);
       const result = await adminRecordMovement(payload as any);
-      console.log("MovementForm - Result:", result);
-
-      if (!result) {
-        console.error("MovementForm - Result is empty/undefined!");
-        alert("Erro: resposta vazia do servidor");
-        return;
-      }
 
       props.onSuccess?.();
       invalidate();

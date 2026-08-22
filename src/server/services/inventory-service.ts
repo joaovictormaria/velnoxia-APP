@@ -149,9 +149,7 @@ export class InventoryService {
     }
 
     // 5. Create movement and update quantities (ATOMIC)
-    try {
-      console.log("InventoryService.recordMovement - Starting transaction for type:", data.type, "quantity:", data.quantity);
-      return await prisma.$transaction(async (tx) => {
+    return prisma.$transaction(async (tx) => {
         // Create the movement
         const movement = await tx.inventoryMovement.create({
         data: {
@@ -181,30 +179,15 @@ export class InventoryService {
         data.quantity
       );
 
-      console.log("InventoryService.recordMovement - Updates calculated:", {
-        type: data.type,
-        quantityInput: data.quantity,
-        currentQuantity: item.quantityOnHand,
-        updates: updates,
-      });
-
       if (Object.keys(updates).length > 0) {
-        console.log("InventoryService - Updating item", item.id, "with:", updates);
         await tx.inventoryItem.update({
           where: { id: item.id },
           data: updates,
         });
-        console.log("InventoryService - Item updated successfully");
-      } else {
-        console.log("InventoryService - No updates to apply (empty updates object)");
       }
 
       return movement;
     });
-    } catch (err) {
-      console.error("InventoryService.recordMovement - Transaction failed:", err);
-      throw err;
-    }
   }
 
   /**

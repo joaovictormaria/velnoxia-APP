@@ -107,14 +107,6 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    console.log("adminRecordMovement - Received data:", {
-      itemId: data?.itemId,
-      type: data?.type,
-      quantity: data?.quantity,
-      quantityParsed: data?.quantity ? parseFloat(data.quantity) : 0,
-      unitId: data?.unitId,
-    });
-
     const validated = createInventoryMovementSchema.parse({
       itemId: data?.itemId,
       type: data?.type,
@@ -128,11 +120,6 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
       authorName: admin.name,
     });
 
-    console.log("adminRecordMovement - Validated:", {
-      type: validated.type,
-      quantity: validated.quantity,
-    });
-
     // Generate idempotency key - use timestamp for manual movements (no reference)
     const timestamp = Date.now();
     const idempotencyKey = data.reference
@@ -144,40 +131,27 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
       idempotencyKey,
     });
 
-    console.log("adminRecordMovement - Result from service:", {
+    // Serialize Decimal values - convert ALL numeric fields
+    return {
       id: result.id,
+      storeId: result.storeId,
+      itemId: result.itemId,
       type: result.type,
-      quantityRecorded: result.quantity,
-    });
-
-    try {
-      // Serialize Decimal values - convert ALL numeric fields
-      const serialized = {
-        id: result.id,
-        storeId: result.storeId,
-        itemId: result.itemId,
-        type: result.type,
-        quantity: Number(result.quantity ?? 0),
-        unitId: result.unitId,
-        reference: result.reference,
-        referenceType: result.referenceType,
-        originalMovementId: result.originalMovementId,
-        compositionId: result.compositionId,
-        costAtTime: result.costAtTime ? Number(result.costAtTime) : null,
-        note: result.note,
-        authorType: result.authorType,
-        authorId: result.authorId,
-        authorName: result.authorName,
-        idempotencyKey: result.idempotencyKey,
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt,
-      };
-      console.log("adminRecordMovement - Serialized result:", serialized);
-      return serialized;
-    } catch (err) {
-      console.error("adminRecordMovement - Serialization error:", err);
-      throw err;
-    }
+      quantity: Number(result.quantity ?? 0),
+      unitId: result.unitId,
+      reference: result.reference,
+      referenceType: result.referenceType,
+      originalMovementId: result.originalMovementId,
+      compositionId: result.compositionId,
+      costAtTime: result.costAtTime ? Number(result.costAtTime) : null,
+      note: result.note,
+      authorType: result.authorType,
+      authorId: result.authorId,
+      authorName: result.authorName,
+      idempotencyKey: result.idempotencyKey,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
   });
 
 /**
