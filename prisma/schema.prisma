@@ -193,6 +193,7 @@ model Store {
   inventoryMovements   InventoryMovement[]   @relation("InventoryMovements")
   productCompositions  ProductComposition[]  @relation("ProductCompositions")
   tables               Table[]
+  tableSessions        TableSession[]
 
   @@index([status])
 }
