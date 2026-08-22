@@ -346,19 +346,15 @@ export class InventoryService {
         break;
 
       case "CONSUMPTION":
-        // Decrease both quantityOnHand and quantityReserved
+        // Decrease only quantityOnHand (for recipe consumption)
         const newOnHand = currentQuantity + quantity; // quantity is negative
-        const newReserved = currentReserved + quantity; // quantity is negative
 
         if (newOnHand < 0) {
           throw new Error(`Não há estoque suficiente. Disponível: ${currentQuantity}, Solicitado: ${Math.abs(quantity)}`);
         }
-        if (newReserved < 0) {
-          throw new Error(`Quantidade reservada não pode ser negativa. Atual: ${currentReserved}, Movimento: ${quantity}`);
-        }
 
         updates.quantityOnHand = newOnHand;
-        updates.quantityReserved = newReserved;
+        // quantityReserved é apenas para reservas de pedidos, não afeta consumo de receitas
         break;
 
       case "LOSS":
