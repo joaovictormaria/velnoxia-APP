@@ -35,6 +35,7 @@ export function InventoryGrid(props: InventoryGridProps) {
     order: "asc",
   });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showInactiveModal, setShowInactiveModal] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({
     name: "",
@@ -45,6 +46,8 @@ export function InventoryGrid(props: InventoryGridProps) {
   });
   const [generatedSku, setGeneratedSku] = useState<string>("");
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
+  const inactiveItems = items.filter((item) => !item.isActive);
+  const activeItems = items.filter((item) => item.isActive);
 
   const showToast = (message: string) => {
     setToast({ message, show: true });
@@ -83,7 +86,7 @@ export function InventoryGrid(props: InventoryGridProps) {
   };
 
   const getSortedAndFilteredItems = () => {
-    let filtered = [...items];
+    let filtered = [...activeItems];
 
     if (filterType) {
       filtered = filtered.filter((item) => item.itemType === filterType);
@@ -247,12 +250,22 @@ export function InventoryGrid(props: InventoryGridProps) {
       )}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Itens de Estoque</h2>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
-        >
-          + Novo Item
-        </button>
+        <div className="flex gap-2">
+          {inactiveItems.length > 0 && (
+            <button
+              onClick={() => setShowInactiveModal(true)}
+              className="px-3 py-2 text-xs bg-neutral-200 text-neutral-900 rounded hover:bg-neutral-300 font-medium"
+            >
+              🔒 Inativos ({inactiveItems.length})
+            </button>
+          )}
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-medium"
+          >
+            + Novo Item
+          </button>
+        </div>
       </div>
 
       {showCreateModal && (
@@ -403,6 +416,46 @@ export function InventoryGrid(props: InventoryGridProps) {
         </div>
       )}
 
+      {showInactiveModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full space-y-4 max-h-96 overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold">Itens Inativos ({inactiveItems.length})</h3>
+              <button
+                onClick={() => setShowInactiveModal(false)}
+                className="text-xl text-neutral-600 hover:text-neutral-900"
+              >
+                ✕
+              </button>
+            </div>
+
+            {inactiveItems.length === 0 ? (
+              <p className="text-neutral-600 text-center py-4">Nenhum item inativo</p>
+            ) : (
+              <div className="space-y-2">
+                {inactiveItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 border rounded bg-neutral-50 hover:bg-neutral-100">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{item.name}</p>
+                      <p className="text-xs text-neutral-600">{item.sku}</p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleActivateItem(item.id);
+                        setShowInactiveModal(false);
+                      }}
+                      className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      Ativar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <select
           value={filterType}
@@ -482,29 +535,18 @@ export function InventoryGrid(props: InventoryGridProps) {
                 </td>
                 <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-center space-x-3">
-                  {item.isActive ? (
-                    <>
-                      <button
-                        className="text-xs text-black hover:underline"
-                        onClick={() => handleEditItem(item)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        className="text-xs text-black hover:underline"
-                        onClick={() => handleDeleteItem(item.id)}
-                      >
-                        Deletar
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      className="text-xs text-black hover:underline"
-                      onClick={() => handleActivateItem(item.id)}
-                    >
-                      Ativar
-                    </button>
-                  )}
+                  <button
+                    className="text-xs text-black hover:underline"
+                    onClick={() => handleEditItem(item)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="text-xs text-black hover:underline"
+                    onClick={() => handleDeleteItem(item.id)}
+                  >
+                    Deletar
+                  </button>
                 </td>
               </tr>
             ))}
