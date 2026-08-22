@@ -29,6 +29,7 @@ import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe-webhoo
 import { Route as ApiUploadRouteImport } from './routes/api/upload'
 import { Route as EntregadorIndexRouteImport } from './routes/entregador/index'
 import { Route as EntregadorEntrarRouteImport } from './routes/entregador/entrar'
+import { Route as QrQrcodeIdRouteImport } from './routes/qr.$qrcodeId'
 import { Route as StoreSlugAcompanharTokenRouteImport } from './routes/$storeSlug/acompanhar/$token'
 import { Route as StoreSlugProdutoSlugRouteImport } from './routes/$storeSlug/produto/$slug'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
@@ -151,6 +152,11 @@ const EntregadorEntrarRoute = EntregadorEntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
   getParentRoute: () => EntregadorRouteRoute,
+} as any)
+const QrQrcodeIdRoute = QrQrcodeIdRouteImport.update({
+  id: '/qr/$qrcodeId',
+  path: '/qr/$qrcodeId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const StoreSlugAcompanharTokenRoute =
   StoreSlugAcompanharTokenRouteImport.update({
@@ -283,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
+  '/qr/$qrcodeId': typeof QrQrcodeIdRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/entregador/': typeof EntregadorIndexRoute
@@ -324,6 +331,7 @@ export interface FileRoutesByTo {
   '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
+  '/qr/$qrcodeId': typeof QrQrcodeIdRoute
   '/$storeSlug': typeof StoreSlugIndexRoute
   '/admin': typeof AdminIndexRoute
   '/entregador': typeof EntregadorIndexRoute
@@ -369,6 +377,7 @@ export interface FileRoutesById {
   '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/upload': typeof ApiUploadRoute
   '/entregador/entrar': typeof EntregadorEntrarRoute
+  '/qr/$qrcodeId': typeof QrQrcodeIdRoute
   '/$storeSlug/': typeof StoreSlugIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/entregador/': typeof EntregadorIndexRoute
@@ -415,6 +424,7 @@ export interface FileRouteTypes {
     | '/api/stripe-webhook'
     | '/api/upload'
     | '/entregador/entrar'
+    | '/qr/$qrcodeId'
     | '/$storeSlug/'
     | '/admin/'
     | '/entregador/'
@@ -456,6 +466,7 @@ export interface FileRouteTypes {
     | '/api/stripe-webhook'
     | '/api/upload'
     | '/entregador/entrar'
+    | '/qr/$qrcodeId'
     | '/$storeSlug'
     | '/admin'
     | '/entregador'
@@ -500,6 +511,7 @@ export interface FileRouteTypes {
     | '/api/stripe-webhook'
     | '/api/upload'
     | '/entregador/entrar'
+    | '/qr/$qrcodeId'
     | '/$storeSlug/'
     | '/admin/'
     | '/entregador/'
@@ -538,6 +550,7 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiUploadRoute: typeof ApiUploadRoute
+  QrQrcodeIdRoute: typeof QrQrcodeIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -681,6 +694,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/entregador/entrar'
       preLoaderRoute: typeof EntregadorEntrarRouteImport
       parentRoute: typeof EntregadorRouteRoute
+    }
+    '/qr/$qrcodeId': {
+      id: '/qr/$qrcodeId'
+      path: '/qr/$qrcodeId'
+      fullPath: '/qr/$qrcodeId'
+      preLoaderRoute: typeof QrQrcodeIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/$storeSlug/acompanhar/$token': {
       id: '/$storeSlug/acompanhar/$token'
@@ -944,6 +964,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiUploadRoute: ApiUploadRoute,
+  QrQrcodeIdRoute: QrQrcodeIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

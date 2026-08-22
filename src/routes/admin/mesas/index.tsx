@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { QrCode, Copy, Download, Trash2 } from "lucide-react";
+import { QrCode, Copy, Download, Trash2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { generateUUID } from "@/lib/uuid";
+import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
 
 export const Route = createFileRoute("/admin/mesas/")({
   component: MesasPage,
@@ -16,27 +18,32 @@ interface GeneratedQRCode {
 }
 
 function MesasPage() {
-  const [qrcodes, setQrcodes] = useState<GeneratedQRCode[]>([
-    {
-      id: "qr_mesa_001",
-      url: "https://velnox.app.br/qr/qr_mesa_001",
-      qrImage: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      createdAt: new Date(),
-      ordersCount: 0,
-    },
-  ]);
+  const [qrcodes, setQrcodes] = useState<GeneratedQRCode[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
 
-  const generateQRCode = () => {
-    const newId = `qr_mesa_${String(qrcodes.length + 1).padStart(3, "0")}`;
-    const newQRCode: GeneratedQRCode = {
-      id: newId,
-      url: `https://velnox.app.br/qr/${newId}`,
-      qrImage: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      createdAt: new Date(),
-      ordersCount: 0,
-    };
-    setQrcodes([newQRCode, ...qrcodes]);
+  const generateQRCode = async () => {
+    setGenerating(true);
+    try {
+      const newId = generateUUID();
+      const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://velnoxia.app";
+      const qrUrl = `${baseUrl}/qr/${newId}`;
+      const qrImage = await generateQRCodeDataUrl(qrUrl);
+
+      const newQRCode: GeneratedQRCode = {
+        id: newId,
+        url: qrUrl,
+        qrImage,
+        createdAt: new Date(),
+        ordersCount: 0,
+      };
+      setQrcodes([newQRCode, ...qrcodes]);
+    } catch (error) {
+      console.error("Erro ao gerar QRCode:", error);
+      alert("Erro ao gerar QRCode. Tente novamente.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const copyLink = (url: string) => {
@@ -45,11 +52,19 @@ function MesasPage() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const downloadQR = (qr: GeneratedQRCode) => {
-    const link = document.createElement("a");
-    link.href = qr.qrImage;
-    link.download = `${qr.id}-qrcode.png`;
-    link.click();
+  const downloadQR = async (qr: GeneratedQRCode) => {
+    try {
+      const blob = await generateQRCodePNG(qr.url);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${qr.id}-qrcode.png`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erro ao baixar QRCode:", error);
+      alert("Erro ao baixar QRCode. Tente novamente.");
+    }
   };
 
   const deleteQRCode = (id: string) => {
@@ -67,9 +82,18 @@ function MesasPage() {
             {qrcodes.length} QRCodes gerados • {qrcodes.reduce((sum, q) => sum + q.ordersCount, 0)} pedidos abertos
           </p>
         </div>
-        <Button onClick={generateQRCode} className="gap-2">
-          <QrCode className="size-4" />
-          Gerar Novo QRCode
+        <Button onClick={generateQRCode} disabled={generating} className="gap-2">
+          {generating ? (
+            <>
+              <Loader className="size-4 animate-spin" />
+              Gerando...
+            </>
+          ) : (
+            <>
+              <QrCode className="size-4" />
+              Gerar Novo QRCode
+            </>
+          )}
         </Button>
       </div>
 
