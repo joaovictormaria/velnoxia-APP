@@ -26,7 +26,7 @@ export function MesaCard({
 
   return (
     <>
-      <div className="rounded-xl border border-neutral-200 p-4 bg-white hover:border-purple-300 transition-colors">
+      <div className="rounded-xl border border-neutral-200 p-4 bg-white hover:border-purple-300 transition-colors cursor-pointer">
         <div className="flex items-baseline justify-between gap-2 mb-2">
           <span className="text-lg font-bold text-neutral-900">
             Mesa {mesa.tableNumber}
@@ -44,7 +44,7 @@ export function MesaCard({
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            className="w-full flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:border-purple-300 hover:text-purple-700 transition-colors"
+            className="w-full flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 hover:border-purple-300 hover:text-purple-700 transition-colors cursor-pointer"
           >
             <span>Ver detalhes</span>
             <ChevronDown className="size-4" />

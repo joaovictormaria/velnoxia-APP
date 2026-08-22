@@ -204,7 +204,7 @@ function OrderCard({
     <Link
       to="/admin/pedidos/$orderId"
       params={{ orderId: order.id }}
-      className="block rounded-xl border border-neutral-200 p-3 transition-colors hover:border-[#E11D2E]/40 hover:bg-[#E11D2E]/[0.03] focus-visible:border-[#E11D2E] focus-visible:outline-none"
+      className="block rounded-xl border border-neutral-200 p-3 transition-colors hover:border-[#E11D2E]/40 hover:bg-[#E11D2E]/[0.03] focus-visible:border-[#E11D2E] focus-visible:outline-none cursor-pointer"
     >
       <article>
         <div className="flex items-baseline justify-between gap-2">
@@ -268,7 +268,7 @@ function OrderCard({
               if (precisaEscolherEntregador) onDispatch(order);
               else if (next) onAdvance(order, next.status);
             }}
-            className={`mt-2 w-full rounded-lg border py-1.5 text-xs font-medium transition-colors ${
+            className={`mt-2 w-full rounded-lg border py-1.5 text-xs font-medium transition-colors cursor-pointer ${
               esperando
                 ? "border-orange-300 bg-orange-50 text-orange-700 hover:border-orange-500"
                 : "border-neutral-200 text-neutral-700 hover:border-[#E11D2E] hover:text-[#E11D2E]"
