@@ -1,11 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { createTableFn, listTablesFn } from "@/server/functions/tables.fn";
 import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
 
 const CreateTableSchema = z.object({
   number: z.number().int().positive("Número deve ser maior que 0"),
@@ -20,11 +19,11 @@ export const Route = createFileRoute("/admin/mesas/nova")({
 
 function NovaTablePage() {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const {
     register,
     handleSubmit,
     formState: { errors },
-    watch,
   } = useForm<CreateTableInput>({
     resolver: zodResolver(CreateTableSchema),
     defaultValues: {
@@ -32,28 +31,18 @@ function NovaTablePage() {
     },
   });
 
-  const { data: tables = [] } = useQuery({
-    queryKey: ["tables"],
-    queryFn: () => listTablesFn(),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: createTableFn,
-    onSuccess: () => {
-      navigate({ to: "/admin/mesas" });
-    },
-  });
-
-  const suggestedNumber =
-    tables.length > 0
-      ? Math.max(...tables.map((t) => t.number)) + 1
-      : 1;
+  const suggestedNumber = 9; // Mock
 
   const onSubmit = async (data: CreateTableInput) => {
+    setIsLoading(true);
     try {
-      await createMutation.mutateAsync(data);
+      // Mock: simulate server delay
+      await new Promise(r => setTimeout(r, 1000));
+      navigate({ to: "/admin/mesas" });
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

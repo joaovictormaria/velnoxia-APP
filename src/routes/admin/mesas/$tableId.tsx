@@ -1,42 +1,30 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { Download, RotateCw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { getTableWithOrdersFn, updateTableFn, generateQrcodeFn } from "@/server/functions/tables.fn";
-import type { TableStatus } from "@prisma/client";
+import type { Table, TableStatus } from "@prisma/client";
 
 export const Route = createFileRoute("/admin/mesas/$tableId")({
   component: MesaDetailPage,
 });
 
+// Mock table
+const mockTable: Table = {
+  id: "1",
+  storeId: "store-1",
+  number: 1,
+  capacity: 4,
+  status: "AVAILABLE",
+  qrcodeUrl: "https://velnox.app.br/mesa/1",
+  qrcodeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
 function MesaDetailPage() {
   const { tableId } = Route.useParams();
   const navigate = useNavigate();
-  const [statusFilter, setStatusFilter] = useState<TableStatus>("AVAILABLE");
-
-  const { data: table, isLoading, refetch } = useQuery({
-    queryKey: ["table", tableId],
-    queryFn: () => getTableWithOrdersFn({ tableId }),
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: updateTableFn,
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const regenerateQrMutation = useMutation({
-    mutationFn: generateQrcodeFn,
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  if (isLoading) {
-    return <div className="text-neutral-400">Carregando...</div>;
-  }
+  const [table, setTable] = useState<Table>(mockTable);
 
   if (!table) {
     return <div className="text-red-400">Mesa não encontrada</div>;
@@ -81,10 +69,7 @@ function MesaDetailPage() {
               <select
                 value={table.status}
                 onChange={(e) =>
-                  updateMutation.mutate({
-                    tableId,
-                    status: e.target.value as TableStatus,
-                  })
+                  setTable({...table, status: e.target.value as TableStatus})
                 }
                 className="mt-1 w-full rounded-lg bg-neutral-800 px-3 py-2 text-white"
               >
@@ -97,11 +82,10 @@ function MesaDetailPage() {
 
             <div className="flex gap-2 pt-2">
               <Button
-                onClick={() => regenerateQrMutation.mutate({ tableId })}
+                onClick={() => alert("QRCode regenerado!")}
                 variant="outline"
                 size="sm"
                 className="flex-1"
-                disabled={regenerateQrMutation.isPending}
               >
                 <RotateCw className="mr-2 size-4" />
                 Regenerar QR
@@ -129,7 +113,7 @@ function MesaDetailPage() {
         <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-6">
           <h2 className="mb-4 text-lg font-bold text-white">Pedidos Recentes</h2>
 
-          {table.orders && table.orders.length > 0 ? (
+          {false ? (
             <div className="space-y-2">
               {table.orders.map((order) => (
                 <div
