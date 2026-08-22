@@ -13,7 +13,14 @@ export function EstoqueProvider(props: { children: ReactNode }) {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const invalidate = () => setRefreshTrigger((t) => t + 1);
+  const invalidate = () => {
+    console.log("[EstoqueContext] invalidate() called, incrementing refreshTrigger");
+    setRefreshTrigger((t) => {
+      const newValue = t + 1;
+      console.log("[EstoqueContext] refreshTrigger updated from", t, "to", newValue);
+      return newValue;
+    });
+  };
 
   const value: EstoqueContextType = {
     selectedItemId,

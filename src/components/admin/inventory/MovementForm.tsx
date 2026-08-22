@@ -39,9 +39,12 @@ export function MovementForm(props: MovementFormProps) {
     setLoading(true);
     try {
       const data = await adminGetStockReport({
-        sortBy: "name",
-        limit: "100",
-      });
+        data: {
+          sortBy: "name",
+          limit: "100",
+          includeInactive: false,
+        }
+      } as any);
       if (Array.isArray(data)) {
         setItems(data.filter((i: any) => i.isActive));
       }
@@ -89,8 +92,10 @@ export function MovementForm(props: MovementFormProps) {
 
       const result = await adminRecordMovement(payload as any);
 
+      console.log("[MovementForm] Movement recorded, calling invalidate()");
       props.onSuccess?.();
       invalidate();
+      console.log("[MovementForm] invalidate() called successfully");
 
       setFormData({
         itemId: "",

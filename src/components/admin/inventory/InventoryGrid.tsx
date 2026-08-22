@@ -55,6 +55,7 @@ export function InventoryGrid(props: InventoryGridProps) {
   };
 
   const fetchItems = async () => {
+    console.log("[InventoryGrid] fetchItems() called");
     setLoading(true);
     try {
       const data = await adminGetStockReport({
@@ -65,6 +66,9 @@ export function InventoryGrid(props: InventoryGridProps) {
         }
       } as any);
       if (Array.isArray(data)) {
+        console.log("[InventoryGrid] Got data, count:", data.length);
+        const arroz = data.find((i: any) => i.name === "Arroz");
+        if (arroz) console.log("[InventoryGrid] Arroz quantity:", arroz.quantityOnHand);
         setItems(data);
       }
     } catch (error) {
@@ -75,6 +79,7 @@ export function InventoryGrid(props: InventoryGridProps) {
   };
 
   useEffect(() => {
+    console.log("[InventoryGrid] useEffect triggered, refreshTrigger:", refreshTrigger);
     fetchItems();
   }, [props.storeId, refreshTrigger]);
 

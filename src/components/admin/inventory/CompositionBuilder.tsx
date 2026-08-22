@@ -41,7 +41,9 @@ export function CompositionBuilder(props: CompositionBuilderProps) {
     setLoading(true);
     try {
       // Fetch inventory items
-      const itemsData = await adminGetStockReport({ sortBy: "name", limit: "100" });
+      const itemsData = await adminGetStockReport({
+        data: { sortBy: "name", limit: "100", includeInactive: false }
+      } as any);
       if (Array.isArray(itemsData)) {
         setItems(itemsData.filter((i: any) => i.isActive));
       }
