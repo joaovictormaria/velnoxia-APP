@@ -8,7 +8,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { TableProvider } from "@/lib/table-context";
 
 import appCss from "../styles.css?url";
 
@@ -121,10 +120,8 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TableProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-      </TableProvider>
+      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+      <Outlet />
     </QueryClientProvider>
   );
 }

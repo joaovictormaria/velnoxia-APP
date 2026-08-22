@@ -45,17 +45,12 @@ import { Route as AdminEstoqueIndexRouteImport } from './routes/admin/estoque/in
 import { Route as AdminFuncionariosIndexRouteImport } from './routes/admin/funcionarios/index'
 import { Route as AdminFuncionariosPlanosRouteImport } from './routes/admin/funcionarios/planos'
 import { Route as AdminMesasIndexRouteImport } from './routes/admin/mesas/index'
-import { Route as AdminMesasTableIdRouteImport } from './routes/admin/mesas/$tableId'
-import { Route as AdminMesasDashboardRouteImport } from './routes/admin/mesas/dashboard'
-import { Route as AdminMesasNovaRouteImport } from './routes/admin/mesas/nova'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
 import { Route as AdminPedidosOrderIdRouteImport } from './routes/admin/pedidos/$orderId'
 import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoes/index'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
-import { Route as publicStoreSlugAcompanharMesaTableIdRouteImport } from './routes/(public)/$storeSlug.acompanhar-mesa.$tableId'
-import { Route as publicStoreSlugMesaTableIdRouteImport } from './routes/(public)/$storeSlug.mesa.$tableId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -238,21 +233,6 @@ const AdminMesasIndexRoute = AdminMesasIndexRouteImport.update({
   path: '/mesas/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const AdminMesasTableIdRoute = AdminMesasTableIdRouteImport.update({
-  id: '/mesas/$tableId',
-  path: '/mesas/$tableId',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminMesasDashboardRoute = AdminMesasDashboardRouteImport.update({
-  id: '/mesas/dashboard',
-  path: '/mesas/dashboard',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
-const AdminMesasNovaRoute = AdminMesasNovaRouteImport.update({
-  id: '/mesas/nova',
-  path: '/mesas/nova',
-  getParentRoute: () => AdminRouteRoute,
-} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -284,18 +264,6 @@ const AdminRelatoriosProdutosRoute = AdminRelatoriosProdutosRouteImport.update({
   path: '/relatorios/produtos',
   getParentRoute: () => AdminRouteRoute,
 } as any)
-const publicStoreSlugAcompanharMesaTableIdRoute =
-  publicStoreSlugAcompanharMesaTableIdRouteImport.update({
-    id: '/(public)/$storeSlug/acompanhar-mesa/$tableId',
-    path: '/$storeSlug/acompanhar-mesa/$tableId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const publicStoreSlugMesaTableIdRoute =
-  publicStoreSlugMesaTableIdRouteImport.update({
-    id: '/(public)/$storeSlug/mesa/$tableId',
-    path: '/$storeSlug/mesa/$tableId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -325,9 +293,6 @@ export interface FileRoutesByFullPath {
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
-  '/admin/mesas/$tableId': typeof AdminMesasTableIdRoute
-  '/admin/mesas/dashboard': typeof AdminMesasDashboardRoute
-  '/admin/mesas/nova': typeof AdminMesasNovaRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -343,8 +308,6 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
-  '/$storeSlug/acompanhar-mesa/$tableId': typeof publicStoreSlugAcompanharMesaTableIdRoute
-  '/$storeSlug/mesa/$tableId': typeof publicStoreSlugMesaTableIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -371,9 +334,6 @@ export interface FileRoutesByTo {
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
-  '/admin/mesas/$tableId': typeof AdminMesasTableIdRoute
-  '/admin/mesas/dashboard': typeof AdminMesasDashboardRoute
-  '/admin/mesas/nova': typeof AdminMesasNovaRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -389,8 +349,6 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/promocoes': typeof AdminPromocoesIndexRoute
   '/admin/relatorios': typeof AdminRelatoriosIndexRoute
-  '/$storeSlug/acompanhar-mesa/$tableId': typeof publicStoreSlugAcompanharMesaTableIdRoute
-  '/$storeSlug/mesa/$tableId': typeof publicStoreSlugMesaTableIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -421,9 +379,6 @@ export interface FileRoutesById {
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
-  '/admin/mesas/$tableId': typeof AdminMesasTableIdRoute
-  '/admin/mesas/dashboard': typeof AdminMesasDashboardRoute
-  '/admin/mesas/nova': typeof AdminMesasNovaRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -439,8 +394,6 @@ export interface FileRoutesById {
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
-  '/(public)/$storeSlug/acompanhar-mesa/$tableId': typeof publicStoreSlugAcompanharMesaTableIdRoute
-  '/(public)/$storeSlug/mesa/$tableId': typeof publicStoreSlugMesaTableIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -472,9 +425,6 @@ export interface FileRouteTypes {
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
-    | '/admin/mesas/$tableId'
-    | '/admin/mesas/dashboard'
-    | '/admin/mesas/nova'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
@@ -490,8 +440,6 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
-    | '/$storeSlug/acompanhar-mesa/$tableId'
-    | '/$storeSlug/mesa/$tableId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -518,9 +466,6 @@ export interface FileRouteTypes {
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
-    | '/admin/mesas/$tableId'
-    | '/admin/mesas/dashboard'
-    | '/admin/mesas/nova'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
@@ -536,8 +481,6 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/promocoes'
     | '/admin/relatorios'
-    | '/$storeSlug/acompanhar-mesa/$tableId'
-    | '/$storeSlug/mesa/$tableId'
   id:
     | '__root__'
     | '/'
@@ -567,9 +510,6 @@ export interface FileRouteTypes {
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
-    | '/admin/mesas/$tableId'
-    | '/admin/mesas/dashboard'
-    | '/admin/mesas/nova'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
@@ -585,8 +525,6 @@ export interface FileRouteTypes {
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
-    | '/(public)/$storeSlug/acompanhar-mesa/$tableId'
-    | '/(public)/$storeSlug/mesa/$tableId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -600,8 +538,6 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiUploadRoute: typeof ApiUploadRoute
-  publicStoreSlugAcompanharMesaTableIdRoute: typeof publicStoreSlugAcompanharMesaTableIdRoute
-  publicStoreSlugMesaTableIdRoute: typeof publicStoreSlugMesaTableIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -858,27 +794,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMesasIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/admin/mesas/$tableId': {
-      id: '/admin/mesas/$tableId'
-      path: '/mesas/$tableId'
-      fullPath: '/admin/mesas/$tableId'
-      preLoaderRoute: typeof AdminMesasTableIdRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/mesas/dashboard': {
-      id: '/admin/mesas/dashboard'
-      path: '/mesas/dashboard'
-      fullPath: '/admin/mesas/dashboard'
-      preLoaderRoute: typeof AdminMesasDashboardRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
-    '/admin/mesas/nova': {
-      id: '/admin/mesas/nova'
-      path: '/mesas/nova'
-      fullPath: '/admin/mesas/nova'
-      preLoaderRoute: typeof AdminMesasNovaRouteImport
-      parentRoute: typeof AdminRouteRoute
-    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -921,20 +836,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosProdutosRouteImport
       parentRoute: typeof AdminRouteRoute
     }
-    '/(public)/$storeSlug/acompanhar-mesa/$tableId': {
-      id: '/(public)/$storeSlug/acompanhar-mesa/$tableId'
-      path: '/$storeSlug/acompanhar-mesa/$tableId'
-      fullPath: '/$storeSlug/acompanhar-mesa/$tableId'
-      preLoaderRoute: typeof publicStoreSlugAcompanharMesaTableIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(public)/$storeSlug/mesa/$tableId': {
-      id: '/(public)/$storeSlug/mesa/$tableId'
-      path: '/$storeSlug/mesa/$tableId'
-      fullPath: '/$storeSlug/mesa/$tableId'
-      preLoaderRoute: typeof publicStoreSlugMesaTableIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -968,9 +869,6 @@ interface AdminRouteRouteChildren {
   AdminCardapioExtrasRoute: typeof AdminCardapioExtrasRoute
   AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
   AdminFuncionariosPlanosRoute: typeof AdminFuncionariosPlanosRoute
-  AdminMesasTableIdRoute: typeof AdminMesasTableIdRoute
-  AdminMesasDashboardRoute: typeof AdminMesasDashboardRoute
-  AdminMesasNovaRoute: typeof AdminMesasNovaRoute
   AdminPedidosOrderIdRoute: typeof AdminPedidosOrderIdRoute
   AdminRelatoriosFuncionariosRoute: typeof AdminRelatoriosFuncionariosRoute
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
@@ -1000,9 +898,6 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCardapioExtrasRoute: AdminCardapioExtrasRoute,
   AdminCardapioNovoRoute: AdminCardapioNovoRoute,
   AdminFuncionariosPlanosRoute: AdminFuncionariosPlanosRoute,
-  AdminMesasTableIdRoute: AdminMesasTableIdRoute,
-  AdminMesasDashboardRoute: AdminMesasDashboardRoute,
-  AdminMesasNovaRoute: AdminMesasNovaRoute,
   AdminPedidosOrderIdRoute: AdminPedidosOrderIdRoute,
   AdminRelatoriosFuncionariosRoute: AdminRelatoriosFuncionariosRoute,
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
@@ -1049,9 +944,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiUploadRoute: ApiUploadRoute,
-  publicStoreSlugAcompanharMesaTableIdRoute:
-    publicStoreSlugAcompanharMesaTableIdRoute,
-  publicStoreSlugMesaTableIdRoute: publicStoreSlugMesaTableIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
