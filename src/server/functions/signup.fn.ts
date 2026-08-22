@@ -167,16 +167,13 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
       adminUserId = admin.id;
       console.log(`✅ [SIGNUP] Transação concluída, adminUserId: ${adminUserId}`);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : "";
       console.error(`💥 [SIGNUP] Erro na transação:`, error);
-      console.error(`📋 [SIGNUP] Message:`, errorMsg);
-      console.error(`📋 [SIGNUP] Stack:`, errorStack);
+      console.error(`📋 [SIGNUP] Message:`, (error as Error).message);
+      console.error(`📋 [SIGNUP] Stack:`, (error as Error).stack);
 
-      // DEBUG: retornar erro real para identificar problema
       return {
         ok: false as const,
-        error: `DEBUG - ${errorMsg}`,
+        error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
       };
     }
 
