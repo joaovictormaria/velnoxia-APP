@@ -44,6 +44,9 @@ import { Route as AdminEntregadoresIndexRouteImport } from './routes/admin/entre
 import { Route as AdminEstoqueIndexRouteImport } from './routes/admin/estoque/index'
 import { Route as AdminFuncionariosIndexRouteImport } from './routes/admin/funcionarios/index'
 import { Route as AdminFuncionariosPlanosRouteImport } from './routes/admin/funcionarios/planos'
+import { Route as AdminMesasIndexRouteImport } from './routes/admin/mesas/index'
+import { Route as AdminMesasTableIdRouteImport } from './routes/admin/mesas/$tableId'
+import { Route as AdminMesasNovaRouteImport } from './routes/admin/mesas/nova'
 import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/index'
 import { Route as AdminPedidosOrderIdRouteImport } from './routes/admin/pedidos/$orderId'
 import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoes/index'
@@ -227,6 +230,21 @@ const AdminFuncionariosPlanosRoute = AdminFuncionariosPlanosRouteImport.update({
   path: '/funcionarios/planos',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminMesasIndexRoute = AdminMesasIndexRouteImport.update({
+  id: '/mesas/',
+  path: '/mesas/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminMesasTableIdRoute = AdminMesasTableIdRouteImport.update({
+  id: '/mesas/$tableId',
+  path: '/mesas/$tableId',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminMesasNovaRoute = AdminMesasNovaRouteImport.update({
+  id: '/mesas/nova',
+  path: '/mesas/nova',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminPedidosIndexRoute = AdminPedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -287,6 +305,8 @@ export interface FileRoutesByFullPath {
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
+  '/admin/mesas/$tableId': typeof AdminMesasTableIdRoute
+  '/admin/mesas/nova': typeof AdminMesasNovaRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -298,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/admin/entregadores/': typeof AdminEntregadoresIndexRoute
   '/admin/estoque/': typeof AdminEstoqueIndexRoute
   '/admin/funcionarios/': typeof AdminFuncionariosIndexRoute
+  '/admin/mesas/': typeof AdminMesasIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
@@ -327,6 +348,8 @@ export interface FileRoutesByTo {
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
+  '/admin/mesas/$tableId': typeof AdminMesasTableIdRoute
+  '/admin/mesas/nova': typeof AdminMesasNovaRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -338,6 +361,7 @@ export interface FileRoutesByTo {
   '/admin/entregadores': typeof AdminEntregadoresIndexRoute
   '/admin/estoque': typeof AdminEstoqueIndexRoute
   '/admin/funcionarios': typeof AdminFuncionariosIndexRoute
+  '/admin/mesas': typeof AdminMesasIndexRoute
   '/admin/pedidos': typeof AdminPedidosIndexRoute
   '/admin/promocoes': typeof AdminPromocoesIndexRoute
   '/admin/relatorios': typeof AdminRelatoriosIndexRoute
@@ -371,6 +395,8 @@ export interface FileRoutesById {
   '/admin/cardapio/extras': typeof AdminCardapioExtrasRoute
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
+  '/admin/mesas/$tableId': typeof AdminMesasTableIdRoute
+  '/admin/mesas/nova': typeof AdminMesasNovaRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -382,6 +408,7 @@ export interface FileRoutesById {
   '/admin/entregadores/': typeof AdminEntregadoresIndexRoute
   '/admin/estoque/': typeof AdminEstoqueIndexRoute
   '/admin/funcionarios/': typeof AdminFuncionariosIndexRoute
+  '/admin/mesas/': typeof AdminMesasIndexRoute
   '/admin/pedidos/': typeof AdminPedidosIndexRoute
   '/admin/promocoes/': typeof AdminPromocoesIndexRoute
   '/admin/relatorios/': typeof AdminRelatoriosIndexRoute
@@ -416,6 +443,8 @@ export interface FileRouteTypes {
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
+    | '/admin/mesas/$tableId'
+    | '/admin/mesas/nova'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
@@ -427,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin/entregadores/'
     | '/admin/estoque/'
     | '/admin/funcionarios/'
+    | '/admin/mesas/'
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
@@ -456,6 +486,8 @@ export interface FileRouteTypes {
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
+    | '/admin/mesas/$tableId'
+    | '/admin/mesas/nova'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
@@ -467,6 +499,7 @@ export interface FileRouteTypes {
     | '/admin/entregadores'
     | '/admin/estoque'
     | '/admin/funcionarios'
+    | '/admin/mesas'
     | '/admin/pedidos'
     | '/admin/promocoes'
     | '/admin/relatorios'
@@ -499,6 +532,8 @@ export interface FileRouteTypes {
     | '/admin/cardapio/extras'
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
+    | '/admin/mesas/$tableId'
+    | '/admin/mesas/nova'
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
@@ -510,6 +545,7 @@ export interface FileRouteTypes {
     | '/admin/entregadores/'
     | '/admin/estoque/'
     | '/admin/funcionarios/'
+    | '/admin/mesas/'
     | '/admin/pedidos/'
     | '/admin/promocoes/'
     | '/admin/relatorios/'
@@ -775,6 +811,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFuncionariosPlanosRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/mesas/': {
+      id: '/admin/mesas/'
+      path: '/mesas'
+      fullPath: '/admin/mesas/'
+      preLoaderRoute: typeof AdminMesasIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/mesas/$tableId': {
+      id: '/admin/mesas/$tableId'
+      path: '/mesas/$tableId'
+      fullPath: '/admin/mesas/$tableId'
+      preLoaderRoute: typeof AdminMesasTableIdRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/mesas/nova': {
+      id: '/admin/mesas/nova'
+      path: '/mesas/nova'
+      fullPath: '/admin/mesas/nova'
+      preLoaderRoute: typeof AdminMesasNovaRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/pedidos/': {
       id: '/admin/pedidos/'
       path: '/pedidos'
@@ -850,6 +907,8 @@ interface AdminRouteRouteChildren {
   AdminCardapioExtrasRoute: typeof AdminCardapioExtrasRoute
   AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
   AdminFuncionariosPlanosRoute: typeof AdminFuncionariosPlanosRoute
+  AdminMesasTableIdRoute: typeof AdminMesasTableIdRoute
+  AdminMesasNovaRoute: typeof AdminMesasNovaRoute
   AdminPedidosOrderIdRoute: typeof AdminPedidosOrderIdRoute
   AdminRelatoriosFuncionariosRoute: typeof AdminRelatoriosFuncionariosRoute
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
@@ -861,6 +920,7 @@ interface AdminRouteRouteChildren {
   AdminEntregadoresIndexRoute: typeof AdminEntregadoresIndexRoute
   AdminEstoqueIndexRoute: typeof AdminEstoqueIndexRoute
   AdminFuncionariosIndexRoute: typeof AdminFuncionariosIndexRoute
+  AdminMesasIndexRoute: typeof AdminMesasIndexRoute
   AdminPedidosIndexRoute: typeof AdminPedidosIndexRoute
   AdminPromocoesIndexRoute: typeof AdminPromocoesIndexRoute
   AdminRelatoriosIndexRoute: typeof AdminRelatoriosIndexRoute
@@ -878,6 +938,8 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCardapioExtrasRoute: AdminCardapioExtrasRoute,
   AdminCardapioNovoRoute: AdminCardapioNovoRoute,
   AdminFuncionariosPlanosRoute: AdminFuncionariosPlanosRoute,
+  AdminMesasTableIdRoute: AdminMesasTableIdRoute,
+  AdminMesasNovaRoute: AdminMesasNovaRoute,
   AdminPedidosOrderIdRoute: AdminPedidosOrderIdRoute,
   AdminRelatoriosFuncionariosRoute: AdminRelatoriosFuncionariosRoute,
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
@@ -889,6 +951,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminEntregadoresIndexRoute: AdminEntregadoresIndexRoute,
   AdminEstoqueIndexRoute: AdminEstoqueIndexRoute,
   AdminFuncionariosIndexRoute: AdminFuncionariosIndexRoute,
+  AdminMesasIndexRoute: AdminMesasIndexRoute,
   AdminPedidosIndexRoute: AdminPedidosIndexRoute,
   AdminPromocoesIndexRoute: AdminPromocoesIndexRoute,
   AdminRelatoriosIndexRoute: AdminRelatoriosIndexRoute,

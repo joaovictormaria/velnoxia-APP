@@ -102,6 +102,13 @@ enum OrderSource {
   ADMIN
 }
 
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  RESERVED
+  MAINTENANCE
+}
+
 enum StatusAuthorType {
   ADMIN
   SYSTEM
@@ -185,6 +192,7 @@ model Store {
   inventoryItems       InventoryItem[]       @relation("InventoryItems")
   inventoryMovements   InventoryMovement[]   @relation("InventoryMovements")
   productCompositions  ProductComposition[]  @relation("ProductCompositions")
+  tables               Table[]
 
   @@index([status])
 }
@@ -740,6 +748,10 @@ model Order {
   customerNote String?
   internalNote String?
 
+  /// Mesa onde o pedido foi feito (dine-in). Null para delivery/pickup.
+  tableId String?
+  table   Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
   estimatedDeliveryAt DateTime?
   autoPrintRequested  Boolean   @default(false)
 
@@ -1192,4 +1204,39 @@ model CompositionItem {
 
   @@index([compositionId])
   @@index([inventoryItemId])
+}
+
+// ---------- Mesas (Dine-in) ----------
+
+/// Mesa do restaurante para comer no local (dine-in).
+/// Cada mesa tem um QRCode único que direciona para /mesa/{id}.
+model Table {
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  /// Número da mesa (1, 2, 3...). Deve ser único por store.
+  number Int
+
+  /// Capacidade de pessoas que sentam na mesa
+  capacity Int
+
+  /// Status atual da mesa (livre, ocupada, reservada, manutenção)
+  status TableStatus @default(AVAILABLE)
+
+  /// URL pública do QRCode: https://velnox.app.br/mesa/{id}
+  qrcodeUrl String
+
+  /// Dados do QRCode em base64 para exibição/download
+  qrcodeData String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  /// Índices para queries comuns
+  @@unique([storeId, number])
+  @@index([storeId, status])
+  @@index([storeId, createdAt])
 }

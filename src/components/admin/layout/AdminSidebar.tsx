@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Cog,
   CreditCard,
+  Grid3x3,
   Inbox,
   LayoutGrid,
   LogOut,
@@ -53,6 +54,7 @@ type Grupo = { id: string; label: string; icon: LucideIcon; itens: Item[] };
 const MENU: (Item | Grupo)[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutGrid, exact: true },
   { to: "/admin/pedidos", label: "Pedidos", icon: Inbox },
+  { to: "/admin/mesas", label: "Mesas", icon: Grid3x3 },
   {
     id: "cardapio",
     label: "Cardápio",
