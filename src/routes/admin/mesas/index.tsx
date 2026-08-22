@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { QrCode, Copy, Download, Trash2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateUUID } from "@/lib/uuid";
 import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
+import { getTableOrderCountsFn } from "@/server/functions/orders.fn";
 
 export const Route = createFileRoute("/admin/mesas/")({
   component: MesasPage,
@@ -11,6 +13,7 @@ export const Route = createFileRoute("/admin/mesas/")({
 
 interface GeneratedQRCode {
   id: string;
+  number: number;
   url: string;
   qrImage: string;
   createdAt: Date;
@@ -24,6 +27,54 @@ function MesasPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
+  // Carregar contagem de pedidos abertos por mesa
+  const { data: tableOrderCounts = {} } = useQuery({
+    queryKey: ["tableOrderCounts"],
+    queryFn: () => getTableOrderCountsFn({}),
+    refetchInterval: 5_000,
+  });
+
+  // Carregar QRCodes salvos do localStorage ao montar
+  useEffect(() => {
+    if (!admin?.store?.slug) return;
+    const storeSlugKey = `tableNumbers_${admin.store.slug}`;
+    const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
+
+    // Converter mapa de IDs em QRCodes, mantendo apenas mesas com pedidos abertos
+    const generatedQRCodes: GeneratedQRCode[] = Object.entries(tableNumberMap)
+      .map(([id, number]) => ({
+        id,
+        number: number as number,
+        url: `${window.location.origin}/qr/${admin.store.slug}/${id}`,
+        qrImage: "", // Será gerado à demanda
+        createdAt: new Date(),
+        ordersCount: (tableOrderCounts[number as any] ?? 0) as number,
+      }))
+      .filter((qr) => qr.ordersCount > 0); // Apenas mesas com pedidos abertos
+
+    setQrcodes(generatedQRCodes);
+  }, [admin, tableOrderCounts]);
+
+  // Gerar imagens QR para todos os QRCodes quando a lista mudar
+  useEffect(() => {
+    const generateImages = async () => {
+      for (const qr of qrcodes) {
+        if (!qr.qrImage) {
+          try {
+            const image = await generateQRCodeDataUrl(qr.url);
+            setQrcodes((prev) =>
+              prev.map((q) => (q.id === qr.id ? { ...q, qrImage: image } : q))
+            );
+          } catch (error) {
+            console.error(`Erro ao gerar QR ${qr.id}:`, error);
+          }
+        }
+      }
+    };
+
+    generateImages();
+  }, [qrcodes]);
+
   const generateQRCode = async () => {
     setGenerating(true);
     try {
@@ -34,6 +85,8 @@ function MesasPage() {
       }
 
       const newId = generateUUID();
+      const tableNumber = qrcodes.length + 1;
+
       const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://velnoxia.app";
       const storeSlug = admin.store.slug;
       const qrUrl = `${baseUrl}/qr/${storeSlug}/${newId}`;
@@ -41,11 +94,19 @@ function MesasPage() {
 
       const newQRCode: GeneratedQRCode = {
         id: newId,
+        number: tableNumber,
         url: qrUrl,
         qrImage,
         createdAt: new Date(),
         ordersCount: 0,
       };
+
+      // Guardar mapeamento tableId -> tableNumber no localStorage para uso na rota QR
+      const storeSlugKey = `tableNumbers_${admin.store.slug}`;
+      const existingMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
+      existingMap[newId] = tableNumber;
+      localStorage.setItem(storeSlugKey, JSON.stringify(existingMap));
+
       setQrcodes([newQRCode, ...qrcodes]);
     } catch (error) {
       console.error("Erro ao gerar QRCode:", error);
@@ -77,8 +138,16 @@ function MesasPage() {
   };
 
   const deleteQRCode = (id: string) => {
-    if (confirm(`Deletar QRCode ${id}?`)) {
+    if (confirm(`Deletar QRCode Mesa?`)) {
       setQrcodes(qrcodes.filter(q => q.id !== id));
+
+      // Remover do localStorage também
+      if (admin?.store?.slug) {
+        const storeSlugKey = `tableNumbers_${admin.store.slug}`;
+        const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
+        delete tableNumberMap[id];
+        localStorage.setItem(storeSlugKey, JSON.stringify(tableNumberMap));
+      }
     }
   };
 
@@ -139,8 +208,8 @@ function MesasPage() {
 
               <div className="mb-4 space-y-2 text-sm">
                 <div>
-                  <p className="text-neutral-400">ID</p>
-                  <p className="font-mono font-bold text-white">{qr.id}</p>
+                  <p className="text-neutral-400">Mesa</p>
+                  <p className="text-xl font-bold text-white">Mesa {qr.number}</p>
                 </div>
                 <div>
                   <p className="text-neutral-400">Pedidos Abertos</p>

@@ -751,6 +751,8 @@ model Order {
   /// Mesa onde o pedido foi feito (dine-in). Null para delivery/pickup.
   tableId String?
   table   Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  /// Número da mesa para exibição amigável (Mesa 1, Mesa 2...). Auto-incrementado per loja.
+  tableNumber Int?
 
   estimatedDeliveryAt DateTime?
   autoPrintRequested  Boolean   @default(false)

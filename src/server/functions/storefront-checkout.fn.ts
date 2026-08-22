@@ -34,6 +34,8 @@ const checkoutSchema = z.object({
   customerNote: z.string().max(500).optional(),
   /** Mesa QRCode ID para pedidos de balcão/mesa. */
   tableId: z.string().uuid().optional(),
+  /** Número da mesa para exibição (Mesa 1, Mesa 2...). */
+  tableNumber: z.number().int().min(1).optional(),
   delivery: z
     .object({
       street: z.string().optional(),

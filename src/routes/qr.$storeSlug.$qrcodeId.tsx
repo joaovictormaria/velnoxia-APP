@@ -14,6 +14,14 @@ function QRCodeRedirect() {
     if (qrcodeId) {
       localStorage.setItem("tableId", qrcodeId);
       localStorage.setItem("tableIdExpiresAt", (Date.now() + 1000 * 60 * 60 * 24).toString());
+
+      // Buscar número da mesa do mapeamento
+      const storeSlugKey = `tableNumbers_${storeSlug}`;
+      const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
+      const tableNumber = tableNumberMap[qrcodeId];
+      if (tableNumber) {
+        localStorage.setItem("tableNumber", tableNumber.toString());
+      }
     }
 
     // Redirecionar para o cardápio da loja com tableId como parâmetro
