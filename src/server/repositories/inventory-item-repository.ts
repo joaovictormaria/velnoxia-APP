@@ -1,6 +1,5 @@
 import { prisma } from "@/server/db/client";
 import { Prisma } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime/library";
 
 export type CreateInventoryItemInput = Prisma.InventoryItemCreateInput;
 export type UpdateInventoryItemInput = Prisma.InventoryItemUpdateInput;
@@ -97,8 +96,8 @@ export const inventoryItemRepository = {
   async updateQuantities(
     itemId: string,
     updates: {
-      quantityOnHand?: Decimal | number;
-      quantityReserved?: Decimal | number;
+      quantityOnHand?: number;
+      quantityReserved?: number;
     }
   ) {
     const data: Prisma.InventoryItemUpdateInput = {};
@@ -147,7 +146,7 @@ export const inventoryItemRepository = {
     }
 
     // quantityAvailable = quantityOnHand - quantityReserved
-    const quantityAvailable = item.quantityOnHand.sub(item.quantityReserved);
+    const quantityAvailable = item.quantityOnHand - item.quantityReserved;
 
     return {
       ...item,

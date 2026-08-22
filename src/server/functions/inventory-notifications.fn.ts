@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getStoreFromSession } from "@/server/auth/session";
+import { requireAdminSession } from "@/server/auth/session";
 import { InventoryNotificationService } from "@/server/services/inventory-notification-service";
 
 /**
@@ -8,7 +8,7 @@ import { InventoryNotificationService } from "@/server/services/inventory-notifi
  */
 export const sendAlertEmail = createServerFn({ method: "POST" })
   .handler(async () => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store?.adminUser) {
       throw new Error("Not authenticated or not admin");
     }
@@ -25,7 +25,7 @@ export const sendAlertEmail = createServerFn({ method: "POST" })
  */
 export const sendForecastEmail = createServerFn({ method: "POST" })
   .handler(async () => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store?.adminUser) {
       throw new Error("Not authenticated or not admin");
     }
@@ -44,7 +44,7 @@ export const sendForecastEmail = createServerFn({ method: "POST" })
  */
 export const sendWeeklyReport = createServerFn({ method: "POST" })
   .handler(async () => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store?.adminUser) {
       throw new Error("Not authenticated or not admin");
     }

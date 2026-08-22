@@ -5,6 +5,7 @@ import { adminGetStockReport } from "@/server/functions/report.fn";
 export interface MovementFormProps {
   storeId: string;
   onSuccess?: () => void;
+  onItemSelected?: (itemId: string) => void;
 }
 
 interface InventoryItem {
@@ -72,16 +73,19 @@ export function MovementForm(props: MovementFormProps) {
 
     setSubmitting(true);
     try {
-      const fd = new FormData();
-      fd.append("storeId", props.storeId);
-      fd.append("itemId", formData.itemId);
-      fd.append("type", formData.type);
-      fd.append("quantity", formData.quantity);
-      if (formData.unitId) fd.append("unitId", formData.unitId);
-      if (formData.reference) fd.append("reference", formData.reference);
-      if (formData.note) fd.append("note", formData.note);
+      const payload = {
+        data: {
+          itemId: formData.itemId,
+          type: formData.type,
+          quantity: formData.quantity,
+          unitId: formData.unitId,
+          reference: formData.reference || undefined,
+          referenceType: undefined,
+          note: formData.note || undefined,
+        }
+      };
 
-      await adminRecordMovement(fd);
+      await adminRecordMovement(payload as any);
       props.onSuccess?.();
 
       setFormData({
@@ -116,9 +120,10 @@ export function MovementForm(props: MovementFormProps) {
           <label className="block text-sm font-medium mb-2">Item *</label>
           <select
             value={formData.itemId}
-            onChange={(e) =>
-              setFormData({ ...formData, itemId: e.target.value })
-            }
+            onChange={(e) => {
+              setFormData({ ...formData, itemId: e.target.value });
+              props.onItemSelected?.(e.target.value);
+            }}
             disabled={loading || submitting}
             required
             className="w-full px-3 py-2 border rounded bg-white text-foreground"
@@ -177,7 +182,6 @@ export function MovementForm(props: MovementFormProps) {
           >
             <option value="PURCHASE">Compra (+)</option>
             <option value="LOSS">Perda (-)</option>
-            <option value="ADJUSTMENT">Ajuste (±)</option>
           </select>
         </div>
 

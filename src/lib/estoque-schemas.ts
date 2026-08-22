@@ -1,7 +1,19 @@
 import { z } from "zod";
 
 /**
- * Schema de validação para InventoryItem
+ * Schema para input do cliente (antes de conversão de códigos para IDs)
+ */
+export const createInventoryItemClientSchema = z.object({
+  name: z.string(),
+  sku: z.string().nullish().optional(),
+  barcode: z.string().nullish().optional(),
+  baseUnitId: z.string(), // Pode ser código (kg, g, etc) ou UUID
+  cost: z.string().nullish().optional(), // String vindo do input do usuário
+  itemType: z.string(),
+});
+
+/**
+ * Schema de validação para InventoryItem (após conversão)
  */
 export const createInventoryItemSchema = z.object({
   name: z.string().min(1).max(255),

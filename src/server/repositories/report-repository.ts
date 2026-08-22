@@ -16,7 +16,7 @@ export const reportRepository = {
     
     const withAvailable = items.map((item) => ({
       ...item,
-      quantityAvailable: item.quantityOnHand.sub(item.quantityReserved),
+      quantityAvailable: item.quantityOnHand - item.quantityReserved,
     }));
 
     if (options?.sortBy === "name") withAvailable.sort((a, b) => a.name.localeCompare(b.name));
@@ -43,28 +43,41 @@ export const reportRepository = {
       if (options?.endDate) (where.createdAt as any).lte = options.endDate;
     }
 
-    return prisma.inventoryMovement.findMany({
+    const movements = await prisma.inventoryMovement.findMany({
       where,
       include: { item: true, unit: true, originalMovement: true },
       orderBy: { createdAt: options?.orderBy === "asc" ? "asc" : "desc" },
       take: options?.limit ?? 100,
       skip: options?.offset ?? 0,
     });
+
+    // Serialize Decimal to Number
+    return movements.map(mov => ({
+      ...mov,
+      quantity: Number(mov.quantity ?? 0),
+      costAtTime: mov.costAtTime ? Number(mov.costAtTime) : null,
+      item: mov.item ? {
+        ...mov.item,
+        quantityOnHand: Number(mov.item.quantityOnHand ?? 0),
+        quantityReserved: Number(mov.item.quantityReserved ?? 0),
+        cost: mov.item.cost ? Number(mov.item.cost) : null,
+      } : null,
+    }));
   },
 
   async getInventoryValue(storeId: string) {
-    const items = await prisma.inventoryItem.findMany({ 
-      where: { storeId, isActive: true }, 
-      select: { id: true, name: true, quantityOnHand: true, cost: true } 
+    const items = await prisma.inventoryItem.findMany({
+      where: { storeId, isActive: true },
+      select: { id: true, name: true, quantityOnHand: true, cost: true }
     });
-    
-    let totalValue = new Decimal(0);
+
+    let totalValue = 0;
     const breakdown: any[] = [];
 
     for (const item of items) {
       if (item.cost) {
-        const value = item.quantityOnHand.mul(item.cost);
-        totalValue = totalValue.add(value);
+        const value = item.quantityOnHand * item.cost;
+        totalValue = totalValue + value;
         breakdown.push({ id: item.id, name: item.name, quantity: item.quantityOnHand, cost: item.cost, value });
       }
     }
@@ -78,16 +91,16 @@ export const reportRepository = {
       include: { item: { select: { name: true, cost: true } } },
     });
 
-    let totalCost = new Decimal(0);
+    let totalCost = 0;
     const byItem: any = {};
 
     for (const movement of movements) {
       const itemCost = movement.costAtTime || movement.item.cost;
       if (itemCost) {
-        const cost = new Decimal(Math.abs(Number(movement.quantity))).mul(itemCost);
-        totalCost = totalCost.add(cost);
-        if (!byItem[movement.itemId]) byItem[movement.itemId] = { name: movement.item.name, cost: new Decimal(0) };
-        byItem[movement.itemId].cost = byItem[movement.itemId].cost.add(cost);
+        const cost = Math.abs(Number(movement.quantity)) * itemCost;
+        totalCost = totalCost + cost;
+        if (!byItem[movement.itemId]) byItem[movement.itemId] = { name: movement.item.name, cost: 0 };
+        byItem[movement.itemId].cost = byItem[movement.itemId].cost + cost;
       }
     }
 
@@ -110,7 +123,7 @@ export const reportRepository = {
       _count: { id: true },
       _sum: { quantity: true },
     });
-    return movements.map((stat) => ({ type: stat.type, count: stat._count.id, totalQuantity: stat._sum.quantity || new Decimal(0) }));
+    return movements.map((stat) => ({ type: stat.type, count: stat._count.id, totalQuantity: stat._sum.quantity || 0 }));
   },
 
   async getOrderFulfillmentStats(storeId: string) {

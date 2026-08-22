@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getStoreFromSession } from "@/server/auth/session";
+import { requireAdminSession } from "@/server/auth/session";
 import { InventoryAlertService } from "@/server/services/inventory-alert-service";
 
 /**
@@ -8,7 +8,7 @@ import { InventoryAlertService } from "@/server/services/inventory-alert-service
  */
 export const getInventoryAlertsSummary = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -21,7 +21,7 @@ export const getInventoryAlertsSummary = createServerFn({ method: "GET" })
  */
 export const getCriticalItems = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -35,7 +35,7 @@ export const getCriticalItems = createServerFn({ method: "GET" })
  */
 export const getStockRunoutForecast = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -49,7 +49,7 @@ export const getStockRunoutForecast = createServerFn({ method: "GET" })
 export const checkItemAlerts = createServerFn({ method: "POST" })
   .validator((data: { itemId: string }) => data)
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
@@ -62,7 +62,7 @@ export const checkItemAlerts = createServerFn({ method: "POST" })
  */
 export const checkAllAlerts = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
+    const store = await requireAdminSession();
     if (!store) {
       throw new Error("Not authenticated");
     }
