@@ -6,6 +6,7 @@ import {
   getKanbanMetrics,
   getOrderById,
   listKanbanOrders,
+  listMesasAbertas,
   listPendingOrderIds,
   updateOrderNotes,
 } from "../repositories/order-repository";
@@ -33,6 +34,13 @@ export const listKanbanOrdersFn = createServerFn({ method: "GET" })
       getKanbanMetrics(storeId, data?.date),
     ]);
     return { ...board, metrics };
+  });
+
+export const listMesasAbertasFn = createServerFn({ method: "GET" })
+  .validator(z.object({ date: z.string().optional(), search: z.string().optional() }).optional())
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+    return listMesasAbertas(storeId, data ?? {});
   });
 
 export const getOrderFn = createServerFn({ method: "GET" })

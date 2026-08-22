@@ -133,6 +133,66 @@ export async function listKanbanOrders(
   return { columns, awaiting, mostrarEntrega };
 }
 
+/** Mesas abertas agrupadas por tableId com todos seus pedidos */
+export async function listMesasAbertas(
+  storeId: string,
+  options: { date?: string; search?: string },
+) {
+  const { from, to } = dayRange(options.date);
+  const search = options.search?.trim();
+
+  const orders = await prisma.order.findMany({
+    where: {
+      storeId,
+      status: "TABLE_READY" as const,
+      tableId: { not: null },
+      createdAt: { gte: from, lte: to },
+      ...(search
+        ? {
+            OR: [
+              { customerName: { contains: search, mode: "insensitive" as const } },
+              { customerPhone: { contains: search.replace(/\D/g, "") || search } },
+              ...(Number.isFinite(Number(search)) ? [{ number: Number(search) }] : []),
+            ],
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "asc" },
+    include: {
+      items: {
+        select: {
+          productNameSnapshot: true,
+          quantity: true,
+          sizeLabel: true,
+          unitPrice: true,
+        },
+      },
+      coupon: { select: { code: true } },
+    },
+  });
+
+  // Agrupar por tableId
+  const mesasMap = new Map<string, typeof orders>();
+  for (const order of orders) {
+    const tableId = order.tableId!;
+    if (!mesasMap.has(tableId)) {
+      mesasMap.set(tableId, []);
+    }
+    mesasMap.get(tableId)!.push(order);
+  }
+
+  // Transformar em array com dados agregados
+  const mesas = Array.from(mesasMap.entries()).map(([tableId, pedidos]) => ({
+    tableId,
+    tableNumber: pedidos[0].number, // TODO: buscar do Table
+    pedidos,
+    totalPedidos: pedidos.length,
+    totalValor: pedidos.reduce((sum, p) => sum + p.total, 0),
+  }));
+
+  return mesas;
+}
+
 export function getOrderById(storeId: string, id: string) {
   return prisma.order.findFirst({
     where: { id, storeId },

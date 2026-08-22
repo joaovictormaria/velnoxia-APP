@@ -12,12 +12,13 @@ import {
 } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
 import { KanbanBoard, type KanbanOrder } from "@/components/admin/orders/KanbanBoard";
+import { MesaCard } from "@/components/admin/orders/MesaCard";
 import {
   DispatchDialog,
   type DispatchTarget,
 } from "@/components/admin/orders/DispatchDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
-import { listKanbanOrdersFn, updateOrderStatusFn } from "@/server/functions/orders.fn";
+import { listKanbanOrdersFn, listMesasAbertasFn, updateOrderStatusFn } from "@/server/functions/orders.fn";
 
 export const Route = createFileRoute("/admin/pedidos/")({
   component: KanbanPage,
@@ -49,6 +50,14 @@ function KanbanPage() {
     gcTime: 10 * 60 * 1000,
   });
 
+  const { data: mesas = [] } = useQuery({
+    queryKey: ["mesas", "abertas", date, search],
+    queryFn: () => listMesasAbertasFn({ data: { date, search: search || undefined } }),
+    refetchInterval: 8_000,
+    staleTime: 8_000,
+    gcTime: 10 * 60 * 1000,
+  });
+
   const advance = useMutation({
     mutationFn: (vars: { id: string; status: OrderStatus }) =>
       updateOrderStatusFn({ data: vars }),
@@ -59,7 +68,26 @@ function KanbanPage() {
       }
       setError(null);
       await queryClient.invalidateQueries({ queryKey: ["orders", "kanban"] });
+      await queryClient.invalidateQueries({ queryKey: ["mesas", "abertas"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+
+  const finalizarMesa = useMutation({
+    mutationFn: async (pedidoIds: string[]) => {
+      const results = await Promise.all(
+        pedidoIds.map((id) => updateOrderStatusFn({ data: { id, status: "COMPLETED" } }))
+      );
+      return results;
+    },
+    onSuccess: async (res) => {
+      setError(null);
+      await queryClient.invalidateQueries({ queryKey: ["orders", "kanban"] });
+      await queryClient.invalidateQueries({ queryKey: ["mesas", "abertas"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+    onError: () => {
+      setError("Erro ao finalizar mesa");
     },
   });
 
@@ -109,6 +137,21 @@ function KanbanPage() {
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
           {error}
         </p>
+      )}
+
+      {mesas.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-bold text-neutral-900">Mesas Abertas ({mesas.length})</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {mesas.map((mesa) => (
+              <MesaCard
+                key={mesa.tableId}
+                mesa={mesa}
+                onFinalize={(tableId, pedidoIds) => finalizarMesa.mutate(pedidoIds)}
+              />
+            ))}
+          </div>
+        </section>
       )}
 
       {awaiting.length > 0 && (
