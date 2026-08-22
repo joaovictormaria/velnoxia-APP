@@ -34,6 +34,23 @@ function generateSKU(itemType: string): string {
 }
 
 /**
+ * Serialize InventoryItem Decimals to Numbers
+ */
+function serializeInventoryItem(item: any) {
+  return {
+    ...item,
+    quantityOnHand: Number(item.quantityOnHand ?? 0),
+    quantityReserved: Number(item.quantityReserved ?? 0),
+    quantityAvailable: Number(item.quantityAvailable ?? 0),
+    cost: item.cost ? Number(item.cost) : null,
+    minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
+    idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
+    maximumQuantity: item.maximumQuantity ? Number(item.maximumQuantity) : null,
+    contentSize: item.contentSize ? Number(item.contentSize) : null,
+  };
+}
+
+/**
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
@@ -70,7 +87,8 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       itemType: itemType,
     });
 
-    return InventoryService.createItem(admin.storeId, createData);
+    const result = await InventoryService.createItem(admin.storeId, createData);
+    return serializeInventoryItem(result);
   });
 
 /**
@@ -96,7 +114,8 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
       isActive: data.isActive === "true",
     });
 
-    return InventoryService.updateItem(admin.storeId, data.itemId, validated);
+    const result = await InventoryService.updateItem(admin.storeId, data.itemId, validated);
+    return serializeInventoryItem(result);
   });
 
 /**
