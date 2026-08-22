@@ -135,12 +135,10 @@ export function InventoryGrid(props: InventoryGridProps) {
     if (!confirm("Tem certeza que deseja deletar este item?")) return;
 
     try {
-      const fd = new FormData();
-      fd.append("itemId", itemId);
-      fd.append("storeId", props.storeId);
-      fd.append("isActive", "false");
-
-      await adminUpdateInventoryItem(fd);
+      await adminUpdateInventoryItem({
+        itemId,
+        isActive: "false",
+      } as any);
       fetchItems();
       showToast("✅ Item deletado com sucesso!");
     } catch (error) {
