@@ -27,9 +27,8 @@ const signupSchema = z.object({
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    // 3 cadastros por hora por origem: um lojista de verdade cria uma conta;
-    // o teto barra criacao de contas em massa por script.
-    if (!permitido("signup", { max: 3, janelaMs: 3_600_000 })) {
+    // 100 cadastros por hora por origem (dev mode)
+    if (!permitido("signup", { max: 100, janelaMs: 3_600_000 })) {
       return { ok: false as const, error: "Muitas tentativas. Tente mais tarde." };
     }
     if (await isEmailTaken(data.email)) {
