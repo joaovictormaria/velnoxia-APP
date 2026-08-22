@@ -336,6 +336,14 @@ export async function createOrderFromCheckout(
   const settings = await prisma.storeSettings.findUnique({ where: { storeId } });
   if (!settings) return { ok: false, error: "A loja ainda não está configurada." };
 
+  // Validate tableId if provided: table must exist
+  if (input.tableId) {
+    const table = await prisma.table.findUnique({ where: { id: input.tableId } });
+    if (!table || table.storeId !== storeId) {
+      return { ok: false, error: "Sessão de mesa expirada. Escaneie o QRCode novamente." };
+    }
+  }
+
   if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
     return { ok: false, error: "A loja não está aceitando entregas no momento." };
   }

@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Printer,
   ShoppingBag,
+  Table2,
   Truck,
   User,
 } from "lucide-react";
@@ -50,6 +51,7 @@ const PAYMENT_LABEL: Record<string, string> = {
 const STATUS_META: Record<OrderStatus, { label: string; chip: string }> = {
   RECEIVED: { label: "Recebido", chip: "bg-red-50 text-[#E11D2E]" },
   PREPARING: { label: "Em preparo", chip: "bg-amber-100 text-amber-700" },
+  TABLE_READY: { label: "Pronto (Mesa aberta)", chip: "bg-purple-50 text-purple-700" },
   OUT_FOR_DELIVERY: { label: "Saiu p/ entrega", chip: "bg-blue-50 text-blue-700" },
   COMPLETED: { label: "Finalizado", chip: "bg-emerald-50 text-emerald-700" },
   CANCELLED: { label: "Cancelado", chip: "bg-neutral-200 text-neutral-600" },
@@ -58,6 +60,7 @@ const STATUS_META: Record<OrderStatus, { label: string; chip: string }> = {
 const STEPS: { status: OrderStatus; label: string; icon: typeof ShoppingBag }[] = [
   { status: "RECEIVED", label: "Recebido", icon: ShoppingBag },
   { status: "PREPARING", label: "Em preparo", icon: ChefHat },
+  { status: "TABLE_READY", label: "Pronto (Mesa)", icon: Table2 },
   { status: "OUT_FOR_DELIVERY", label: "Saiu p/ entrega", icon: Bike },
   { status: "COMPLETED", label: "Entregue", icon: CircleCheck },
 ];

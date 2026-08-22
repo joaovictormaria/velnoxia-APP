@@ -71,6 +71,7 @@ export type KanbanOrder = {
   customerName: string;
   total: number;
   type: "DELIVERY" | "PICKUP";
+  tableId: string | null;
   items: {
     productNameSnapshot: string;
     quantity: number;

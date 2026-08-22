@@ -18,6 +18,7 @@ import {
 const ORDER_STATUS = z.enum([
   "RECEIVED",
   "PREPARING",
+  "TABLE_READY",
   "OUT_FOR_DELIVERY",
   "COMPLETED",
   "CANCELLED",
