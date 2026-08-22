@@ -28,6 +28,13 @@ export const COLUMNS: {
   badge: string;
 }[] = [
   {
+    status: "TABLE_READY",
+    label: "Mesas Abertas",
+    icon: Table2,
+    header: "bg-purple-600",
+    badge: "bg-purple-50 text-purple-700",
+  },
+  {
     status: "RECEIVED",
     label: "Recebidos",
     icon: ShoppingBag,
@@ -87,20 +94,11 @@ export type KanbanColumnData = {
   total: number;
 };
 
-export type OpenTable = {
-  tableNumber: number;
-  orderCount: number;
-  total: number;
-  createdAt: Date | string;
-  status: string;
-};
-
 export function KanbanBoard({
   columns,
   onAdvance,
   onDispatch,
   mostrarEntrega = true,
-  openTables = [],
 }: {
   columns: KanbanColumnData[];
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
@@ -108,54 +106,18 @@ export function KanbanBoard({
   onDispatch: (order: KanbanOrder) => void;
   /** Falso numa loja que só faz retirada — ver listKanbanOrders. */
   mostrarEntrega?: boolean;
-  openTables?: OpenTable[];
 }) {
   const colunas = mostrarEntrega
     ? COLUMNS
     : COLUMNS.filter((c) => c.status !== "OUT_FOR_DELIVERY");
 
-  const totalColsWithTables = openTables.length > 0 ? colunas.length + 1 : colunas.length;
-
   return (
     <div
       className={
         "grid grid-cols-1 gap-4 md:grid-cols-2 " +
-        (totalColsWithTables === 5 ? "xl:grid-cols-5" : totalColsWithTables === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3")
+        (colunas.length === 5 ? "xl:grid-cols-5" : colunas.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3")
       }
     >
-      {/* Mesas Abertas Column */}
-      {openTables.length > 0 && (
-        <section className="flex flex-col">
-          <header className="flex items-center justify-between rounded-t-2xl bg-purple-600 px-4 py-3 text-white">
-            <h2 className="text-sm font-bold">
-              Mesas Abertas ({openTables.length})
-            </h2>
-            <Table2 className="size-5" />
-          </header>
-
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto rounded-b-2xl border border-t-0 border-neutral-200 bg-white p-3 md:h-[calc(100vh-24rem)] md:max-h-none md:min-h-[16rem]">
-            {openTables.map((table) => (
-              <div
-                key={`mesa-${table.tableNumber}`}
-                className="rounded-xl border border-neutral-200 p-3 hover:border-purple-300 hover:bg-purple-50 transition-colors"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-base font-bold text-neutral-900">
-                    Mesa {table.tableNumber}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {table.orderCount} pedido{table.orderCount !== 1 ? "s" : ""}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm font-semibold text-purple-600">
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(table.total)}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {colunas.map((col) => {
         const data = columns.find((c) => c.status === col.status);
         const orders = data?.orders ?? [];

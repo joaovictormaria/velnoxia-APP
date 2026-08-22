@@ -74,6 +74,7 @@ enum OrderType {
 enum OrderStatus {
   RECEIVED
   PREPARING
+  TABLE_READY
   OUT_FOR_DELIVERY
   COMPLETED
   CANCELLED
