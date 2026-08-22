@@ -44,12 +44,16 @@ export const getOrderFn = createServerFn({ method: "GET" })
 export const updateOrderStatusFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), status: ORDER_STATUS, note: z.string().optional() }))
   .handler(async ({ data }) => {
+    console.log(`[updateOrderStatusFn] CHAMADO! Pedido: ${data.id}, Novo status: ${data.status}`);
     const admin = await requireAdminSession();
-    return transitionOrderStatus(admin.storeId, data.id, data.status, {
+    console.log(`[updateOrderStatusFn] Admin: ${admin.id}, StoreId: ${admin.storeId}`);
+    const result = await transitionOrderStatus(admin.storeId, data.id, data.status, {
       authorType: "ADMIN",
       authorName: admin.name,
       note: data.note,
     });
+    console.log(`[updateOrderStatusFn] Resultado:`, result);
+    return result;
   });
 
 export const updateOrderNotesFn = createServerFn({ method: "POST" })
