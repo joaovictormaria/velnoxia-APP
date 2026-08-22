@@ -104,7 +104,7 @@ export function isSlugTaken(slug: string) {
 }
 
 export function isEmailTaken(email: string) {
-  return prisma.adminUser
+  return prisma.admin
     .findUnique({ where: { email }, select: { id: true } })
     .then(Boolean);
 }
