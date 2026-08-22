@@ -221,6 +221,7 @@ export class OrderInventoryHandler {
    * Orquestra todos os handlers
    */
   static async syncOrderStatus(orderId: string, newStatus: string) {
+    console.log(`[syncOrderStatus] CHAMADO! Pedido: ${orderId}, Status: ${newStatus}`);
     try {
       switch (newStatus) {
         case "RECEIVED":
