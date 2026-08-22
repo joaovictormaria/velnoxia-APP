@@ -6,7 +6,6 @@ import {
   CircleCheck,
   Clock,
   ShoppingBag,
-  Table2,
   type LucideIcon,
 } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
@@ -27,13 +26,6 @@ export const COLUMNS: {
   header: string;
   badge: string;
 }[] = [
-  {
-    status: "TABLE_READY",
-    label: "Mesas Abertas",
-    icon: Table2,
-    header: "bg-purple-600",
-    badge: "bg-purple-50 text-purple-700",
-  },
   {
     status: "RECEIVED",
     label: "Recebidos",
