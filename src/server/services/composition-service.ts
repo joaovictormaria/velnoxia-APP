@@ -338,8 +338,8 @@ export class CompositionService {
         });
       }
 
-      // Mark composition as used
-      await productCompositionRepository.markAsUsed(compositionId);
+      // Nota: Não marcamos como usada aqui. A receita pode continuar sendo editada.
+      // A marcação de "usada" apenas congela para edições, o que não queremos.
 
       return composition;
     });
