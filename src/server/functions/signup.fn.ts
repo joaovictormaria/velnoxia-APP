@@ -27,10 +27,9 @@ const signupSchema = z.object({
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    // Email check desabilitado para dev
-    // if (await isEmailTaken(data.email)) {
-    //   return { ok: false as const, error: "Já existe uma conta com este e-mail." };
-    // }
+    if (await isEmailTaken(data.email)) {
+      return { ok: false as const, error: "Já existe uma conta com este e-mail." };
+    }
 
     // Derived from the store name plus a verifier code, so the owner never has
     // to pick an address and two lanchonetes with the same name never clash.
@@ -153,13 +152,10 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
       });
       adminUserId = admin.id;
     } catch (error) {
-      // Dev mode: log error and try to continue
-      console.error("Signup error:", error);
-      // Uncomment below to re-enable error handling
-      // return {
-      //   ok: false as const,
-      //   error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
-      // };
+      return {
+        ok: false as const,
+        error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
+      };
     }
 
     // Signing in immediately: asking someone to log in right after choosing a
