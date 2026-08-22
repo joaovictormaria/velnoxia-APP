@@ -201,19 +201,21 @@ export function CompositionBuilder(props: CompositionBuilderProps) {
                         </option>
                       ))}
                     </select>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={comp.quantity}
-                      onChange={(e) => updateItemQuantity(idx, parseFloat(e.target.value) || 0)}
-                      placeholder="Qtd"
-                      className="w-24 px-3 py-2 border rounded text-sm"
-                    />
-                    <span className="text-sm text-neutral-600 w-20">
-                      {item?.baseUnit.code || "un"}
-                    </span>
-                    <span className="text-sm font-medium w-20">
+                    <div className="flex gap-1 items-center">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={comp.quantity}
+                        onChange={(e) => updateItemQuantity(idx, parseFloat(e.target.value) || 0)}
+                        placeholder="Qtd"
+                        className="w-20 px-3 py-2 border rounded text-sm"
+                      />
+                      <span className="text-sm font-medium text-neutral-700 min-w-fit bg-blue-100 px-2 py-1 rounded">
+                        {item?.baseUnit.code || "un"}
+                      </span>
+                    </div>
+                    <span className="text-sm font-medium w-24 text-right">
                       R$ {((item?.cost || 0) * comp.quantity).toFixed(2)}
                     </span>
                     <button
