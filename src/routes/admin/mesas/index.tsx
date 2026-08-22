@@ -203,6 +203,15 @@ function MesasPage() {
               </div>
 
               <div className="space-y-2">
+                <a
+                  href={qr.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm font-medium text-neutral-900 hover:bg-neutral-50 text-center"
+                >
+                  Abrir Cardápio
+                </a>
+
                 <Button
                   onClick={() => downloadQR(qr)}
                   variant="outline"

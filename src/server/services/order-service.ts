@@ -599,7 +599,8 @@ function buscarGrupos(dono: { categoryId: string } | { productId: string }) {
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   RECEIVED: ["PREPARING", "CANCELLED"],
-  PREPARING: ["OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"],
+  PREPARING: ["TABLE_READY", "OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"],
+  TABLE_READY: ["COMPLETED", "CANCELLED"],
   OUT_FOR_DELIVERY: ["COMPLETED", "CANCELLED"],
   COMPLETED: [],
   CANCELLED: [],
@@ -615,7 +616,7 @@ export async function transitionOrderStatus(
   // not be found, not be moved.
   const order = await prisma.order.findFirst({
     where: { id: orderId, storeId },
-    select: { status: true, type: true, courierId: true, paymentMethod: true },
+    select: { status: true, type: true, courierId: true, paymentMethod: true, tableId: true },
   });
   if (!order) return { ok: false, error: "Pedido não encontrado." };
   if (order.status === status) return { ok: true };
@@ -625,6 +626,11 @@ export async function transitionOrderStatus(
       ok: false,
       error: `Não é possível mudar de "${order.status}" para "${status}".`,
     };
+  }
+
+  // TABLE_READY é apenas para pedidos de mesa
+  if (status === "TABLE_READY" && !order.tableId) {
+    return { ok: false, error: "Apenas pedidos de mesa podem ir para 'Pronto para entregar'." };
   }
   // Pickup orders never go out for delivery.
   if (status === "OUT_FOR_DELIVERY" && order.type === "PICKUP") {
