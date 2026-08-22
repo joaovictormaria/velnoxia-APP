@@ -1,44 +1,49 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getStoreFromSession } from "@/server/auth/session";
+import { requireAdminSession } from "@/server/auth/session";
 import { reportRepository } from "@/server/repositories/report-repository";
 
+function serializeItem(item: any) {
+  return {
+    ...item,
+    quantityOnHand: Number(item.quantityOnHand ?? 0),
+    quantityReserved: Number(item.quantityReserved ?? 0),
+    quantityAvailable: Number(item.quantityAvailable ?? 0),
+    maximumQuantity: Number(item.maximumQuantity ?? 0),
+    contentSize: item.contentSize ? Number(item.contentSize) : null,
+    cost: item.cost ? Number(item.cost) : null,
+    minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
+    idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
+    maximumCapacity: item.maximumCapacity ? Number(item.maximumCapacity) : null,
+  };
+}
+
 export const adminGetStockReport = createServerFn({ method: "POST" })
-  .validator(z.object({
-    sortBy: z.string().optional(),
-    limit: z.string().optional(),
-  }))
-  .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+  .handler(async ({ data }: any) => {
+    const admin = await requireAdminSession();
 
-    const sortBy = (data.sortBy || "name") as any;
-    const limit = parseInt(data.limit || "100") || 100;
+    const sortBy = (data?.sortBy || "name") as any;
+    const limit = parseInt(data?.limit || "100") || 100;
 
-    return reportRepository.getStockLevelsByStore(store.id, { sortBy, limit });
+    const items = await reportRepository.getStockLevelsByStore(admin.storeId, { sortBy, limit });
+    return items.map(serializeItem);
   });
 
 export const adminGetLowStockAlerts2 = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+    const admin = await requireAdminSession();
 
-    return reportRepository.getLowStockItems(store.id);
+    return reportRepository.getLowStockItems(admin.storeId);
   });
 
 export const adminGetMovementHistory = createServerFn({ method: "POST" })
-  .validator(z.object({
-    itemId: z.string().optional(),
-    type: z.string().optional(),
-    limit: z.string().optional(),
-  }))
-  .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
 
+    const data = context?.data || {};
     const limit = parseInt(data.limit || "100") || 100;
 
-    return reportRepository.getMovementHistory(store.id, {
+    return reportRepository.getMovementHistory(admin.storeId, {
       itemId: data.itemId || undefined,
       type: data.type || undefined,
       limit,
@@ -50,40 +55,35 @@ export const adminGetCostAnalysis = createServerFn({ method: "POST" })
     type: z.string().optional(),
   }))
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+    const admin = await requireAdminSession();
 
-    return reportRepository.getMovementCostAnalysis(store.id, { type: data.type || undefined });
+    return reportRepository.getMovementCostAnalysis(admin.storeId, { type: data.type || undefined });
   });
 
 export const adminGetCompositionUsageReport = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+    const admin = await requireAdminSession();
 
-    return reportRepository.getCompositionUsageReport(store.id);
+    return reportRepository.getCompositionUsageReport(admin.storeId);
   });
 
 export const adminGetMovementStats = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+    const admin = await requireAdminSession();
 
-    return reportRepository.getMovementStats(store.id);
+    return reportRepository.getMovementStats(admin.storeId);
   });
 
 export const adminGetOrderFulfillmentStats = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+    const admin = await requireAdminSession();
 
-    return reportRepository.getOrderFulfillmentStats(store.id);
+    return reportRepository.getOrderFulfillmentStats(admin.storeId);
   });
 
 export const adminGetInventoryValueReport = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) throw new Error("Not authenticated");
+    const admin = await requireAdminSession();
 
-    return reportRepository.getInventoryValue(store.id);
+    return reportRepository.getInventoryValue(admin.storeId);
   });

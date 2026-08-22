@@ -1,8 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { getStoreFromSession } from "@/server/auth/session";
+import { requireAdminSession } from "@/server/auth/session";
 import { InventoryService } from "@/server/services/inventory-service";
 import {
+  createInventoryItemClientSchema,
   createInventoryItemSchema,
   updateInventoryItemSchema,
   createInventoryMovementSchema,
@@ -36,43 +37,40 @@ function generateSKU(itemType: string): string {
  * Admin only: Create a new inventory item
  */
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
-  .validator(z.object({
-    name: z.string(),
-    sku: z.string().nullish().optional(),
-    barcode: z.string().nullish().optional(),
-    baseUnitId: z.string(),
-    cost: z.string().nullish().optional(),
-    itemType: z.string(),
-  }))
-  .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+  .handler(async ({ data }: any) => {
+    const admin = await requireAdminSession();
+    const itemData = data?.data || data;
 
-    // Converter código da unidade (ex: "kg") para ID se necessário
-    let unitId = data.baseUnitId;
-    if (!data.baseUnitId.includes('-')) { // Se for um código (não UUID)
-      const unit = await inventoryUnitRepository.findByCode(data.baseUnitId);
+    // Gerar valores padrão se não fornecidos
+    const baseUnitId = itemData?.baseUnitId || "kg";
+    const itemType = itemData?.itemType || "INGREDIENT";
+
+    // Converter código da unidade para ID
+    let unitId = baseUnitId;
+    if (!baseUnitId.includes('-')) {
+      const unit = await inventoryUnitRepository.findByCode(baseUnitId);
       if (!unit) {
-        throw new Error(`Unit "${data.baseUnitId}" not found`);
+        throw new Error(`Unit "${baseUnitId}" not found`);
       }
       unitId = unit.id;
     }
 
-    // Gerar SKU automaticamente se não fornecido
-    const sku = data.sku || generateSKU(data.itemType);
+    // Gerar SKU automaticamente
+    const sku = itemData?.sku || generateSKU(itemType);
 
-    const itemData = createInventoryItemSchema.parse({
-      name: data.name,
+    // Usar SKU como nome se não fornecido
+    const name = itemData?.name || sku;
+
+    const createData = createInventoryItemSchema.parse({
+      name: name,
       sku: sku,
-      barcode: data.barcode || null,
+      barcode: itemData?.barcode || null,
       baseUnitId: unitId,
-      cost: data.cost ? parseFloat(data.cost) : undefined,
-      itemType: data.itemType,
+      cost: itemData?.cost ? parseFloat(itemData.cost) : undefined,
+      itemType: itemType,
     });
 
-    return InventoryService.createItem(store.id, itemData);
+    return InventoryService.createItem(admin.storeId, createData);
   });
 
 /**
@@ -88,10 +86,7 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
     isActive: z.string().optional(),
   }))
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
     const validated = updateInventoryItemSchema.parse({
       name: data.name || undefined,
@@ -101,48 +96,59 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
       isActive: data.isActive === "true",
     });
 
-    return InventoryService.updateItem(store.id, data.itemId, validated);
+    return InventoryService.updateItem(admin.storeId, data.itemId, validated);
   });
 
 /**
  * Admin only: Record a movement (PURCHASE, LOSS, ADJUSTMENT, etc)
  */
 export const adminRecordMovement = createServerFn({ method: "POST" })
-  .validator(z.object({
-    itemId: z.string(),
-    type: z.string(),
-    quantity: z.string(),
-    unitId: z.string(),
-    reference: z.string().optional(),
-    referenceType: z.string().optional(),
-    note: z.string().optional(),
-  }))
-  .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
     const validated = createInventoryMovementSchema.parse({
-      itemId: data.itemId,
-      type: data.type,
-      quantity: parseFloat(data.quantity),
-      unitId: data.unitId,
-      reference: data.reference || undefined,
-      referenceType: data.referenceType || undefined,
-      note: data.note || undefined,
+      itemId: data?.itemId,
+      type: data?.type,
+      quantity: data?.quantity ? parseFloat(data.quantity) : 0,
+      unitId: data?.unitId,
+      reference: data?.reference || undefined,
+      referenceType: data?.referenceType || undefined,
+      note: data?.note || undefined,
       authorType: "ADMIN",
-      authorId: store.adminUser.id,
-      authorName: store.adminUser.name,
+      authorId: admin.id,
+      authorName: admin.name,
     });
 
     // Generate idempotency key
-    const idempotencyKey = `${store.id}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}#0`;
+    const idempotencyKey = `${admin.storeId}#${data.referenceType}#${data.reference}#${data.type}#${data.itemId}#0`;
 
-    return InventoryService.recordMovement(store.id, {
+    const result = await InventoryService.recordMovement(admin.storeId, {
       ...validated,
       idempotencyKey,
     });
+
+    // Serialize Decimal values - convert ALL numeric fields
+    return {
+      id: result.id,
+      storeId: result.storeId,
+      itemId: result.itemId,
+      type: result.type,
+      quantity: Number(result.quantity ?? 0),
+      unitId: result.unitId,
+      reference: result.reference,
+      referenceType: result.referenceType,
+      originalMovementId: result.originalMovementId,
+      compositionId: result.compositionId,
+      costAtTime: result.costAtTime ? Number(result.costAtTime) : null,
+      note: result.note,
+      authorType: result.authorType,
+      authorId: result.authorId,
+      authorName: result.authorName,
+      idempotencyKey: result.idempotencyKey,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+    };
   });
 
 /**
@@ -153,19 +159,16 @@ export const adminReverseMovement = createServerFn({ method: "POST" })
     originalMovementId: z.string(),
   }))
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
     const validated = createReversalSchema.parse({
       originalMovementId: data.originalMovementId,
       authorType: "ADMIN",
-      authorId: store.adminUser.id,
-      authorName: store.adminUser.name,
+      authorId: admin.id,
+      authorName: admin.name,
     });
 
-    return InventoryService.reverseMovement(store.id, validated.originalMovementId, {
+    return InventoryService.reverseMovement(admin.storeId, validated.originalMovementId, {
       authorType: validated.authorType,
       authorId: validated.authorId,
       authorName: validated.authorName,
@@ -182,13 +185,10 @@ export const systemReserveForOrder = createServerFn({ method: "POST" })
     orderId: z.string(),
   }))
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
     return InventoryService.reserveForOrder(
-      store.id,
+      admin.storeId,
       data.itemId,
       parseFloat(data.quantity),
       data.orderId
@@ -205,13 +205,10 @@ export const systemConsumeForOrder = createServerFn({ method: "POST" })
     orderId: z.string(),
   }))
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
     return InventoryService.consumeForOrder(
-      store.id,
+      admin.storeId,
       data.itemId,
       parseFloat(data.quantity),
       data.orderId
@@ -223,12 +220,9 @@ export const systemConsumeForOrder = createServerFn({ method: "POST" })
  */
 export const getStoreInventory = createServerFn({ method: "GET" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
-    return inventoryItemRepository.findAll(store.id, { includeInactive: false });
+    return inventoryItemRepository.findAll(admin.storeId, { includeInactive: false });
   });
 
 /**
@@ -239,12 +233,9 @@ export const getItemDetails = createServerFn({ method: "POST" })
     itemId: z.string(),
   }))
   .handler(async ({ data }) => {
-    const store = await getStoreFromSession();
-    if (!store) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
-    return inventoryItemRepository.getSummary(store.id, data.itemId);
+    return inventoryItemRepository.getSummary(admin.storeId, data.itemId);
   });
 
 /**
@@ -252,12 +243,9 @@ export const getItemDetails = createServerFn({ method: "POST" })
  */
 export const adminGetInventoryValue = createServerFn({ method: "POST" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
-    const items = await inventoryItemRepository.findAll(store.id, {
+    const items = await inventoryItemRepository.findAll(admin.storeId, {
       includeInactive: false,
     });
 
@@ -273,12 +261,9 @@ export const adminGetInventoryValue = createServerFn({ method: "POST" })
  */
 export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
   .handler(async () => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+    const admin = await requireAdminSession();
 
-    const items = await inventoryItemRepository.findAll(store.id, {
+    const items = await inventoryItemRepository.findAll(admin.storeId, {
       includeInactive: false,
     });
 

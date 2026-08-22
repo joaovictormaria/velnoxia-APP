@@ -1057,10 +1057,17 @@ model InventoryItem {
   baseUnitId String
   baseUnit   InventoryUnit @relation(fields: [baseUnitId], references: [id], onDelete: Restrict)
 
+  /// Tamanho do conteúdo (ex: 500g em cada pote)
+  contentSize Decimal?    @db.Decimal(15, 4)
+  /// Unidade do conteúdo (ex: "g", "ml")
+  contentUnit String?
+
   /// ESTADO DERIVADO: Saldo atual em estoque (FONTE DE VERDADE: InventoryMovement)
   quantityOnHand   Decimal @default(0) @db.Decimal(15, 4)
   /// ESTADO DERIVADO: Quantidade reservada para pedidos
   quantityReserved Decimal @default(0) @db.Decimal(15, 4)
+  /// Máximo de estoque (para alertas de estoque baixo: alerta em 30%)
+  maximumQuantity  Decimal @default(0) @db.Decimal(15, 4)
 
   cost Decimal? @db.Decimal(10, 2)
 

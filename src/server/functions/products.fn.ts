@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
+import { prisma } from "../db/client";
 import {
   createProduct,
   deleteProduct,
@@ -24,7 +25,7 @@ const productSchema = z.object({
   slug: z
     .string()
     .min(1)
-    .regex(/^[a-z0-9-]+$/, "Use apenas letras minúsculas, números e hífens."),
+    .regex(/^[a-z0-9\-áàâãéèêíïóôõöúçñ]+$/, "Use apenas letras, números e hífens."),
   description: z.string().default(""),
   categoryId: z.string().min(1, "Escolha uma categoria."),
   basePrice: z.number().nonnegative(),
@@ -96,4 +97,59 @@ export const deleteProductFn = createServerFn({ method: "POST" })
     const { storeId } = await requireAdminSession();
     await deleteProduct(storeId, data.id);
     return { ok: true as const };
+  });
+
+export const adminCreateCategoryFn = createServerFn({ method: "POST" })
+  .validator(z.object({ name: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+
+    // Verificar se categoria já existe
+    let category = await prisma.category.findFirst({
+      where: { storeId, name: data.name },
+    });
+
+    // Se não existe, criar
+    if (!category) {
+      const slug = data.name.toLowerCase().replace(/\s+/g, "-");
+      category = await prisma.category.create({
+        data: {
+          storeId,
+          name: data.name,
+          slug,
+          kind: "SIMPLE",
+          sortOrder: 0,
+        },
+      });
+    }
+
+    return category;
+  });
+
+export const adminDeleteCategoryFn = createServerFn({ method: "POST" })
+  .validator(z.object({ categoryId: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+
+    const category = await prisma.category.findFirst({
+      where: { id: data.categoryId, storeId },
+    });
+
+    if (!category) {
+      throw new Error("Categoria não encontrada");
+    }
+
+    // Deletar apenas se não tem produtos associados
+    const productCount = await prisma.product.count({
+      where: { categoryId: data.categoryId },
+    });
+
+    if (productCount === 0) {
+      await prisma.category.delete({
+        where: { id: data.categoryId },
+      });
+      return { success: true };
+    }
+
+    return { success: false, message: "Categoria tem produtos associados" };
   });

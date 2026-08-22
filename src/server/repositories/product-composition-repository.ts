@@ -41,16 +41,51 @@ export const productCompositionRepository = {
    * Find all versions of a product composition
    */
   async findAllVersions(storeId: string, productId: string) {
-    return prisma.productComposition.findMany({
+    const results = await prisma.productComposition.findMany({
       where: { storeId, productId },
       include: {
+        product: {
+          select: { name: true },
+        },
         items: {
-          include: { unit: true },
+          include: { unit: true, inventoryItem: true },
           orderBy: { sortOrder: "asc" },
         },
       },
       orderBy: { version: "desc" },
     });
+
+    // Force serialize/deserialize to convert Decimals to Numbers
+    return JSON.parse(JSON.stringify(results.map((comp) => ({
+      id: comp.id,
+      storeId: comp.storeId,
+      productId: comp.productId,
+      productName: comp.product?.name,
+      version: comp.version,
+      isActive: comp.isActive,
+      createdAt: comp.createdAt,
+      updatedAt: comp.updatedAt,
+      firstUsedAt: comp.firstUsedAt,
+      usageCount: comp.usageCount,
+      items: comp.items.map((item) => ({
+        id: item.id,
+        compositionId: item.compositionId,
+        inventoryItemId: item.inventoryItemId,
+        quantity: Number(item.quantity),
+        unitId: item.unitId,
+        sortOrder: item.sortOrder,
+        inventoryItem: item.inventoryItem ? {
+          id: item.inventoryItem.id,
+          name: item.inventoryItem.name,
+          sku: item.inventoryItem.sku,
+        } : null,
+        unit: {
+          id: item.unit.id,
+          code: item.unit.code,
+          name: item.unit.name,
+        },
+      })),
+    }))));
   },
 
   /**

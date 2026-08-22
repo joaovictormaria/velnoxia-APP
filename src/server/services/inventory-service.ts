@@ -11,6 +11,18 @@ import type {
 import type { CreateInventoryMovementInput } from "@/server/repositories";
 
 export class InventoryService {
+  private static serializeItem(item: any) {
+    return {
+      ...item,
+      quantityOnHand: Number(item.quantityOnHand ?? 0),
+      quantityReserved: Number(item.quantityReserved ?? 0),
+      cost: item.cost ? Number(item.cost) : null,
+      minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
+      idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
+      maximumCapacity: item.maximumCapacity ? Number(item.maximumCapacity) : null,
+    };
+  }
+
   /**
    * Create a new inventory item
    * Validates baseUnitId exists
@@ -33,7 +45,7 @@ export class InventoryService {
       throw new Error("SKU or barcode already exists in this store");
     }
 
-    return inventoryItemRepository.create(storeId, {
+    const item = await inventoryItemRepository.create(storeId, {
       name: data.name,
       sku: data.sku,
       barcode: data.barcode,
@@ -43,8 +55,9 @@ export class InventoryService {
       minimumThreshold: data.minimumThreshold,
       idealQuantity: data.idealQuantity,
       maximumCapacity: data.maximumCapacity,
-      store: { connect: { id: storeId } },
     });
+
+    return this.serializeItem(item);
   }
 
   /**
@@ -218,7 +231,7 @@ export class InventoryService {
       idempotencyKey: reversalKey,
       itemId: original.itemId,
       type: "REVERSAL",
-      quantity: original.quantity.mul(-1), // Inverse sign
+      quantity: original.quantity * -1,
       unitId: original.unitId,
       originalMovementId,
       reference: original.reference,
@@ -251,7 +264,7 @@ export class InventoryService {
     }
 
     // Check availability
-    const quantityAvailable = item.quantityOnHand.sub(item.quantityReserved);
+    const quantityAvailable = item.quantityOnHand - item.quantityReserved;
     if (quantityAvailable < quantity) {
       throw new Error(
         `Insufficient quantity. Available: ${quantityAvailable}, Requested: ${quantity}`
@@ -334,8 +347,12 @@ export class InventoryService {
         break;
 
       case "LOSS":
+        // Decrease quantityOnHand for losses
+        updates.quantityOnHand = item.quantityOnHand - quantity;
+        break;
+
       case "ADJUSTMENT":
-        // Direct change to quantityOnHand
+        // Direct change to quantityOnHand (quantity can be positive or negative)
         updates.quantityOnHand = item.quantityOnHand + quantity;
         break;
 

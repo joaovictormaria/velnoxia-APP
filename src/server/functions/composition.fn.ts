@@ -1,165 +1,269 @@
-import { action } from "@solidjs/router";
-import { getStoreFromSession } from "@/server/auth/session";
+import { createServerFn } from "@tanstack/react-start";
+import { requireAdminSession } from "@/server/auth/session";
 import { CompositionService } from "@/server/services/composition-service";
 import {
   createProductCompositionSchema,
   updateProductCompositionSchema,
 } from "@/lib/estoque-schemas";
 import { productCompositionRepository } from "@/server/repositories";
+import { prisma } from "@/server/db/client";
 
 /**
  * Admin only: Create a new recipe/composition
  */
-export const adminCreateComposition = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminCreateComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const productId = formData.get("productId") as string;
-  const itemsJson = formData.get("items") as string;
-  const isActive = formData.get("isActive") === "true";
+    const items = data?.items || [];
+    const productName = data?.productId;
+    const categoryIdOrName = data?.categoryId;
 
-  const items = JSON.parse(itemsJson);
+    console.log("🔍 [adminCreateComposition] Recebeu", items.length, "itens para produto:", productName, "categoria:", categoryIdOrName);
 
-  const validated = createProductCompositionSchema.parse({
-    productId,
-    items,
-    isActive,
+    // Buscar ou criar o produto pelo nome
+    let product = await prisma.product.findFirst({
+      where: { storeId: admin.storeId, name: productName },
+    });
+
+    if (!product) {
+      console.log(`📦 Produto "${productName}" não encontrado. Criando...`);
+
+      // Procurar ou criar categoria
+      let category = await prisma.category.findFirst({
+        where: { storeId: admin.storeId, id: categoryIdOrName },
+      });
+
+      // Se não encontrou por ID, procura por nome (categoria nova)
+      if (!category && categoryIdOrName) {
+        category = await prisma.category.findFirst({
+          where: { storeId: admin.storeId, name: categoryIdOrName },
+        });
+
+        // Se ainda não encontrou, criar categoria nova
+        if (!category) {
+          const categorySlug = categoryIdOrName.toLowerCase().replace(/\s+/g, "-");
+          category = await prisma.category.create({
+            data: {
+              storeId: admin.storeId,
+              name: categoryIdOrName,
+              slug: categorySlug,
+              kind: "SIMPLE",
+              sortOrder: 0,
+            },
+          });
+          console.log(`✅ Categoria "${categoryIdOrName}" criada`);
+        }
+      }
+
+      // Se ainda não tem categoria, usar primeira disponível ou criar padrão
+      if (!category) {
+        category = await prisma.category.findFirst({
+          where: { storeId: admin.storeId },
+        });
+
+        if (!category) {
+          category = await prisma.category.create({
+            data: {
+              storeId: admin.storeId,
+              name: "Bebidas",
+              slug: "bebidas",
+              kind: "SIMPLE",
+              sortOrder: 0,
+            },
+          });
+        }
+      }
+
+      // Gerar slug único
+      let baseSlug = productName.toLowerCase().replace(/\s+/g, "-");
+      let slug = baseSlug;
+      let counter = 1;
+
+      while (await prisma.product.findFirst({
+        where: { storeId: admin.storeId, slug }
+      })) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+
+      // Criar novo produto
+      product = await prisma.product.create({
+        data: {
+          storeId: admin.storeId,
+          categoryId: category.id,
+          name: productName,
+          slug,
+          description: `Produto ${productName} criado automaticamente`,
+          basePrice: 0,
+          sortOrder: 0,
+        },
+      });
+
+      console.log(`✅ Produto "${productName}" criado com ID: ${product.id}`);
+    }
+
+    const validated = createProductCompositionSchema.parse({
+      productId: product.id,
+      items,
+      isActive: data?.isActive !== false,
+    });
+
+    return CompositionService.createComposition(admin.storeId, product.id, validated);
   });
-
-  return CompositionService.createComposition(store.id, productId, validated);
-});
 
 /**
  * Admin only: Update a recipe (only if not yet used)
  */
-export const adminUpdateComposition = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminUpdateComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
-  const itemsJson = formData.get("items");
-  const isActive = formData.get("isActive");
+    const updateData: any = {};
 
-  const data: any = {};
+    if (data?.items) {
+      updateData.items = data.items;
+    }
 
-  if (itemsJson) {
-    const items = JSON.parse(itemsJson as string);
-    data.items = items;
-  }
+    if (data?.isActive !== undefined) {
+      updateData.isActive = data.isActive;
+    }
 
-  if (isActive !== null) {
-    data.isActive = isActive === "true";
-  }
+    const validated = updateProductCompositionSchema.parse(updateData);
 
-  const validated = updateProductCompositionSchema.parse(data);
-
-  return CompositionService.updateComposition(
-    store.id,
-    compositionId,
-    validated
-  );
-});
+    return CompositionService.updateComposition(
+      admin.storeId,
+      data.compositionId,
+      validated
+    );
+  });
 
 /**
  * Admin only: Activate a specific version
  */
-export const adminActivateVersion = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminActivateVersion = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
-
-  return CompositionService.activateVersion(store.id, compositionId);
-});
+    return CompositionService.activateVersion(admin.storeId, data.compositionId);
+  });
 
 /**
  * Admin only: Delete a composition (soft delete if used)
  */
-export const adminDeleteComposition = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminDeleteComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
+    return CompositionService.deleteComposition(admin.storeId, data.compositionId);
+  });
 
-  return CompositionService.deleteComposition(store.id, compositionId);
-});
+/**
+ * Admin only: Delete a specific composition version (recipe)
+ */
+export const adminDeleteCompositionVersion = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
+
+    const composition = await prisma.productComposition.findUnique({
+      where: { id: data.compositionId },
+    });
+
+    if (!composition) {
+      throw new Error("Receita não encontrada");
+    }
+
+    if (composition.storeId !== admin.storeId) {
+      throw new Error("Não autorizado");
+    }
+
+    await prisma.compositionItem.deleteMany({
+      where: { compositionId: data.compositionId },
+    });
+
+    await prisma.productComposition.delete({
+      where: { id: data.compositionId },
+    });
+
+    return { success: true };
+  });
 
 /**
  * Admin only: Get composition details
  */
-export const adminGetComposition = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminGetComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const compositionId = formData.get("compositionId") as string;
-
-  return productCompositionRepository.findById(store.id, compositionId);
-});
+    return productCompositionRepository.findById(admin.storeId, data.compositionId);
+  });
 
 /**
  * Admin only: Get all versions of a product
  */
-export const adminGetProductVersions = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminGetProductVersions = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const productId = formData.get("productId") as string;
-
-  return productCompositionRepository.findAllVersions(store.id, productId);
-});
+    return productCompositionRepository.findAllVersions(admin.storeId, data.productId);
+  });
 
 /**
  * Admin only: Calculate composition cost
  */
-export const adminCalculateCompositionCost = action(
-  async (formData: FormData) => {
-    const store = await getStoreFromSession();
-    if (!store?.adminUser) {
-      throw new Error("Not authenticated");
-    }
+export const adminCalculateCompositionCost = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-    const compositionId = formData.get("compositionId") as string;
-
-    return CompositionService.calculateCost(store.id, compositionId);
-  }
-);
+    return CompositionService.calculateCost(admin.storeId, data.compositionId);
+  });
 
 /**
  * Public: Get active composition for a product
  */
-export const getActiveComposition = action(async (formData: FormData) => {
-  const store = await getStoreFromSession();
-  if (!store) {
-    throw new Error("Not authenticated");
-  }
+export const getActiveComposition = createServerFn({ method: "POST" })
+  .handler(async (context: any) => {
+    const admin = await requireAdminSession();
+    const data = context?.data?.data || context?.data;
 
-  const productId = formData.get("productId") as string;
-
-  return CompositionService.getActiveComposition(store.id, productId);
-});
+    return CompositionService.getActiveComposition(admin.storeId, data.productId);
+  });
 
 /**
  * Public: Get all compositions for a store (for admin UI)
  */
-export const adminGetAllCompositions = action(async () => {
-  const store = await getStoreFromSession();
-  if (!store?.adminUser) {
-    throw new Error("Not authenticated");
-  }
+export const adminGetAllCompositions = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const admin = await requireAdminSession();
 
-  return productCompositionRepository.findAllByStore(store.id, {
-    activeOnly: false,
+    return productCompositionRepository.findAllByStore(admin.storeId, {
+      activeOnly: false,
+    });
   });
-});
+
+/**
+ * Admin: Get all products with compositions for a store
+ */
+export const adminGetAllProducts = createServerFn({ method: "POST" })
+  .handler(async () => {
+    const admin = await requireAdminSession();
+
+    const products = await prisma.product.findMany({
+      where: { storeId: admin.storeId },
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: { name: "asc" },
+    });
+
+    return products;
+  });

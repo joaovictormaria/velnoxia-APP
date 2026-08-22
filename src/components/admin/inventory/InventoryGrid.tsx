@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { adminCreateInventoryItem, adminUpdateInventoryItem } from "@/server/functions/inventory.fn";
+import { adminCreateInventoryItem, adminUpdateInventoryItem, adminRecordMovement } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
 
 export interface InventoryGridProps {
@@ -35,11 +35,18 @@ export function InventoryGrid(props: InventoryGridProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newItem, setNewItem] = useState({
     name: "",
-    baseUnitId: "kg", // Default to kg
+    baseUnitId: "kg",
     cost: "",
     itemType: "INGREDIENT",
+    initialQuantity: "",
   });
   const [generatedSku, setGeneratedSku] = useState<string>("");
+  const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
+
+  const showToast = (message: string) => {
+    setToast({ message, show: true });
+    setTimeout(() => setToast({ message: "", show: false }), 3000);
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -126,18 +133,40 @@ export function InventoryGrid(props: InventoryGridProps) {
   };
 
   const handleCreateItem = async () => {
-    if (!newItem.name.trim()) {
-      alert("Nome é obrigatório");
-      return;
-    }
-
     try {
-      const createdItem = await adminCreateInventoryItem({
-        name: newItem.name,
-        baseUnitId: newItem.baseUnitId,
-        itemType: newItem.itemType,
-        ...(newItem.cost && newItem.cost.trim() ? { cost: newItem.cost } : {}),
-      });
+      const payload = {
+        data: {
+          name: newItem.name || "",
+          baseUnitId: newItem.baseUnitId || "kg",
+          itemType: newItem.itemType || "INGREDIENT",
+          cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+        }
+      };
+
+      const createdItem = await adminCreateInventoryItem(payload as any);
+      const itemId = (createdItem as any)?.id;
+      const sku = (createdItem as any)?.sku || "gerado";
+
+      // Se houver quantidade inicial, registrar movimento
+      const initialQty = newItem.initialQuantity?.trim();
+      if (initialQty && parseFloat(initialQty) > 0 && itemId) {
+        try {
+          const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
+          await adminRecordMovement({
+            data: {
+              itemId,
+              type: "PURCHASE",
+              quantity: parseFloat(initialQty),
+              unitId,
+              reference: undefined,
+              referenceType: undefined,
+              note: "Quantidade inicial registrada na criação do item",
+            }
+          } as any);
+        } catch (movError) {
+          console.error("Failed to record initial movement:", movError);
+        }
+      }
 
       setShowCreateModal(false);
       setNewItem({
@@ -145,13 +174,13 @@ export function InventoryGrid(props: InventoryGridProps) {
         baseUnitId: "kg",
         cost: "",
         itemType: "INGREDIENT",
+        initialQuantity: "",
       });
       setGeneratedSku("");
       fetchItems();
 
-      // Mostrar SKU gerado
-      const sku = (createdItem as any)?.sku || "gerado";
-      alert(`✅ Item "${newItem.name}" criado com sucesso!\n\nSKU: ${sku}\n\nProxima etapa: Ir para "Movimentações" para registrar a quantidade inicial.`);
+      const qtyMsg = initialQty ? ` (${initialQty}un)` : "";
+      showToast(`✅ Item "${newItem.name}" criado com sucesso! SKU: ${sku}${qtyMsg}`);
     } catch (error) {
       console.error("Failed to create item:", error);
       alert("Erro ao criar item: " + (error instanceof Error ? error.message : "Unknown error"));
@@ -160,6 +189,12 @@ export function InventoryGrid(props: InventoryGridProps) {
 
   return (
     <div className="inventory-grid space-y-4">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300 z-50">
+          <p className="text-sm font-medium">{toast.message}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Itens de Estoque</h2>
         <button
@@ -219,6 +254,21 @@ export function InventoryGrid(props: InventoryGridProps) {
                 step="0.01"
                 className="w-full px-3 py-2 border rounded bg-background text-foreground"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Quantidade Inicial (Opcional)</label>
+              <input
+                type="number"
+                value={newItem.initialQuantity}
+                onChange={(e) => setNewItem({ ...newItem, initialQuantity: e.target.value })}
+                placeholder="Ex: 10"
+                step="0.01"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
+              />
+              <p className="text-xs text-neutral-600 mt-1">
+                Será registrada como compra (PURCHASE) automaticamente
+              </p>
             </div>
 
             <div>
@@ -362,7 +412,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   {(item.quantityOnHand - item.quantityReserved).toFixed(2)}{" "}
                   {item.baseUnit.code}
                 </td>
-                <td className="px-4 py-2 text-right">R$ {item.cost.toFixed(2)}</td>
+                <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-center">
                   {item.isActive ? (
                     <button
