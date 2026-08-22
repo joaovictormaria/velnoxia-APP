@@ -25,6 +25,7 @@ function dayRange(day?: string) {
 const KANBAN_STATUSES: OrderStatus[] = [
   "RECEIVED",
   "PREPARING",
+  "TABLE_READY",
   "OUT_FOR_DELIVERY",
   "COMPLETED",
 ];
