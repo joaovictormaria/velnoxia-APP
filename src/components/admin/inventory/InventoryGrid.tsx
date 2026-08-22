@@ -68,8 +68,13 @@ export function InventoryGrid(props: InventoryGridProps) {
       if (Array.isArray(data)) {
         console.log("[InventoryGrid] Got data, count:", data.length);
         const arroz = data.find((i: any) => i.name === "Arroz");
-        if (arroz) console.log("[InventoryGrid] Arroz quantity:", arroz.quantityOnHand);
+        if (arroz) {
+          console.log("[InventoryGrid] Arroz data:", JSON.stringify(arroz));
+          console.log("[InventoryGrid] Setting items with Arroz quantity:", arroz.quantityOnHand);
+        }
         setItems(data);
+      } else {
+        console.log("[InventoryGrid] ERROR: Data is not an array:", typeof data, data);
       }
     } catch (error) {
       console.error("Failed to fetch inventory items:", error);
