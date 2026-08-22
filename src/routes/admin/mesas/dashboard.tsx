@@ -1,23 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { listTablesFn } from "@/server/functions/tables.fn";
 import { StatusBadge } from "@/components/admin/tables/StatusBadge";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertCircle, Users, Clock } from "lucide-react";
 import type { Table } from "@prisma/client";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/admin/mesas/dashboard")({
   component: MesasDashboard,
 });
 
+// Mock data
+const mockTables: Table[] = [
+  { id: "1", storeId: "store-1", number: 1, capacity: 4, status: "AVAILABLE", qrcodeUrl: "https://velnox.app.br/mesa/1", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+  { id: "2", storeId: "store-1", number: 2, capacity: 6, status: "OCCUPIED", qrcodeUrl: "https://velnox.app.br/mesa/2", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+  { id: "3", storeId: "store-1", number: 3, capacity: 2, status: "AVAILABLE", qrcodeUrl: "https://velnox.app.br/mesa/3", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+  { id: "4", storeId: "store-1", number: 4, capacity: 8, status: "OCCUPIED", qrcodeUrl: "https://velnox.app.br/mesa/4", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+  { id: "5", storeId: "store-1", number: 5, capacity: 4, status: "RESERVED", qrcodeUrl: "https://velnox.app.br/mesa/5", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+  { id: "6", storeId: "store-1", number: 6, capacity: 2, status: "AVAILABLE", qrcodeUrl: "https://velnox.app.br/mesa/6", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+  { id: "7", storeId: "store-1", number: 7, capacity: 4, status: "MAINTENANCE", qrcodeUrl: "https://velnox.app.br/mesa/7", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+  { id: "8", storeId: "store-1", number: 8, capacity: 6, status: "AVAILABLE", qrcodeUrl: "https://velnox.app.br/mesa/8", qrcodeData: "", createdAt: new Date(), updatedAt: new Date() },
+];
+
 function MesasDashboard() {
   const navigate = useNavigate();
-
-  const { data: tables = [], isLoading, refetch } = useQuery({
-    queryKey: ["tables"],
-    queryFn: () => listTablesFn(),
-    refetchInterval: 10000, // Atualiza a cada 10 segundos
-  });
+  const [tables] = useState<Table[]>(mockTables);
 
   // Agrupar por status
   const grouped = {
@@ -92,29 +98,25 @@ function MesasDashboard() {
       </div>
 
       {/* Grid de mesas visual */}
-      {isLoading ? (
-        <div className="text-center text-neutral-400">Carregando...</div>
-      ) : (
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6">
-          <h2 className="mb-6 text-lg font-bold text-white">Plano de Ocupação</h2>
+      <div className="rounded-lg border border-neutral-800 bg-neutral-900/50 p-6">
+        <h2 className="mb-6 text-lg font-bold text-white">Plano de Ocupação</h2>
 
-          <div className="grid gap-3 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-            {tables.length === 0 ? (
-              <p className="col-span-full text-center text-neutral-400">Nenhuma mesa cadastrada</p>
-            ) : (
-              tables.map((table) => (
-                <TableTile
-                  key={table.id}
-                  table={table}
-                  onClick={() => {
-                    navigate({ to: `/admin/mesas/${table.id}` });
-                  }}
-                />
-              ))
-            )}
-          </div>
+        <div className="grid gap-3 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+          {tables.length === 0 ? (
+            <p className="col-span-full text-center text-neutral-400">Nenhuma mesa cadastrada</p>
+          ) : (
+            tables.map((table) => (
+              <TableTile
+                key={table.id}
+                table={table}
+                onClick={() => {
+                  navigate({ to: `/admin/mesas/${table.id}` });
+                }}
+              />
+            ))
+          )}
         </div>
-      )}
+      </div>
 
       {/* Resumo por status */}
       <div className="grid gap-4 lg:grid-cols-2">

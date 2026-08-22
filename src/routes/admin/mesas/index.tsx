@@ -1,9 +1,7 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Trash2, Pencil, QrCode, MoreVertical } from "lucide-react";
+import { Plus, Trash2, Pencil, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { listTablesFn, deleteTableFn } from "@/server/functions/tables.fn";
 import { StatusBadge } from "@/components/admin/tables/StatusBadge";
 import { QrcodeModal } from "@/components/admin/tables/QrcodeModal";
 import type { Table, TableStatus } from "@prisma/client";
@@ -13,23 +11,49 @@ export const Route = createFileRoute("/admin/mesas/")({
   component: MesasPage,
 });
 
+// Mock data para teste
+const mockTables: Table[] = [
+  {
+    id: "1",
+    storeId: "store-1",
+    number: 1,
+    capacity: 4,
+    status: "AVAILABLE",
+    qrcodeUrl: "https://velnox.app.br/mesa/1",
+    qrcodeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "2",
+    storeId: "store-1",
+    number: 2,
+    capacity: 6,
+    status: "OCCUPIED",
+    qrcodeUrl: "https://velnox.app.br/mesa/2",
+    qrcodeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "3",
+    storeId: "store-1",
+    number: 3,
+    capacity: 2,
+    status: "AVAILABLE",
+    qrcodeUrl: "https://velnox.app.br/mesa/3",
+    qrcodeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
 function MesasPage() {
   const navigate = useNavigate();
   const [filterStatus, setFilterStatus] = useState<TableStatus | "ALL">("ALL");
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
-
-  const { data: tables = [], isLoading, refetch } = useQuery({
-    queryKey: ["tables"],
-    queryFn: () => listTablesFn(),
-  });
-
-  const deleteTableMutation = useMutation({
-    mutationFn: deleteTableFn,
-    onSuccess: () => {
-      refetch();
-    },
-  });
+  const [tables, setTables] = useState<Table[]>(mockTables);
 
   const filteredTables = filterStatus === "ALL"
     ? tables
@@ -95,9 +119,7 @@ function MesasPage() {
       </div>
 
       {/* Grid de mesas */}
-      {isLoading ? (
-        <div className="text-center text-neutral-400">Carregando mesas...</div>
-      ) : filteredTables.length === 0 ? (
+      {filteredTables.length === 0 ? (
         <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
           <p className="text-neutral-400">Nenhuma mesa encontrada</p>
         </div>
@@ -109,7 +131,7 @@ function MesasPage() {
               table={table}
               onDelete={() => {
                 if (confirm(`Deletar mesa #${table.number}?`)) {
-                  deleteTableMutation.mutate({ tableId: table.id });
+                  setTables(tables.filter(t => t.id !== table.id));
                 }
               }}
               onEdit={() => navigate({ to: `/admin/mesas/${table.id}` })}
