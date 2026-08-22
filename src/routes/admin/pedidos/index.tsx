@@ -46,7 +46,8 @@ function KanbanPage() {
     queryFn: async () => {
       console.log("📡 [Kanban] Fetching orders...", { date, search });
       const result = await listKanbanOrdersFn({ data: { date, search: search || undefined } });
-      console.log("📡 [Kanban] Received data:", result?.columns?.length, "columns");
+      console.log("📡 [Kanban] Received full data:", result);
+      console.log("📡 [Kanban] Columns count:", result?.columns?.length);
       return result;
     },
     refetchInterval: 8_000,
