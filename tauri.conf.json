@@ -13,20 +13,11 @@
       {
         "title": "Velnox.app",
         "width": 1280,
-        "height": 720,
-        "resizable": true,
-        "fullscreen": false
+        "height": 720
       }
-    ],
-    "security": {
-      "csp": null
-    }
+    ]
   },
   "bundle": {
-    "active": true,
-    "targets": ["msi"],
-    "icon": [
-      "icons/icon.ico"
-    ]
+    "active": true
   }
 }
