@@ -61,10 +61,8 @@ export type KanbanOrder = {
   number: number;
   createdAt: string | Date;
   customerName: string;
-  customerPhone: string;
   total: number;
   type: "DELIVERY" | "PICKUP";
-  tableId?: string | null;
   items: {
     productNameSnapshot: string;
     quantity: number;
@@ -199,35 +197,14 @@ function OrderCard({
       className="block rounded-xl border border-neutral-200 p-3 transition-colors hover:border-[#E11D2E]/40 hover:bg-[#E11D2E]/[0.03] focus-visible:border-[#E11D2E] focus-visible:outline-none"
     >
       <article>
-        {order.tableId ? (
-          // QRCode order: show table name big, phone small
-          <div className="flex items-start justify-between gap-2 mb-1">
-            <div className="min-w-0 flex-1">
-              <div className="text-2xl font-bold text-neutral-900">
-                #{order.number}
-              </div>
-              <div className="text-lg font-bold text-neutral-900">
-                {order.customerName}
-              </div>
-              <div className="text-xs text-neutral-500">
-                {order.customerPhone}
-              </div>
-            </div>
-            <span className="shrink-0 text-xs text-neutral-500">
-              {time.format(new Date(order.createdAt))}
-            </span>
-          </div>
-        ) : (
-          // Regular order: show name normally
-          <div className="flex items-baseline justify-between gap-2">
-            <span className="min-w-0 truncate text-base font-bold text-neutral-900">
-              #{order.number} - {order.customerName}
-            </span>
-            <span className="shrink-0 text-xs text-neutral-500">
-              {time.format(new Date(order.createdAt))}
-            </span>
-          </div>
-        )}
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="min-w-0 truncate text-base font-bold text-neutral-900">
+            #{order.number} - {order.customerName}
+          </span>
+          <span className="shrink-0 text-xs text-neutral-500">
+            {time.format(new Date(order.createdAt))}
+          </span>
+        </div>
 
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <p className="text-sm font-bold text-neutral-900">
