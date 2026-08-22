@@ -94,23 +94,40 @@ export class OrderInventoryHandler {
 
       // Consumir quantidade (use composition se tiver receita)
       try {
-        await InventoryService.consumeForOrder(
-          order.storeId,
-          inventoryItem.id,
-          Number(orderItem.quantity),
-          orderId
-        );
-
-        // Se produto tem composição, marcar como usada
+        // Verificar se produto tem composição (receita)
         const composition = await prisma.productComposition.findFirst({
           where: {
             productId: orderItem.productId,
             isActive: true,
           },
+          include: {
+            items: {
+              include: { inventoryItem: true, unit: true }
+            }
+          }
         });
 
-        if (composition && !composition.firstUsedAt) {
-          await CompositionService.markAsUsed(composition.id);
+        if (composition && composition.items.length > 0) {
+          // Desconta ingredientes da receita
+          // Para cada quantidade vendida, desconta os ingredientes
+          await CompositionService.consumeComposition(
+            order.storeId,
+            composition.id,
+            Number(orderItem.quantity),
+            {
+              authorType: "SYSTEM",
+              authorId: "ORDER",
+              authorName: `Pedido #${order.number}`,
+            }
+          );
+        } else {
+          // Se não tem receita, desconta direto (produto simples)
+          await InventoryService.consumeForOrder(
+            order.storeId,
+            inventoryItem.id,
+            Number(orderItem.quantity),
+            orderId
+          );
         }
       } catch (error) {
         console.error(
