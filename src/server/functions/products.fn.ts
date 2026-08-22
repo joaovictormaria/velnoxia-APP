@@ -153,3 +153,38 @@ export const adminDeleteCategoryFn = createServerFn({ method: "POST" })
 
     return { success: false, message: "Categoria tem produtos associados" };
   });
+
+/**
+ * Link a product to an inventory item for stock control
+ */
+export const adminLinkProductToInventory = createServerFn({ method: "POST" })
+  .validator(z.object({
+    productId: z.string(),
+    inventoryItemId: z.string(),
+  }))
+  .handler(async ({ data }) => {
+    const admin = await requireAdminSession();
+
+    const product = await prisma.product.findFirst({
+      where: { id: data.productId, storeId: admin.storeId }
+    });
+
+    if (!product) {
+      throw new Error("Produto não encontrado");
+    }
+
+    const inventoryItem = await prisma.inventoryItem.findFirst({
+      where: { id: data.inventoryItemId, storeId: admin.storeId }
+    });
+
+    if (!inventoryItem) {
+      throw new Error("Item de estoque não encontrado");
+    }
+
+    const updated = await prisma.product.update({
+      where: { id: data.productId },
+      data: { inventoryItemId: data.inventoryItemId }
+    });
+
+    return { success: true, product: updated };
+  });

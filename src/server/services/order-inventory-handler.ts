@@ -74,14 +74,19 @@ export class OrderInventoryHandler {
    * Chamado quando Order.status = COMPLETED
    */
   static async onOrderCompleted(orderId: string) {
+    console.log(`[onOrderCompleted] Iniciando para pedido ${orderId}`);
+
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { items: { include: { product: true } } },
     });
 
     if (!order) {
+      console.error(`[onOrderCompleted] Pedido ${orderId} não encontrado`);
       throw new Error("Order not found");
     }
+
+    console.log(`[onOrderCompleted] Pedido ${orderId} encontrado com ${order.items.length} itens`);
 
     if (!order.storeId) {
       throw new Error("Order missing storeId");
@@ -90,6 +95,8 @@ export class OrderInventoryHandler {
     // Para cada item do pedido, consumir quantidade
     for (const orderItem of order.items) {
       try {
+        console.log(`[onOrderCompleted] Processando item: ${orderItem.productId}, qtd: ${orderItem.quantity}`);
+
         // Verificar se produto tem composição (receita)
         const composition = await prisma.productComposition.findFirst({
           where: {
@@ -104,8 +111,8 @@ export class OrderInventoryHandler {
         });
 
         if (composition && composition.items.length > 0) {
+          console.log(`[onOrderCompleted] Receita encontrada com ${composition.items.length} ingredientes`);
           // Desconta ingredientes da receita
-          // Para cada quantidade vendida, desconta os ingredientes
           await CompositionService.consumeComposition(
             order.storeId,
             composition.id,
@@ -116,9 +123,10 @@ export class OrderInventoryHandler {
               authorName: `Pedido #${order.number}`,
             }
           );
+          console.log(`[onOrderCompleted] Receita consumida com sucesso`);
         } else {
+          console.log(`[onOrderCompleted] Sem receita, tentando desconto direto`);
           // Se não tem receita, desconta direto (produto simples)
-          // Usar inventoryItemId do produto
           const product = await prisma.product.findUnique({
             where: { id: orderItem.productId },
             select: { inventoryItemId: true }
@@ -131,15 +139,19 @@ export class OrderInventoryHandler {
               Number(orderItem.quantity),
               orderId
             );
+          } else {
+            console.log(`[onOrderCompleted] Produto sem inventoryItemId linkado`);
           }
         }
       } catch (error) {
         console.error(
-          `Failed to consume inventory for order ${orderId}:`,
+          `[onOrderCompleted] Erro ao consumir inventário para pedido ${orderId}:`,
           error
         );
       }
     }
+
+    console.log(`[onOrderCompleted] Concluído para pedido ${orderId}`);
   }
 
   /**
