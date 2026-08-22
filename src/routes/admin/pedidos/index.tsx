@@ -45,6 +45,8 @@ function KanbanPage() {
     queryKey: ["orders", "kanban", date, search],
     queryFn: () => listKanbanOrdersFn({ data: { date, search: search || undefined } }),
     refetchInterval: 8_000,
+    staleTime: 8_000, // Não marcar como stale até depois do refetch
+    gcTime: 10 * 60 * 1000, // Manter em cache por 10 min
   });
 
   const advance = useMutation({
