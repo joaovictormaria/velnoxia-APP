@@ -1,0 +1,13 @@
+# Tauri build output
+/target
+Cargo.lock
+
+# Build artifacts
+*.exe
+*.msi
+*.app
+*.dmg
+
+# OS-specific
+.DS_Store
+Thumbs.db
