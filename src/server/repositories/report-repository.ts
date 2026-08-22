@@ -7,21 +7,36 @@ export const reportRepository = {
     if (!options?.includeInactive) where.isActive = true;
     if (options?.itemType) where.itemType = options.itemType;
 
-    const items = await prisma.inventoryItem.findMany({ 
-      where, 
-      include: { baseUnit: true }, 
-      take: options?.limit ?? 100, 
-      skip: options?.offset ?? 0 
+    const items = await prisma.inventoryItem.findMany({
+      where,
+      include: { baseUnit: true },
+      take: options?.limit ?? 100,
+      skip: options?.offset ?? 0
     });
-    
+
+    // Calcular quantidade usada em receitas ativas para cada item
+    const usageByItem = new Map<string, number>();
+    const compositions = await prisma.compositionItem.findMany({
+      where: {
+        composition: { storeId, isActive: true }
+      },
+      select: { inventoryItemId: true, quantity: true }
+    });
+
+    compositions.forEach(comp => {
+      const current = usageByItem.get(comp.inventoryItemId) || 0;
+      usageByItem.set(comp.inventoryItemId, current + Number(comp.quantity || 0));
+    });
+
     const withAvailable = items.map((item) => ({
       ...item,
       quantityAvailable: item.quantityOnHand - item.quantityReserved,
+      quantityUsedInRecipes: usageByItem.get(item.id) || 0,
     }));
 
     if (options?.sortBy === "name") withAvailable.sort((a, b) => a.name.localeCompare(b.name));
     else if (options?.sortBy === "quantity") withAvailable.sort((a, b) => Number(b.quantityOnHand) - Number(a.quantityOnHand));
-    
+
     return withAvailable;
   },
 

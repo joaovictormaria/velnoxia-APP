@@ -9,6 +9,7 @@ function serializeItem(item: any) {
     quantityOnHand: Number(item.quantityOnHand ?? 0),
     quantityReserved: Number(item.quantityReserved ?? 0),
     quantityAvailable: Number(item.quantityAvailable ?? 0),
+    quantityUsedInRecipes: Number(item.quantityUsedInRecipes ?? 0),
     maximumQuantity: Number(item.maximumQuantity ?? 0),
     contentSize: item.contentSize ? Number(item.contentSize) : null,
     cost: item.cost ? Number(item.cost) : null,
