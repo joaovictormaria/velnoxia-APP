@@ -171,6 +171,14 @@ export async function listMesasAbertas(
     },
   });
 
+  // Buscar números das mesas
+  const tableIds = Array.from(new Set(orders.map((o) => o.tableId!)));
+  const tables = await prisma.table.findMany({
+    where: { id: { in: tableIds } },
+    select: { id: true, number: true },
+  });
+  const tableNumberMap = new Map(tables.map((t) => [t.id, t.number]));
+
   // Agrupar por tableId
   const mesasMap = new Map<string, typeof orders>();
   for (const order of orders) {
@@ -184,7 +192,7 @@ export async function listMesasAbertas(
   // Transformar em array com dados agregados
   const mesas = Array.from(mesasMap.entries()).map(([tableId, pedidos]) => ({
     tableId,
-    tableNumber: pedidos[0].number, // TODO: buscar do Table
+    tableNumber: tableNumberMap.get(tableId) ?? 0,
     pedidos,
     totalPedidos: pedidos.length,
     totalValor: pedidos.reduce((sum, p) => sum + p.total, 0),
