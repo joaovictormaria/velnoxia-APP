@@ -257,13 +257,11 @@ function CategoriesPage() {
             <span className="block text-sm font-medium text-neutral-700">
               Tamanho, quantidade, Litros...
             </span>
-            <div className="rounded-lg border border-neutral-200 bg-white p-4">
-              <SizePicker
-                value={draft.sizes}
-                onChange={(sizes) => setDraft({ ...draft, sizes })}
-                businessType={businessType ?? ""}
-              />
-            </div>
+            <SizePicker
+              value={draft.sizes}
+              onChange={(sizes) => setDraft({ ...draft, sizes })}
+              businessType={businessType ?? ""}
+            />
             <span className="block text-xs text-neutral-500">
               Cada produto desta categoria recebe um preço por tamanho. Sem nenhum tamanho, a
               categoria vende pelo preço único — o normal em bebidas e porções. Apagar um
