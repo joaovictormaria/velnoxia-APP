@@ -223,9 +223,9 @@ function MesasPage() {
       ) : (
         <div className="flex flex-wrap gap-2">
           {qrcodes.map((qr) => (
-            <div key={qr.id} className="rounded-lg border border-neutral-200 bg-neutral-50 w-48 aspect-square flex flex-col justify-between overflow-hidden">
+            <div key={qr.id} className="rounded-lg border border-neutral-200 bg-neutral-50 p-0 w-48 aspect-square flex flex-col justify-between overflow-hidden">
               <div className={`${getCorPorMesa(qr.id)} h-2`} />
-              <div className="p-4 mb-4 space-y-2 text-center text-sm">
+              <div className="p-4 mb-4 space-y-2 text-center text-sm flex-1 flex flex-col justify-between">
                 <div>
                   <p className="text-neutral-600">Mesa</p>
                   <p className="text-xl font-bold text-neutral-900">Mesa {qr.number}</p>
@@ -238,7 +238,7 @@ function MesasPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 p-4">
                 <a
                   href={qr.url}
                   target="_blank"
