@@ -351,6 +351,7 @@ function CategoriesPage() {
                       type="button"
                       onClick={() => {
                         setError(null);
+                        setFoco(null);
                         setDraft({
                           id: c.id,
                           name: c.name,
