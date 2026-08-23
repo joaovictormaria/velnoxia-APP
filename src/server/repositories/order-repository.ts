@@ -19,11 +19,11 @@ function dayRange(day?: string) {
     return new Date(year, month - 1, date);
   })();
 
-  const offset = local.getTimezoneOffset() * 60 * 1000;
-  const fromMs = local.getTime() - offset;
+  const clientTimezoneOffset = -180 * 60 * 1000;
+  const fromMs = local.getTime() - clientTimezoneOffset;
   const toMs = fromMs + 24 * 60 * 60 * 1000 - 1;
 
-  console.log(`dayRange(${day}): offset=${offset}, from=${new Date(fromMs).toISOString()}, to=${new Date(toMs).toISOString()}`);
+  console.log(`dayRange(${day}): from=${new Date(fromMs).toISOString()}, to=${new Date(toMs).toISOString()}`);
 
   return { from: new Date(fromMs), to: new Date(toMs) };
 }
