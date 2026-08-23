@@ -253,13 +253,8 @@ function CategoriesPage() {
                 onChange={(sizes) => setDraft({ ...draft, sizes })}
                 businessType={businessType ?? ""}
               />
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  placeholder="Ex.: Meio litro"
-                  className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
-                />
-                <label className="space-y-1.5 w-20 shrink-0">
+              <div className="flex justify-end">
+                <label className="space-y-1.5 w-20">
                   <span className="text-xs font-medium text-neutral-900 block">Ordem</span>
                   <input
                     type="number"
