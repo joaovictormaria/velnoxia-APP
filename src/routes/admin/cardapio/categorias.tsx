@@ -245,7 +245,7 @@ function CategoriesPage() {
 
           <div className="block lg:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Tamanho, quantidade, Litros etc
+              Tamanho, quantidade, Litros...
             </span>
             <SizePicker
               value={draft.sizes}
