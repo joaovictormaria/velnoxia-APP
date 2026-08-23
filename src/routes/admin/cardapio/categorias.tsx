@@ -184,6 +184,7 @@ function CategoriesPage() {
               <PreviaDaVitrine
                 storeSlug={admin.store.slug}
                 altura={360}
+                foco={foco}
                 aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
               >
                 <SecaoDoCardapio>
