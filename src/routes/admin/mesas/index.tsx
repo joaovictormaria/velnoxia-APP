@@ -5,7 +5,7 @@ import { QrCode, Copy, Download, Trash2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateUUID } from "@/lib/uuid";
 import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
-import { getTableOrderCountsFn, getNextTableNumberFn, listTablesFn } from "@/server/functions/orders.fn";
+import { getTableOrderCountsFn, getNextTableNumberFn, listTablesFn, deleteTableFn } from "@/server/functions/orders.fn";
 import { createTableFn } from "@/routes/api/tables/create";
 
 const CORES = [
@@ -143,21 +143,20 @@ function MesasPage() {
     }
   };
 
-  const deleteQRCode = (id: string) => {
+  const deleteQRCode = async (id: string) => {
     if (confirm(`Deletar QRCode Mesa?`)) {
-      setQrcodes(qrcodes.filter(q => q.id !== id));
-      setQrImageCache((prev) => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
+      try {
+        const result = await deleteTableFn({ data: { id } });
+        if (!result.ok) {
+          alert(`Erro ao deletar: ${result.error}`);
+          return;
+        }
 
-      // Remover do localStorage também
-      if (admin?.store?.slug) {
-        const storeSlugKey = `tableNumbers_${admin.store.slug}`;
-        const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
-        delete tableNumberMap[id];
-        localStorage.setItem(storeSlugKey, JSON.stringify(tableNumberMap));
+        // Recarregar as mesas do banco de dados
+        await queryClient.invalidateQueries({ queryKey: ["tables"] });
+      } catch (error) {
+        console.error("Erro ao deletar mesa:", error);
+        alert("Erro ao deletar mesa. Tente novamente.");
       }
     }
   };

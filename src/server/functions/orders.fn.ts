@@ -138,6 +138,23 @@ export const listTablesFn = createServerFn({ method: "GET" })
     return tables;
   });
 
+export const deleteTableFn = createServerFn({ method: "POST" })
+  .validator(z.object({ id: z.string() }))
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+    const table = await prisma.table.findUnique({
+      where: { id: data.id },
+      select: { storeId: true },
+    });
+
+    if (!table || table.storeId !== storeId) {
+      return { ok: false as const, error: "Mesa não encontrada" };
+    }
+
+    await prisma.table.delete({ where: { id: data.id } });
+    return { ok: true as const };
+  });
+
 // Disabled for now - tableNumber doesn't exist on Order model
 // export const getOpenTablesFn = createServerFn({ method: "GET" })
 //   .handler(async () => {
