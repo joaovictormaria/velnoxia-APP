@@ -148,19 +148,30 @@ function CategoriesPage() {
       )}
 
       {draft && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8"
-          onClick={() => setDraft(null)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8">
           <form
             onSubmit={(e) => {
               e.preventDefault();
               setError(null);
               save.mutate(draft);
             }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-200 bg-white grid grid-cols-1 gap-4 lg:grid-cols-5"
           >
+            <div className="sticky top-0 flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-5 pt-5 pb-3 lg:col-span-5">
+              <h2 className="text-lg font-semibold text-neutral-900">
+                {draft.id ? "Editar categoria" : "Nova categoria"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setDraft(null)}
+                aria-label="Fechar"
+                className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="px-5 pb-5 lg:px-0 lg:pb-0">
             {/* Canto superior direito, ocupando as três primeiras linhas: os campos
                 de identidade ficam ao lado dela, e o resto do formulário corre
                 por baixo em largura inteira.
@@ -304,6 +315,7 @@ function CategoriesPage() {
             >
               Cancelar
             </button>
+            </div>
             </div>
           </form>
         </div>
