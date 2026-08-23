@@ -2,10 +2,28 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { MesaModal } from "./MesaModal";
 
+const CORES = [
+  "bg-red-500",
+  "bg-blue-500",
+  "bg-green-500",
+  "bg-purple-500",
+  "bg-pink-500",
+  "bg-yellow-500",
+  "bg-indigo-500",
+  "bg-cyan-500",
+  "bg-orange-500",
+  "bg-teal-500",
+];
+
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
+
+function getCorPorMesa(tableId: string): string {
+  const hash = tableId.charCodeAt(0) + tableId.charCodeAt(tableId.length - 1);
+  return CORES[hash % CORES.length];
+}
 
 export interface MesaCardData {
   tableId: string;
@@ -24,9 +42,12 @@ export function MesaCard({
 }) {
   const [showModal, setShowModal] = useState(false);
 
+  const cor = getCorPorMesa(mesa.tableId);
+
   return (
     <>
-      <div className="rounded-xl border border-neutral-200 p-4 bg-white hover:border-purple-300 transition-colors cursor-pointer">
+      <div className={`rounded-xl border border-neutral-200 p-4 bg-white hover:border-purple-300 transition-colors cursor-pointer overflow-hidden`}>
+        <div className={`-mx-4 -mt-4 mb-4 h-2 ${cor}`} />
         <div className="flex items-baseline justify-between gap-2 mb-2">
           <span className="text-lg font-bold text-neutral-900">
             Mesa {mesa.tableNumber}
