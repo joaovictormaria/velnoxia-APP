@@ -185,6 +185,13 @@ export function CategorySaboresSection({
               )}
             </p>
           )}
+          {!(firstLine || secondLine) && (
+            <p
+              data-previa="descricao-da-categoria"
+              className="mt-5 max-w-md text-base leading-relaxed text-charcoal/60"
+              aria-hidden
+            />
+          )}
 
           <Link
             to="/$storeSlug/produto/$slug"
