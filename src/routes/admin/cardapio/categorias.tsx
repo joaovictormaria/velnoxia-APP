@@ -155,9 +155,9 @@ function CategoriesPage() {
               setError(null);
               save.mutate(draft);
             }}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-200 bg-white grid grid-cols-1 gap-4 lg:grid-cols-5"
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
           >
-            <div className="sticky top-0 flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-5 pt-5 pb-3 lg:col-span-5">
+            <div className="sticky top-0 -mx-5 mb-4 flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-5 pt-5 pb-3 lg:-mx-0 lg:col-span-5">
               <h2 className="text-lg font-semibold text-neutral-900">
                 {draft.id ? "Editar categoria" : "Nova categoria"}
               </h2>
@@ -170,8 +170,6 @@ function CategoriesPage() {
                 <X className="size-5" />
               </button>
             </div>
-
-            <div className="px-5 pb-5 lg:px-0 lg:pb-0">
             {/* Canto superior direito, ocupando as três primeiras linhas: os campos
                 de identidade ficam ao lado dela, e o resto do formulário corre
                 por baixo em largura inteira.
@@ -315,7 +313,6 @@ function CategoriesPage() {
             >
               Cancelar
             </button>
-            </div>
             </div>
           </form>
         </div>
