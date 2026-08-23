@@ -124,6 +124,7 @@ function CategoriesPage() {
           type="button"
           onClick={() => {
             setError(null);
+            setFoco(null);
             setDraft({ ...EMPTY, sortOrder: (data?.length ?? 0) + 1 });
           }}
           className="flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a]"
