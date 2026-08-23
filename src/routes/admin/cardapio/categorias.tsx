@@ -253,7 +253,7 @@ function CategoriesPage() {
             />
           </label>
 
-          <div className="block lg:col-span-2 space-y-1.5">
+          <div className="lg:col-span-2 space-y-1.5">
             <span className="block text-sm font-medium text-neutral-700">
               Tamanho, quantidade, Litros...
             </span>
@@ -262,7 +262,10 @@ function CategoriesPage() {
               onChange={(sizes) => setDraft({ ...draft, sizes })}
               businessType={businessType ?? ""}
             />
-            <span className="block text-xs text-neutral-500">
+          </div>
+
+          <div className="lg:col-span-3 flex items-end">
+            <span className="text-xs text-neutral-500">
               Cada produto desta categoria recebe um preço por tamanho. Sem nenhum tamanho, a
               categoria vende pelo preço único — o normal em bebidas e porções. Apagar um
               tamanho apaga os preços dele em todos os produtos.
