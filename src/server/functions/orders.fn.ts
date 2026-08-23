@@ -126,6 +126,18 @@ export const getNextTableNumberFn = createServerFn({ method: "GET" })
     return (maxTable?.number ?? 0) + 1;
   });
 
+export const listTablesFn = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { storeId } = await requireAdminSession();
+    const tables = await prisma.table.findMany({
+      where: { storeId },
+      orderBy: { number: "asc" },
+      select: { id: true, number: true, qrcodeUrl: true, qrcodeData: true },
+    });
+
+    return tables;
+  });
+
 // Disabled for now - tableNumber doesn't exist on Order model
 // export const getOpenTablesFn = createServerFn({ method: "GET" })
 //   .handler(async () => {

@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QrCode, Copy, Download, Trash2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateUUID } from "@/lib/uuid";
 import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
-import { getTableOrderCountsFn, getNextTableNumberFn } from "@/server/functions/orders.fn";
+import { getTableOrderCountsFn, getNextTableNumberFn, listTablesFn } from "@/server/functions/orders.fn";
 import { createTableFn } from "@/routes/api/tables/create";
 
 const CORES = [
@@ -43,10 +43,17 @@ interface GeneratedQRCode {
 function MesasPage() {
   const context = Route.useRouteContext() as any;
   const admin = context?.admin;
+  const queryClient = useQueryClient();
   const [qrcodes, setQrcodes] = useState<GeneratedQRCode[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [qrImageCache, setQrImageCache] = useState<Record<string, string>>({});
+
+  // Carregar mesas do banco de dados
+  const { data: tables = [] } = useQuery({
+    queryKey: ["tables"],
+    queryFn: () => listTablesFn({}),
+    refetchInterval: 5_000,
+  });
 
   // Carregar contagem de pedidos abertos por mesa
   const { data: tableOrderCounts = {} } = useQuery({
@@ -55,25 +62,21 @@ function MesasPage() {
     refetchInterval: 5_000,
   });
 
-  // Carregar QRCodes salvos do localStorage ao montar
+  // Atualizar QRCodes quando as mesas forem carregadas
   useEffect(() => {
-    if (!admin?.store?.slug) return;
-    const storeSlugKey = `tableNumbers_${admin.store.slug}`;
-    const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
+    if (!admin?.store?.slug || !tables.length) return;
 
-    const generatedQRCodes: GeneratedQRCode[] = Object.entries(tableNumberMap)
-      .map(([id, number]) => ({
-        id,
-        number: number as number,
-        url: `${window.location.origin}/qr/${admin.store.slug}/${id}`,
-        qrImage: qrImageCache[id] || "", // Usar cache se existir
-        createdAt: new Date(),
-        ordersCount: (tableOrderCounts[number as any] ?? 0) as number,
-      }))
-      .filter((qr) => qr.ordersCount > 0 || Object.keys(tableNumberMap).length <= 10); // Mostrar todas se menos de 10
+    const generatedQRCodes: GeneratedQRCode[] = tables.map(table => ({
+      id: table.id,
+      number: table.number,
+      url: `${window.location.origin}/qr/${admin.store.slug}/${table.id}`,
+      qrImage: table.qrcodeData || "",
+      createdAt: new Date(),
+      ordersCount: (tableOrderCounts[table.number] ?? 0) as number,
+    }));
 
     setQrcodes(generatedQRCodes);
-  }, [admin, admin?.store?.slug]);
+  }, [tables, tableOrderCounts, admin?.store?.slug]);
 
   const generateQRCode = async () => {
     setGenerating(true);
@@ -109,24 +112,8 @@ function MesasPage() {
         throw new Error(result.error || "Falha ao criar mesa no banco de dados");
       }
 
-      const newQRCode: GeneratedQRCode = {
-        id: newId,
-        number: tableNumber,
-        url: qrUrl,
-        qrImage,
-        createdAt: new Date(),
-        ordersCount: 0,
-      };
-
-      // Guardar mapeamento tableId -> tableNumber no localStorage para uso na rota QR
-      const storeSlugKey = `tableNumbers_${admin.store.slug}`;
-      const existingMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
-      existingMap[newId] = tableNumber;
-      localStorage.setItem(storeSlugKey, JSON.stringify(existingMap));
-
-      // Armazenar imagem no cache
-      setQrImageCache((prev) => ({ ...prev, [newId]: qrImage }));
-      setQrcodes([...qrcodes, newQRCode]);
+      // Recarregar as mesas do banco de dados
+      await queryClient.invalidateQueries({ queryKey: ["tables"] });
     } catch (error) {
       console.error("Erro ao gerar QRCode:", error);
       alert("Erro ao gerar QRCode. Tente novamente.");
