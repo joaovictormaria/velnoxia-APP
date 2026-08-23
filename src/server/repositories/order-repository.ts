@@ -11,13 +11,16 @@ import { prisma } from "../db/client";
 function dayRange(day?: string) {
   const now = new Date();
 
-  const local = (() => {
+  let local = (() => {
     if (!day) {
       return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     }
     const [year, month, date] = day.split("-").map(Number);
     return new Date(year, month - 1, date);
   })();
+
+  // DEBUG: subtrair 1 dia para testar
+  local = new Date(local.getTime() + 24 * 60 * 60 * 1000);
 
   const fromMs = local.getTime();
   const toMs = fromMs + 24 * 60 * 60 * 1000 - 1;
