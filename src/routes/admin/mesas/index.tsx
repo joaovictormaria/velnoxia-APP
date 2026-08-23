@@ -146,17 +146,20 @@ function MesasPage() {
   const deleteQRCode = async (id: string) => {
     if (confirm(`Deletar QRCode Mesa?`)) {
       try {
+        setQrcodes(prev => prev.filter(q => q.id !== id));
+
         const result = await deleteTableFn({ data: { id } });
         if (!result.ok) {
           alert(`Erro ao deletar: ${result.error}`);
+          await queryClient.invalidateQueries({ queryKey: ["tables"] });
           return;
         }
 
-        // Recarregar as mesas do banco de dados
         await queryClient.invalidateQueries({ queryKey: ["tables"] });
       } catch (error) {
         console.error("Erro ao deletar mesa:", error);
         alert("Erro ao deletar mesa. Tente novamente.");
+        await queryClient.invalidateQueries({ queryKey: ["tables"] });
       }
     }
   };
