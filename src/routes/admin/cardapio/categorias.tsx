@@ -148,33 +148,38 @@ function CategoriesPage() {
       )}
 
       {draft && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setError(null);
-            save.mutate(draft);
-          }}
-          className="grid grid-cols-1 gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-8"
+          onClick={() => setDraft(null)}
         >
-          {/* Canto superior direito, ocupando as três primeiras linhas: os campos
-              de identidade ficam ao lado dela, e o resto do formulário corre
-              por baixo em largura inteira.
-              admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
-              precisa da guarda para não depender dessa suposição. */}
-          {admin && (
-            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
-              <PreviaDaVitrine
-                storeSlug={admin.store.slug}
-                altura={360}
-                foco={foco}
-                aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
-              >
-                <SecaoDoCardapio>
-                  <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
-                </SecaoDoCardapio>
-              </PreviaDaVitrine>
-            </div>
-          )}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setError(null);
+              save.mutate(draft);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
+          >
+            {/* Canto superior direito, ocupando as três primeiras linhas: os campos
+                de identidade ficam ao lado dela, e o resto do formulário corre
+                por baixo em largura inteira.
+                admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
+                precisa da guarda para não depender dessa suposição. */}
+            {admin && (
+              <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
+                <PreviaDaVitrine
+                  storeSlug={admin.store.slug}
+                  altura={360}
+                  foco={foco}
+                  aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
+                >
+                  <SecaoDoCardapio>
+                    <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
+                  </SecaoDoCardapio>
+                </PreviaDaVitrine>
+              </div>
+            )}
 
           <label className="space-y-1.5 md:col-span-3">
             <span className="text-sm font-medium text-neutral-900">Nome</span>
@@ -299,8 +304,9 @@ function CategoriesPage() {
             >
               Cancelar
             </button>
-          </div>
-        </form>
+            </div>
+          </form>
+        </div>
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
