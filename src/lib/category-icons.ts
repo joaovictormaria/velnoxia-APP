@@ -36,6 +36,8 @@ import {
   GlassWater,
   Ham,
   Heart,
+  IceCreamBowl,
+  IceCreamCone,
   Leaf,
   Lemon,
   Martini,
