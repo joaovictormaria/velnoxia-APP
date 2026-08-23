@@ -47,6 +47,10 @@ export function CardapioPicker({
     categories[0]?.slug ?? "tradicionais",
   );
   const [query, setQuery] = useState("");
+  const [tableId] = useState(() => {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("tableId");
+  });
 
   const activeCategory = categories.find((c) => c.slug === activeSlug);
 
@@ -85,7 +89,7 @@ export function CardapioPicker({
         <Link
           to="/$storeSlug/carrinho"
           params={{ storeSlug }}
-          search={{ pagar: itemCount > 0 ? true : undefined }}
+          search={{ pagar: itemCount > 0 ? true : undefined, tableId: tableId ?? undefined }}
           className="flex items-center gap-2 rounded-full bg-tomato px-4 py-2 text-sm font-bold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90 active:scale-95"
         >
           <span className="relative">
@@ -107,7 +111,7 @@ export function CardapioPicker({
           <Link
             to="/$storeSlug/carrinho"
             params={{ storeSlug }}
-            search={{ pagar: true }}
+            search={{ pagar: true, tableId: tableId ?? undefined }}
             className="hidden items-center gap-2 rounded-full bg-charcoal px-5 py-2 text-sm font-bold text-mozzarella transition-colors hover:bg-charcoal/90 active:scale-95 lg:flex"
           >
             Finalizar compras
