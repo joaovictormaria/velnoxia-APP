@@ -96,28 +96,7 @@ export function SizePicker({
         </ol>
       )}
 
-      <div className="space-y-2.5 rounded-xl border border-neutral-200 p-3">
-        <div className="flex flex-wrap gap-1.5">
-          {sugestoes.map((label) => {
-            const escolhido = value.includes(label);
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => alterna(label)}
-                className={
-                  escolhido
-                    ? "rounded-full bg-[#E11D2E] px-3.5 py-1.5 text-xs font-semibold text-white"
-                    : "rounded-full border border-neutral-300 px-3.5 py-1.5 text-xs text-neutral-700 hover:border-[#E11D2E] hover:text-[#E11D2E]"
-                }
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-2 border-t border-neutral-100 pt-2.5">
+      <div className="flex items-center gap-2 rounded-xl border border-neutral-200 p-3">
           <input
             value={novo}
             onChange={(e) => setNovo(e.target.value)}
@@ -140,7 +119,6 @@ export function SizePicker({
             <Plus className="size-3.5" />
             Incluir
           </button>
-        </div>
       </div>
     </div>
   );
