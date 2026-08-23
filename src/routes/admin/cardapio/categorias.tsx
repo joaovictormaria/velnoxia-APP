@@ -5,10 +5,6 @@ import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { CategorySaboresSection } from "@/components/site/pizzaria2/CategorySaboresSection";
 import { SecaoDoCardapio } from "@/components/site/pizzaria2/SecaoDoCardapio";
 import { aplicarRascunhoDeCategoria, SLUG_DA_NOVA } from "@/lib/previa/aplicar-rascunho";
-import {
-  OptionGroupEditor,
-  type GrupoRascunho,
-} from "@/components/admin/menu/OptionGroupEditor";
 import { getBusinessTypeFn } from "@/server/functions/settings.fn";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -34,8 +30,6 @@ type Draft = {
   kind: "PIZZA" | "SIMPLE";
   /** Nomes dos tamanhos, na ordem em que o cliente os vê. */
   sizes: string[];
-  /** Perguntas feitas ao pedir qualquer produto da categoria. */
-  optionGroups: GrupoRascunho[];
   sortOrder: number;
   isActive: boolean;
 };
@@ -50,7 +44,6 @@ const EMPTY: Draft = {
   subhead: "",
   kind: "SIMPLE",
   sizes: [],
-  optionGroups: [],
   sortOrder: 0,
   isActive: true,
 };
@@ -103,17 +96,6 @@ function CategoriesPage() {
             subhead: d.subhead || null,
             kind: d.kind,
             sizes: d.sizes,
-            // Grupo sem nome ou sem opção é rascunho abandonado; salvar
-            // criaria uma pergunta vazia na tela do cliente.
-            optionGroups: d.optionGroups
-              .filter((g) => g.name.trim() && g.options.some((o) => o.name.trim()))
-              .map((g) => ({
-                ...g,
-                name: g.name.trim(),
-                options: g.options
-                  .filter((o) => o.name.trim())
-                  .map((o) => ({ name: o.name.trim(), price: o.price })),
-              })),
             sortOrder: d.sortOrder,
             isActive: d.isActive,
           },
@@ -292,21 +274,6 @@ function CategoriesPage() {
             </span>
           </div>
 
-          <div className="block lg:col-span-2">
-            <span className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Perguntas ao pedir
-            </span>
-            <OptionGroupEditor
-              value={draft.optionGroups}
-              onChange={(optionGroups) => setDraft({ ...draft, optionGroups })}
-              businessType={businessType ?? ""}
-            />
-            <span className="mt-1 block text-xs text-neutral-500">
-              O que o cliente escolhe antes de adicionar ao carrinho: o sabor, o ponto da carne,
-              os complementos. Vale para todos os produtos desta categoria.
-            </span>
-          </div>
-
           <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Ordem</span>
             <input
@@ -389,13 +356,6 @@ function CategoriesPage() {
                           subhead: c.subhead ?? "",
                           kind: c.kind,
                           sizes: c.sizes.map((t) => t.label),
-                          optionGroups: c.optionGroups.map((g) => ({
-                            name: g.name,
-                            minChoices: g.minChoices,
-                            maxChoices: g.maxChoices,
-                            freeChoices: g.freeChoices,
-                            options: g.options.map((o) => ({ name: o.name, price: o.price })),
-                          })),
                           sortOrder: c.sortOrder,
                           isActive: c.isActive,
                         });
