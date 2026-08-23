@@ -85,7 +85,9 @@ function MesasPage() {
       }
 
       const newId = generateUUID();
-      const tableNumber = qrcodes.length + 1;
+      // Get next table number from database (max + 1)
+      const maxTableNumber = Math.max(0, ...qrcodes.map(q => q.number));
+      const tableNumber = maxTableNumber + 1;
 
       const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://velnoxia.app";
       const storeSlug = admin.store.slug;

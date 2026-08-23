@@ -37,7 +37,8 @@ export const createTableFn = createServerFn({ method: "POST" })
 
       return { ok: true as const, table };
     } catch (error) {
-      console.error("Erro ao criar mesa:", error);
-      return { ok: false as const, error: "Falha ao criar mesa" };
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("Erro ao criar mesa:", errorMsg, error);
+      return { ok: false as const, error: `Falha ao criar mesa: ${errorMsg}` };
     }
   });
