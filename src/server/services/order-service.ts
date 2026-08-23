@@ -504,9 +504,12 @@ export async function createOrderFromCheckout(
     });
     const nextNumber = (last?.number ?? 0) + 1;
 
+    const now = new Date();
+    console.log(`Creating order at: ${now.toISOString()}`);
+
     const created = await tx.order.create({
       data: {
-        createdAt: new Date(),
+        createdAt: now,
         storeId,
         number: nextNumber,
         customerId: customer.id,
