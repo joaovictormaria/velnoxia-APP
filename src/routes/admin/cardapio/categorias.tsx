@@ -194,7 +194,7 @@ function CategoriesPage() {
             />
           </label>
 
-          <label className="space-y-1.5 lg:col-span-3">
+          <label className="space-y-1.5">
             <span className="text-sm font-medium text-neutral-900">Selo</span>
             <input
               onFocus={() => setFoco("selo-da-categoria")}
@@ -202,6 +202,16 @@ function CategoriesPage() {
               onChange={(e) => setDraft({ ...draft, badge: e.target.value })}
               placeholder="Sabores que todo mundo ama"
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
+            />
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-sm font-medium text-neutral-900">Ordem</span>
+            <input
+              type="number"
+              value={draft.sortOrder}
+              onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </label>
 
@@ -247,23 +257,12 @@ function CategoriesPage() {
             <span className="block text-sm font-medium text-neutral-700">
               Tamanho, quantidade, Litros...
             </span>
-            <div className="rounded-lg border border-neutral-200 bg-white p-4 space-y-3">
+            <div className="rounded-lg border border-neutral-200 bg-white p-4">
               <SizePicker
                 value={draft.sizes}
                 onChange={(sizes) => setDraft({ ...draft, sizes })}
                 businessType={businessType ?? ""}
               />
-              <div className="flex justify-end">
-                <label className="space-y-1.5 w-20">
-                  <span className="text-xs font-medium text-neutral-900 block">Ordem</span>
-                  <input
-                    type="number"
-                    value={draft.sortOrder}
-                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-                    className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-base md:text-sm text-neutral-900"
-                  />
-                </label>
-              </div>
             </div>
             <span className="block text-xs text-neutral-500">
               Cada produto desta categoria recebe um preço por tamanho. Sem nenhum tamanho, a
