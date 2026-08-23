@@ -243,27 +243,32 @@ function CategoriesPage() {
             />
           </label>
 
-          <div className="lg:col-span-3 space-y-1.5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <span className="block text-sm font-medium text-neutral-700 mb-1.5">
-                  Tamanho, quantidade, Litros...
-                </span>
-                <SizePicker
-                  value={draft.sizes}
-                  onChange={(sizes) => setDraft({ ...draft, sizes })}
-                  businessType={businessType ?? ""}
-                />
-              </div>
-              <label className="space-y-1.5 w-24 shrink-0">
-                <span className="text-sm font-medium text-neutral-900">Ordem</span>
+          <div className="block lg:col-span-2 space-y-1.5">
+            <span className="block text-sm font-medium text-neutral-700">
+              Tamanho, quantidade, Litros...
+            </span>
+            <div className="rounded-lg border border-neutral-200 bg-white p-4 space-y-3">
+              <SizePicker
+                value={draft.sizes}
+                onChange={(sizes) => setDraft({ ...draft, sizes })}
+                businessType={businessType ?? ""}
+              />
+              <div className="flex gap-3">
                 <input
-                  type="number"
-                  value={draft.sortOrder}
-                  onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
+                  type="text"
+                  placeholder="Ex.: Meio litro"
+                  className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
                 />
-              </label>
+                <label className="space-y-1.5 w-20 shrink-0">
+                  <span className="text-xs font-medium text-neutral-900 block">Ordem</span>
+                  <input
+                    type="number"
+                    value={draft.sortOrder}
+                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-neutral-200 px-2 py-2 text-base md:text-sm text-neutral-900"
+                  />
+                </label>
+              </div>
             </div>
             <span className="block text-xs text-neutral-500">
               Cada produto desta categoria recebe um preço por tamanho. Sem nenhum tamanho, a
