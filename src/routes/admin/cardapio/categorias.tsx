@@ -175,20 +175,6 @@ function CategoriesPage() {
                 por baixo em largura inteira.
                 admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
                 precisa da guarda para não depender dessa suposição. */}
-            {admin && (
-              <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
-                <PreviaDaVitrine
-                  storeSlug={admin.store.slug}
-                  altura={360}
-                  foco={foco}
-                  aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
-                >
-                  <SecaoDoCardapio>
-                    <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
-                  </SecaoDoCardapio>
-                </PreviaDaVitrine>
-              </div>
-            )}
 
           <label className="space-y-1.5 md:col-span-3">
             <span className="text-sm font-medium text-neutral-900">Nome</span>
@@ -298,7 +284,22 @@ function CategoriesPage() {
             />
           </label>
 
-          <div className="flex items-center gap-2 md:col-span-5">
+          {admin && (
+            <div className="lg:col-span-5">
+              <PreviaDaVitrine
+                storeSlug={admin.store.slug}
+                altura={360}
+                foco={foco}
+                aplicar={(payload) => aplicarRascunhoDeCategoria(payload, draft)}
+              >
+                <SecaoDoCardapio>
+                  <CategorySaboresSection defaultCategorySlug={draft.slug || SLUG_DA_NOVA} />
+                </SecaoDoCardapio>
+              </PreviaDaVitrine>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 lg:col-span-5">
             <button
               type="submit"
               disabled={save.isPending}
