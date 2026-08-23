@@ -2,6 +2,7 @@ import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
 import {
   deletePromotionFn,
@@ -131,131 +132,148 @@ function PromotionsPage() {
       )}
 
       {draft && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            save.mutate(draft);
-          }}
-          className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
-        >
-          {/* Topo à direita, como nas outras telas. */}
-          {admin && (
-            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
-              <PreviaDaVitrine
-                storeSlug={admin.store.slug}
-                foco={foco}
-                largura={1200}
-                aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
+        <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
+          <div className="flex w-full max-w-5xl flex-col">
+            <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
+              <h2 className="text-base font-semibold text-neutral-900">
+                {draft.id ? "Editar promoção" : "Nova promoção"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setDraft(null)}
+                aria-label="Fechar"
+                className="ml-auto rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
               >
-                {/* O carrossel some quando não há promoção nenhuma; a em edição
-                    já entra na lista, senão a prévia de uma promoção nova
-                    mostraria a faixa vazia. */}
-                <PromoCarouselDaPrevia />
-              </PreviaDaVitrine>
+                <X className="size-5" />
+              </button>
             </div>
-          )}
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:col-span-3">
-            <Field label="Chamada" hint="Linha pequena acima do título.">
-              <Input
-                onFocus={() => setFoco("chamada-da-promocao")}
-                value={draft.eyebrow}
-                onChange={(v) => setDraft({ ...draft, eyebrow: v })}
-                required
-              />
-            </Field>
-            <Field label="Título">
-              <Input
-                onFocus={() => setFoco("titulo-da-promocao")}
-                value={draft.title}
-                onChange={(v) => setDraft({ ...draft, title: v })}
-                required
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3">
-            <ImageUploadField
-              kind="product"
-              label="Foto da promoção"
-              value={draft.imageUrl}
-              onChange={(url) => setDraft({ ...draft, imageUrl: url })}
-            />
-            <Field label="Descrição">
-              <textarea
-                onFocus={() => setFoco("descricao-da-promocao")}
-                value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                required
-                rows={4}
-                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-3 lg:col-span-3">
-            <Field label="Selo" hint='Texto livre: "-20%", "Leve 3 pague 2".'>
-              <Input
-                onFocus={() => setFoco("selo-da-promocao")}
-                value={draft.discount}
-                onChange={(v) => setDraft({ ...draft, discount: v })}
-              />
-            </Field>
-            <Field label="Preço (R$)" hint="Deixe vazio para não mostrar preço.">
-              <Input
-                onFocus={() => setFoco("preco-da-promocao")}
-                value={draft.price}
-                onChange={(v) => setDraft({ ...draft, price: v })}
-                type="number"
-              />
-            </Field>
-            <Field label="Preço antigo (R$)" hint="Aparece riscado ao lado.">
-              <Input
-                onFocus={() => setFoco("preco-da-promocao")}
-                value={draft.originalPrice}
-                onChange={(v) => setDraft({ ...draft, originalPrice: v })}
-                type="number"
-              />
-            </Field>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-6">
-            <label className="inline-flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={draft.isActive}
-                onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                className="size-4 accent-[#E11D2E]"
-              />
-              <span className="text-sm text-neutral-700">Ativa no site</span>
-            </label>
-            <Field label="Ordem">
-              <input
-                type="number"
-                value={draft.sortOrder}
-                onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-                className="w-24 rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-              />
-            </Field>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={save.isPending}
-              className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                save.mutate(draft);
+              }}
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-5 lg:grid-cols-5"
             >
-              {save.isPending ? "Salvando..." : "Salvar"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setDraft(null)}
-              className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
-            >
-              Cancelar
-            </button>
+              {admin && (
+                <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
+                  <PreviaDaVitrine
+                    storeSlug={admin.store.slug}
+                    foco={foco}
+                    largura={1200}
+                    aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
+                  >
+                    <PromoCarouselDaPrevia />
+                  </PreviaDaVitrine>
+                </div>
+              )}
+
+              <div className="lg:col-span-3 space-y-5">
+                <div className="grid gap-4 lg:grid-cols-2">
+                <Field label="Chamada" hint="Linha pequena acima do título.">
+                  <Input
+                    onFocus={() => setFoco("chamada-da-promocao")}
+                    value={draft.eyebrow}
+                    onChange={(v) => setDraft({ ...draft, eyebrow: v })}
+                    required
+                  />
+                </Field>
+                <Field label="Título">
+                  <Input
+                    onFocus={() => setFoco("titulo-da-promocao")}
+                    value={draft.title}
+                    onChange={(v) => setDraft({ ...draft, title: v })}
+                    required
+                  />
+                </Field>
+              </div>
+
+              <Field label="Descrição">
+                <textarea
+                  onFocus={() => setFoco("descricao-da-promocao")}
+                  value={draft.description}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  required
+                  rows={3}
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+                />
+              </Field>
+
+              <div>
+                <ImageUploadField
+                  kind="product"
+                  label="Foto da promoção"
+                  value={draft.imageUrl}
+                  onChange={(url) => setDraft({ ...draft, imageUrl: url })}
+                />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
+                  <Input
+                    onFocus={() => setFoco("selo-da-promocao")}
+                    value={draft.discount}
+                    onChange={(v) => setDraft({ ...draft, discount: v })}
+                  />
+                </Field>
+                <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
+                  <Input
+                    onFocus={() => setFoco("preco-da-promocao")}
+                    value={draft.price}
+                    onChange={(v) => setDraft({ ...draft, price: v })}
+                    type="number"
+                  />
+                </Field>
+                <Field label="Preço antigo (R$)" hint="Aparece riscado.">
+                  <Input
+                    onFocus={() => setFoco("preco-da-promocao")}
+                    value={draft.originalPrice}
+                    onChange={(v) => setDraft({ ...draft, originalPrice: v })}
+                    type="number"
+                  />
+                </Field>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6">
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={draft.isActive}
+                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                    className="size-4 accent-[#E11D2E]"
+                  />
+                  <span className="text-sm text-neutral-700">Ativa no site</span>
+                </label>
+                <Field label="Ordem">
+                  <input
+                    type="number"
+                    value={draft.sortOrder}
+                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+                    className="w-24 rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+                  />
+                </Field>
+              </div>
+
+                <div className="flex items-center gap-2 pt-4">
+                  <button
+                    type="submit"
+                    disabled={save.isPending}
+                    className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+                  >
+                    {save.isPending ? "Salvando..." : "Salvar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraft(null)}
+                    className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       )}
 
       {isPending ? (

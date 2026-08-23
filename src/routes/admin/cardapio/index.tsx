@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ImageIcon, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ImageIcon, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import {
   deleteProductFn,
+  getProductFn,
   listProductsFn,
   setProductActiveFn,
 } from "@/server/functions/products.fn";
+import { ProductForm, type ProductFormValues } from "@/components/admin/products/ProductForm";
 
 export const Route = createFileRoute("/admin/cardapio/")({
   component: ProductsPage,
@@ -41,6 +43,7 @@ function ProductsPage() {
   const queryClient = useQueryClient();
   const [categoryId, setCategoryId] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
 
   const { data, isPending } = useQuery({
     queryKey: ["products", categoryId, search],
@@ -48,6 +51,12 @@ function ProductsPage() {
       listProductsFn({
         data: { categoryId: categoryId || undefined, search: search || undefined },
       }),
+  });
+
+  const { data: editingProductData } = useQuery({
+    queryKey: ["product", editingProductId],
+    queryFn: () => getProductFn({ data: { id: editingProductId! } }),
+    enabled: !!editingProductId,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -63,8 +72,61 @@ function ProductsPage() {
     onSuccess: invalidate,
   });
 
+  const buildProductFormValues = (p: any): ProductFormValues => ({
+    name: p.name,
+    slug: p.slug,
+    description: p.description,
+    categoryId: p.categoryId,
+    basePrice: p.basePrice,
+    imageUrl: p.imageUrl,
+    tag: p.tag,
+    isActive: p.isActive,
+    allowHalfAndHalf: p.allowHalfAndHalf,
+    halfPizzaPricingRule: p.halfPizzaPricingRule,
+    sortOrder: p.sortOrder,
+    sizes: p.sizes.map((s: any) => ({
+      categorySizeId: s.categorySizeId,
+      price: s.price,
+      isAvailable: s.isAvailable,
+    })),
+    optionGroups: p.optionGroups.map((g: any) => ({
+      name: g.name,
+      minChoices: g.minChoices,
+      maxChoices: g.maxChoices,
+      freeChoices: g.freeChoices,
+      options: g.options.map((o: any) => ({ name: o.name, price: o.price })),
+    })),
+  });
+
   return (
-    <div className="space-y-6">
+    <>
+      {editingProductId && editingProductData?.product && (
+        <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
+          <div className="flex w-full max-w-5xl flex-col">
+            <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
+              <h2 className="text-base font-semibold text-neutral-900">Editar Produto</h2>
+              <button
+                type="button"
+                onClick={() => setEditingProductId(null)}
+                aria-label="Fechar"
+                className="ml-auto rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5">
+              <ProductForm
+                productId={editingProductData.product.id}
+                initial={buildProductFormValues(editingProductData.product)}
+                categories={editingProductData.categories}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-neutral-900">Cardápio - Lista de Produtos</h1>
         <Link
@@ -181,14 +243,14 @@ function ProductsPage() {
                 </td>
                 <td className="px-5 py-3">
                   <div className="flex items-center justify-end gap-2">
-                    <Link
-                      to="/admin/cardapio/$productId"
-                      params={{ productId: p.id }}
+                    <button
+                      type="button"
+                      onClick={() => setEditingProductId(p.id)}
                       className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-600 transition-colors hover:bg-neutral-100"
                       aria-label={`Editar ${p.name}`}
                     >
                       <Pencil className="size-4" />
-                    </Link>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -210,5 +272,6 @@ function ProductsPage() {
         </table>
       </div>
     </div>
+    </>
   );
 }

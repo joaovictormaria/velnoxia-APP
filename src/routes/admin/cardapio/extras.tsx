@@ -1,7 +1,7 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { AlertTriangle, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { deleteExtraFn, listExtrasFn, saveExtraFn } from "@/server/functions/extras.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { ExtrasDaPrevia } from "@/components/admin/preview/ExtrasDaPrevia";
@@ -99,6 +99,7 @@ function ExtrasPage() {
   const [foco, setFoco] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
 
   const { data, isPending, isError, refetch } = useQuery({
     queryKey: ["extras"],
@@ -274,167 +275,206 @@ function ExtrasPage() {
       )}
 
       {draft && data && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            save.mutate(draft);
-          }}
-          className="grid gap-5 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
-        >
-          {/* Topo à direita, como nas outras telas. O adicional só aparece na
-              tela do produto, nunca no cardápio — é a resposta para quem
-              cadastra "Bacon extra" e não vê nada mudar na loja. */}
-          {admin && (
-            <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1 lg:block">
-              <PreviaDaVitrine
-                storeSlug={admin.store.slug}
-                foco={foco}
-                largura={720}
-                aplicar={(payload) => aplicarRascunhoDeExtra(payload, draft)}
-              >
-                <ExtrasDaPrevia />
-              </PreviaDaVitrine>
-            </div>
-          )}
-
-          <div className="space-y-5 lg:col-span-3">
-            <div className="flex flex-wrap items-end gap-4">
-              <label className="min-w-56 flex-1 space-y-1.5">
-                <span className="text-sm font-medium text-neutral-900">Nome</span>
-                <input
-                  onFocus={() => setFoco("lista-de-extras")}
-                  value={draft.name}
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                  required
-                  className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base text-neutral-900 md:text-sm"
-                />
-              </label>
-
-              <label className="space-y-1.5">
-                <span className="text-sm font-medium text-neutral-900">Preço</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  onFocus={() => setFoco("lista-de-extras")}
-                  value={draft.price}
-                  onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
-                  required
-                  className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-base text-neutral-900 md:text-sm"
-                />
-              </label>
-
-              <label className="flex cursor-pointer items-center gap-2 pb-2">
-                <input
-                  type="checkbox"
-                  checked={draft.isActive}
-                  onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                  className="size-4 accent-[#E11D2E]"
-                />
-                <span className="text-sm text-neutral-800">Ativo</span>
-              </label>
-            </div>
-
-            <div>
-              <p className="text-sm font-medium text-neutral-900">Onde ele pode ser pedido</p>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                Marcar a categoria vale para tudo que estiver nela, inclusive os produtos que você
-                cadastrar depois. Use os produtos avulsos só para as exceções.
-              </p>
-
-              <div className="mt-3 grid gap-4 sm:grid-cols-2">
-                <fieldset className="rounded-xl border border-neutral-200 p-3">
-                  <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Categorias inteiras
-                  </legend>
-                  <div className="max-h-52 space-y-1.5 overflow-y-auto">
-                    {data.categories.map((c) => (
-                      <label key={c.id} className="flex cursor-pointer items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={draft.categoryIds.includes(c.id)}
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              categoryIds: e.target.checked
-                                ? [...draft.categoryIds, c.id]
-                                : draft.categoryIds.filter((id) => id !== c.id),
-                            })
-                          }
-                          className="size-4 accent-[#E11D2E]"
-                        />
-                        <span className="text-sm text-neutral-800">{c.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-
-                <fieldset className="rounded-xl border border-neutral-200 p-3">
-                  <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Produtos avulsos
-                  </legend>
-                  <div className="max-h-52 space-y-1.5 overflow-y-auto">
-                    {data.products.map((p) => {
-                      // Um produto cuja categoria já foi marcada não precisa ser
-                      // marcado de novo: dizer isso evita o dono achar que
-                      // esqueceu algo e criar alcance duplicado.
-                      const jaPelaCategoria = draft.categoryIds.includes(p.categoryId);
-                      return (
-                        <label
-                          key={p.id}
-                          className={`flex cursor-pointer items-center gap-2 ${
-                            jaPelaCategoria ? "opacity-50" : ""
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            disabled={jaPelaCategoria}
-                            checked={draft.productIds.includes(p.id) && !jaPelaCategoria}
-                            onChange={(e) =>
-                              setDraft({
-                                ...draft,
-                                productIds: e.target.checked
-                                  ? [...draft.productIds, p.id]
-                                  : draft.productIds.filter((id) => id !== p.id),
-                              })
-                            }
-                            className="size-4 accent-[#E11D2E]"
-                          />
-                          <span className="text-sm text-neutral-800">
-                            {p.name}
-                            <span className="ml-1.5 text-xs text-neutral-500">
-                              {jaPelaCategoria ? "já vem pela categoria" : p.categoryName}
-                            </span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={save.isPending}
-                className="rounded-xl bg-[#E11D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
-              >
-                {save.isPending ? "Salvando..." : "Salvar"}
-              </button>
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 p-4 sm:p-8">
+          <div className="flex w-full max-w-2xl flex-col">
+            <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
+              <h2 className="text-base font-semibold text-neutral-900">
+                {draft.id ? "Editar extra" : "Novo extra"}
+              </h2>
               <button
                 type="button"
                 onClick={() => {
                   setDraft(null);
                   setErro(null);
                 }}
-                className="rounded-xl border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                aria-label="Fechar"
+                className="ml-auto rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
               >
-                Cancelar
+                <X className="size-5" />
               </button>
             </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                save.mutate(draft);
+              }}
+              className="max-h-[80vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 space-y-5"
+            >
+              <div className="grid gap-4 lg:grid-cols-5">
+                <label className="space-y-1.5 lg:col-span-2">
+                  <span className="text-sm font-medium text-neutral-900">Nome</span>
+                  <input
+                    onFocus={() => setFoco("lista-de-extras")}
+                    value={draft.name}
+                    onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
+                  />
+                </label>
+
+                <label className="space-y-1.5">
+                  <span className="text-sm font-medium text-neutral-900">Preço</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    onFocus={() => setFoco("lista-de-extras")}
+                    value={draft.price}
+                    onChange={(e) => setDraft({ ...draft, price: Number(e.target.value) })}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
+                  />
+                </label>
+
+                <label className="flex cursor-pointer items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    checked={draft.isActive}
+                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                    className="size-4 accent-[#E11D2E]"
+                  />
+                  <span className="text-sm font-medium text-neutral-900">Ativo</span>
+                </label>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-neutral-900">Onde ele pode ser pedido</p>
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  Marcar a categoria vale para tudo que estiver nela. Use os produtos avulsos só para exceções.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newSet = new Set(expandedCategories);
+                      if (newSet.has("categorias")) {
+                        newSet.delete("categorias");
+                      } else {
+                        newSet.add("categorias");
+                      }
+                      setExpandedCategories(newSet);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-left font-medium text-neutral-900 hover:bg-neutral-100"
+                  >
+                    <ChevronDown
+                      className={`size-4 transition-transform ${
+                        expandedCategories.has("categorias") ? "rotate-180" : ""
+                      }`}
+                    />
+                    Categorias inteiras
+                  </button>
+
+                  {expandedCategories.has("categorias") && (
+                    <div className="max-h-48 space-y-1.5 border border-neutral-200 rounded-lg p-3 bg-white overflow-y-auto">
+                      {data.categories.map((c) => (
+                        <label key={c.id} className="flex cursor-pointer items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={draft.categoryIds.includes(c.id)}
+                            onChange={(e) =>
+                              setDraft({
+                                ...draft,
+                                categoryIds: e.target.checked
+                                  ? [...draft.categoryIds, c.id]
+                                  : draft.categoryIds.filter((id) => id !== c.id),
+                              })
+                            }
+                            className="size-4 accent-[#E11D2E]"
+                          />
+                          <span className="text-sm text-neutral-800">{c.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newSet = new Set(expandedCategories);
+                      if (newSet.has("produtos")) {
+                        newSet.delete("produtos");
+                      } else {
+                        newSet.add("produtos");
+                      }
+                      setExpandedCategories(newSet);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg border border-neutral-200 bg-neutral-50 px-4 py-3 text-left font-medium text-neutral-900 hover:bg-neutral-100"
+                  >
+                    <ChevronDown
+                      className={`size-4 transition-transform ${
+                        expandedCategories.has("produtos") ? "rotate-180" : ""
+                      }`}
+                    />
+                    Produtos avulsos
+                  </button>
+
+                  {expandedCategories.has("produtos") && (
+                    <div className="max-h-48 space-y-1.5 border border-neutral-200 rounded-lg p-3 bg-white overflow-y-auto">
+                      {data.products.map((p) => {
+                        const jaPelaCategoria = draft.categoryIds.includes(p.categoryId);
+                        return (
+                          <label
+                            key={p.id}
+                            className={`flex cursor-pointer items-center gap-2 ${
+                              jaPelaCategoria ? "opacity-50" : ""
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={jaPelaCategoria}
+                              checked={draft.productIds.includes(p.id) && !jaPelaCategoria}
+                              onChange={(e) =>
+                                setDraft({
+                                  ...draft,
+                                  productIds: e.target.checked
+                                    ? [...draft.productIds, p.id]
+                                    : draft.productIds.filter((id) => id !== p.id),
+                                })
+                              }
+                              className="size-4 accent-[#E11D2E]"
+                            />
+                            <span className="text-sm text-neutral-800">
+                              {p.name}
+                              <span className="ml-1.5 text-xs text-neutral-500">
+                                {jaPelaCategoria ? "pela categoria" : p.categoryName}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-4">
+                <button
+                  type="submit"
+                  disabled={save.isPending}
+                  className="rounded-xl bg-[#E11D2E] px-4 py-2 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+                >
+                  {save.isPending ? "Salvando..." : "Salvar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft(null);
+                    setErro(null);
+                  }}
+                  className="rounded-xl border border-neutral-300 px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       )}
 
       {isPending && <p className="text-sm text-neutral-500">Carregando...</p>}
