@@ -45,16 +45,16 @@ function KanbanPage() {
   const { data, isPending } = useQuery({
     queryKey: ["orders", "kanban", date, search],
     queryFn: () => listKanbanOrdersFn({ data: { date, search: search || undefined } }),
-    refetchInterval: 8_000,
-    staleTime: 8_000,
+    refetchInterval: 3_000,
+    staleTime: 3_000,
     gcTime: 10 * 60 * 1000,
   });
 
   const { data: mesas = [] } = useQuery({
     queryKey: ["mesas", "abertas", date, search],
     queryFn: () => listMesasAbertasFn({ data: { date, search: search || undefined } }),
-    refetchInterval: 8_000,
-    staleTime: 8_000,
+    refetchInterval: 3_000,
+    staleTime: 3_000,
     gcTime: 10 * 60 * 1000,
   });
 
