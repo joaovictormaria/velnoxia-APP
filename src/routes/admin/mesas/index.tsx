@@ -21,9 +21,27 @@ const CORES = [
   "bg-teal-500",
 ];
 
+const CORE_HEX = [
+  "#ef4444", // red-500
+  "#3b82f6", // blue-500
+  "#22c55e", // green-500
+  "#a855f7", // purple-500
+  "#ec4899", // pink-500
+  "#eab308", // yellow-500
+  "#6366f1", // indigo-500
+  "#06b6d4", // cyan-500
+  "#f97316", // orange-500
+  "#14b8a6", // teal-500
+];
+
 function getCorPorMesa(tableId: string): string {
   const hash = tableId.charCodeAt(0) + tableId.charCodeAt(tableId.length - 1);
   return CORES[hash % CORES.length];
+}
+
+function getCoreColor(tableId: string): string {
+  const hash = tableId.charCodeAt(0) + tableId.charCodeAt(tableId.length - 1);
+  return CORE_HEX[hash % CORE_HEX.length];
 }
 
 export const Route = createFileRoute("/admin/mesas/")({
@@ -224,7 +242,7 @@ function MesasPage() {
         <div className="flex flex-wrap gap-2">
           {qrcodes.map((qr) => (
             <div key={qr.id} className="rounded-lg border border-neutral-200 bg-neutral-50 p-0 w-48 aspect-square flex flex-col justify-between overflow-hidden">
-              <div className={`${getCorPorMesa(qr.id)} h-2`} />
+              <div className="h-2" style={{ backgroundColor: getCoreColor(qr.id) }} />
               <div className="p-4 mb-4 space-y-2 text-center text-sm flex-1 flex flex-col justify-between">
                 <div>
                   <p className="text-neutral-600">Mesa</p>
