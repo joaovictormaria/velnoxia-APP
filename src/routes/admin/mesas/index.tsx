@@ -5,7 +5,7 @@ import { QrCode, Copy, Download, Trash2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateUUID } from "@/lib/uuid";
 import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
-import { getTableOrderCountsFn } from "@/server/functions/orders.fn";
+import { getTableOrderCountsFn, getNextTableNumberFn } from "@/server/functions/orders.fn";
 import { createTableFn } from "@/routes/api/tables/create";
 
 const CORES = [
@@ -85,9 +85,8 @@ function MesasPage() {
       }
 
       const newId = generateUUID();
-      // Get next table number from database (max + 1)
-      const maxTableNumber = Math.max(0, ...qrcodes.map(q => q.number));
-      const tableNumber = maxTableNumber + 1;
+      // Get next table number from database
+      const tableNumber = await getNextTableNumberFn({});
 
       const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://velnoxia.app";
       const storeSlug = admin.store.slug;
