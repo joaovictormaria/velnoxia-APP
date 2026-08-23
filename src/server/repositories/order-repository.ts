@@ -9,14 +9,20 @@ import { prisma } from "../db/client";
  * the date from its parts instead, which the Date constructor reads as local.
  */
 function dayRange(day?: string) {
+  const now = new Date();
+  const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
+
   const base = (() => {
     if (!day) {
-      // Criar data local (não UTC) usando as partes da data atual
-      const now = new Date();
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // Criar data local e converter para UTC
+      const local = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      // Converter para UTC subtraindo o offset
+      return new Date(local.getTime() + tzOffsetMs);
     }
+    // Data específica: criar em UTC
     const [year, month, date] = day.split("-").map(Number);
-    return new Date(year, month - 1, date);
+    const local = new Date(year, month - 1, date);
+    return new Date(local.getTime() + tzOffsetMs);
   })();
 
   const from = new Date(base);
