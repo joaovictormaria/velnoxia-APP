@@ -243,18 +243,6 @@ function CategoriesPage() {
             />
           </label>
 
-          <label className="space-y-1.5">
-            <span className="text-sm font-medium text-neutral-900">Como aparece na vitrine</span>
-            <select
-              onFocus={() => setFoco("icone-da-categoria")}
-              value={draft.kind}
-              onChange={(e) => setDraft({ ...draft, kind: e.target.value as Draft["kind"] })}
-              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
-            >
-              <option value="PIZZA">Com foto da categoria</option>
-              <option value="SIMPLE">Com ícone</option>
-            </select>
-          </label>
           <div className="block lg:col-span-2">
             <span className="mb-1.5 block text-sm font-medium text-neutral-700">
               Tamanhos
