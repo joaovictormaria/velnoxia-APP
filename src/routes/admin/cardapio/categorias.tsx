@@ -177,7 +177,7 @@ function CategoriesPage() {
                 admin é null nas rotas públicas da moldura; aqui nunca, mas o tipo
                 precisa da guarda para não depender dessa suposição. */}
 
-          <label className="space-y-1.5 md:col-span-3">
+          <label className="space-y-1.5 lg:col-span-2">
             <span className="text-sm font-medium text-neutral-900">Nome</span>
             <input
               onFocus={() => setFoco("nome-da-categoria")}
@@ -194,11 +194,7 @@ function CategoriesPage() {
             />
           </label>
 
-          {/* A frase da pílula acima do nome da categoria na vitrine. É texto de
-              venda, não rótulo: cabe uma frase inteira, e por isso ocupa a
-              linha em vez de dividir espaço com o nome. Em branco, a vitrine
-              cai no nome da categoria e não fica pílula vazia. */}
-          <label className="space-y-1.5 md:col-span-3">
+          <label className="space-y-1.5 lg:col-span-3">
             <span className="text-sm font-medium text-neutral-900">Selo</span>
             <input
               onFocus={() => setFoco("selo-da-categoria")}
