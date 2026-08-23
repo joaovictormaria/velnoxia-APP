@@ -19,10 +19,9 @@ function dayRange(day?: string) {
     return new Date(year, month - 1, date);
   })();
 
-  // DEBUG: subtrair 1 dia para testar
-  local = new Date(local.getTime() + 24 * 60 * 60 * 1000);
-
-  const fromMs = local.getTime();
+  const offset = local.getTimezoneOffset() * 60 * 1000;
+  const utcDate = new Date(local.getTime() + offset);
+  const fromMs = utcDate.getTime();
   const toMs = fromMs + 24 * 60 * 60 * 1000 - 1;
   return { from: new Date(fromMs), to: new Date(toMs) };
 }
