@@ -10,7 +10,11 @@ import { prisma } from "../db/client";
  */
 function dayRange(day?: string) {
   const base = (() => {
-    if (!day) return new Date();
+    if (!day) {
+      // Criar data local (não UTC) usando as partes da data atual
+      const now = new Date();
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
     const [year, month, date] = day.split("-").map(Number);
     return new Date(year, month - 1, date);
   })();
