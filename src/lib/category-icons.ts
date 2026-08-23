@@ -34,14 +34,11 @@ import {
   Flame,
   GlassWater,
   Ham,
-  Heart,
   IceCreamBowl,
   IceCreamCone,
   Leaf,
-  Lemon,
   Martini,
   Milk,
-  Mug,
   Nut,
   Pizza,
   Popcorn,
@@ -58,7 +55,6 @@ import {
   Vegan,
   Wheat,
   Wine,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -86,14 +82,11 @@ export const ICONES_DE_CATEGORIA: Record<string, LucideIcon> = {
   Flame,
   GlassWater,
   Ham,
-  Heart,
   IceCreamBowl,
   IceCreamCone,
   Leaf,
-  Lemon,
   Martini,
   Milk,
-  Mug,
   Nut,
   Pizza,
   Popcorn,
@@ -110,7 +103,6 @@ export const ICONES_DE_CATEGORIA: Record<string, LucideIcon> = {
   Vegan,
   Wheat,
   Wine,
-  Zap,
 };
 
 /**
