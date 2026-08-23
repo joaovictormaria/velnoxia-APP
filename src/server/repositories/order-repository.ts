@@ -10,21 +10,23 @@ import { prisma } from "../db/client";
  */
 function dayRange(day?: string) {
   const now = new Date();
+  const tzOffsetMs = now.getTimezoneOffset() * 60 * 1000;
 
   const base = (() => {
     if (!day) {
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const local = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return new Date(local.getTime() + tzOffsetMs);
     }
-    // Data específica: criar em local time
     const [year, month, date] = day.split("-").map(Number);
-    return new Date(year, month - 1, date);
+    const local = new Date(year, month - 1, date);
+    return new Date(local.getTime() + tzOffsetMs);
   })();
 
-  // base é "00:00 no dia especificado" em local time
-  // getTime() retorna o timestamp UTC correspondente
-  const fromMs = base.getTime();
-  const toMs = fromMs + 24 * 60 * 60 * 1000 - 1;
-  return { from: new Date(fromMs), to: new Date(toMs) };
+  const from = new Date(base);
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(base);
+  to.setHours(23, 59, 59, 999);
+  return { from, to };
 }
 
 const KANBAN_STATUSES: OrderStatus[] = [
