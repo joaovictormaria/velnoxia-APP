@@ -11,7 +11,7 @@ import { prisma } from "../db/client";
 function dayRange(day?: string) {
   const now = new Date();
 
-  let local = (() => {
+  const local = (() => {
     if (!day) {
       return new Date(now.getFullYear(), now.getMonth(), now.getDate());
     }
@@ -20,8 +20,7 @@ function dayRange(day?: string) {
   })();
 
   const offset = local.getTimezoneOffset() * 60 * 1000;
-  const utcDate = new Date(local.getTime() + offset);
-  const fromMs = utcDate.getTime();
+  const fromMs = local.getTime() - offset;
   const toMs = fromMs + 24 * 60 * 60 * 1000 - 1;
   return { from: new Date(fromMs), to: new Date(toMs) };
 }
