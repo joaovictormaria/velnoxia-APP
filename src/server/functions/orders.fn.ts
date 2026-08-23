@@ -99,12 +99,16 @@ export const getTableOrderCountsFn = createServerFn({ method: "GET" })
         status: { not: "COMPLETED" },
       },
       select: { tableId: true },
+      include: {
+        table: { select: { number: true } },
+      },
     });
 
-    const counts = new Map<string, number>();
+    const counts = new Map<number, number>();
     for (const order of orders) {
-      if (order.tableId !== null) {
-        counts.set(order.tableId, (counts.get(order.tableId) ?? 0) + 1);
+      if (order.tableId !== null && order.table) {
+        const tableNumber = order.table.number;
+        counts.set(tableNumber, (counts.get(tableNumber) ?? 0) + 1);
       }
     }
 
