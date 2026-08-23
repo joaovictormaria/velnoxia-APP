@@ -98,7 +98,6 @@ export const getTableOrderCountsFn = createServerFn({ method: "GET" })
         tableId: { not: null },
         status: { not: "COMPLETED" },
       },
-      select: { tableId: true },
       include: {
         table: { select: { number: true } },
       },
