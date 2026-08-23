@@ -148,28 +148,29 @@ function CategoriesPage() {
       )}
 
       {draft && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 sm:p-8">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setError(null);
-              save.mutate(draft);
-            }}
-            className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
-          >
-            <div className="sticky top-0 -mx-5 mb-4 flex items-center justify-between gap-2 border-b border-neutral-200 bg-white px-5 pt-5 pb-3 lg:-mx-0 lg:col-span-5">
-              <h2 className="text-lg font-semibold text-neutral-900">
+        <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-black/50 p-4 sm:p-8">
+          <div className="flex w-full max-w-5xl flex-col">
+            <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
+              <h2 className="text-base font-semibold text-neutral-900">
                 {draft.id ? "Editar categoria" : "Nova categoria"}
               </h2>
               <button
                 type="button"
                 onClick={() => setDraft(null)}
                 aria-label="Fechar"
-                className="rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+                className="ml-auto rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
               >
                 <X className="size-5" />
               </button>
             </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setError(null);
+                save.mutate(draft);
+              }}
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
+            >
             {/* Canto superior direito, ocupando as três primeiras linhas: os campos
                 de identidade ficam ao lado dela, e o resto do formulário corre
                 por baixo em largura inteira.
@@ -315,7 +316,8 @@ function CategoriesPage() {
               Cancelar
             </button>
             </div>
-          </form>
+            </form>
+          </div>
         </div>
       )}
 
