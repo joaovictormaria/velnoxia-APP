@@ -238,6 +238,18 @@ function MesasPage() {
                 </Button>
 
                 <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(qr.url);
+                    alert("Link copiado: " + qr.url);
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  Ver Link
+                </Button>
+
+                <Button
                   onClick={() => deleteQRCode(qr.id)}
                   variant="outline"
                   size="sm"
