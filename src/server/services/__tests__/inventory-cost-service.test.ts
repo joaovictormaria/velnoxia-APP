@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { prisma } from '@/server/db/client';
 import { InventoryCostService } from '../inventory-cost-service';
 import { InventoryService } from '../inventory-service';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from '@prisma/client/runtime/client';
 
 describe('InventoryCostService', () => {
   const testStoreId = 'cost-store-' + Date.now();
@@ -45,11 +45,11 @@ describe('InventoryCostService', () => {
     // Compra inicial
     await InventoryService.recordMovement(testStoreId, {
       idempotencyKey: 'cost-purchase-1',
-      itemId: testItemId,
+      itemId: testItemId as any,
       type: 'PURCHASE',
       quantity: new Decimal(100),
-      unitId: testUnitId,
-    });
+      unitId: testUnitId as any,
+    } as any);
   });
 
   afterEach(async () => {
@@ -71,13 +71,13 @@ describe('InventoryCostService', () => {
       // Registrar consumo
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'cost-consumption-1',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'CONSUMPTION',
         quantity: new Decimal(-5),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         reference: orderId,
         referenceType: 'ORDER',
-      });
+      } as any);
 
       const cost = await InventoryCostService.calculateOrderCost(
         testStoreId,
@@ -105,32 +105,32 @@ describe('InventoryCostService', () => {
       // Compra inicial item 2
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'cost-purchase-2',
-        itemId: item2.id,
+        itemId: item2.id as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       // Consumir ambos
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'cost-consumption-2',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'CONSUMPTION',
         quantity: new Decimal(-10),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         reference: orderId,
         referenceType: 'ORDER',
-      });
+      } as any);
 
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'cost-consumption-3',
-        itemId: item2.id,
+        itemId: item2.id as any,
         type: 'CONSUMPTION',
         quantity: new Decimal(-5),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         reference: orderId,
         referenceType: 'ORDER',
-      });
+      } as any);
 
       const cost = await InventoryCostService.calculateOrderCost(
         testStoreId,
@@ -180,13 +180,13 @@ describe('InventoryCostService', () => {
 
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'cost-report-1',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'CONSUMPTION',
         quantity: new Decimal(-8),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         reference: orderId,
         referenceType: 'ORDER',
-      });
+      } as any);
 
       const now = new Date();
       const startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 dia atrás

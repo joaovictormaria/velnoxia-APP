@@ -31,7 +31,7 @@ describe("PublicAPIService: API Keys", () => {
   });
 
   afterEach(async () => {
-    await prisma.aPIKey.deleteMany({ where: { storeId } });
+    await (prisma as any).aPIKey.deleteMany({ where: { storeId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
     await redis.flushdb();
     redis.disconnect();
@@ -103,7 +103,7 @@ describe("PublicAPIService: API Keys", () => {
   it("deve retornar null para API key expirada", async () => {
     // Criar key com expiração no passado
     const keyHash = createHash("sha256").update("expired-key").digest("hex");
-    await prisma.aPIKey.create({
+    await (prisma as any).aPIKey.create({
       data: {
         key: keyHash,
         displayKey: "exp...ired",
@@ -135,7 +135,7 @@ describe("PublicAPIService: API Keys", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     await apiService.validateAPIKey(key);
 
-    const apiKey = await prisma.aPIKey.findFirst({
+    const apiKey = await (prisma as any).aPIKey.findFirst({
       where: { key: createHash("sha256").update(key).digest("hex") },
     });
 
@@ -196,7 +196,7 @@ describe("PublicAPIService: Rate Limiting", () => {
   });
 
   afterEach(async () => {
-    await prisma.aPIKey.deleteMany({ where: { storeId } });
+    await (prisma as any).aPIKey.deleteMany({ where: { storeId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
     await redis.flushdb();
     redis.disconnect();
@@ -270,7 +270,7 @@ describe("PublicAPIService: Webhooks", () => {
   });
 
   afterEach(async () => {
-    await prisma.webhookSubscription.deleteMany({ where: { storeId } });
+    await (prisma as any).webhookSubscription.deleteMany({ where: { storeId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
     await redis.flushdb();
     redis.disconnect();
@@ -428,7 +428,7 @@ describe("PublicAPIService: Webhook Triggering", () => {
   });
 
   afterEach(async () => {
-    await prisma.webhookSubscription.deleteMany({ where: { storeId } });
+    await (prisma as any).webhookSubscription.deleteMany({ where: { storeId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
     await redis.flushdb();
     redis.disconnect();
@@ -500,7 +500,7 @@ describe("PublicAPIService: API Key Tiers", () => {
   });
 
   afterEach(async () => {
-    await prisma.aPIKey.deleteMany({ where: { storeId } });
+    await (prisma as any).aPIKey.deleteMany({ where: { storeId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
     await redis.flushdb();
     redis.disconnect();
