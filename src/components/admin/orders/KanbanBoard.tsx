@@ -64,6 +64,7 @@ export type KanbanOrder = {
   total: number;
   type: "DELIVERY" | "PICKUP";
   tableId: string | null;
+  sessionId: string | null;
   table: { number: number } | null;
   items: {
     productNameSnapshot: string;
@@ -209,7 +210,7 @@ function OrderCard({
     >
       <article>
         <div className="flex items-baseline justify-between gap-2">
-          {order.tableId && order.table ? (
+          {order.sessionId && order.table ? (
             <div className="min-w-0 flex-1">
               <span className="block text-base font-bold text-neutral-900">
                 MESA {order.table.number}
