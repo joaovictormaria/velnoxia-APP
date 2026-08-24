@@ -18,14 +18,14 @@ describe("Composition Item Multi-Tenant Security", () => {
   beforeAll(async () => {
     // Create stores
     const [compA, compB] = await Promise.all([
-      prisma.composition.create({
+      (prisma as any).composition.create({
         data: {
           storeId: storeA,
           name: "Composition A",
           description: "Belongs to store A",
         },
       }),
-      prisma.composition.create({
+      (prisma as any).composition.create({
         data: {
           storeId: storeB,
           name: "Composition B",
@@ -46,7 +46,7 @@ describe("Composition Item Multi-Tenant Security", () => {
           sku: "SKU-A",
           quantity: 100,
           cost: 1.5,
-        },
+        } as any,
       }),
       prisma.inventoryItem.create({
         data: {
@@ -55,12 +55,12 @@ describe("Composition Item Multi-Tenant Security", () => {
           sku: "SKU-B",
           quantity: 100,
           cost: 2.5,
-        },
+        } as any,
       }),
     ]);
 
     const unitId = (
-      await prisma.inventoryUnit.findFirst({ where: { storeId: storeA } })
+      await prisma.inventoryUnit.findFirst({ where: { storeId: storeA } as any })
     )?.id;
     if (!unitId) throw new Error("No unit found");
 
@@ -92,8 +92,8 @@ describe("Composition Item Multi-Tenant Security", () => {
     await Promise.all([
       prisma.compositionItem.deleteMany({ where: { compositionId: compositionAId } }),
       prisma.compositionItem.deleteMany({ where: { compositionId: compositionBId } }),
-      prisma.composition.deleteMany({ where: { storeId: storeA } }),
-      prisma.composition.deleteMany({ where: { storeId: storeB } }),
+      (prisma as any).composition.deleteMany({ where: { storeId: storeA } }),
+      (prisma as any).composition.deleteMany({ where: { storeId: storeB } }),
       prisma.inventoryItem.deleteMany({ where: { storeId: storeA } }),
       prisma.inventoryItem.deleteMany({ where: { storeId: storeB } }),
     ]);

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { prisma } from '@/server/db/client';
 import { InventoryService } from '@/server/services/inventory-service';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from '@prisma/client/runtime/client';
 
 /**
  * Testes de Integração: Fluxo Completo Pedido → Estoque
@@ -42,7 +42,7 @@ describe('Inventory Integration: Order → Stock', () => {
 
     // Seed product
     const product = await prisma.product.upsert({
-      where: { sku: 'PIZZA-MED-' + Date.now() },
+      where: { sku: 'PIZZA-MED-' + Date.now() } as any,
       update: {},
       create: {
         storeId: testStoreId,
@@ -50,7 +50,7 @@ describe('Inventory Integration: Order → Stock', () => {
         sku: 'PIZZA-MED-' + Date.now(),
         price: new Decimal(35),
         preparationTimeMinutes: 15,
-      },
+      } as any,
     });
     testProductId = product.id;
 
@@ -75,7 +75,7 @@ describe('Inventory Integration: Order → Stock', () => {
             {
               inventoryItemId: testItemId,
               quantity: new Decimal(0.2), // 200g per pizza
-              unitId: testUnitId,
+              unitId: testUnitId as any,
             },
           ],
         },
@@ -86,12 +86,12 @@ describe('Inventory Integration: Order → Stock', () => {
     // Initial purchase
     await InventoryService.recordMovement(testStoreId, {
       idempotencyKey: 'int-initial-purchase',
-      itemId: testItemId,
+      itemId: testItemId as any,
       type: 'PURCHASE',
       quantity: new Decimal(100),
-      unitId: testUnitId,
+      unitId: testUnitId as any,
       note: 'Initial stock',
-    });
+    } as any);
   });
 
   afterEach(async () => {
@@ -224,7 +224,7 @@ describe('Inventory Integration: Order → Stock', () => {
       const reservationMovement = await prisma.inventoryMovement.findFirst({
         where: {
           storeId: testStoreId,
-          itemId: testItemId,
+          itemId: testItemId as any,
           type: 'RESERVATION',
           reference: orderId,
         },
@@ -290,14 +290,14 @@ describe('Inventory Integration: Order → Stock', () => {
       // Simular: Pedido completo com receita sendo usada
       const movement = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'int-comp-1',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'CONSUMPTION',
         quantity: new Decimal(-5),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         reference: 'ORDER-COMP',
         referenceType: 'ORDER',
         compositionId: testCompositionId,
-      });
+      } as any);
 
       expect(movement.compositionId).toBe(testCompositionId);
 
@@ -314,12 +314,12 @@ describe('Inventory Integration: Order → Stock', () => {
       // Usar receita
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'int-comp-2',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'CONSUMPTION',
         quantity: new Decimal(-1),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         compositionId: testCompositionId,
-      });
+      } as any);
 
       const composition = await prisma.productComposition.findUnique({
         where: { id: testCompositionId },
@@ -353,7 +353,7 @@ describe('Inventory Integration: Order → Stock', () => {
       const movements = await prisma.inventoryMovement.findMany({
         where: {
           storeId: testStoreId,
-          itemId: testItemId,
+          itemId: testItemId as any,
           reference: orderId,
         },
         orderBy: { createdAt: 'asc' },

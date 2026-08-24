@@ -73,7 +73,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
         subtotal: 50.0,
         total: 50.0,
         // customerId is optional (null)
-      },
+      } as any,
     });
 
     expect(order.customerId).toBeNull();
@@ -92,7 +92,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
         status: "PENDING" as any,
         subtotal: 50.0,
         total: 50.0,
-      },
+      } as any,
     });
 
     // Soft delete cliente
@@ -227,7 +227,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
         discountValue: 10.0,
         discountType: "FIXED" as any,
         isActive: true,
-      },
+      } as any,
     });
 
     await expect(
@@ -238,7 +238,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
           discountValue: 20.0,
           discountType: "FIXED" as any,
           isActive: true,
-        },
+        } as any,
       }),
     ).rejects.toThrow();
   });
@@ -265,7 +265,7 @@ describe("Indexes & Constraints: Query Performance", () => {
           status: (i % 2 === 0 ? "PENDING" : "COMPLETED") as any,
           subtotal: 50.0 + i * 5,
           total: 50.0 + i * 5,
-        },
+        } as any,
       });
     }
   });
@@ -292,7 +292,7 @@ describe("Indexes & Constraints: Query Performance", () => {
     const start = performance.now();
 
     const pending = await prisma.order.findMany({
-      where: { storeId, status: "PENDING" },
+      where: { storeId, status: "PENDING" as any },
     });
 
     const duration = performance.now() - start;
