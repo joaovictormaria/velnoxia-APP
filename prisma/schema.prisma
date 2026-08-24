@@ -334,9 +334,9 @@ model StoreSettings {
   addressCity              String?
   addressState             String?
   addressZipCode           String?
-  deliveryFee              Float           @default(6)
-  freeDeliveryMinOrder     Float?
-  minOrderValue            Float           @default(0)
+  deliveryFee              Decimal         @db.Decimal(10, 2) @default(6)
+  freeDeliveryMinOrder     Decimal?        @db.Decimal(10, 2)
+  minOrderValue            Decimal         @db.Decimal(10, 2) @default(0)
   estimatedDeliveryMinMin  Int             @default(35)
   estimatedDeliveryMinMax  Int             @default(55)
   estimatedPickupMinMin    Int             @default(15)
@@ -419,7 +419,7 @@ model Product {
   /// Linkagem para estoque: qual InventoryItem este produto usa
   inventoryItemId      String?
   inventoryItem        InventoryItem?       @relation("ProductInventory", fields: [inventoryItemId], references: [id], onDelete: SetNull)
-  basePrice            Float
+  basePrice            Decimal              @db.Decimal(10, 2)
   imageUrl             String?
   tag                  String?
   isActive             Boolean              @default(true)
@@ -507,7 +507,7 @@ model OptionItem {
   group       OptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   name        String
   /// Acréscimo. Zero nas escolhas que não custam, como o sabor.
-  price       Float       @default(0)
+  price       Decimal     @db.Decimal(10, 2) @default(0)
   isAvailable Boolean     @default(true)
   sortOrder   Int         @default(0)
 
@@ -524,7 +524,7 @@ model ProductSize {
   product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   categorySizeId String
   categorySize   CategorySize @relation(fields: [categorySizeId], references: [id], onDelete: Cascade)
-  price          Float
+  price          Decimal      @db.Decimal(10, 2)
   isAvailable    Boolean      @default(true)
 
   @@unique([productId, categorySizeId])
@@ -536,7 +536,7 @@ model Extra {
   storeId   String
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name      String
-  price     Float
+  price     Decimal  @db.Decimal(10, 2)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -583,8 +583,8 @@ model Coupon {
   code          String
   description   String?
   discountType  DiscountType
-  discountValue Float
-  minOrderValue Float?
+  discountValue Decimal      @db.Decimal(10, 2)
+  minOrderValue Decimal?     @db.Decimal(10, 2)
   maxUsage      Int?
   usageCount    Int          @default(0)
   validFrom     DateTime
@@ -611,8 +611,8 @@ model Promotion {
   description   String
   /// Shown as a badge; free text so "-20%" and "Leve 3 pague 2" both fit.
   discount      String?
-  price         Float?
-  originalPrice Float?
+  price         Decimal? @db.Decimal(10, 2)
+  originalPrice Decimal? @db.Decimal(10, 2)
   imageUrl      String?
   sortOrder     Int      @default(0)
   isActive      Boolean  @default(true)
@@ -700,11 +700,11 @@ model EmployeeBenefitPlan {
   store        Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name         String
   defaultType  EmployeeBenefitType @default(NONE)
-  defaultValue Float               @default(0)
+  defaultValue Decimal             @db.Decimal(10, 2) @default(0)
   limitMode    EmployeeLimitMode   @default(NONE)
   /// Itens por dia ou reais por dia, conforme o modo. Ignorado em NONE e em
   /// PER_CATEGORY, onde o número está em cada exceção.
-  limitValue   Float?
+  limitValue   Decimal?            @db.Decimal(10, 2)
   /// Libera "desconto em folha" no checkout de quem tem este plano. Sem isto, a
   /// forma de pagamento não é oferecida e o servidor a recusa.
   allowPayroll Boolean             @default(false)
@@ -733,7 +733,7 @@ model EmployeeBenefitRule {
   productId  String?
   product    Product?            @relation(fields: [productId], references: [id], onDelete: Cascade)
   type       EmployeeBenefitType
-  value      Float               @default(0)
+  value      Decimal             @db.Decimal(10, 2) @default(0)
   /// Quantas unidades por dia, quando o plano conta a cota por categoria.
   dailyLimit Int?
 
@@ -785,7 +785,7 @@ model Order {
   /// Quanto do `discount` veio do benefício. Redundante de propósito: o
   /// relatório de pessoal precisa separar isto de um desconto de cupom, e os
   /// dois moram no mesmo campo de total.
-  employeeDiscount     Float     @default(0)
+  employeeDiscount     Decimal   @db.Decimal(10, 2) @default(0)
   /// Por qual regra, em português, para a tela do pedido explicar sem recalcular
   /// nada: "Plano Cozinha — 30%; 2 itens fora da cota".
   employeeBenefitNote  String?
@@ -802,10 +802,10 @@ model Order {
   paymentMethod PaymentMethod
   paymentStatus PaymentStatus @default(PENDING)
 
-  subtotal    Float
-  deliveryFee Float @default(0)
-  discount    Float @default(0)
-  total       Float
+  subtotal    Decimal
+  deliveryFee Decimal @db.Decimal(10, 2) @default(0)
+  discount    Decimal @db.Decimal(10, 2) @default(0)
+  total       Decimal
 
   couponId String?
   coupon   Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
@@ -870,13 +870,13 @@ model OrderItem {
   secondProductId           String?
   secondProductNameSnapshot String?
 
-  unitPrice Float
+  unitPrice Decimal
   quantity  Int     @default(1)
   note      String?
 
   /// Quanto o benefício do funcionário tirou desta linha, no total (já
   /// multiplicado pelas unidades que entraram na cota).
-  employeeDiscount Float @default(0)
+  employeeDiscount Decimal @db.Decimal(10, 2) @default(0)
   /// Quantas unidades desta linha couberam na cota do dia. Menor que
   /// `quantity` quando a cota acabou no meio da linha — é o que permite dizer
   /// "dois com desconto, o terceiro cheio" em vez de tratar a linha inteira
@@ -903,7 +903,7 @@ model OrderItemExtra {
   /// "Sabor: Chocolate" e não só "Chocolate".
   groupNameSnapshot String?
   nameSnapshot      String
-  priceSnapshot     Float
+  priceSnapshot     Decimal  @db.Decimal(10, 2)
 }
 
 model OrderStatusHistory {
