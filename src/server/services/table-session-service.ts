@@ -102,6 +102,8 @@ export async function getOrCreateOpenTableSession(
       },
     });
 
+    console.log(`[TABLE SESSION] ✅ CREATED new session ${session.id} for table ${tableId}`);
+
     // Log masked PIN for admin debugging (only in dev/test, never in production)
     if (process.env.NODE_ENV !== "production") {
       const maskedPin = pin.slice(0, 2) + "**";
