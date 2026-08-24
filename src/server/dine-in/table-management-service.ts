@@ -114,7 +114,7 @@ export class TableManagementService {
       occupiedSince: currentOccupancy?.checkInAt,
       occupancyDurationMinutes,
       lastStatusChangeAt: table.updatedAt,
-      notes: table.notes,
+      notes: (table as any).notes,
     };
   }
 
@@ -478,10 +478,10 @@ export class TableManagementService {
 
     const occupancyRate = tables.length > 0 ? (occupiedTables / tables.length) * 100 : 0;
 
-    const totalDuration = occupancies.reduce((sum, occ) => sum + (occ.durationMinutes || 0), 0);
+    const totalDuration = occupancies.reduce((sum: any, occ: any) => sum + (occ.durationMinutes || 0), 0);
     const averageDuration = occupancies.length > 0 ? totalDuration / occupancies.length : 0;
 
-    const totalOrders = occupancies.reduce((sum, occ) => sum + (occ.ordersCount || 0), 0);
+    const totalOrders = occupancies.reduce((sum: any, occ: any) => sum + (occ.ordersCount || 0), 0);
     const averageOrders = occupancies.length > 0 ? totalOrders / occupancies.length : 0;
 
     const cleaningTables = tables.filter((t) => t.status === TableStatus.CLEANING).length;
@@ -511,7 +511,7 @@ export class TableManagementService {
       take: limit,
     });
 
-    return occupancies.map((occ) => ({
+    return occupancies.map((occ: any) => ({
       id: occ.id,
       tableId: occ.tableId,
       storeId: occ.storeId,
