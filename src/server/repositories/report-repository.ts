@@ -30,7 +30,7 @@ export const reportRepository = {
 
     const withAvailable = items.map((item) => ({
       ...item,
-      quantityAvailable: item.quantityOnHand - item.quantityReserved,
+      quantityAvailable: Number(item.quantityOnHand) - Number(item.quantityReserved),
       quantityUsedInRecipes: usageByItem.get(item.id) || 0,
     }));
 
@@ -91,7 +91,7 @@ export const reportRepository = {
 
     for (const item of items) {
       if (item.cost) {
-        const value = item.quantityOnHand * item.cost;
+        const value = Number(item.quantityOnHand) * Number(item.cost);
         totalValue = totalValue + value;
         breakdown.push({ id: item.id, name: item.name, quantity: item.quantityOnHand, cost: item.cost, value });
       }
@@ -112,7 +112,7 @@ export const reportRepository = {
     for (const movement of movements) {
       const itemCost = movement.costAtTime || movement.item.cost;
       if (itemCost) {
-        const cost = Math.abs(Number(movement.quantity)) * itemCost;
+        const cost = Math.abs(Number(movement.quantity)) * Number(itemCost);
         totalCost = totalCost + cost;
         if (!byItem[movement.itemId]) byItem[movement.itemId] = { name: movement.item.name, cost: 0 };
         byItem[movement.itemId].cost = byItem[movement.itemId].cost + cost;
