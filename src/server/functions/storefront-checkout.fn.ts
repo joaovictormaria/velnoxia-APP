@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { createOrderFromCheckout } from "../services/order-service";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
@@ -20,21 +20,21 @@ const checkoutSchema = z.object({
     )
     .min(1),
   customerName: z.string().min(2, "Informe seu nome."),
-  customerPhone: z.string().min(10, "Informe um telefone válido."),
+  customerPhone: z.string().min(10, "Informe um telefone vÃ¡lido."),
   type: z.enum(["DELIVERY", "PICKUP"]),
-  // PAYROLL entra aqui, mas quem o libera é o plano do funcionário: o serviço
-  // recusa quando não houver um, e ele nunca está em `acceptedPaymentMethods`.
+  // PAYROLL entra aqui, mas quem o libera Ã© o plano do funcionÃ¡rio: o serviÃ§o
+  // recusa quando nÃ£o houver um, e ele nunca estÃ¡ em `acceptedPaymentMethods`.
   paymentMethod: z.enum(["PIX", "CREDIT_CARD", "DEBIT_CARD", "CASH", "PAYROLL"]),
   couponCode: z.string().optional(),
-  /** Quatro dígitos, quando a pessoa se declara funcionária. */
+  /** Quatro dÃ­gitos, quando a pessoa se declara funcionÃ¡ria. */
   employeePin: z
     .string()
     .regex(/^\d{4}$/)
     .optional(),
   customerNote: z.string().max(500).optional(),
-  /** Mesa QRCode ID para pedidos de balcão/mesa. */
+  /** Mesa QRCode ID para pedidos de balcÃ£o/mesa. */
   tableId: z.string().uuid().optional(),
-  /** Device token para pedidos de mesa (autorização de dispositivo). */
+  /** Device token para pedidos de mesa (autorizaÃ§Ã£o de dispositivo). */
   deviceToken: z.string().optional(),
   delivery: z
     .object({
@@ -49,7 +49,7 @@ const checkoutSchema = z.object({
     .optional(),
 });
 
-/** Public — creates a real order. All pricing is recomputed server-side. */
+/** Public â€” creates a real order. All pricing is recomputed server-side. */
 export const submitCheckoutFn = createServerFn({ method: "POST" })
   .validator(checkoutSchema)
   .handler(async ({ data }) => {
@@ -59,11 +59,11 @@ export const submitCheckoutFn = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Muitos pedidos seguidos. Aguarde um instante." };
     }
     if (data.type === "DELIVERY" && !data.delivery?.street) {
-      return { ok: false as const, error: "Informe o endereço de entrega." };
+      return { ok: false as const, error: "Informe o endereÃ§o de entrega." };
     }
     const store = await getStoreBySlug(data.storeSlug);
     if (!store || !isStoreServable(store)) {
-      return { ok: false as const, error: "Esta loja não está disponível no momento." };
+      return { ok: false as const, error: "Esta loja nÃ£o estÃ¡ disponÃ­vel no momento." };
     }
     return createOrderFromCheckout(store.id, data, data.deviceToken);
   });

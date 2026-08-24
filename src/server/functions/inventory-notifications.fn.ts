@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
 import { InventoryNotificationService } from "@/server/services/inventory-notification-service";
 
@@ -27,11 +26,11 @@ export const sendAlertEmail = createServerFn({ method: "POST" })
 export const sendForecastEmail = createServerFn({ method: "POST" })
   .handler(async () => {
     const store = await requireAdminSession();
-    if (!store?.adminUser) {
+    if (!store?.email) {
       throw new Error("Not authenticated or not admin");
     }
 
-    const adminEmail = store.adminUser.email;
+    const adminEmail = store.email;
 
     return InventoryNotificationService.sendForecastEmail(
       store.id,
@@ -46,11 +45,11 @@ export const sendForecastEmail = createServerFn({ method: "POST" })
 export const sendWeeklyReport = createServerFn({ method: "POST" })
   .handler(async () => {
     const store = await requireAdminSession();
-    if (!store?.adminUser) {
+    if (!store?.email) {
       throw new Error("Not authenticated or not admin");
     }
 
-    const adminEmail = store.adminUser.email;
+    const adminEmail = store.email;
 
     return InventoryNotificationService.sendWeeklyReportEmail(
       store.id,

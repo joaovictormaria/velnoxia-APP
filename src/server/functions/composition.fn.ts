@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
 import { CompositionService } from "@/server/services/composition-service";
 import {

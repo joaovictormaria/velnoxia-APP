@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "../db/client";
+﻿import { prisma } from "../db/client";
 import { Redis } from "ioredis";
 
 /**
@@ -284,10 +283,10 @@ export class MonitoringService {
         where: { storeId, deletedAt: null },
       });
 
-      const occupiedCount = tables.filter((t) => t.status !== "EMPTY").length;
+      const occupiedCount = tables.filter((t) => t.status === "OCCUPIED").length;
       tableOccupancyRate = tables.length > 0 ? (occupiedCount / tables.length) * 100 : 0;
 
-      const occupancies = await prisma.tableOccupancy.findMany({
+      const occupancies = await (prisma as any).tableOccupancy.findMany({
         where: { storeId, checkOutAt: { not: null } },
       });
 
@@ -298,11 +297,11 @@ export class MonitoringService {
     }
 
     // Estoque baixo
-    const lowStockCount = await prisma.productInventory.count({
+    const lowStockCount = await (prisma as any).productInventory.count({
       where: storeId
         ? {
             storeId,
-            quantity: { lt: prisma.raw("low_stock_threshold") },
+            quantity: { lt: (prisma as any).raw("low_stock_threshold") },
           }
         : undefined,
     });

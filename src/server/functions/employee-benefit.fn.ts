@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { verifyPassword } from "../auth/password";
 import { prisma } from "../db/client";
@@ -13,13 +13,13 @@ import { calcularBeneficio, descreverCota } from "../services/employee-benefit";
 import { precificarItens } from "../services/order-service";
 
 /**
- * A prévia do benefício, para o carrinho mostrar o desconto antes de a pessoa
+ * A prÃ©via do benefÃ­cio, para o carrinho mostrar o desconto antes de a pessoa
  * confirmar o pedido.
  *
- * Não escreve nada e não reserva cota: é uma resposta sobre o carrinho de
- * agora. O número que vale é o refeito dentro da transação do pedido, e os
+ * NÃ£o escreve nada e nÃ£o reserva cota: Ã© uma resposta sobre o carrinho de
+ * agora. O nÃºmero que vale Ã© o refeito dentro da transaÃ§Ã£o do pedido, e os
  * dois usam a mesma `precificarItens` e o mesmo `calcularBeneficio` justamente
- * para não poderem divergir.
+ * para nÃ£o poderem divergir.
  */
 export const previewEmployeeBenefitFn = createServerFn({ method: "POST" })
   .validator(
@@ -43,10 +43,10 @@ export const previewEmployeeBenefitFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     /*
-     * Um PIN de 4 dígitos são dez mil combinações — um script varreria todas em
-     * minutos se pudesse tentar à vontade, e a recompensa seria comer de graça
+     * Um PIN de 4 dÃ­gitos sÃ£o dez mil combinaÃ§Ãµes â€” um script varreria todas em
+     * minutos se pudesse tentar Ã  vontade, e a recompensa seria comer de graÃ§a
      * no lugar de outra pessoa. Dez tentativas por minuto por origem deixam
-     * quem errou o próprio PIN corrigir e param quem está varrendo.
+     * quem errou o prÃ³prio PIN corrigir e param quem estÃ¡ varrendo.
      */
     if (!permitido("beneficio-funcionario", { max: 10, janelaMs: 60_000 })) {
       return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
@@ -54,20 +54,20 @@ export const previewEmployeeBenefitFn = createServerFn({ method: "POST" })
 
     const store = await getStoreBySlug(data.storeSlug);
     if (!store || !isStoreServable(store)) {
-      return { ok: false as const, error: "Esta loja não está disponível no momento." };
+      return { ok: false as const, error: "Esta loja nÃ£o estÃ¡ disponÃ­vel no momento." };
     }
 
     const phone = data.phone.replace(/\D/g, "");
     const funcionario = await findEmployeeForCheckout(prisma, store.id, phone);
-    // A mesma resposta para "não é funcionário" e "PIN errado": separá-las
-    // transformaria este endereço num jeito de descobrir quem trabalha na loja.
+    // A mesma resposta para "nÃ£o Ã© funcionÃ¡rio" e "PIN errado": separÃ¡-las
+    // transformaria este endereÃ§o num jeito de descobrir quem trabalha na loja.
     if (!funcionario || !(await verifyPassword(data.pin, funcionario.pinHash))) {
-      return { ok: false as const, error: "Telefone ou PIN não confere." };
+      return { ok: false as const, error: "Telefone ou PIN nÃ£o confere." };
     }
     if (!funcionario.plano) {
       return {
         ok: false as const,
-        error: "Seu cadastro ainda não tem um benefício definido. Fale com a loja.",
+        error: "Seu cadastro ainda nÃ£o tem um benefÃ­cio definido. Fale com a loja.",
       };
     }
 
@@ -92,24 +92,24 @@ export const previewEmployeeBenefitFn = createServerFn({ method: "POST" })
   });
 
 /**
- * Aquele telefone é de funcionário?
+ * Aquele telefone Ã© de funcionÃ¡rio?
  *
  * O checkout pergunta assim que a pessoa termina de digitar o WhatsApp, para
- * abrir o campo do PIN sozinho. Antes o campo ficava atrás de um link discreto
- * e passava despercebido: o funcionário pedia, não via desconto nenhum e
- * concluía que o benefício não funcionava.
+ * abrir o campo do PIN sozinho. Antes o campo ficava atrÃ¡s de um link discreto
+ * e passava despercebido: o funcionÃ¡rio pedia, nÃ£o via desconto nenhum e
+ * concluÃ­a que o benefÃ­cio nÃ£o funcionava.
  *
- * Responde só sim ou não, sobre um número que quem pergunta já digitou, e sem
- * o PIN isso não vale desconto. Ainda assim é o endereço que confirma quem
- * trabalha na loja, então o teto por origem é mais apertado que o do resto:
- * uma pessoa digita o próprio telefone uma vez, um script tentaria a lista toda.
+ * Responde sÃ³ sim ou nÃ£o, sobre um nÃºmero que quem pergunta jÃ¡ digitou, e sem
+ * o PIN isso nÃ£o vale desconto. Ainda assim Ã© o endereÃ§o que confirma quem
+ * trabalha na loja, entÃ£o o teto por origem Ã© mais apertado que o do resto:
+ * uma pessoa digita o prÃ³prio telefone uma vez, um script tentaria a lista toda.
  */
 export const employeePhoneHasBenefitFn = createServerFn({ method: "POST" })
   .validator(z.object({ storeSlug: z.string().min(1), phone: z.string().min(10) }))
   .handler(async ({ data }) => {
     if (!permitido("telefone-funcionario", { max: 12, janelaMs: 60_000 })) {
-      // Silêncio em vez de erro: isto é um enfeite de conveniência, e barrar o
-      // checkout de um cliente comum por causa dele seria pior que não ter.
+      // SilÃªncio em vez de erro: isto Ã© um enfeite de conveniÃªncia, e barrar o
+      // checkout de um cliente comum por causa dele seria pior que nÃ£o ter.
       return { funcionario: false as const };
     }
 

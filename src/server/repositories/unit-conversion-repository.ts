@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 
 export const unitConversionRepository = {
   async getConversions(storeId: string): Promise<Record<string, number>> {

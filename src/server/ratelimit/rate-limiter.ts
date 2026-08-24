@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { Redis } from "ioredis";
+﻿import { Redis } from "ioredis";
 
 /**
  * PRIORIDADE 9: RATE LIMITING DISTRIBUÃDO

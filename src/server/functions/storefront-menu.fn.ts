@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import { listActiveExtras } from "../repositories/extra-repository";

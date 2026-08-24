@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-/**
+﻿/**
  * UTILITÃRIO: ConversÃ£o Decimal â†’ number/string
  *
  * Prisma retorna valores monetÃ¡rios como Decimal objects.

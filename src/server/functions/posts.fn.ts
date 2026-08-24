@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
 import { createPost, deletePost, listPosts, updatePost } from "../repositories/post-repository";
@@ -14,8 +14,8 @@ const optionalText = z
   .transform((v) => (v ? v : null));
 
 const postSchema = z.object({
-  title: z.string().trim().min(1, "Informe o título."),
-  body: z.string().trim().min(1, "Escreva o texto da publicação."),
+  title: z.string().trim().min(1, "Informe o tÃ­tulo."),
+  body: z.string().trim().min(1, "Escreva o texto da publicaÃ§Ã£o."),
   imageUrl: optionalText,
   isPublished: z.boolean(),
   publishedAt: z.string().trim().nullish(),
@@ -34,7 +34,7 @@ export const savePostFn = createServerFn({ method: "POST" })
     // keeps the stored instant the same one the owner picked.
     const publishedAt = data.data.publishedAt ? new Date(data.data.publishedAt) : null;
     if (publishedAt && Number.isNaN(publishedAt.getTime())) {
-      return { ok: false as const, error: "Data de publicação inválida." };
+      return { ok: false as const, error: "Data de publicaÃ§Ã£o invÃ¡lida." };
     }
     const input = { ...data.data, publishedAt };
     const post = data.id

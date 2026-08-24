@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import { Decimal } from "@prisma/client/runtime/library";
 import {
   centavosToReais,

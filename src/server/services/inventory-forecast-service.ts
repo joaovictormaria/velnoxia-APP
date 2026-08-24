@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
 /**

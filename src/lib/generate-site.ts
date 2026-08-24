@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
@@ -512,7 +511,7 @@ export const generateSiteContent = createServerFn({ method: "POST" })
       model: "claude-opus-5",
       max_tokens: 8000,
       system: buildSystemPrompt(data.businessType, data.businessName),
-      output_config: { format: zodOutputFormat(SiteContentSchema, "site_content") },
+      output_config: { format: zodOutputFormat(SiteContentSchema) as any },
       messages: [
         {
           role: "user",

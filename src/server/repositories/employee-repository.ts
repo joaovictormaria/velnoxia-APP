@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import type { Prisma } from "@prisma/client";
+﻿import type { Prisma } from "@prisma/client";
 import { prisma } from "../db/client";
 import type { PlanoDeBeneficio, UsoDoDia } from "../services/employee-benefit";
 

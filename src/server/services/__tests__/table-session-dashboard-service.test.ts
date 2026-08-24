@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/server/db/client";
 import {
   listOpenTableSessions,
@@ -91,7 +90,7 @@ describe("Table Session Dashboard Service", () => {
           sessionId,
           storeId,
           number: 1,
-          status: "CONFIRMED",
+          status: "RECEIVED",
           customerName: "Test",
           customerPhone: "1234567890",
           type: "PICKUP",
@@ -185,7 +184,7 @@ describe("Table Session Dashboard Service", () => {
           sessionId,
           storeId,
           number: 1,
-          status: "CONFIRMED",
+          status: "RECEIVED",
           customerName: "Test",
           customerPhone: "1234567890",
           type: "PICKUP",
@@ -301,10 +300,10 @@ describe("Table Session Dashboard Service", () => {
 
     it("should not revoke already revoked devices", async () => {
       const revokedAt = new Date(Date.now() - 60000);
-      await prisma.sessionDevice.updateMany(
-        { sessionId },
-        { revokedAt: revokedAt },
-      );
+      await prisma.sessionDevice.updateMany({
+        where: { sessionId },
+        data: { revokedAt: revokedAt },
+      });
 
       await closeTableSession(storeId, sessionId, "CLOSED");
 

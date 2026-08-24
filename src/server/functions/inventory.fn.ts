@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { InventoryService } from "@/server/services/inventory-service";
@@ -170,8 +169,8 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
       authorName: result.authorName,
       idempotencyKey: result.idempotencyKey,
       createdAt: result.createdAt,
-      updatedAt: result.updatedAt,
-    };
+      updatedAt: (result as any).updatedAt,
+    } as any;
   });
 
 /**
@@ -273,7 +272,7 @@ export const adminGetInventoryValue = createServerFn({ method: "POST" })
     });
 
     const totalValue = items.reduce((sum, item) => {
-      return sum + (Number(item.quantityOnHand) * (item.cost || 0));
+      return sum + (Number(item.quantityOnHand) * Number(item.cost || 0));
     }, 0);
 
     return { totalValue };

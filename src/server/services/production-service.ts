@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 import { unitConversionRepository } from "@/server/repositories/unit-conversion-repository";
 import { randomUUID } from "crypto";
 

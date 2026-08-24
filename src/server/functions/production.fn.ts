@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
 import { ProductionService } from "@/server/services/production-service";
 
@@ -37,7 +36,7 @@ export const adminGetLowStockItems = createServerFn({ method: "POST" })
       name: item.name,
       sku: item.sku,
       quantityOnHand: Number(item.quantityOnHand),
-      minimumStock: Number(item.minimumStock || 0),
+      minimumStock: Number(item.minimumThreshold || 0),
       unitId: item.baseUnitId,
     }));
   });

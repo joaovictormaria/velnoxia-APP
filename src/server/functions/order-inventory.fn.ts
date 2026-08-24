@@ -1,12 +1,12 @@
-// import { action } from "@solidjs/router";
+﻿// import { action } from "@solidjs/router";
 import { prisma } from "@/server/db/client";
 import { OrderInventoryHandler } from "@/server/services/order-inventory-handler";
 import { inventoryMovementRepository } from "@/server/repositories";
 const action = (fn: any) => fn;
 
 /**
- * System: Sincronizar estoque quando pedido é recebido
- * Chamado após Order.status = RECEIVED
+ * System: Sincronizar estoque quando pedido Ã© recebido
+ * Chamado apÃ³s Order.status = RECEIVED
  */
 export const systemSyncOrderReceived = action(async (formData: FormData) => {
   const orderId = formData.get("orderId") as string;
@@ -15,8 +15,8 @@ export const systemSyncOrderReceived = action(async (formData: FormData) => {
 });
 
 /**
- * System: Sincronizar estoque quando pedido começar preparação
- * Chamado após Order.status = PREPARING
+ * System: Sincronizar estoque quando pedido comeÃ§ar preparaÃ§Ã£o
+ * Chamado apÃ³s Order.status = PREPARING
  */
 export const systemSyncOrderPreparing = action(async (formData: FormData) => {
   const orderId = formData.get("orderId") as string;
@@ -25,8 +25,8 @@ export const systemSyncOrderPreparing = action(async (formData: FormData) => {
 });
 
 /**
- * System: Sincronizar estoque quando pedido é completado
- * Chamado após Order.status = COMPLETED
+ * System: Sincronizar estoque quando pedido Ã© completado
+ * Chamado apÃ³s Order.status = COMPLETED
  */
 export const systemSyncOrderCompleted = action(async (formData: FormData) => {
   const orderId = formData.get("orderId") as string;
@@ -36,7 +36,7 @@ export const systemSyncOrderCompleted = action(async (formData: FormData) => {
 
 /**
  * System: Revert all inventory when order is cancelled
- * Chamado após Order.status = CANCELLED
+ * Chamado apÃ³s Order.status = CANCELLED
  */
 export const systemSyncOrderCancelled = action(async (formData: FormData) => {
   const orderId = formData.get("orderId") as string;
@@ -45,8 +45,8 @@ export const systemSyncOrderCancelled = action(async (formData: FormData) => {
 });
 
 /**
- * Admin: Obter histórico de movimentos de um pedido
- * Útil para auditar o que aconteceu com estoque
+ * Admin: Obter histÃ³rico de movimentos de um pedido
+ * Ãštil para auditar o que aconteceu com estoque
  */
 export const adminGetOrderMovements = action(async (formData: FormData) => {
   const orderId = formData.get("orderId") as string;
@@ -133,7 +133,7 @@ export const adminGetOrderInventoryStatus = action(
 
 /**
  * Admin: Manually trigger inventory sync (for recovery)
- * Útil se algo deu errado e precisa resincronizar
+ * Ãštil se algo deu errado e precisa resincronizar
  */
 export const adminTriggerInventorySync = action(async (formData: FormData) => {
   const orderId = formData.get("orderId") as string;

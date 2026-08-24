@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect, beforeEach, vi } from "vitest";
+﻿import { describe, it, expect, beforeEach, vi } from "vitest";
 import { precificarItens, type CheckoutItem } from "../order-service";
 import { prisma } from "../../db/client";
 
@@ -22,11 +21,18 @@ describe("order-service: precificarItens", () => {
     name: "Pizza Calabresa",
     basePrice: 29.99,
     categoryId: "cat-1",
+    storeId,
     sizes: [],
     allowHalfAndHalf: false,
     halfPizzaPricingRule: "HIGHEST_PRICE",
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    deletedBy: null,
+    description: "Test product",
     ...overrides,
-  });
+  } as any);
 
   // Helper para criar categoria de tamanho
   const mockCategorySize = (overrides = {}) => ({
@@ -361,7 +367,7 @@ describe("order-service: precificarItens", () => {
         {
           id: "extra-1",
           name: "Bacon",
-          price: 4.50,
+          price: 4.50 as any,
           storeId,
           isActive: true,
           createdAt: new Date(),

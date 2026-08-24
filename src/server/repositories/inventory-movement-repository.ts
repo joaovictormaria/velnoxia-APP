@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 import { Prisma, InventoryMovementType } from "@prisma/client";
 
 export type CreateInventoryMovementInput = Prisma.InventoryMovementCreateInput;

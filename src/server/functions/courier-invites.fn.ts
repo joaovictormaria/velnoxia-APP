@@ -1,10 +1,10 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { hashInviteCode, newInviteCode } from "../auth/invite-code";
 import { requireAdminSession } from "../auth/session";
 import { prisma } from "../db/client";
 
-/** Quanto tempo um convite não usado continua valendo. */
+/** Quanto tempo um convite nÃ£o usado continua valendo. */
 const VALIDADE_HORAS = 24;
 
 export const listCourierInvitesFn = createServerFn({ method: "GET" }).handler(async () => {
@@ -15,8 +15,8 @@ export const listCourierInvitesFn = createServerFn({ method: "GET" }).handler(as
     take: 50,
     select: { id: true, name: true, expiresAt: true, usedAt: true, createdAt: true },
   });
-  // O código não volta: ele só existiu na tela em que foi criado. Se o dono
-  // perdeu, gera outro — é mais seguro que poder consultá-lo depois.
+  // O cÃ³digo nÃ£o volta: ele sÃ³ existiu na tela em que foi criado. Se o dono
+  // perdeu, gera outro â€” Ã© mais seguro que poder consultÃ¡-lo depois.
   return invites;
 });
 
@@ -34,7 +34,7 @@ export const createCourierInviteFn = createServerFn({ method: "POST" })
       },
       select: { id: true, name: true, expiresAt: true },
     });
-    // Única vez que o código sai do servidor.
+    // Ãšnica vez que o cÃ³digo sai do servidor.
     return { ok: true as const, code, invite };
   });
 
@@ -42,29 +42,29 @@ export const revokeCourierInviteFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    // Só apaga o que ainda não virou conta: um convite usado é o registro de
-    // como aquele entregador entrou, e apagá-lo perderia essa trilha.
+    // SÃ³ apaga o que ainda nÃ£o virou conta: um convite usado Ã© o registro de
+    // como aquele entregador entrou, e apagÃ¡-lo perderia essa trilha.
     const r = await prisma.courierInvite.deleteMany({
       where: { id: data.id, storeId, usedAt: null },
     });
-    if (r.count === 0) return { ok: false as const, error: "Este convite já foi usado." };
+    if (r.count === 0) return { ok: false as const, error: "Este convite jÃ¡ foi usado." };
     return { ok: true as const };
   });
 
 /**
- * Os entregadores desta loja — e só desta. Vem com quantas entregas cada um
- * já está carregando, porque é olhando isso que o dono escolhe a quem passar
- * a próxima em vez de descobrir depois que sobrecarregou um.
+ * Os entregadores desta loja â€” e sÃ³ desta. Vem com quantas entregas cada um
+ * jÃ¡ estÃ¡ carregando, porque Ã© olhando isso que o dono escolhe a quem passar
+ * a prÃ³xima em vez de descobrir depois que sobrecarregou um.
  */
 export const listCouriersFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
 
   const couriers = await prisma.adminUser.findMany({
     where: { storeId, role: "COURIER" },
-    // Só por nome. Ordenar por acesso fazia a lista se reordenar a cada
+    // SÃ³ por nome. Ordenar por acesso fazia a lista se reordenar a cada
     // clique: quem recebia acesso subia, os outros desciam, e a linha debaixo
-    // do cursor virava a de outra pessoa — o dono clicava de novo achando que
-    // era o mesmo entregador e mexia em quem não queria.
+    // do cursor virava a de outra pessoa â€” o dono clicava de novo achando que
+    // era o mesmo entregador e mexia em quem nÃ£o queria.
     orderBy: { name: "asc" },
     select: { id: true, name: true, email: true, isActive: true, createdAt: true, lastLoginAt: true },
   });
@@ -80,23 +80,23 @@ export const listCouriersFn = createServerFn({ method: "GET" }).handler(async ()
 });
 
 /**
- * Tira o acesso de quem não trabalha mais aqui — ou devolve.
+ * Tira o acesso de quem nÃ£o trabalha mais aqui â€” ou devolve.
  *
- * Desativa em vez de apagar: o entregador aparece no histórico dos pedidos que
- * levou, e apagar a conta deixaria essas entregas sem dono. Sem sessão nova e
- * sem as antigas: getCurrentAdmin relê o banco a cada pedido, então o cookie
- * que ele já tinha para de valer no mesmo instante.
+ * Desativa em vez de apagar: o entregador aparece no histÃ³rico dos pedidos que
+ * levou, e apagar a conta deixaria essas entregas sem dono. Sem sessÃ£o nova e
+ * sem as antigas: getCurrentAdmin relÃª o banco a cada pedido, entÃ£o o cookie
+ * que ele jÃ¡ tinha para de valer no mesmo instante.
  */
 /**
  * Apaga a conta do entregador de vez.
  *
- * "Tirar acesso" existe para quem saiu de férias ou está de castigo; isto é
+ * "Tirar acesso" existe para quem saiu de fÃ©rias ou estÃ¡ de castigo; isto Ã©
  * para o convite mandado errado, o motoboy que nunca chegou a trabalhar e a
- * conta de teste. São situações diferentes, e juntar as duas num botão só
+ * conta de teste. SÃ£o situaÃ§Ãµes diferentes, e juntar as duas num botÃ£o sÃ³
  * faria o dono desativar quando queria apagar.
  *
- * O histórico não vai junto: o nome de quem levou fica copiado no pedido desde
- * o despacho, então as entregas antigas continuam dizendo quem as fez mesmo
+ * O histÃ³rico nÃ£o vai junto: o nome de quem levou fica copiado no pedido desde
+ * o despacho, entÃ£o as entregas antigas continuam dizendo quem as fez mesmo
  * depois que a conta deixa de existir.
  */
 export const deleteCourierFn = createServerFn({ method: "POST" })
@@ -105,7 +105,7 @@ export const deleteCourierFn = createServerFn({ method: "POST" })
     const { storeId } = await requireAdminSession();
 
     // Mesma trava de tirar o acesso, pelo mesmo motivo: a entrega na rua
-    // ficaria sem dono, e o pedido travado sem ninguém para marcar entregue.
+    // ficaria sem dono, e o pedido travado sem ninguÃ©m para marcar entregue.
     const naRua = await prisma.order.count({
       where: { storeId, courierId: data.id, status: "OUT_FOR_DELIVERY" },
     });
@@ -116,16 +116,16 @@ export const deleteCourierFn = createServerFn({ method: "POST" })
       };
     }
 
-    // O papel entra na busca: esta tela não apaga o dono nem um gerente.
+    // O papel entra na busca: esta tela nÃ£o apaga o dono nem um gerente.
     const alvo = await prisma.adminUser.findFirst({
       where: { id: data.id, storeId, role: "COURIER" },
       select: { id: true, name: true },
     });
-    if (!alvo) return { ok: false as const, error: "Entregador não encontrado." };
+    if (!alvo) return { ok: false as const, error: "Entregador nÃ£o encontrado." };
 
-    // Rede de segurança: se algum pedido antigo ficou sem a cópia do nome,
-    // ela é gravada agora — antes de a conta sumir e não haver mais de onde
-    // tirar essa informação.
+    // Rede de seguranÃ§a: se algum pedido antigo ficou sem a cÃ³pia do nome,
+    // ela Ã© gravada agora â€” antes de a conta sumir e nÃ£o haver mais de onde
+    // tirar essa informaÃ§Ã£o.
     await prisma.order.updateMany({
       where: { storeId, courierId: alvo.id, courierNameSnapshot: null },
       data: { courierNameSnapshot: alvo.name },
@@ -141,8 +141,8 @@ export const setCourierActiveFn = createServerFn({ method: "POST" })
     const { storeId } = await requireAdminSession();
 
     if (!data.isActive) {
-      // Deixar entrega na rua com o acesso cortado prende o pedido: ele não
-      // teria mais como marcar a entrega, e o dono não veria por quê.
+      // Deixar entrega na rua com o acesso cortado prende o pedido: ele nÃ£o
+      // teria mais como marcar a entrega, e o dono nÃ£o veria por quÃª.
       const naRua = await prisma.order.count({
         where: { storeId, courierId: data.id, status: "OUT_FOR_DELIVERY" },
       });
@@ -155,10 +155,10 @@ export const setCourierActiveFn = createServerFn({ method: "POST" })
     }
 
     const r = await prisma.adminUser.updateMany({
-      // O papel entra na busca: esta tela não pode desativar o dono.
+      // O papel entra na busca: esta tela nÃ£o pode desativar o dono.
       where: { id: data.id, storeId, role: "COURIER" },
       data: { isActive: data.isActive },
     });
-    if (r.count === 0) return { ok: false as const, error: "Entregador não encontrado." };
+    if (r.count === 0) return { ok: false as const, error: "Entregador nÃ£o encontrado." };
     return { ok: true as const };
   });

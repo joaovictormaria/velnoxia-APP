@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { AuthorizationService } from "../authorization-service";
 import { prisma } from "../../db/client";

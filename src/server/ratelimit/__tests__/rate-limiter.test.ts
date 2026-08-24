@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { RateLimiter, RateLimitPresets } from "../rate-limiter";
 

@@ -1,11 +1,11 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { InventoryForecastService } from "@/server/services/inventory-forecast-service";
 
 /**
  * Forecast item consumption
- * Prevê consumo futuro de um item
+ * PrevÃª consumo futuro de um item
  */
 export const forecastItemConsumption = createServerFn({ method: "POST" })
   .validator(
@@ -31,7 +31,7 @@ export const forecastItemConsumption = createServerFn({ method: "POST" })
 
 /**
  * Forecast store consumption
- * Prevê consumo de todos os items
+ * PrevÃª consumo de todos os items
  */
 export const forecastStoreConsumption = createServerFn({ method: "POST" })
   .validator(
@@ -55,7 +55,7 @@ export const forecastStoreConsumption = createServerFn({ method: "POST" })
 
 /**
  * Get purchase recommendations
- * Recomendações de compra baseadas em forecast
+ * RecomendaÃ§Ãµes de compra baseadas em forecast
  */
 export const getPurchaseRecommendations = createServerFn({
   method: "POST",
@@ -79,7 +79,7 @@ export const getPurchaseRecommendations = createServerFn({
 
 /**
  * Get demand trend
- * Análise de tendência de demanda
+ * AnÃ¡lise de tendÃªncia de demanda
  */
 export const getDemandTrend = createServerFn({ method: "POST" })
   .validator(

@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "../db/client";
+﻿import { prisma } from "../db/client";
 import { RateLimiter, RateLimitPresets } from "../ratelimit/rate-limiter";
 import { Redis } from "ioredis";
 import { createHash, randomBytes } from "node:crypto";
@@ -496,7 +495,7 @@ export class PublicAPIService {
       orderBy: { createdAt: "desc" },
     });
 
-    return keys.map((k) => ({
+    return keys.map((k: any) => ({
       id: k.id,
       key: k.displayKey,
       displayKey: k.displayKey,
@@ -521,7 +520,7 @@ export class PublicAPIService {
       orderBy: { createdAt: "desc" },
     });
 
-    return webhooks.map((w) => ({
+    return webhooks.map((w: any) => ({
       id: w.id,
       storeId: w.storeId,
       url: w.url,

@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
   pedirRedefinicaoDeSenha,
@@ -7,19 +7,19 @@ import {
 import { permitido } from "../security/rate-limit";
 
 /**
- * Pede o link de redefinição.
+ * Pede o link de redefiniÃ§Ã£o.
  *
- * Público e sem sessão — quem chega aqui é justamente quem não consegue entrar.
- * A resposta é sempre a mesma, exista ou não a conta: um "e-mail não
- * encontrado" transformaria este formulário numa lista de quais lojistas estão
- * cadastrados, e o cadastro é por convite comercial.
+ * PÃºblico e sem sessÃ£o â€” quem chega aqui Ã© justamente quem nÃ£o consegue entrar.
+ * A resposta Ã© sempre a mesma, exista ou nÃ£o a conta: um "e-mail nÃ£o
+ * encontrado" transformaria este formulÃ¡rio numa lista de quais lojistas estÃ£o
+ * cadastrados, e o cadastro Ã© por convite comercial.
  */
 export const requestPasswordResetFn = createServerFn({ method: "POST" })
-  .validator(z.object({ email: z.string().trim().toLowerCase().email("E-mail inválido.") }))
+  .validator(z.object({ email: z.string().trim().toLowerCase().email("E-mail invÃ¡lido.") }))
   .handler(async ({ data }) => {
-    // O serviço já segura pedidos repetidos para a MESMA conta; este teto por
+    // O serviÃ§o jÃ¡ segura pedidos repetidos para a MESMA conta; este teto por
     // origem barra o varredor que dispara para muitos e-mails diferentes,
-    // que o por-conta deixaria passar. Resposta segue idêntica, então nada
+    // que o por-conta deixaria passar. Resposta segue idÃªntica, entÃ£o nada
     // aqui revela se a conta existe.
     if (!permitido("reset-request", { max: 5, janelaMs: 60_000 })) {
       return { ok: true as const };

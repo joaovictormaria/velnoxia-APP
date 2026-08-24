@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 import type { OrderStatus, PaymentStatus } from "@prisma/client";
 
 /**
@@ -84,7 +83,7 @@ export async function listOpenTableSessions(
     tableNumber: s.table.number,
     deviceCount: s.devices.length,
     orderCount: s.orders.length,
-    totalAmount: s.orders.reduce((sum, o) => sum + o.total, 0),
+    totalAmount: s.orders.reduce((sum, o) => sum + Number(o.total), 0),
     openedAt: s.openedAt,
   }));
 }
@@ -136,7 +135,7 @@ export async function getTableSessionDetails(
     throw new Error("NÃ£o autorizado");
   }
 
-  const totalAmount = session.orders.reduce((sum, o) => sum + o.total, 0);
+  const totalAmount = session.orders.reduce((sum, o) => sum + Number(o.total), 0);
   const paymentStatus =
     session.status === "PAID"
       ? ("PAID" as const)
@@ -162,8 +161,8 @@ export async function getTableSessionDetails(
       id: o.id,
       number: o.number,
       status: o.status,
-      total: o.total,
-      paymentMethod: o.paymentMethod,
+      total: Number(o.total),
+      paymentMethod: String(o.paymentMethod),
       paymentStatus: o.paymentStatus,
       customerName: o.customerName,
       itemCount: o.items.length,
@@ -211,15 +210,15 @@ export async function closeTableSession(
     });
 
     // Revoke all device tokens for this session
-    await tx.sessionDevice.updateMany(
-      {
+    await tx.sessionDevice.updateMany({
+      where: {
         sessionId,
         revokedAt: null, // Only active devices
       },
-      {
+      data: {
         revokedAt: new Date(),
       },
-    );
+    });
   });
 }
 

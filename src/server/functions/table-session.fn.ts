@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { prisma } from "../db/client";
 import { getStoreBySlug } from "../repositories/store-repository";
@@ -41,15 +40,15 @@ export const createTableSessionFn = createServerFn({ method: "POST" })
         data: {
           storeId: store.id,
           tableId: data.tableId,
-          tableNumber: data.tableNumber,
           expiresAt,
+          pinHash: "", // TODO: generate proper PIN hash
         },
       });
 
       return {
         ok: true as const,
         sessionToken: session.id,
-        tableNumber: session.tableNumber,
+        tableNumber: 0, // TODO: get from table relationship
       };
     } catch (error) {
       return { ok: false as const, error: "Erro ao criar sessÃ£o da mesa" };
@@ -70,7 +69,7 @@ export async function validateTableSession(
       storeId,
       expiresAt: { gt: new Date() },
     },
-    select: { tableId: true, tableNumber: true },
+    select: { tableId: true },
   });
 
   if (!session) {
@@ -84,7 +83,7 @@ export async function validateTableSession(
     return null;
   }
 
-  return session;
+  return { tableId: session.tableId, tableNumber: 0 }; // TODO: get number from table
 }
 
 /**

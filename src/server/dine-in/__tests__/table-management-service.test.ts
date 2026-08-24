@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "../../db/client";
 import { TableManagementService, TableStatus } from "../table-management-service";
 
@@ -399,9 +398,12 @@ describe("TableManagementService: Order Linking", () => {
       data: {
         storeId,
         number: 1,
-        status: "PENDING" as any,
+        status: "RECEIVED",
         subtotal: 100,
         total: 100,
+        customerName: "Test",
+        customerPhone: "11999999999",
+        paymentMethod: "CASH",
       },
     });
     orderId = order.id;

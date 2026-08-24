@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { prisma } from "../db/client";
 import { hashPassword } from "../auth/password";
@@ -14,7 +14,7 @@ const TRIAL_DAYS = 14;
 const signupSchema = z.object({
   storeName: z.string().trim().min(2, "Informe o nome da lanchonete."),
   adminName: z.string().trim().min(2, "Informe seu nome."),
-  email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
+  email: z.string().trim().toLowerCase().email("Informe um e-mail vÃ¡lido."),
   password: z.string().min(8, "A senha precisa ter ao menos 8 caracteres."),
   whatsappNumber: z.string().trim().min(8, "Informe o WhatsApp da loja."),
   businessType: z.enum(Object.keys(STARTER_CATALOGS) as [string, ...string[]]),
@@ -27,7 +27,7 @@ const signupSchema = z.object({
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    console.log("📥 [SIGNUP] Dados recebidos:", {
+    console.log("ðŸ“¥ [SIGNUP] Dados recebidos:", {
       storeName: data.storeName,
       adminName: data.adminName,
       email: data.email,
@@ -35,26 +35,26 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
     });
 
     const emailTaken = await isEmailTaken(data.email);
-    console.log(`📧 [SIGNUP] Email ${data.email} já existe?`, emailTaken);
+    console.log(`ðŸ“§ [SIGNUP] Email ${data.email} jÃ¡ existe?`, emailTaken);
 
     if (emailTaken) {
-      return { ok: false as const, error: "Já existe uma conta com este e-mail." };
+      return { ok: false as const, error: "JÃ¡ existe uma conta com este e-mail." };
     }
 
     // Derived from the store name plus a verifier code, so the owner never has
     // to pick an address and two lanchonetes with the same name never clash.
     const slug = await generateUniqueSlug(data.storeName);
-    console.log(`🔖 [SIGNUP] Slug gerado:`, slug);
+    console.log(`ðŸ”– [SIGNUP] Slug gerado:`, slug);
 
     const catalog = getStarterCatalog(data.businessType);
     const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
     const passwordHash = await hashPassword(data.password);
 
     let adminUserId: string;
-    console.log(`🏪 [SIGNUP] Iniciando transação para criar store...`);
+    console.log(`ðŸª [SIGNUP] Iniciando transaÃ§Ã£o para criar store...`);
     try {
       const admin = await prisma.$transaction(async (tx) => {
-        console.log(`🏢 [SIGNUP] Criando store: ${data.storeName} (${slug})`);
+        console.log(`ðŸ¢ [SIGNUP] Criando store: ${data.storeName} (${slug})`);
         const store = await tx.store.create({
           data: {
             slug,
@@ -76,12 +76,12 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
 
 
         // Starter menu, in the same transaction: a store whose catalog failed
-        // halfway would show a broken cardápio on its very first visit.
+        // halfway would show a broken cardÃ¡pio on its very first visit.
         for (const [i, category] of catalog.categories.entries()) {
           /**
-           * A categoria e seus tamanhos nascem primeiro: o preço de cada
-           * produto aponta para um tamanho da categoria, então eles precisam
-           * existir antes — e é isso que garante que dois sabores de pizza
+           * A categoria e seus tamanhos nascem primeiro: o preÃ§o de cada
+           * produto aponta para um tamanho da categoria, entÃ£o eles precisam
+           * existir antes â€” e Ã© isso que garante que dois sabores de pizza
            * compartilhem exatamente o mesmo "Grande".
            */
           const created = await tx.category.create({
@@ -122,8 +122,8 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
                   ? {
                       create: product.sizes.flatMap((s) => {
                         const categorySizeId = sizeIdByLabel.get(s.label);
-                        // Preço de um tamanho que a categoria não oferece é
-                        // erro de catálogo; ignorar é melhor que gravar órfão.
+                        // PreÃ§o de um tamanho que a categoria nÃ£o oferece Ã©
+                        // erro de catÃ¡logo; ignorar Ã© melhor que gravar Ã³rfÃ£o.
                         return categorySizeId ? [{ categorySizeId, price: s.price }] : [];
                       }),
                     }
@@ -152,7 +152,7 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
           });
         }
 
-        console.log(`👤 [SIGNUP] Criando admin user para store ${store.id}`);
+        console.log(`ðŸ‘¤ [SIGNUP] Criando admin user para store ${store.id}`);
         return tx.adminUser.create({
           data: {
             storeId: store.id,
@@ -165,24 +165,24 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
         });
       });
       adminUserId = admin.id;
-      console.log(`✅ [SIGNUP] Transação concluída, adminUserId: ${adminUserId}`);
+      console.log(`âœ… [SIGNUP] TransaÃ§Ã£o concluÃ­da, adminUserId: ${adminUserId}`);
     } catch (error) {
-      console.error(`💥 [SIGNUP] Erro na transação:`, error);
-      console.error(`📋 [SIGNUP] Message:`, (error as Error).message);
-      console.error(`📋 [SIGNUP] Stack:`, (error as Error).stack);
+      console.error(`ðŸ’¥ [SIGNUP] Erro na transaÃ§Ã£o:`, error);
+      console.error(`ðŸ“‹ [SIGNUP] Message:`, (error as Error).message);
+      console.error(`ðŸ“‹ [SIGNUP] Stack:`, (error as Error).stack);
 
       return {
         ok: false as const,
-        error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
+        error: "NÃ£o foi possÃ­vel criar a conta. O endereÃ§o ou e-mail pode ter sido tomado agora hÃ¡ pouco.",
       };
     }
 
     // Signing in immediately: asking someone to log in right after choosing a
     // password is friction with no security benefit.
-    console.log(`🔑 [SIGNUP] Iniciando sessão para adminUserId: ${adminUserId}`);
+    console.log(`ðŸ”‘ [SIGNUP] Iniciando sessÃ£o para adminUserId: ${adminUserId}`);
     await startSessionFor(adminUserId);
 
-    console.log(`🎉 [SIGNUP] Sucesso! Loja criada: ${slug}`);
+    console.log(`ðŸŽ‰ [SIGNUP] Sucesso! Loja criada: ${slug}`);
     return { ok: true as const, slug, trialEndsAt, trialDays: TRIAL_DAYS };
   });
 
@@ -190,7 +190,7 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
 function slugifyProduct(name: string) {
   return name
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[Ì€-Í¯]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');

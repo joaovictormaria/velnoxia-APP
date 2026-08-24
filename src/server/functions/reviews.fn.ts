@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
@@ -43,18 +43,18 @@ export const submitReviewFn = createServerFn({ method: "POST" })
       visitorId,
       name: z.string().trim().min(2, "Informe seu nome.").max(60),
       rating: z.number().int().min(1, "Escolha de 1 a 5 estrelas.").max(5),
-      comment: z.string().trim().min(3, "Escreva sua avaliação.").max(1000),
+      comment: z.string().trim().min(3, "Escreva sua avaliaÃ§Ã£o.").max(1000),
     }),
   )
   .handler(async ({ data }) => {
-    // Uma avaliação por aparelho já é a regra; o teto por origem barra o
-    // script que forja avaliação com visitorId novo a cada chamada.
+    // Uma avaliaÃ§Ã£o por aparelho jÃ¡ Ã© a regra; o teto por origem barra o
+    // script que forja avaliaÃ§Ã£o com visitorId novo a cada chamada.
     if (!permitido("review", { max: 5, janelaMs: 60_000 })) {
       return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
     }
     const store = await servableStore(data.storeSlug);
     if (await findReviewByVisitor(store.id, data.visitorId)) {
-      return { ok: false as const, error: "Você já avaliou esta loja neste aparelho." };
+      return { ok: false as const, error: "VocÃª jÃ¡ avaliou esta loja neste aparelho." };
     }
     await createReview(store.id, {
       customerNameSnapshot: data.name,
@@ -68,14 +68,14 @@ export const submitReviewFn = createServerFn({ method: "POST" })
 export const toggleReviewLikeFn = createServerFn({ method: "POST" })
   .validator(z.object({ storeSlug: z.string().min(1), reviewId: z.string(), visitorId }))
   .handler(async ({ data }) => {
-    // Mesmo motivo do like de publicação: o visitorId é do cliente, então o
-    // teto por origem é o que segura a inflação de curtidas.
+    // Mesmo motivo do like de publicaÃ§Ã£o: o visitorId Ã© do cliente, entÃ£o o
+    // teto por origem Ã© o que segura a inflaÃ§Ã£o de curtidas.
     if (!permitido("review-like", { max: 15, janelaMs: 60_000 })) {
       return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
     }
     const store = await servableStore(data.storeSlug);
     const result = await toggleLike(store.id, data.reviewId, data.visitorId);
-    if (!result) return { ok: false as const, error: "Avaliação não encontrada." };
+    if (!result) return { ok: false as const, error: "AvaliaÃ§Ã£o nÃ£o encontrada." };
     return { ok: true as const, ...result };
   });
 

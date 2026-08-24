@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { prisma } from "../../db/client";
 import { MonitoringService, HealthStatus } from "../monitoring-service";
@@ -179,9 +178,12 @@ describe("MonitoringService: Business Metrics", () => {
       data: {
         storeId,
         number: 1,
-        status: "COMPLETED" as any,
+        status: "COMPLETED",
         subtotal: 100,
         total: 100,
+        customerName: "Customer",
+        customerPhone: "11999999999",
+        paymentMethod: "CASH",
       },
     });
 
@@ -199,6 +201,9 @@ describe("MonitoringService: Business Metrics", () => {
         status: "COMPLETED",
         subtotal: 50,
         total: 50,
+        customerName: "Customer",
+        customerPhone: "11999999999",
+        paymentMethod: "CASH",
       },
     });
 
@@ -209,6 +214,9 @@ describe("MonitoringService: Business Metrics", () => {
         status: "COMPLETED",
         subtotal: 150,
         total: 150,
+        customerName: "Customer",
+        customerPhone: "11999999999",
+        paymentMethod: "CASH",
       },
     });
 
@@ -344,7 +352,7 @@ describe("MonitoringService: Anomaly Detection", () => {
 
   afterEach(async () => {
     await prisma.order.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany();
+    await (prisma as any).productInventory.deleteMany();
     await prisma.product.deleteMany({ where: { storeId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
     await redis.flushdb();

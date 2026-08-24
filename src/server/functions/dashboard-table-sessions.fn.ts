@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getCurrentAdmin } from "../auth/session";
 import { getStoreBySlug } from "../repositories/store-repository";
@@ -22,12 +22,12 @@ export const listOpenTableSessionsFn = createServerFn({ method: "GET" })
     try {
       const admin = await getCurrentAdmin();
       if (!admin) {
-        return { ok: false as const, error: "Não autorizado" };
+        return { ok: false as const, error: "NÃ£o autorizado" };
       }
 
       const store = await getStoreBySlug(data.storeSlug);
       if (!store || store.id !== admin.storeId) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       const sessions = await listOpenTableSessions(store.id);
@@ -57,12 +57,12 @@ export const getTableSessionDetailsFn = createServerFn({ method: "GET" })
     try {
       const admin = await getCurrentAdmin();
       if (!admin) {
-        return { ok: false as const, error: "Não autorizado" };
+        return { ok: false as const, error: "NÃ£o autorizado" };
       }
 
       const store = await getStoreBySlug(data.storeSlug);
       if (!store || store.id !== admin.storeId) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       const details = await getTableSessionDetails(store.id, data.sessionId);
@@ -93,19 +93,19 @@ export const closeTableSessionFn = createServerFn({ method: "POST" })
     try {
       const admin = await getCurrentAdmin();
       if (!admin) {
-        return { ok: false as const, error: "Não autorizado" };
+        return { ok: false as const, error: "NÃ£o autorizado" };
       }
 
       const store = await getStoreBySlug(data.storeSlug);
       if (!store || store.id !== admin.storeId) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       await closeTableSession(store.id, data.sessionId, data.status);
 
       return {
         ok: true as const,
-        message: `Sessão encerrada com status: ${data.status}`,
+        message: `SessÃ£o encerrada com status: ${data.status}`,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";

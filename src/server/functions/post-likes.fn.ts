@@ -1,4 +1,4 @@
-import { createServerFn } from "@tanstack/react-start";
+﻿import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
@@ -30,6 +30,6 @@ export const togglePostLikeFn = createServerFn({ method: "POST" })
     }
     const store = await servableStore(data.storeSlug);
     const result = await togglePostLike(store.id, data.postId, data.visitorId);
-    if (!result) return { ok: false as const, error: "Publicação não encontrada." };
+    if (!result) return { ok: false as const, error: "PublicaÃ§Ã£o nÃ£o encontrada." };
     return { ok: true as const, ...result };
   });

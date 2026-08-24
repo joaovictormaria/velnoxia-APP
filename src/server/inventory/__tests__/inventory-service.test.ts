@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+﻿import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "../../db/client";
 import { InventoryService } from "../inventory-service";
 
@@ -523,7 +522,7 @@ describe("InventoryService: Inventory Report", () => {
         name: "Produto 1",
         slug: "prod-1",
         basePrice: 25.0,
-      },
+      } as any,
     });
     product1 = prod1.id;
 
@@ -533,7 +532,7 @@ describe("InventoryService: Inventory Report", () => {
         name: "Produto 2",
         slug: "prod-2",
         basePrice: 30.0,
-      },
+      } as any,
     });
     product2 = prod2.id;
 
@@ -601,7 +600,7 @@ describe("InventoryService: Movement History", () => {
         name: "Test Product",
         slug: "test-hist",
         basePrice: 25.0,
-      },
+      } as any,
     });
     productId = product.id;
   });
@@ -655,7 +654,7 @@ describe("InventoryService: Cleanup Expired Reservations", () => {
         name: "Test Product",
         slug: "test-cleanup",
         basePrice: 25.0,
-      },
+      } as any,
     });
     productId = product.id;
 

@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { Decimal } from "@prisma/client/runtime/library";
+﻿import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * PRIORIDADE 4: DINHEIRO EM DECIMAL

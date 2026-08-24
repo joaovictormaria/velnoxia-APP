@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 import { Resend } from "resend";
 import { InventoryAlertService } from "./inventory-alert-service";
 
