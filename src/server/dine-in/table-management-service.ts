@@ -89,7 +89,7 @@ export class TableManagementService {
     }
 
     // Buscar ocupação atual
-    const currentOccupancy = await prisma.tableOccupancy.findFirst({
+    const currentOccupancy = await (prisma as any).tableOccupancy.findFirst({
       where: { tableId, checkOutAt: null },
       orderBy: { checkInAt: "desc" },
     });
@@ -149,7 +149,7 @@ export class TableManagementService {
     });
 
     // Registrar ocupação
-    await prisma.tableOccupancy.create({
+    await (prisma as any).tableOccupancy.create({
       data: {
         tableId,
         storeId,
@@ -235,7 +235,7 @@ export class TableManagementService {
       throw new Error("Mesa não encontrada");
     }
 
-    const occupancy = await prisma.tableOccupancy.findFirst({
+    const occupancy = await (prisma as any).tableOccupancy.findFirst({
       where: { tableId, checkOutAt: null },
       orderBy: { checkInAt: "desc" },
     });
@@ -246,7 +246,7 @@ export class TableManagementService {
       );
 
       // Registrar check-out
-      await prisma.tableOccupancy.update({
+      await (prisma as any).tableOccupancy.update({
         where: { id: occupancy.id },
         data: {
           checkOutAt: new Date(),
@@ -297,13 +297,13 @@ export class TableManagementService {
       throw new Error("Mesa não encontrada");
     }
 
-    const occupancy = await prisma.tableOccupancy.findFirst({
+    const occupancy = await (prisma as any).tableOccupancy.findFirst({
       where: { tableId, checkOutAt: { not: null }, cleanedAt: null },
       orderBy: { checkOutAt: "desc" },
     });
 
     if (occupancy) {
-      await prisma.tableOccupancy.update({
+      await (prisma as any).tableOccupancy.update({
         where: { id: occupancy.id },
         data: {
           cleanedAt: new Date(),
@@ -460,7 +460,7 @@ export class TableManagementService {
       where: { storeId, deletedAt: null },
     });
 
-    const occupancies = await prisma.tableOccupancy.findMany({
+    const occupancies = await (prisma as any).tableOccupancy.findMany({
       where: {
         storeId,
         checkInAt: {
@@ -505,7 +505,7 @@ export class TableManagementService {
     tableId: string,
     limit: number = 50,
   ): Promise<TableOccupancyRecord[]> {
-    const occupancies = await prisma.tableOccupancy.findMany({
+    const occupancies = await (prisma as any).tableOccupancy.findMany({
       where: { storeId, tableId },
       orderBy: { checkInAt: "desc" },
       take: limit,

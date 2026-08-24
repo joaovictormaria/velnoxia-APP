@@ -119,7 +119,7 @@ export class PublicAPIService {
     const keyHash = createHash("sha256").update(key).digest("hex");
     const displayKey = `${key.substring(0, 8)}...${key.substring(key.length - 4)}`;
 
-    const apiKey = await prisma.aPIKey.create({
+    const apiKey = await (prisma as any).aPIKey.create({
       data: {
         key: keyHash,
         displayKey,
@@ -169,7 +169,7 @@ export class PublicAPIService {
   async validateAPIKey(key: string): Promise<{ storeId: string; tier: APIKeyTier } | null> {
     const keyHash = createHash("sha256").update(key).digest("hex");
 
-    const apiKey = await prisma.aPIKey.findFirst({
+    const apiKey = await (prisma as any).aPIKey.findFirst({
       where: {
         key: keyHash,
         isActive: true,
@@ -183,7 +183,7 @@ export class PublicAPIService {
     }
 
     // Atualizar lastUsedAt
-    await prisma.aPIKey.updateMany({
+    await (prisma as any).aPIKey.updateMany({
       where: { key: keyHash },
       data: { lastUsedAt: new Date() },
     });
@@ -195,7 +195,7 @@ export class PublicAPIService {
    * Revogar API key
    */
   async revokeAPIKey(storeId: string, keyId: string, revokedBy: string): Promise<void> {
-    const apiKey = await prisma.aPIKey.findFirst({
+    const apiKey = await (prisma as any).aPIKey.findFirst({
       where: { id: keyId, storeId },
       select: { name: true },
     });
@@ -204,7 +204,7 @@ export class PublicAPIService {
       throw new Error("API key não encontrada");
     }
 
-    await prisma.aPIKey.update({
+    await (prisma as any).aPIKey.update({
       where: { id: keyId },
       data: { isActive: false },
     });
@@ -238,7 +238,7 @@ export class PublicAPIService {
       throw new Error("Pelo menos um tipo de evento é obrigatório");
     }
 
-    const subscription = await prisma.webhookSubscription.create({
+    const subscription = await (prisma as any).webhookSubscription.create({
       data: {
         storeId,
         url,
@@ -279,7 +279,7 @@ export class PublicAPIService {
     webhookId: string,
     revokedBy: string,
   ): Promise<void> {
-    const webhook = await prisma.webhookSubscription.findFirst({
+    const webhook = await (prisma as any).webhookSubscription.findFirst({
       where: { id: webhookId, storeId },
     });
 
@@ -287,7 +287,7 @@ export class PublicAPIService {
       throw new Error("Webhook não encontrado");
     }
 
-    await prisma.webhookSubscription.update({
+    await (prisma as any).webhookSubscription.update({
       where: { id: webhookId },
       data: { isActive: false },
     });
@@ -311,7 +311,7 @@ export class PublicAPIService {
     eventType: WebhookEventType,
     data: any,
   ): Promise<void> {
-    const subscriptions = await prisma.webhookSubscription.findMany({
+    const subscriptions = await (prisma as any).webhookSubscription.findMany({
       where: {
         storeId,
         isActive: true,
@@ -331,21 +331,21 @@ export class PublicAPIService {
         await this.sendWebhookRequest(sub.id, sub.url, payload);
 
         // Atualizar lastTriggeredAt
-        await prisma.webhookSubscription.update({
+        await (prisma as any).webhookSubscription.update({
           where: { id: sub.id },
           data: { lastTriggeredAt: new Date(), failureCount: 0 },
         });
       } catch (error) {
         // Incrementar falhas
-        await prisma.webhookSubscription.update({
+        await (prisma as any).webhookSubscription.update({
           where: { id: sub.id },
           data: { failureCount: { increment: 1 } },
         });
 
         // Desabilitar após 5 falhas consecutivas
-        if ((await prisma.webhookSubscription.findUnique({ where: { id: sub.id } }))
+        if ((await (prisma as any).webhookSubscription.findUnique({ where: { id: sub.id } }))
           ?.failureCount === 5) {
-          await prisma.webhookSubscription.update({
+          await (prisma as any).webhookSubscription.update({
             where: { id: sub.id },
             data: { isActive: false },
           });
@@ -490,7 +490,7 @@ export class PublicAPIService {
    * Listar API keys de uma loja
    */
   async listAPIKeys(storeId: string): Promise<APIKey[]> {
-    const keys = await prisma.aPIKey.findMany({
+    const keys = await (prisma as any).aPIKey.findMany({
       where: { storeId },
       orderBy: { createdAt: "desc" },
     });
@@ -515,7 +515,7 @@ export class PublicAPIService {
    * Listar webhooks de uma loja
    */
   async listWebhooks(storeId: string): Promise<WebhookSubscription[]> {
-    const webhooks = await prisma.webhookSubscription.findMany({
+    const webhooks = await (prisma as any).webhookSubscription.findMany({
       where: { storeId },
       orderBy: { createdAt: "desc" },
     });
