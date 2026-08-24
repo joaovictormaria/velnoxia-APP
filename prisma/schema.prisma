@@ -202,6 +202,7 @@ model Store {
   productCompositions  ProductComposition[]  @relation("ProductCompositions")
   tables               Table[]
   tableSessions        TableSession[]
+  auditLogs            AuditLog[]
 
   @@index([status])
 }
@@ -1327,4 +1328,55 @@ model Table {
   @@unique([storeId, number])
   @@index([storeId, status])
   @@index([storeId, createdAt])
+}
+
+// ---------- Auditoria (Compliance & Debugging) ----------
+
+/// Log de auditoria: rastreia todas as mudanças críticas.
+/// Imutável: nunca é editado ou deletado.
+/// Permite compliance (LGPD, PCI), forensics, e debugging.
+model AuditLog {
+  id        String   @id @default(cuid())
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  /// Quem fez (admin, sistema, webhook)
+  userId    String?
+  userEmail String?
+  /// Sistema automático (ex: webhook de Stripe)
+  isSystem  Boolean  @default(false)
+
+  /// IP do cliente (para forensics)
+  ipAddress String?
+
+  /// Ação: CREATE, UPDATE, DELETE, EXPORT, IMPORT, REFUND, etc
+  action    String
+
+  /// Qual tabela foi afetada (Product, Order, Employee, etc)
+  resource  String
+
+  /// ID do recurso (ex: product-123, order-456)
+  resourceId String
+
+  /// Estado anterior (JSON stringificado)
+  oldValue  String?
+  /// Estado novo (JSON stringificado)
+  newValue  String?
+
+  /// Motivo/contexto da mudança (livre)
+  reason    String?
+
+  /// Status: SUCCESS, FAILED, PENDING
+  status    String   @default("SUCCESS")
+
+  /// Mensagem de erro se falhou
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([storeId, action, createdAt])
+  @@index([storeId, resource, resourceId])
+  @@index([userId, createdAt])
+  @@index([action])
 }
