@@ -90,33 +90,6 @@ export const inventoryItemRepository = {
   },
 
   /**
-   * Update quantities (quantityOnHand and/or quantityReserved)
-   * Called after movement is recorded
-   */
-  async updateQuantities(
-    itemId: string,
-    updates: {
-      quantityOnHand?: number;
-      quantityReserved?: number;
-    }
-  ) {
-    const data: Prisma.InventoryItemUpdateInput = {};
-
-    if (updates.quantityOnHand !== undefined) {
-      data.quantityOnHand = updates.quantityOnHand;
-    }
-
-    if (updates.quantityReserved !== undefined) {
-      data.quantityReserved = updates.quantityReserved;
-    }
-
-    return prisma.inventoryItem.update({
-      where: { id: itemId },
-      data,
-    });
-  },
-
-  /**
    * Soft delete: mark as inactive
    */
   async softDelete(storeId: string, itemId: string) {

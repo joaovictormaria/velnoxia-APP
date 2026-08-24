@@ -362,6 +362,17 @@ export async function createOrderFromCheckout(
     if (!table || table.storeId !== storeId) {
       return { ok: false, error: "Sua sessão de mesa expirou após 24 horas. Escaneie o QRCode da mesa novamente para continuar." };
     }
+
+    // If both sessionId and tableId are provided, they must match (prevent IDOR)
+    if (sessionId) {
+      const session = await prisma.tableSession.findUnique({
+        where: { id: sessionId },
+        select: { tableId: true },
+      });
+      if (!session || session.tableId !== input.tableId) {
+        return { ok: false, error: "Sessão de mesa inválida. Escaneie o QRCode novamente." };
+      }
+    }
   }
 
   if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
