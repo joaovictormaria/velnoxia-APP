@@ -15,7 +15,7 @@
  */
 
 import { createHash, randomBytes } from "node:crypto";
-import { defineEventHandler, setHeader, getCookie, setCookie } from "h3";
+import { defineEventHandler, setHeader, getCookie, setCookie, createError } from "h3";
 
 const CSRF_TOKEN_LENGTH = 32; // 256 bits
 const CSRF_TOKEN_NAME = "csrf-token";

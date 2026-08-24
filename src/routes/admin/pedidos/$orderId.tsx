@@ -18,6 +18,7 @@ import {
   User,
 } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
+import type { OrderDetailResponse } from "@/types/api-responses";
 import {
   getOrderFn,
   updateOrderNotesFn,
@@ -72,11 +73,12 @@ function OrderDetailPage() {
   const [internalNote, setInternalNote] = useState<string | null>(null);
   const [dispatching, setDispatching] = useState(false);
 
-  const { data: order, isPending } = useQuery({
+  const { data: orderData, isPending } = useQuery({
     queryKey: ["order", orderId],
     queryFn: () => getOrderFn({ data: { id: orderId } }),
     refetchInterval: 15_000,
   });
+  const order = orderData as OrderDetailResponse | undefined;
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ["order", orderId] });

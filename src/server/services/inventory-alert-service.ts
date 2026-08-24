@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/client";
+import type { Decimal } from "@prisma/client";
 
 /**
  * Serviço de Alertas de Estoque
