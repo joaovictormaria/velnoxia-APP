@@ -31,6 +31,10 @@ export const getStorefrontMenuFn = createServerFn({ method: "GET" })
     // Convert Decimal fields for Seroval serialization
     const convertedCategories = categories.map((cat) => ({
       ...cat,
+      optionGroups: cat.optionGroups?.map((g) => ({
+        ...g,
+        options: g.options?.map((o) => ({ ...o, price: decimalToNumber(o.price) })),
+      })),
       products: cat.products?.map((p) => ({
         ...p,
         basePrice: decimalToNumber(p.basePrice),
