@@ -14,6 +14,7 @@ import {
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 import { previewCouponFn } from "@/server/functions/coupons.fn";
+import { orchestrateTableSessionFn } from "@/server/functions/table-session.fn";
 import {
   employeePhoneHasBenefitFn,
   previewEmployeeBenefitFn,
@@ -50,6 +51,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [couponCode, setCouponCode] = useState("");
   const [tableId, setTableId] = useState<string | null>(null);
   const [tableNumber, setTableNumber] = useState<number | null>(null);
+  const [deviceToken, setDeviceToken] = useState<string | null>(null);
   /** null = not checked yet. The order service checks again when the order is
    *  placed; this only lets the customer see the discount before confirming. */
   const [couponResult, setCouponResult] = useState<
@@ -68,13 +70,36 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const storedTableId = localStorage.getItem("tableId");
     const storedTableNumber = localStorage.getItem("tableNumber");
+    const storedDeviceToken = localStorage.getItem("deviceToken");
     if (storedTableId) {
       setTableId(storedTableId);
     }
     if (storedTableNumber) {
       setTableNumber(parseInt(storedTableNumber, 10));
     }
+    if (storedDeviceToken) {
+      setDeviceToken(storedDeviceToken);
+    }
   }, []);
+
+  // Orchestrar table session quando tem tableId mas não tem deviceToken
+  useEffect(() => {
+    if (tableId && !deviceToken) {
+      orchestrateTableSessionFn({ data: { storeSlug: storeInfo.slug, tableId } })
+        .then((res) => {
+          if (res.sessionId) {
+            localStorage.setItem("sessionId", res.sessionId);
+          }
+          if (res.deviceToken) {
+            localStorage.setItem("deviceToken", res.deviceToken);
+            setDeviceToken(res.deviceToken);
+          }
+        })
+        .catch(() => {
+          // Silêncio proposital: falha não impede o pedido
+        });
+    }
+  }, [tableId, deviceToken, storeInfo.slug]);
 
   /*
    * Assim que o WhatsApp fica completo, o servidor diz se aquele número tem
@@ -291,6 +316,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
           employeePin: employeeResult?.ok ? employeePin : undefined,
           customerNote: note.trim() || undefined,
           tableId: tableId ?? undefined,
+          deviceToken: deviceToken ?? undefined,
           delivery:
             type === "DELIVERY"
               ? { street, number, complement, neighborhood, city, state, zipCode: normalizeCep(cep) }
