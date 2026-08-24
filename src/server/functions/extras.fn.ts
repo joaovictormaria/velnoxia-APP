@@ -4,6 +4,7 @@ import { requireAdminSession } from "../auth/session";
 import { deleteExtra, listExtras, saveExtra } from "../repositories/extra-repository";
 import { listActiveCategories } from "../repositories/category-repository";
 import { listProducts } from "../repositories/product-repository";
+import { convertExtrasForServal, convertProductsForServal } from "../utils/decimal-converter";
 
 const extraSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome."),
@@ -31,9 +32,9 @@ export const listExtrasFn = createServerFn({ method: "GET" }).handler(async () =
     listProducts(storeId),
   ]);
   return {
-    extras,
+    extras: convertExtrasForServal(extras),
     categories: categories.map((c) => ({ id: c.id, name: c.name })),
-    products: products.map((p) => ({
+    products: convertProductsForServal(products).map((p) => ({
       id: p.id,
       name: p.name,
       categoryId: p.categoryId,

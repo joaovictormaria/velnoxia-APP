@@ -8,6 +8,7 @@ import { getPublicStoreSettings } from "../repositories/store-settings-repositor
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
 import { listActivePromotions } from "../repositories/promotion-repository";
 import { listPublishedPosts } from "../repositories/post-repository";
+import { convertExtrasForServal, convertStoreSettingsForClient, decimalToNumber } from "../utils/decimal-converter";
 
 /**
  * Public â€” no admin session. The tenant comes from the URL segment, so an
@@ -26,6 +27,31 @@ export const getStorefrontMenuFn = createServerFn({ method: "GET" })
       listActivePromotions(store.id),
       listPublishedPosts(store.id),
     ]);
-    return { categories, extras, promotions, posts, store: { ...settings, slug: store.slug } } as any;
+
+    // Convert Decimal fields for Seroval serialization
+    const convertedCategories = categories.map((cat) => ({
+      ...cat,
+      products: cat.products?.map((p) => ({
+        ...p,
+        basePrice: decimalToNumber(p.basePrice),
+        sizes: p.sizes?.map((s) => ({ ...s, price: decimalToNumber(s.price) })),
+        optionGroups: p.optionGroups?.map((g) => ({
+          ...g,
+          options: g.options?.map((o) => ({ ...o, price: decimalToNumber(o.price) })),
+        })),
+      })),
+    }));
+
+    return {
+      categories: convertedCategories,
+      extras: convertExtrasForServal(extras),
+      promotions: promotions.map((p) => ({
+        ...p,
+        price: p.price ? decimalToNumber(p.price) : null,
+        originalPrice: p.originalPrice ? decimalToNumber(p.originalPrice) : null,
+      })),
+      posts,
+      store: { ...convertStoreSettingsForClient(settings), slug: store.slug },
+    } as any;
   });
 

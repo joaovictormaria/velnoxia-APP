@@ -135,3 +135,36 @@ export function convertOrderItemsForClient(items: any[]) {
   return convertDecimalFieldsArray(items, ["unitPrice", "employeeDiscount"], "number");
 }
 
+export function convertProductForServal(product: any) {
+  if (!product) return product;
+  const converted = { ...product, basePrice: decimalToNumber(product.basePrice) };
+  if (product.sizes) {
+    converted.sizes = product.sizes.map((s: any) => ({
+      ...s,
+      price: decimalToNumber(s.price),
+    }));
+  }
+  if (product.optionGroups) {
+    converted.optionGroups = product.optionGroups.map((g: any) => ({
+      ...g,
+      options: g.options.map((o: any) => ({
+        ...o,
+        price: decimalToNumber(o.price),
+      })),
+    }));
+  }
+  return converted;
+}
+
+export function convertProductsForServal(products: any[]) {
+  return products.map((p) => convertProductForServal(p));
+}
+
+export function convertExtraForServal(extra: any) {
+  return convertDecimalFields(extra, ["price"], "number");
+}
+
+export function convertExtrasForServal(extras: any[]) {
+  return convertDecimalFieldsArray(extras, ["price"], "number");
+}
+

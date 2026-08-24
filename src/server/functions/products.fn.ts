@@ -13,6 +13,7 @@ import {
 } from "../repositories/product-repository";
 import { listActiveCategories } from "../repositories/category-repository";
 import { optionGroupsSchema } from "../validation/option-group-schema";
+import { convertProductForServal, convertProductsForServal } from "../utils/decimal-converter";
 
 const sizeSchema = z.object({
   /** Aponta para um tamanho da categoria; o repositÃ³rio confere se Ã© dela. */
@@ -55,7 +56,7 @@ export const listProductsFn = createServerFn({ method: "GET" })
       listProducts(storeId, data),
       listActiveCategories(storeId),
     ]);
-    return { products, categories };
+    return { products: convertProductsForServal(products), categories };
   });
 
 export const getProductFn = createServerFn({ method: "GET" })
@@ -66,7 +67,7 @@ export const getProductFn = createServerFn({ method: "GET" })
       getProductById(storeId, data.id),
       listActiveCategories(storeId),
     ]);
-    return { product, categories };
+    return { product: product ? convertProductForServal(product) : null, categories };
   });
 
 export const getProductFormOptionsFn = createServerFn({ method: "GET" }).handler(async () => {
@@ -81,7 +82,7 @@ export const saveProductFn = createServerFn({ method: "POST" })
     const product = data.id
       ? await updateProduct(storeId, data.id, data.data)
       : await createProduct(storeId, data.data);
-    return { ok: true as const, product };
+    return { ok: true as const, product: convertProductForServal(product) };
   });
 
 export const setProductActiveFn = createServerFn({ method: "POST" })
