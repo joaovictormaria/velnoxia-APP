@@ -51,12 +51,13 @@ export async function listActiveExtras(storeId: string) {
   return extras.map(comIdsSeparados);
 }
 
-function comIdsSeparados<T extends { scopes: { categoryId: string | null; productId: string | null }[] }>(
+function comIdsSeparados<T extends { price?: any; scopes: { categoryId: string | null; productId: string | null }[] }>(
   extra: T,
 ) {
-  const { scopes, ...resto } = extra;
+  const { scopes, price, ...resto } = extra;
   return {
     ...resto,
+    price: price != null ? Number(price) : undefined,
     categoryIds: scopes.flatMap((s) => (s.categoryId ? [s.categoryId] : [])),
     productIds: scopes.flatMap((s) => (s.productId ? [s.productId] : [])),
   };

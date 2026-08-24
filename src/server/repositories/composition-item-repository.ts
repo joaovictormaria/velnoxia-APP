@@ -5,22 +5,33 @@ export type CreateCompositionItemInput = Prisma.CompositionItemCreateInput;
 
 export const compositionItemRepository = {
   /**
-   * Find item in composition by ID
+   * Find item in composition by ID + storeId validation
    */
-  async findById(compositionItemId: string) {
-    return prisma.compositionItem.findUnique({
+  async findById(compositionItemId: string, storeId?: string) {
+    const item = await prisma.compositionItem.findUnique({
       where: { id: compositionItemId },
       include: {
-        inventoryItem: true,
+        inventoryItem: { include: { store: { select: { id: true } } } },
         unit: true,
+        composition: { include: { store: { select: { id: true } } } },
       },
     });
+    if (!item) return null;
+    if (storeId && item.composition?.store?.id !== storeId) return null;
+    return item;
   },
 
   /**
-   * Find all items in a composition
+   * Find all items in a composition + storeId validation
    */
-  async findByComposition(compositionId: string) {
+  async findByComposition(compositionId: string, storeId?: string) {
+    const composition = storeId
+      ? await prisma.composition.findFirst({
+          where: { id: compositionId, storeId },
+        })
+      : null;
+    if (storeId && !composition) return [];
+
     return prisma.compositionItem.findMany({
       where: { compositionId },
       include: {
@@ -68,7 +79,7 @@ export const compositionItemRepository = {
   },
 
   /**
-   * Update composition item
+   * Update composition item with storeId validation
    * Only allowed if composition not yet used
    */
   async update(
@@ -77,8 +88,16 @@ export const compositionItemRepository = {
       quantity?: number | Prisma.Decimal;
       unitId?: string;
       sortOrder?: number;
-    }
+    },
+    storeId?: string
   ) {
+    if (storeId) {
+      const item = await prisma.compositionItem.findFirst({
+        where: { id: itemId, composition: { storeId } },
+      });
+      if (!item) throw new Error("CompositionItem not found or access denied");
+    }
+
     return prisma.compositionItem.update({
       where: { id: itemId },
       data,
@@ -90,9 +109,16 @@ export const compositionItemRepository = {
   },
 
   /**
-   * Delete composition item
+   * Delete composition item with storeId validation
    */
-  async delete(itemId: string) {
+  async delete(itemId: string, storeId?: string) {
+    if (storeId) {
+      const item = await prisma.compositionItem.findFirst({
+        where: { id: itemId, composition: { storeId } },
+      });
+      if (!item) throw new Error("CompositionItem not found or access denied");
+    }
+
     return prisma.compositionItem.delete({
       where: { id: itemId },
     });
