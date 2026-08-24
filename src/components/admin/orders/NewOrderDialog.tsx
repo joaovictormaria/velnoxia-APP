@@ -8,6 +8,7 @@ import {
   markOrderNotificationsReadFn,
   updateOrderStatusFn,
 } from "@/server/functions/orders.fn";
+import type { OrderDetailResponse } from "@/types/api-responses";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -61,11 +62,12 @@ export function NewOrderDialog() {
     }
   }, [pending, activeId]);
 
-  const { data: order } = useQuery({
+  const { data: orderData } = useQuery({
     queryKey: ["order", activeId],
     queryFn: () => getOrderFn({ data: { id: activeId! } }),
     enabled: Boolean(activeId),
   });
+  const order = orderData as OrderDetailResponse | undefined;
 
   /**
    * O aviso se repete enquanto o pedido não for atendido. Um toque só se perde
