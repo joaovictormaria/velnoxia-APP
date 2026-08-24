@@ -14,7 +14,6 @@ import {
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 import { previewCouponFn } from "@/server/functions/coupons.fn";
-import { orchestrateTableSessionFn } from "@/server/functions/table-session.fn";
 import {
   employeePhoneHasBenefitFn,
   previewEmployeeBenefitFn,
@@ -82,24 +81,6 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
     }
   }, []);
 
-  // Orchestrar table session quando tem tableId mas não tem deviceToken
-  useEffect(() => {
-    if (tableId && !deviceToken) {
-      orchestrateTableSessionFn({ data: { storeSlug: storeInfo.slug, tableId } })
-        .then((res) => {
-          if (res.sessionId) {
-            localStorage.setItem("sessionId", res.sessionId);
-          }
-          if (res.deviceToken) {
-            localStorage.setItem("deviceToken", res.deviceToken);
-            setDeviceToken(res.deviceToken);
-          }
-        })
-        .catch(() => {
-          // Silêncio proposital: falha não impede o pedido
-        });
-    }
-  }, [tableId, deviceToken, storeInfo.slug]);
 
   /*
    * Assim que o WhatsApp fica completo, o servidor diz se aquele número tem

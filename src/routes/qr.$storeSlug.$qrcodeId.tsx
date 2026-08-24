@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { orchestrateTableSessionFn } from "@/server/functions/table-session.fn";
 
 export const Route = createFileRoute("/qr/$storeSlug/$qrcodeId")({
   component: QRCodeRedirect,
@@ -24,6 +25,20 @@ function QRCodeRedirect() {
       if (tableNumber) {
         localStorage.setItem("tableNumber", tableNumber.toString());
       }
+
+      // Orchestrar table session para obter deviceToken
+      orchestrateTableSessionFn({ data: { storeSlug, tableId: qrcodeId } })
+        .then((res) => {
+          if (res.ok) {
+            localStorage.setItem("sessionId", res.sessionId);
+            if (res.deviceToken) {
+              localStorage.setItem("deviceToken", res.deviceToken);
+            }
+          }
+        })
+        .catch(() => {
+          // Silêncio proposital: falha não impede navegação
+        });
     }
 
     // Redirecionar para o cardápio da loja
