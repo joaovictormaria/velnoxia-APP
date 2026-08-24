@@ -397,6 +397,8 @@ model Category {
   isActive  Boolean      @default(true)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+  deletedBy String?
 
   products             Product[]
   sizes                CategorySize[]
@@ -405,7 +407,8 @@ model Category {
   extraScopes          ExtraScope[]
 
   @@unique([storeId, slug])
-  @@index([storeId, sortOrder])
+  @@index([storeId, sortOrder, deletedAt])
+  @@index([deletedAt])
 }
 
 model Product {
@@ -429,6 +432,10 @@ model Product {
   sortOrder            Int                  @default(0)
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
+  /// Soft delete: null = ativo, DateTime = deletado em X
+  deletedAt            DateTime?
+  /// Quem deletou (admin ID ou "system")
+  deletedBy            String?
 
   sizes                ProductSize[]
   orderItems           OrderItem[]
@@ -438,9 +445,10 @@ model Product {
   productCompositions  ProductComposition[]
 
   @@unique([storeId, slug])
-  @@index([categoryId, isActive])
-  @@index([storeId, isActive])
+  @@index([categoryId, isActive, deletedAt])
+  @@index([storeId, isActive, deletedAt])
   @@index([inventoryItemId])
+  @@index([deletedAt])
 }
 
 /// Os tamanhos que uma categoria oferece, com o nome que o dono escolher:
@@ -541,12 +549,15 @@ model Extra {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  deletedBy String?
 
   orderItemExtras OrderItemExtra[]
   /// Onde ele pode ser pedido. Sem nenhum alcance, não aparece em lugar algum.
   scopes          ExtraScope[]
 
-  @@index([storeId, isActive])
+  @@index([storeId, isActive, deletedAt])
+  @@index([deletedAt])
 }
 
 /**
@@ -593,10 +604,14 @@ model Coupon {
   isActive      Boolean      @default(true)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  deletedAt     DateTime?
+  deletedBy     String?
 
   orders Order[]
 
   @@unique([storeId, code])
+  @@index([isActive, deletedAt])
+  @@index([deletedAt])
 }
 
 /// Slides of the storefront "Oferta da semana" carousel. Free text rather than
@@ -619,8 +634,11 @@ model Promotion {
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+  deletedBy     String?
 
-  @@index([storeId, isActive, sortOrder])
+  @@index([storeId, isActive, sortOrder, deletedAt])
+  @@index([deletedAt])
 }
 
 // ---------- Clientes ----------
@@ -636,11 +654,14 @@ model Customer {
   email     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  deletedBy String?
 
   orders  Order[]
   reviews Review[]
 
   @@unique([storeId, phone])
+  @@index([deletedAt])
 }
 
 // ---------- Funcionários ----------
@@ -676,11 +697,14 @@ model Employee {
   isActive  Boolean              @default(true)
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
+  deletedAt DateTime?
+  deletedBy String?
 
   orders Order[]
 
   @@unique([storeId, phone])
-  @@index([storeId, isActive])
+  @@index([storeId, isActive, deletedAt])
+  @@index([deletedAt])
 }
 
 /**
@@ -839,22 +863,25 @@ model Order {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  deletedBy String?
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
   reviews       Review[]
 
   @@unique([storeId, number])
-  @@index([storeId, status, createdAt])
+  @@index([storeId, status, createdAt, deletedAt])
   /// A tela do entregador so pergunta pelas entregas dele.
-  @@index([courierId, status])
+  @@index([courierId, status, deletedAt])
   /// A cota do dia é uma pergunta por funcionário dentro de uma janela de
   /// tempo, e ela é feita em todo checkout dele.
-  @@index([employeeId, createdAt])
-  @@index([storeId, createdAt])
-  @@index([customerId])
-  @@index([sessionId])
-  @@index([deviceId])
+  @@index([employeeId, createdAt, deletedAt])
+  @@index([storeId, createdAt, deletedAt])
+  @@index([customerId, deletedAt])
+  @@index([sessionId, deletedAt])
+  @@index([deviceId, deletedAt])
+  @@index([deletedAt])
 }
 
 model OrderItem {
@@ -1320,14 +1347,17 @@ model Table {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  deletedBy String?
 
   orders Order[]
   sessions TableSession[]
 
   /// Índices para queries comuns
   @@unique([storeId, number])
-  @@index([storeId, status])
-  @@index([storeId, createdAt])
+  @@index([storeId, status, deletedAt])
+  @@index([storeId, createdAt, deletedAt])
+  @@index([deletedAt])
 }
 
 // ---------- Auditoria (Compliance & Debugging) ----------
