@@ -34,6 +34,8 @@ const checkoutSchema = z.object({
   customerNote: z.string().max(500).optional(),
   /** Mesa QRCode ID para pedidos de balcão/mesa. */
   tableId: z.string().uuid().optional(),
+  /** Device token para pedidos de mesa (autorização de dispositivo). */
+  deviceToken: z.string().optional(),
   delivery: z
     .object({
       street: z.string().optional(),
@@ -63,5 +65,5 @@ export const submitCheckoutFn = createServerFn({ method: "POST" })
     if (!store || !isStoreServable(store)) {
       return { ok: false as const, error: "Esta loja não está disponível no momento." };
     }
-    return createOrderFromCheckout(store.id, data);
+    return createOrderFromCheckout(store.id, data, data.deviceToken);
   });

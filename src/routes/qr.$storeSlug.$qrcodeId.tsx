@@ -5,12 +5,15 @@ export const Route = createFileRoute("/qr/$storeSlug/$qrcodeId")({
   component: QRCodeRedirect,
 });
 
+/// Rota de redirecionamento do QR Code da mesa.
+/// O qrcodeId é o Table.id (QR Token permanente, nunca muda).
 function QRCodeRedirect() {
   const { storeSlug, qrcodeId } = Route.useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Armazenar tableId no localStorage (expira ao confirmar pedido)
+    // Armazenar QR Token (tableId) no localStorage (expira ao confirmar pedido)
+    // Este ID permanece o mesmo para TODAS as sessões futuras da mesa.
     if (qrcodeId) {
       localStorage.setItem("tableId", qrcodeId);
 

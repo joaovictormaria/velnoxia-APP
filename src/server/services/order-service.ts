@@ -53,6 +53,8 @@ export type CheckoutInput = {
   customerNote?: string;
   /** Mesa QRCode ID para pedidos de balcão/mesa. */
   tableId?: string;
+  /** Device token para pedidos de mesa (autorização de dispositivo). */
+  deviceToken?: string;
   delivery?: {
     street?: string;
     number?: string;
@@ -330,11 +332,28 @@ export async function precificarItens(
 export async function createOrderFromCheckout(
   storeId: string,
   input: CheckoutInput,
+  deviceToken?: string,
 ): Promise<CheckoutResult> {
   if (input.items.length === 0) return { ok: false, error: "O carrinho está vazio." };
 
   const settings = await prisma.storeSettings.findUnique({ where: { storeId } });
   if (!settings) return { ok: false, error: "A loja ainda não está configurada." };
+
+  // Validate device token if provided (table session authorization)
+  let sessionId: string | null = null;
+  let deviceId: string | null = null;
+
+  if (deviceToken) {
+    const { validateDeviceToken } = await import("./table-session-service");
+    const deviceInfo = await validateDeviceToken(storeId, deviceToken);
+
+    if (!deviceInfo) {
+      return { ok: false, error: "Sessão de mesa expirou ou PIN inválido. Escaneie o QRCode novamente." };
+    }
+
+    sessionId = deviceInfo.sessionId;
+    deviceId = deviceInfo.id;
+  }
 
   // Validate tableId if provided: table must exist
   if (input.tableId) {
@@ -506,7 +525,6 @@ export async function createOrderFromCheckout(
 
     const created = await tx.order.create({
       data: {
-        createdAt: new Date(),
         storeId,
         number: nextNumber,
         customerId: customer.id,
@@ -523,6 +541,8 @@ export async function createOrderFromCheckout(
         total,
         couponId,
         tableId: input.tableId ?? null,
+        sessionId: sessionId ?? null,  // Table session (if table order)
+        deviceId: deviceId ?? null,    // Device that created order (if table order)
         employeeId: funcionario?.id ?? null,
         // O nome vai copiado: apagar a ficha do funcionário um dia não pode
         // apagar o registro de quem pegou o quê.

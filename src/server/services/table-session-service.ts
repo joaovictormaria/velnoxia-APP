@@ -1,0 +1,341 @@
+import { prisma } from "@/server/db/client";
+import { generatePin, hashPin, verifyPin } from "@/server/auth/pin";
+import { generateDeviceToken, hashDeviceToken } from "@/server/auth/device-token";
+import { dentroDoLimite } from "@/server/security/rate-limit";
+
+export interface OpenTableSession {
+  id: string;
+  tableId: string;
+  storeId: string;
+  pinHash: string;
+  status: "OPEN" | "PAID" | "CLOSED" | "CANCELLED";
+  openedAt: Date;
+  paidAt: Date | null;
+  closedAt: Date | null;
+  expiresAt: Date;
+}
+
+/**
+ * Get or create an open session for a table.
+ *
+ * If a session is already OPEN for this table:
+ *   → Returns the existing session
+ *
+ * If no OPEN session exists:
+ *   → Creates new session with PIN
+ *   → Protects against concurrency via unique constraint on [tableId, status]
+ *
+ * Concurrency protection:
+ * If two requests arrive simultaneously:
+ *   - First one creates the session successfully
+ *   - Second one gets unique constraint error
+ *   - Second one then retrieves the session that was created by first
+ *   - Both return the same session
+ */
+export async function getOrCreateOpenTableSession(
+  storeId: string,
+  tableId: string,
+): Promise<OpenTableSession> {
+  // Validate table exists and belongs to store
+  const table = await prisma.table.findUnique({
+    where: { id: tableId },
+    select: { id: true, storeId: true },
+  });
+
+  if (!table) {
+    throw new Error("Mesa não encontrada");
+  }
+
+  if (table.storeId !== storeId) {
+    throw new Error("Não autorizado");
+  }
+
+  // Try to find existing OPEN session
+  let session = await prisma.tableSession.findFirst({
+    where: {
+      tableId,
+      storeId,
+      status: "OPEN",
+    },
+  });
+
+  if (session) {
+    return session as OpenTableSession;
+  }
+
+  // No open session: create new one
+  const pin = generatePin();
+  const pinHash = await hashPin(pin);
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+
+  try {
+    session = await prisma.tableSession.create({
+      data: {
+        storeId,
+        tableId,
+        pinHash,
+        status: "OPEN",
+        expiresAt,
+      },
+    });
+
+    // Log PIN for admin debugging (only in dev/test, never in production)
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[TABLE SESSION] PIN for table ${tableId} (session ${session.id}): ${pin}`);
+    }
+
+    return session as OpenTableSession;
+  } catch (error) {
+    // Unique constraint violated: another request created first
+    // This is expected behavior in race conditions
+    // Recover the session that was created
+    const existing = await prisma.tableSession.findFirstOrThrow({
+      where: {
+        tableId,
+        storeId,
+        status: "OPEN",
+      },
+    });
+
+    return existing as OpenTableSession;
+  }
+}
+
+/**
+ * Validate PIN for an open table session.
+ *
+ * Returns { ok: true } if PIN is correct.
+ * Returns { ok: false, error: string } if:
+ *   - Session not found
+ *   - Session not OPEN
+ *   - Session expired
+ *   - PIN incorrect
+ *   - Rate limit exceeded (too many wrong attempts)
+ *
+ * Rate limiting: Max 3 wrong attempts per session, then blocked for 5 minutes
+ */
+export async function validateTableSessionPin(
+  storeId: string,
+  sessionId: string,
+  pin: string,
+): Promise<{ ok: boolean; error?: string }> {
+  // Rate limit: max 3 wrong attempts per session per 5 minutes
+  const rateLimitKey = `pin-validate:${sessionId}`;
+  const MAX_ATTEMPTS = 3;
+  const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+
+  if (!dentroDoLimite(rateLimitKey, MAX_ATTEMPTS, WINDOW_MS)) {
+    return {
+      ok: false,
+      error: "Muitas tentativas incorretas. Tente novamente em alguns minutos.",
+    };
+  }
+
+  // Validate PIN format (4 digits)
+  if (!pin.match(/^\d{4}$/)) {
+    return {
+      ok: false,
+      error: "PIN deve ter 4 dígitos.",
+    };
+  }
+
+  // Find session
+  const session = await prisma.tableSession.findUnique({
+    where: { id: sessionId },
+    select: {
+      id: true,
+      storeId: true,
+      status: true,
+      expiresAt: true,
+      pinHash: true,
+    },
+  });
+
+  if (!session) {
+    return {
+      ok: false,
+      error: "Sessão não encontrada.",
+    };
+  }
+
+  if (session.storeId !== storeId) {
+    return {
+      ok: false,
+      error: "Não autorizado.",
+    };
+  }
+
+  if (session.status !== "OPEN") {
+    return {
+      ok: false,
+      error: "Sessão não está mais aberta.",
+    };
+  }
+
+  if (new Date() > session.expiresAt) {
+    return {
+      ok: false,
+      error: "Sessão expirou. Escaneie o QR Code novamente.",
+    };
+  }
+
+  // Verify PIN
+  const pinCorrect = await verifyPin(pin, session.pinHash);
+
+  if (!pinCorrect) {
+    return {
+      ok: false,
+      error: "PIN incorreto. Tente novamente.",
+    };
+  }
+
+  // PIN is correct!
+  return { ok: true };
+}
+
+/**
+ * Authorize a device to participate in a table session.
+ *
+ * First device (isFirstDevice=true):
+ *   → Called right after session creation
+ *   → Enters automatically without PIN
+ *   → requiresPin: false
+ *
+ * Other devices (isFirstDevice=false):
+ *   → Called AFTER PIN validation
+ *   → PIN must have been verified before calling this
+ *   → requiresPin: true
+ *
+ * Returns the deviceToken for the client to store and use in orders.
+ * Token is never exposed in plaintext after this point; only hash is stored.
+ */
+export async function authorizeDeviceForSession(
+  storeId: string,
+  sessionId: string,
+  isFirstDevice: boolean,
+): Promise<{ id: string; deviceToken: string }> {
+  // Validate session exists and belongs to store
+  const session = await prisma.tableSession.findUnique({
+    where: { id: sessionId },
+    select: { id: true, storeId: true, status: true, expiresAt: true },
+  });
+
+  if (!session) {
+    throw new Error("Sessão não encontrada");
+  }
+
+  if (session.storeId !== storeId) {
+    throw new Error("Não autorizado");
+  }
+
+  if (session.status !== "OPEN") {
+    throw new Error("Sessão não está mais aberta");
+  }
+
+  if (new Date() > session.expiresAt) {
+    throw new Error("Sessão expirou");
+  }
+
+  // Generate device token
+  const deviceToken = generateDeviceToken();
+  const deviceTokenHash = await hashDeviceToken(deviceToken);
+
+  // Create SessionDevice record
+  const device = await prisma.sessionDevice.create({
+    data: {
+      sessionId,
+      deviceTokenHash,
+      requiresPin: !isFirstDevice, // First device: false, others: true
+      authorizedAt: new Date(),
+    },
+    select: { id: true },
+  });
+
+  // Return device ID and token (token is returned only here, never again)
+  return {
+    id: device.id,
+    deviceToken, // Client stores this in localStorage
+  };
+}
+
+/**
+ * Revoke a device token (log out, end session, etc)
+ */
+export async function revokeDeviceToken(storeId: string, deviceId: string): Promise<void> {
+  const device = await prisma.sessionDevice.findUnique({
+    where: { id: deviceId },
+    include: { session: { select: { storeId: true } } },
+  });
+
+  if (!device) {
+    throw new Error("Dispositivo não encontrado");
+  }
+
+  if (device.session.storeId !== storeId) {
+    throw new Error("Não autorizado");
+  }
+
+  // Soft delete: mark as revoked
+  await prisma.sessionDevice.update({
+    where: { id: deviceId },
+    data: { revokedAt: new Date() },
+  });
+}
+
+/**
+ * Validate a device token and get the device/session info.
+ * Used when a client makes a request with a deviceToken.
+ *
+ * Returns null if token is invalid or revoked.
+ */
+export async function validateDeviceToken(
+  storeId: string,
+  deviceToken: string,
+): Promise<{ deviceId: string; sessionId: string } | null> {
+  // Find device by looking for matching token hash
+  // This is expensive (O(n)) but SessionDevice records are few per session
+  const devices = await prisma.sessionDevice.findMany({
+    where: {
+      session: { storeId },
+      revokedAt: null, // Only active devices
+    },
+    include: {
+      session: {
+        select: { id: true, status: true, expiresAt: true },
+      },
+    },
+  });
+
+  // Check each device's token hash
+  for (const device of devices) {
+    // In production, consider caching token hashes or using indexed search
+    // For now, verify against each hash (safe but slower)
+    try {
+      const { verifyDeviceToken } = await import("./device-token");
+      const isValid = await verifyDeviceToken(deviceToken, device.deviceTokenHash);
+
+      if (isValid) {
+        // Also check session is still valid
+        if (device.session.status !== "OPEN" || new Date() > device.session.expiresAt) {
+          return null; // Session invalid
+        }
+
+        // Update lastSeenAt
+        await prisma.sessionDevice.update({
+          where: { id: device.id },
+          data: { lastSeenAt: new Date() },
+        });
+
+        return {
+          deviceId: device.id,
+          sessionId: device.session.id,
+        };
+      }
+    } catch {
+      // Token doesn't match, continue to next device
+      continue;
+    }
+  }
+
+  return null; // No matching device found
+}

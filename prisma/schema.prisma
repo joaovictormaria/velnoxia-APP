@@ -136,6 +136,13 @@ enum NotificationType {
   NEW_REVIEW
 }
 
+enum TableSessionStatus {
+  OPEN
+  PAID
+  CLOSED
+  CANCELLED
+}
+
 // ---------- Tenant ----------
 
 enum StoreStatus {
@@ -202,18 +209,65 @@ model Store {
 // ---------- Mesas QRCode ----------
 
 /// Sessão temporária do cliente ao escanear QRCode da mesa.
-/// Auto-expira após 24h, nunca cresce muito porque é limpeza regular.
+/// Uma sessão por mesa, com PIN de 4 dígitos para múltiplos dispositivos.
+/// Auto-expira após 24h de inatividade.
 model TableSession {
-  id        String   @id @default(cuid())
+  id        String                @id @default(cuid())
   storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  tableId   String   @unique
-  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  tableNumber Int
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  store     Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tableId   String
+  table     Table                 @relation(fields: [tableId], references: [id], onDelete: Cascade)
 
+  /// PIN de 4 dígitos, sempre armazenado em hash (nunca texto puro)
+  pinHash   String
+
+  /// Estado da sessão
+  status    TableSessionStatus    @default(OPEN)
+
+  /// Rastreabilidade
+  openedAt  DateTime              @default(now())
+  paidAt    DateTime?
+  closedAt  DateTime?
+  expiresAt DateTime
+
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  /// Relações
+  devices   SessionDevice[]
+  orders    Order[]
+
+  /// Garante apenas uma sessão OPEN por mesa (concorrência)
+  @@unique([tableId, status])
+  @@index([storeId, status])
   @@index([storeId, expiresAt])
+}
+
+/// Dispositivos autorizados numa sessão de mesa.
+/// O primeiro dispositivo entra automaticamente; os demais precisam do PIN.
+model SessionDevice {
+  id                String    @id @default(cuid())
+  sessionId         String
+  session           TableSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  /// Token hash do dispositivo (nunca texto puro)
+  deviceTokenHash   String    @unique
+
+  /// Primeiro dispositivo entra sem PIN
+  requiresPin       Boolean   @default(true)
+
+  /// Rastreabilidade
+  authorizedAt      DateTime  @default(now())
+  lastSeenAt        DateTime  @updatedAt
+  revokedAt         DateTime?
+
+  createdAt         DateTime  @default(now())
+
+  /// Relações
+  orders            Order[]
+
+  @@unique([sessionId, deviceTokenHash])
+  @@index([sessionId, revokedAt])
 }
 
 // ---------- Auth ----------
@@ -771,6 +825,14 @@ model Order {
   tableId String?
   table   Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
 
+  /// Sessão de mesa específica (novo: para vincular pedido à sessão, não só mesa)
+  sessionId String?
+  session   TableSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  /// Qual dispositivo autorizou este pedido
+  deviceId String?
+  device   SessionDevice? @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
   estimatedDeliveryAt DateTime?
   autoPrintRequested  Boolean   @default(false)
 
@@ -790,6 +852,8 @@ model Order {
   @@index([employeeId, createdAt])
   @@index([storeId, createdAt])
   @@index([customerId])
+  @@index([sessionId])
+  @@index([deviceId])
 }
 
 model OrderItem {
@@ -1228,8 +1292,12 @@ model CompositionItem {
 // ---------- Mesas (Dine-in) ----------
 
 /// Mesa do restaurante para comer no local (dine-in).
-/// Cada mesa tem um QRCode único que direciona para /mesa/{id}.
+/// Cada mesa tem um QRCode único e permanente que nunca muda.
 model Table {
+  /// QR Token permanente: identificador único, não previsível, nunca muda.
+  /// Gerado como UUID v4 aleatório no cliente ou cuid no servidor.
+  /// URL pública: /qr/{storeSlug}/{id}
+  /// Este ID permanece o mesmo para TODAS as sessões futuras da mesa.
   id      String @id @default(cuid())
   storeId String
   store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -1243,7 +1311,7 @@ model Table {
   /// Status atual da mesa (livre, ocupada, reservada, manutenção)
   status TableStatus @default(AVAILABLE)
 
-  /// URL pública do QRCode: https://velnox.app.br/mesa/{id}
+  /// URL pública do QRCode permanente: /qr/{storeSlug}/{id}
   qrcodeUrl String
 
   /// Dados do QRCode em base64 para exibição/download
@@ -1253,7 +1321,7 @@ model Table {
   updatedAt DateTime @updatedAt
 
   orders Order[]
-  tableSession TableSession?
+  sessions TableSession[]
 
   /// Índices para queries comuns
   @@unique([storeId, number])

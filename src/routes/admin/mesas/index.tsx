@@ -87,19 +87,21 @@ function MesasPage() {
         return;
       }
 
-      const newId = generateUUID();
+      // QR Token: UUID v4 aleatório e permanente. Nunca muda, mesmo quando a sessão termina.
+      const qrTokenId = generateUUID();
       // Get next table number from database
       const tableNumber = await getNextTableNumberFn({});
 
       const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://velnoxia.app";
       const storeSlug = admin.store.slug;
-      const qrUrl = `${baseUrl}/qr/${storeSlug}/${newId}`;
+      // URL pública do QR: /qr/{storeSlug}/{qrTokenId}
+      const qrUrl = `${baseUrl}/qr/${storeSlug}/${qrTokenId}`;
       const qrImage = await generateQRCodeDataUrl(qrUrl);
 
-      // Criar Table no banco de dados
+      // Criar Table no banco de dados com o QR Token permanente
       const result = await createTableFn({
         data: {
-          id: newId,
+          id: qrTokenId,  // Permanente, nunca muda
           storeId: admin.store.id,
           number: tableNumber,
           capacity: 4,

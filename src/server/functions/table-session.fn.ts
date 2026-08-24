@@ -2,6 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { prisma } from "../db/client";
 import { getStoreBySlug } from "../repositories/store-repository";
+import {
+  getOrCreateOpenTableSession,
+  validateTableSessionPin,
+  authorizeDeviceForSession,
+} from "../services/table-session-service";
+import { orchestrateTableSession } from "../services/table-session-orchestrator";
 
 const createTableSessionSchema = z.object({
   storeSlug: z.string().min(1),
@@ -79,3 +85,182 @@ export async function validateTableSession(
 
   return session;
 }
+
+/**
+ * Get or create an open table session.
+ *
+ * Public server function called from storefront.
+ *
+ * Behavior:
+ * - If session OPEN exists for this table: return it
+ * - If no session exists: create new, generate PIN, return it
+ *
+ * Concurrency safe: unique constraint ensures only 1 OPEN session per table
+ */
+const getOrCreateSessionSchema = z.object({
+  storeSlug: z.string().min(1),
+  tableId: z.string().uuid(),
+});
+
+export const getOrCreateTableSessionFn = createServerFn({ method: "POST" })
+  .validator(getOrCreateSessionSchema)
+  .handler(async ({ data }) => {
+    try {
+      const store = await getStoreBySlug(data.storeSlug);
+      if (!store) {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
+
+      const session = await getOrCreateOpenTableSession(store.id, data.tableId);
+
+      return {
+        ok: true as const,
+        sessionId: session.id,
+        tableId: session.tableId,
+        status: session.status,
+        openedAt: session.openedAt,
+        expiresAt: session.expiresAt,
+        // NEVER expose PIN to frontend in response
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      return { ok: false as const, error: msg };
+    }
+  });
+
+/**
+ * Validate a PIN for a table session.
+ *
+ * Called when a second (or later) device tries to join a table session.
+ * They must provide the correct 4-digit PIN.
+ *
+ * Rate limited: max 5 wrong attempts per session per 5 minutes.
+ */
+const validateSessionPinSchema = z.object({
+  storeSlug: z.string().min(1),
+  sessionId: z.string().cuid(),
+  pin: z.string().regex(/^\d{4}$/, "PIN deve ter 4 dígitos"),
+});
+
+export const validateTableSessionPinFn = createServerFn({ method: "POST" })
+  .validator(validateSessionPinSchema)
+  .handler(async ({ data }) => {
+    try {
+      const store = await getStoreBySlug(data.storeSlug);
+      if (!store) {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
+
+      const result = await validateTableSessionPin(store.id, data.sessionId, data.pin);
+
+      return result as { ok: boolean; error?: string };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      return { ok: false as const, error: msg };
+    }
+  });
+
+/**
+ * Authorize the first device for a table session.
+ *
+ * Called immediately after session creation.
+ * First device enters automatically without needing PIN.
+ */
+const authorizeFirstDeviceSchema = z.object({
+  storeSlug: z.string().min(1),
+  sessionId: z.string().cuid(),
+});
+
+export const authorizeFirstDeviceFn = createServerFn({ method: "POST" })
+  .validator(authorizeFirstDeviceSchema)
+  .handler(async ({ data }) => {
+    try {
+      const store = await getStoreBySlug(data.storeSlug);
+      if (!store) {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
+
+      const result = await authorizeDeviceForSession(store.id, data.sessionId, true);
+
+      return {
+        ok: true as const,
+        deviceId: result.id,
+        deviceToken: result.deviceToken,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      return { ok: false as const, error: msg };
+    }
+  });
+
+/**
+ * Authorize an additional device for a table session.
+ *
+ * Called AFTER PIN validation (PIN must be correct before this is called).
+ * Second and subsequent devices require PIN entry first.
+ */
+const authorizeDeviceSchema = z.object({
+  storeSlug: z.string().min(1),
+  sessionId: z.string().cuid(),
+});
+
+export const authorizeDeviceForSessionFn = createServerFn({ method: "POST" })
+  .validator(authorizeDeviceSchema)
+  .handler(async ({ data }) => {
+    try {
+      const store = await getStoreBySlug(data.storeSlug);
+      if (!store) {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
+
+      const result = await authorizeDeviceForSession(store.id, data.sessionId, false);
+
+      return {
+        ok: true as const,
+        deviceId: result.id,
+        deviceToken: result.deviceToken,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      return { ok: false as const, error: msg };
+    }
+  });
+
+/**
+ * Orchestrate the complete QR Code table session flow.
+ *
+ * Called once by frontend after scanning QR code.
+ * Coordinates:
+ *   1. Create or retrieve open session
+ *   2. If first device: authorize immediately, return deviceToken
+ *   3. If second+ device: return sessionId only (PIN validation needed)
+ *
+ * Public endpoint - called from storefront.
+ */
+const orchestrateTableSessionSchema = z.object({
+  storeSlug: z.string().min(1),
+  tableId: z.string().uuid(),
+});
+
+export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
+  .validator(orchestrateTableSessionSchema)
+  .handler(async ({ data }) => {
+    try {
+      const store = await getStoreBySlug(data.storeSlug);
+      if (!store) {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
+
+      const result = await orchestrateTableSession(store.id, data.tableId);
+
+      return {
+        ok: true as const,
+        sessionId: result.sessionId,
+        firstDevice: result.firstDevice,
+        deviceToken: result.deviceToken,
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      return { ok: false as const, error: msg };
+    }
+  });
