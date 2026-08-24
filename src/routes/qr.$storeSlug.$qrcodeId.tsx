@@ -26,24 +26,43 @@ function QRCodeRedirect() {
       localStorage.setItem("tableNumber", tableNumber.toString());
     }
 
-    // Orchestrar table session para obter deviceToken, DEPOIS redirecionar
+    // Orchestrar table session para coordenar fluxo de PIN
     orchestrateTableSessionFn({ data: { storeSlug, tableId: qrcodeId } })
       .then((res) => {
         if (res.ok) {
           localStorage.setItem("sessionId", res.sessionId);
-          if (res.deviceToken) {
+
+          if (res.firstDevice && res.deviceToken) {
+            // Primeiro dispositivo: autorizado automaticamente
             localStorage.setItem("deviceToken", res.deviceToken);
+            // Redirecionar direto para o cardápio
+            navigate({
+              to: "/$storeSlug",
+              params: { storeSlug },
+              search: { tableId: qrcodeId }
+            });
+          } else {
+            // Segundo+ dispositivo: requer PIN
+            // Redirecionar para entrada de PIN
+            navigate({
+              to: "/qr-pin/$storeSlug/$sessionId",
+              params: { storeSlug, sessionId: res.sessionId }
+            });
           }
+        } else {
+          // Erro ao orquestrar sessão
+          alert(res.error || "Erro ao acessar a mesa");
+          navigate({
+            to: "/$storeSlug",
+            params: { storeSlug },
+            search: { tableId: qrcodeId }
+          });
         }
-        // Redirecionar após obter o deviceToken (ou após timeout)
-        navigate({
-          to: "/$storeSlug",
-          params: { storeSlug },
-          search: { tableId: qrcodeId }
-        });
       })
-      .catch(() => {
-        // Mesmo com erro, redirecionar
+      .catch((err) => {
+        // Erro na chamada de função
+        console.error("Orchestration error:", err);
+        alert("Erro ao processar QR code");
         navigate({
           to: "/$storeSlug",
           params: { storeSlug },

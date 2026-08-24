@@ -51,6 +51,7 @@ import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoe
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
+import { Route as QrPinStoreSlugSessionIdRouteImport } from './routes/qr-pin.$storeSlug.$sessionId'
 import { Route as QrStoreSlugQrcodeIdRouteImport } from './routes/qr.$storeSlug.$qrcodeId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -265,6 +266,11 @@ const AdminRelatoriosProdutosRoute = AdminRelatoriosProdutosRouteImport.update({
   path: '/relatorios/produtos',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const QrPinStoreSlugSessionIdRoute = QrPinStoreSlugSessionIdRouteImport.update({
+  id: '/qr-pin/$storeSlug/$sessionId',
+  path: '/qr-pin/$storeSlug/$sessionId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QrStoreSlugQrcodeIdRoute = QrStoreSlugQrcodeIdRouteImport.update({
   id: '/qr/$storeSlug/$qrcodeId',
   path: '/qr/$storeSlug/$qrcodeId',
@@ -302,6 +308,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
+  '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -344,6 +351,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
+  '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio': typeof AdminCardapioIndexRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
+  '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -437,6 +446,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
+    | '/qr-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
@@ -479,6 +489,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
+    | '/qr-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes'
     | '/admin/cardapio'
@@ -524,6 +535,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
+    | '/qr-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
@@ -550,6 +562,7 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiUploadRoute: typeof ApiUploadRoute
+  QrPinStoreSlugSessionIdRoute: typeof QrPinStoreSlugSessionIdRoute
   QrStoreSlugQrcodeIdRoute: typeof QrStoreSlugQrcodeIdRoute
 }
 
@@ -849,6 +862,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosProdutosRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/qr-pin/$storeSlug/$sessionId': {
+      id: '/qr-pin/$storeSlug/$sessionId'
+      path: '/qr-pin/$storeSlug/$sessionId'
+      fullPath: '/qr-pin/$storeSlug/$sessionId'
+      preLoaderRoute: typeof QrPinStoreSlugSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/qr/$storeSlug/$qrcodeId': {
       id: '/qr/$storeSlug/$qrcodeId'
       path: '/qr/$storeSlug/$qrcodeId'
@@ -964,6 +984,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiUploadRoute: ApiUploadRoute,
+  QrPinStoreSlugSessionIdRoute: QrPinStoreSlugSessionIdRoute,
   QrStoreSlugQrcodeIdRoute: QrStoreSlugQrcodeIdRoute,
 }
 export const routeTree = rootRouteImport
