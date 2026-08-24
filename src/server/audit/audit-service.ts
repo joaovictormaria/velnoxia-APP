@@ -196,7 +196,7 @@ export class AuditService {
     newValue: T | null,
   ): { oldValue?: T; newValue?: T; changed: boolean } {
     if (!oldValue && !newValue) return { changed: false };
-    if (!oldValue) return { newValue, changed: true };
+    if (!oldValue) return { newValue: newValue || undefined, changed: true };
     if (!newValue) return { oldValue, changed: true };
 
     // Comparar shallow (não recursivo)
