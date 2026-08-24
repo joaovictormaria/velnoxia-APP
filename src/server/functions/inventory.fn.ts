@@ -272,7 +272,7 @@ export const adminGetInventoryValue = createServerFn({ method: "POST" })
     });
 
     const totalValue = items.reduce((sum, item) => {
-      return sum + (item.quantityOnHand * (item.cost || 0));
+      return sum + (Number(item.quantityOnHand) * (item.cost || 0));
     }, 0);
 
     return { totalValue };
