@@ -100,6 +100,8 @@ function KanbanPage() {
       if (res.ok) {
         setError(null);
         await queryClient.invalidateQueries({ queryKey: ["orders", "kanban"] });
+        await queryClient.invalidateQueries({ queryKey: ["mesas", "abertas"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       } else {
         setError(res.error || "Erro ao confirmar pagamento");
       }
