@@ -71,14 +71,14 @@ export class InventoryAlertService {
     // CRITICAL: menos de 50% do mínimo
     if (
       item.minimumThreshold &&
-      available.lessThan(item.minimumThreshold.mul(new Decimal(0.5)))
+      available.lessThan(item.minimumThreshold.mul((0.5 as any)))
     ) {
       alerts.push({
         type: this.ALERT_TYPES.STOCK_CRITICAL,
         severity: "CRITICAL",
         message: `${item.name}: ESTOQUE CRÍTICO! Compre URGENTEMENTE!`,
         currentQty: available,
-        threshold: item.minimumThreshold.mul(new Decimal(0.5)),
+        threshold: item.minimumThreshold.mul((0.5 as any)),
       });
       return alerts;
     }
@@ -225,7 +225,7 @@ export class InventoryAlertService {
       const totalConsumption = consumption._sum.quantity || new Decimal(0);
       const dailyConsumption = totalConsumption
         .abs()
-        .dividedBy(new Decimal(days));
+        .dividedBy((days as any));
 
       let daysUntilRunout: number | null = null;
       let estimatedRunoutDate: Date | null = null;
