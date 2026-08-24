@@ -98,12 +98,15 @@ export function KanbanBoard({
   columns,
   onAdvance,
   onDispatch,
+  onConfirmPayment,
   mostrarEntrega = true,
 }: {
   columns: KanbanColumnData[];
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
   /** Entrega não avança sozinha: passa pela escolha de quem leva. */
   onDispatch: (order: KanbanOrder) => void;
+  /** Confirmar pagamento manualmente */
+  onConfirmPayment?: (orderId: string) => void;
   /** Falso numa loja que só faz retirada — ver listKanbanOrders. */
   mostrarEntrega?: boolean;
 }) {
@@ -150,6 +153,7 @@ export function KanbanBoard({
                   status={col.status}
                   onAdvance={onAdvance}
                   onDispatch={onDispatch}
+                  onConfirmPayment={onConfirmPayment}
                 />
               ))}
 
@@ -181,12 +185,14 @@ function OrderCard({
   status,
   onAdvance,
   onDispatch,
+  onConfirmPayment,
 }: {
   order: KanbanOrder;
   badge: string;
   status: OrderStatus;
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
   onDispatch: (order: KanbanOrder) => void;
+  onConfirmPayment?: (orderId: string) => void;
 }) {
   // Pedidos de mesa vão para TABLE_READY em vez de saírem para entrega
   // Pickup orders skip the delivery step entirely.
@@ -287,30 +293,45 @@ function OrderCard({
           )}
         </div>
 
-        {(next || precisaEscolherEntregador) && (
-          <button
-            type="button"
-            onClick={(e) => {
-              // O cartao e uma ancora de verdade: parar a propagacao impede o
-              // handler do Link, mas nao o navegador de seguir o href.
-              e.preventDefault();
-              e.stopPropagation();
-              if (precisaEscolherEntregador) onDispatch(order);
-              else if (next) onAdvance(order, next.status);
-            }}
-            className={`mt-2 w-full rounded-lg border py-1.5 text-xs font-medium transition-colors cursor-pointer ${
-              esperando
-                ? "border-orange-300 bg-orange-50 text-orange-700 hover:border-orange-500"
-                : "border-neutral-200 text-neutral-700 hover:border-[#E11D2E] hover:text-[#E11D2E]"
-            }`}
-          >
-            {precisaEscolherEntregador
-              ? esperando
-                ? "Despachar agora"
-                : "Escolher entregador"
-              : next?.label}
-          </button>
-        )}
+        <div className="mt-2 space-y-2">
+          {order.paymentStatus === "PENDING" && onConfirmPayment && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onConfirmPayment(order.id);
+              }}
+              className="w-full rounded-lg border border-green-300 bg-green-50 py-1.5 text-xs font-medium text-green-700 transition-colors hover:border-green-500 cursor-pointer"
+            >
+              Confirmar pagamento
+            </button>
+          )}
+          {(next || precisaEscolherEntregador) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                // O cartao e uma ancora de verdade: parar a propagacao impede o
+                // handler do Link, mas nao o navegador de seguir o href.
+                e.preventDefault();
+                e.stopPropagation();
+                if (precisaEscolherEntregador) onDispatch(order);
+                else if (next) onAdvance(order, next.status);
+              }}
+              className={`w-full rounded-lg border py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                esperando
+                  ? "border-orange-300 bg-orange-50 text-orange-700 hover:border-orange-500"
+                  : "border-neutral-200 text-neutral-700 hover:border-[#E11D2E] hover:text-[#E11D2E]"
+              }`}
+            >
+              {precisaEscolherEntregador
+                ? esperando
+                  ? "Despachar agora"
+                  : "Escolher entregador"
+                : next?.label}
+            </button>
+          )}
+        </div>
       </article>
     </Link>
   );

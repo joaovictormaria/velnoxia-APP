@@ -18,7 +18,7 @@ import {
   type DispatchTarget,
 } from "@/components/admin/orders/DispatchDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
-import { listKanbanOrdersFn, listMesasAbertasFn, updateOrderStatusFn } from "@/server/functions/orders.fn";
+import { listKanbanOrdersFn, listMesasAbertasFn, updateOrderStatusFn, confirmPaymentFn } from "@/server/functions/orders.fn";
 import type { KanbanResponse, MesasAbertasResponse } from "@/types/api-responses";
 
 export const Route = createFileRoute("/admin/pedidos/")({
@@ -91,6 +91,21 @@ function KanbanPage() {
     },
     onError: () => {
       setError("Erro ao finalizar mesa");
+    },
+  });
+
+  const confirmarPagamento = useMutation({
+    mutationFn: (orderId: string) => confirmPaymentFn({ data: { orderId } }),
+    onSuccess: async (res) => {
+      if (res.ok) {
+        setError(null);
+        await queryClient.invalidateQueries({ queryKey: ["orders", "kanban"] });
+      } else {
+        setError(res.error || "Erro ao confirmar pagamento");
+      }
+    },
+    onError: () => {
+      setError("Erro ao confirmar pagamento");
     },
   });
 
@@ -176,6 +191,7 @@ function KanbanPage() {
               customerName: order.customerName,
             })
           }
+          onConfirmPayment={(orderId) => confirmarPagamento.mutate(orderId)}
         />
       )}
 
