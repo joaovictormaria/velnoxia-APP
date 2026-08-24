@@ -42,7 +42,7 @@ describe("order-service: precificarItens", () => {
     it("deve calcular subtotal correto para um item simples", async () => {
       const prizeProduct = mockProduct({ basePrice: 29.99 });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([prizeProduct]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([prizeProduct as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([]);
@@ -69,7 +69,7 @@ describe("order-service: precificarItens", () => {
     it("deve calcular subtotal com múltiplas quantidades", async () => {
       const product = mockProduct({ basePrice: 15.50 });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([product]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([]);
@@ -103,7 +103,7 @@ describe("order-service: precificarItens", () => {
         basePrice: 45.00,
       });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([pizza1, pizza2]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([pizza1 as any, pizza2 as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([]);
@@ -140,7 +140,7 @@ describe("order-service: precificarItens", () => {
         basePrice: 45.00,
       });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([pizza1, pizza2]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([pizza1 as any, pizza2 as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([]);
@@ -168,14 +168,14 @@ describe("order-service: precificarItens", () => {
     it("deve somar adicional ao preço do item", async () => {
       const product = mockProduct({ basePrice: 20.00 });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([product]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([
         {
           id: "extra-1",
           name: "Bacon extra",
-          price: 5.50,
+          price: 5.50 as any,
           storeId,
           isActive: true,
           createdAt: new Date(),
@@ -211,14 +211,14 @@ describe("order-service: precificarItens", () => {
     it("deve somar múltiplos adicionais", async () => {
       const product = mockProduct({ basePrice: 30.00 });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([product]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([
         {
           id: "extra-1",
           name: "Bacon",
-          price: 5.00,
+          price: 5.00 as any,
           storeId,
           isActive: true,
           createdAt: new Date(),
@@ -227,7 +227,7 @@ describe("order-service: precificarItens", () => {
         {
           id: "extra-2",
           name: "Queijo extra",
-          price: 3.50,
+          price: 3.50 as any,
           storeId,
           isActive: true,
           createdAt: new Date(),
@@ -302,7 +302,7 @@ describe("order-service: precificarItens", () => {
     it("deve retornar erro para quantidade inválida", async () => {
       const product = mockProduct();
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([product]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([]);
@@ -325,9 +325,9 @@ describe("order-service: precificarItens", () => {
     it("deve retornar erro se tamanho não está disponível", async () => {
       const product = mockProduct({ sizes: [] });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([product]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([
-        mockCategorySize({ id: "size-999" }),
+        mockCategorySize({ id: "size-999" }) as any,
       ]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([]);
@@ -353,7 +353,7 @@ describe("order-service: precificarItens", () => {
     it("2x pizza + 1x adicional cada = subtotal correto", async () => {
       const product = mockProduct({ basePrice: 35.00 });
 
-      vi.mocked(prisma.product.findMany).mockResolvedValue([product]);
+      vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
       vi.mocked(prisma.categorySize.findMany).mockResolvedValue([]);
       vi.mocked(prisma.optionGroup.findMany).mockResolvedValue([]);
       vi.mocked(prisma.extra.findMany).mockResolvedValue([
