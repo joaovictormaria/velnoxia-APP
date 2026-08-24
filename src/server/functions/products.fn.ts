@@ -12,6 +12,7 @@ import {
 } from "../repositories/product-repository";
 import { listActiveCategories } from "../repositories/category-repository";
 import { optionGroupsSchema } from "../validation/option-group-schema";
+import { serializeResponse } from "../utils/serialize-response";
 
 const sizeSchema = z.object({
   /** Aponta para um tamanho da categoria; o repositÃ³rio confere se Ã© dela. */
@@ -50,11 +51,16 @@ export const listProductsFn = createServerFn({ method: "GET" })
   )
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    const [products, categories] = await Promise.all([
-      listProducts(storeId, data),
-      listActiveCategories(storeId),
-    ]);
-    return { products, categories } as any;
+    try {
+      const [products, categories] = await Promise.all([
+        listProducts(storeId, data),
+        listActiveCategories(storeId),
+      ]);
+      return serializeResponse({ products, categories }) as any;
+    } catch (error: any) {
+      console.error("❌ listProductsFn error:", error?.message || error);
+      throw error;
+    }
   });
 
 export const getProductFn = createServerFn({ method: "GET" })
