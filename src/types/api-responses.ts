@@ -126,9 +126,9 @@ export type KanbanMetrics = {
 };
 
 export type KanbanResponse = {
+  columns: any[];
   awaiting: any[];
-  preparing: any[];
-  ready: any[];
+  mostrarEntrega: boolean;
   metrics: KanbanMetrics;
 };
 

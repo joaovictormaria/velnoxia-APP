@@ -166,12 +166,8 @@ function KanbanPage() {
         <p className="text-sm text-neutral-500">Carregando...</p>
       ) : (
         <KanbanBoard
-          columns={{
-            awaiting: kanban?.awaiting ?? [],
-            preparing: kanban?.preparing ?? [],
-            ready: kanban?.ready ?? [],
-          } as any}
-          mostrarEntrega={false}
+          columns={kanban?.columns ?? []}
+          mostrarEntrega={kanban?.mostrarEntrega ?? true}
           onAdvance={handleAdvance}
           onDispatch={(order) =>
             setDispatching({
