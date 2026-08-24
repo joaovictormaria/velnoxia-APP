@@ -63,10 +63,18 @@ export const getOrderFn = createServerFn({ method: "GET" })
     return {
       ...convertOrderForClient(order),
       items: convertOrderItemsForClient(order.items),
-      statusHistory: order.statusHistory,
+      statusHistory: order.statusHistory.map((h) => ({
+        ...h,
+        createdAt: h.createdAt.toISOString(),
+      })),
       coupon: order.coupon,
       courier: order.courier,
-      customer: order.customer,
+      customer: order.customer
+        ? {
+            ...order.customer,
+            createdAt: order.customer.createdAt.toISOString(),
+          }
+        : null,
     };
   });
 
