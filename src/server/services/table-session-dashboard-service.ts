@@ -1,6 +1,7 @@
 ﻿// @ts-nocheck
 import { prisma } from "@/server/db/client";
 import type { OrderStatus, PaymentStatus } from "@prisma/client";
+import { decimalToNumber } from "@/server/utils/decimal-converter";
 
 /**
  * Table session dashboard data for admin view
@@ -11,20 +12,20 @@ export interface TableSessionDashboard {
   tableNumber: number;
   status: "OPEN" | "PAID" | "CLOSED" | "CANCELLED";
 
-  // Timing
-  openedAt: Date;
-  paidAt: Date | null;
-  closedAt: Date | null;
-  expiresAt: Date;
+  // Timing (converted to ISO strings for serialization)
+  openedAt: string;
+  paidAt: string | null;
+  closedAt: string | null;
+  expiresAt: string;
 
   // Devices
   deviceCount: number;
   devices: Array<{
     id: string;
     requiresPin: boolean;
-    authorizedAt: Date;
-    lastSeenAt: Date;
-    revokedAt: Date | null;
+    authorizedAt: string;
+    lastSeenAt: string;
+    revokedAt: string | null;
   }>;
 
   // Orders
@@ -58,7 +59,7 @@ export async function listOpenTableSessions(
     deviceCount: number;
     orderCount: number;
     totalAmount: number;
-    openedAt: Date;
+    openedAt: string;
   }>
 > {
   const sessions = await prisma.tableSession.findMany({
@@ -84,8 +85,8 @@ export async function listOpenTableSessions(
     tableNumber: s.table.number,
     deviceCount: s.devices.length,
     orderCount: s.orders.length,
-    totalAmount: s.orders.reduce((sum, o) => sum + o.total, 0),
-    openedAt: s.openedAt,
+    totalAmount: s.orders.reduce((sum, o) => sum + decimalToNumber(o.total), 0),
+    openedAt: s.openedAt.toISOString(),
   }));
 }
 
@@ -150,19 +151,24 @@ export async function getTableSessionDetails(
     tableNumber: session.table.number,
     status: session.status as "OPEN" | "PAID" | "CLOSED" | "CANCELLED",
 
-    openedAt: session.openedAt,
-    paidAt: session.paidAt,
-    closedAt: session.closedAt,
-    expiresAt: session.expiresAt,
+    openedAt: session.openedAt.toISOString(),
+    paidAt: session.paidAt?.toISOString() ?? null,
+    closedAt: session.closedAt?.toISOString() ?? null,
+    expiresAt: session.expiresAt.toISOString(),
 
     deviceCount: session.devices.length,
-    devices: session.devices,
+    devices: session.devices.map((d) => ({
+      ...d,
+      authorizedAt: d.authorizedAt.toISOString(),
+      lastSeenAt: d.lastSeenAt.toISOString(),
+      revokedAt: d.revokedAt?.toISOString() ?? null,
+    })),
 
     orders: session.orders.map((o) => ({
       id: o.id,
       number: o.number,
       status: o.status,
-      total: o.total,
+      total: decimalToNumber(o.total),
       paymentMethod: o.paymentMethod,
       paymentStatus: o.paymentStatus,
       customerName: o.customerName,
@@ -170,7 +176,7 @@ export async function getTableSessionDetails(
     })),
 
     orderCount: session.orders.length,
-    totalAmount,
+    totalAmount: decimalToNumber(totalAmount),
     paymentStatus,
   };
 }
