@@ -15,10 +15,12 @@ import { getOrCreateOpenTableSession, authorizeDeviceForSession } from "./table-
 export async function orchestrateTableSession(
   storeId: string,
   tableId: string,
+  pinPlaintext?: string, // PIN passed in for first-time display only
 ): Promise<{
   sessionId: string;
   firstDevice: boolean;
   deviceToken?: string;
+  pin?: string; // PIN shown to first device ONLY
 }> {
   // Step 1: Get or create session
   const session = await getOrCreateOpenTableSession(storeId, tableId);
@@ -35,6 +37,7 @@ export async function orchestrateTableSession(
       sessionId: session.id,
       firstDevice: true,
       deviceToken: device.deviceToken,
+      pin: pinPlaintext, // Return PIN for display ONLY on first device
     };
   } else {
     // Second+ device: return only sessionId, client must validate PIN first
@@ -42,6 +45,7 @@ export async function orchestrateTableSession(
       sessionId: session.id,
       firstDevice: false,
       // deviceToken will be returned after PIN validation
+      // pin is NOT returned for second+ devices
     };
   }
 }

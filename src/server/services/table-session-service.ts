@@ -13,6 +13,7 @@ export interface OpenTableSession {
   paidAt: Date | null;
   closedAt: Date | null;
   expiresAt: Date;
+  pin?: string; // Only set when newly created (first device sees this)
 }
 
 /**
@@ -85,7 +86,9 @@ export async function getOrCreateOpenTableSession(
       console.log(`[TABLE SESSION] PIN for table ${tableId} (session ${session.id}): ${maskedPin}`);
     }
 
-    return session as OpenTableSession;
+    // Return PIN only on first creation (for first device display)
+    // After this, pin is never exposed again
+    return { ...session, pin } as OpenTableSession;
   } catch (error) {
     // Unique constraint violated: another request created first
     // This is expected behavior in race conditions

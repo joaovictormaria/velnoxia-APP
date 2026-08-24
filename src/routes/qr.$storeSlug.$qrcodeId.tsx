@@ -35,6 +35,10 @@ function QRCodeRedirect() {
           if (res.firstDevice && res.deviceToken) {
             // Primeiro dispositivo: autorizado automaticamente
             localStorage.setItem("deviceToken", res.deviceToken);
+            // Armazenar PIN para exibir na próxima tela
+            if (res.pin) {
+              localStorage.setItem("pin", res.pin);
+            }
             // Mostrar PIN antes de ir para o cardápio
             navigate({
               to: "/qr-show-pin/$storeSlug/$sessionId",

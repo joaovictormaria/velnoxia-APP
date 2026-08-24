@@ -21,28 +21,17 @@ function QRShowPIN() {
   useEffect(() => {
     const storedTableId = localStorage.getItem("tableId");
     const storedTableNumber = localStorage.getItem("tableNumber");
+    const storedPin = localStorage.getItem("pin");
 
     setTableId(storedTableId);
     setTableNumber(storedTableNumber);
 
-    // Fetch PIN hint from server
-    getSessionPinHintFn({
-      data: { storeSlug, sessionId }
-    })
-      .then((res) => {
-        if (res.ok) {
-          setPinMessage(res.message);
-          // In development, PIN is shown in browser console
-          // Extract from console log or show from message
-          if (res.pinVisible && typeof window !== "undefined") {
-            // Look for PIN in browser's recent console logs
-            // The PIN was logged as "[TABLE SESSION] PIN for table... : XX**"
-            // For now, show instruction to check console
-            setPin("VEJA NO CONSOLE"); // Indicates PIN is in console
-          }
-        }
-      })
-      .finally(() => setLoading(false));
+    if (storedPin) {
+      // PIN foi armazenado na localStorage pela rota QR
+      setPin(storedPin);
+    }
+
+    setLoading(false);
   }, [storeSlug, sessionId]);
 
   const handleCopyPin = () => {
@@ -97,21 +86,9 @@ function QRShowPIN() {
 
         {/* Instruções */}
         <div className="mb-8 rounded-2xl bg-blue-900/50 p-4 border border-blue-700">
-          {pin === "VEJA NO CONSOLE" ? (
-            <div className="space-y-2">
-              <p className="text-sm text-blue-100 text-center font-semibold">
-                🔧 Modo Desenvolvimento
-              </p>
-              <p className="text-xs text-blue-200 text-center leading-relaxed">
-                Abra o Console do Navegador (F12) e procure pela mensagem <br />
-                <code className="bg-blue-950 px-2 py-1 rounded text-blue-300">[TABLE SESSION] PIN</code>
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-blue-100 text-center leading-relaxed">
-              Outros dispositivos na sua mesa precisam deste código para acessar o cardápio
-            </p>
-          )}
+          <p className="text-sm text-blue-100 text-center leading-relaxed">
+            Outros dispositivos na sua mesa precisam deste código para acessar o cardápio
+          </p>
         </div>
 
         {/* Botão de Copiar */}

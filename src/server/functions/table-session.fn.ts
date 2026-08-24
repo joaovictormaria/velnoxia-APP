@@ -238,7 +238,7 @@ export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
         sessionId: result.sessionId,
         firstDevice: result.firstDevice,
         deviceToken: result.deviceToken,
-        // Note: PIN is not returned for security - first device sees it only in the QR redirect flow
+        pin: result.pin, // PIN returned ONLY for first device (newly created session)
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
