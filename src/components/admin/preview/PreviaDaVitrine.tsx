@@ -112,7 +112,7 @@ export function PreviaDaVitrine({
       </div>
     ) : (
       <Palco
-        data={menu}
+        data={menu as any}
         aplicar={aplicar}
         aplicarLoja={aplicarLoja}
         largura={largura}
