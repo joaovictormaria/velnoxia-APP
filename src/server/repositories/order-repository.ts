@@ -82,6 +82,8 @@ export async function listKanbanOrders(
             // Depois de despachado o cartão mostra quem levou, senão o dono
             // teria de abrir o pedido só para lembrar a quem entregou.
             courier: { select: { name: true } },
+            // Para mostrar o número da mesa em pedidos de mesa
+            table: { select: { number: true } },
           },
         }),
         prisma.order.count({ where: { ...where, status } }),
