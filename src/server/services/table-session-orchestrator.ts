@@ -15,34 +15,33 @@ import { getOrCreateOpenTableSession, authorizeDeviceForSession } from "./table-
 export async function orchestrateTableSession(
   storeId: string,
   tableId: string,
-  pinPlaintext?: string, // PIN passed in for first-time display only
 ): Promise<{
   sessionId: string;
   firstDevice: boolean;
   deviceToken?: string;
-  pin?: string; // PIN shown to first device ONLY
+  pin?: string; // PIN shown to first device ONLY (from newly created session)
 }> {
-  // Step 1: Get or create session
-  const session = await getOrCreateOpenTableSession(storeId, tableId);
+  // Step 1: Get or create session (returns PIN if newly created)
+  const sessionResult = await getOrCreateOpenTableSession(storeId, tableId);
 
   // Step 2: Check if this is the first device
-  const existingDevices = await checkExistingDevices(session.id);
+  const existingDevices = await checkExistingDevices(sessionResult.id);
   const isFirstDevice = existingDevices === 0;
 
   // Step 3: Authorize device
   if (isFirstDevice) {
     // First device: authorize immediately without PIN
-    const device = await authorizeDeviceForSession(storeId, session.id, true);
+    const device = await authorizeDeviceForSession(storeId, sessionResult.id, true);
     return {
-      sessionId: session.id,
+      sessionId: sessionResult.id,
       firstDevice: true,
       deviceToken: device.deviceToken,
-      pin: pinPlaintext, // Return PIN for display ONLY on first device
+      pin: (sessionResult as any).pin, // Return PIN if available (newly created session)
     };
   } else {
     // Second+ device: return only sessionId, client must validate PIN first
     return {
-      sessionId: session.id,
+      sessionId: sessionResult.id,
       firstDevice: false,
       // deviceToken will be returned after PIN validation
       // pin is NOT returned for second+ devices

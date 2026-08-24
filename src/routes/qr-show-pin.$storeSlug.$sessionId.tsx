@@ -29,6 +29,14 @@ function QRShowPIN() {
     if (storedPin) {
       // PIN foi armazenado na localStorage pela rota QR
       setPin(storedPin);
+    } else if (process.env.NODE_ENV !== "production") {
+      // Em desenvolvimento: gerar PIN para mostrar se não houver
+      // (útil quando sessão já existe de testes anteriores)
+      const demoPin = Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0");
+      setPin(demoPin);
+      localStorage.setItem("pin", demoPin);
     }
 
     setLoading(false);

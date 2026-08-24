@@ -61,6 +61,8 @@ export async function getOrCreateOpenTableSession(
   });
 
   if (session) {
+    // Session exists, but we can't recover the PIN (it's hashed)
+    // Return the session without PIN - it will only be shown on first creation
     return session as OpenTableSession;
   }
 
