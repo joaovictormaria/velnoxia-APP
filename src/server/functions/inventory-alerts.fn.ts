@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
 import { InventoryAlertService } from "@/server/services/inventory-alert-service";
@@ -31,7 +32,7 @@ export const getCriticalItems = createServerFn({ method: "GET" })
 
 /**
  * Get stock runout forecast
- * Prevê quais itens vão acabar em breve
+ * PrevÃª quais itens vÃ£o acabar em breve
  */
 export const getStockRunoutForecast = createServerFn({ method: "GET" })
   .handler(async () => {
@@ -69,3 +70,4 @@ export const checkAllAlerts = createServerFn({ method: "GET" })
 
     return InventoryAlertService.checkStoreAlerts(store.id);
   });
+

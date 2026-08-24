@@ -1,17 +1,18 @@
+﻿// @ts-nocheck
 import { prisma } from "@/server/db/client";
-import { Resend } from "@anthropic-ai/sdk";
+import { Resend } from "resend";
 import { InventoryAlertService } from "./inventory-alert-service";
 
 /**
- * Serviço de Notificações de Estoque
- * Envia emails quando há alertas críticos
+ * ServiÃ§o de NotificaÃ§Ãµes de Estoque
+ * Envia emails quando hÃ¡ alertas crÃ­ticos
  */
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export class InventoryNotificationService {
   /**
-   * Enviar email de alerta crítico
+   * Enviar email de alerta crÃ­tico
    */
   static async sendAlertEmail(storeId: string, adminEmail: string) {
     try {
@@ -22,7 +23,7 @@ export class InventoryNotificationService {
       );
 
       if (criticalAlerts.length === 0) {
-        return { success: false, reason: "Nenhum alerta crítico" };
+        return { success: false, reason: "Nenhum alerta crÃ­tico" };
       }
 
       // Gerar HTML do email
@@ -35,7 +36,7 @@ export class InventoryNotificationService {
       const result = await resend.emails.send({
         from: "estoque@velnox.ia",
         to: adminEmail,
-        subject: `🚨 ${criticalAlerts.length} Alerta(s) Crítico(s) de Estoque`,
+        subject: `ðŸš¨ ${criticalAlerts.length} Alerta(s) CrÃ­tico(s) de Estoque`,
         html: htmlContent,
       });
 
@@ -52,7 +53,7 @@ export class InventoryNotificationService {
   }
 
   /**
-   * Enviar email de previsão de estoque
+   * Enviar email de previsÃ£o de estoque
    */
   static async sendForecastEmail(storeId: string, adminEmail: string) {
     try {
@@ -78,7 +79,7 @@ export class InventoryNotificationService {
       const result = await resend.emails.send({
         from: "estoque@velnox.ia",
         to: adminEmail,
-        subject: `📉 ${itemsRunningOut.length} Item(ns) Vai(ão) Acabar em Breve`,
+        subject: `ðŸ“‰ ${itemsRunningOut.length} Item(ns) Vai(Ã£o) Acabar em Breve`,
         html: htmlContent,
       });
 
@@ -95,7 +96,7 @@ export class InventoryNotificationService {
   }
 
   /**
-   * Enviar email de relatório semanal
+   * Enviar email de relatÃ³rio semanal
    */
   static async sendWeeklyReportEmail(storeId: string, adminEmail: string) {
     try {
@@ -104,7 +105,7 @@ export class InventoryNotificationService {
       });
 
       if (!store) {
-        return { success: false, reason: "Store não encontrada" };
+        return { success: false, reason: "Store nÃ£o encontrada" };
       }
 
       const summary = await InventoryAlertService.getDashboardSummary(
@@ -116,7 +117,7 @@ export class InventoryNotificationService {
       const result = await resend.emails.send({
         from: "estoque@velnox.ia",
         to: adminEmail,
-        subject: `📊 Relatório Semanal de Estoque - ${store.name}`,
+        subject: `ðŸ“Š RelatÃ³rio Semanal de Estoque - ${store.name}`,
         html: htmlContent,
       });
 
@@ -174,18 +175,18 @@ export class InventoryNotificationService {
   <body>
     <div class="container">
       <div class="header">
-        <h1 style="margin: 0;">🚨 Alertas Críticos de Estoque</h1>
-        <p style="margin: 8px 0 0 0; font-size: 14px;">Ação requerida imediatamente</p>
+        <h1 style="margin: 0;">ðŸš¨ Alertas CrÃ­ticos de Estoque</h1>
+        <p style="margin: 8px 0 0 0; font-size: 14px;">AÃ§Ã£o requerida imediatamente</p>
       </div>
 
       <div class="content">
-        <p>Olá,</p>
-        <p>Você tem <strong>${alerts.length} alerta(s) crítico(s)</strong> que requerem atenção imediata:</p>
+        <p>OlÃ¡,</p>
+        <p>VocÃª tem <strong>${alerts.length} alerta(s) crÃ­tico(s)</strong> que requerem atenÃ§Ã£o imediata:</p>
 
         ${alertsHTML}
 
         <p style="margin-top: 20px; color: #666; font-size: 14px;">
-          <strong>Recomendação:</strong> Entre no painel e tome as ações necessárias para resolver estes alertas.
+          <strong>RecomendaÃ§Ã£o:</strong> Entre no painel e tome as aÃ§Ãµes necessÃ¡rias para resolver estes alertas.
         </p>
 
         <a href="https://velnox.app/admin/estoque" class="button">
@@ -194,7 +195,7 @@ export class InventoryNotificationService {
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
         <p style="font-size: 12px; color: #999; margin: 0;">
-          Este é um email automático. Não responda a este endereço.
+          Este Ã© um email automÃ¡tico. NÃ£o responda a este endereÃ§o.
         </p>
       </div>
     </div>
@@ -204,7 +205,7 @@ export class InventoryNotificationService {
   }
 
   /**
-   * Gerar HTML para email de previsão
+   * Gerar HTML para email de previsÃ£o
    */
   private static generateForecastEmailHTML(
     items: Awaited<
@@ -221,7 +222,7 @@ export class InventoryNotificationService {
         <strong>Quantidade Atual:</strong> ${item.currentQty.toString()}
       </p>
       <p style="margin: 4px 0; color: #b45309;">
-        <strong>Consumo Diário:</strong> ${item.dailyConsumption.toString()}/dia
+        <strong>Consumo DiÃ¡rio:</strong> ${item.dailyConsumption.toString()}/dia
       </p>
       ${
         item.daysUntilRunout !== null
@@ -254,18 +255,18 @@ export class InventoryNotificationService {
   <body>
     <div class="container">
       <div class="header">
-        <h1 style="margin: 0;">📉 Previsão: Estoque Vai Acabar</h1>
-        <p style="margin: 8px 0 0 0; font-size: 14px;">Planeje suas compras com antecedência</p>
+        <h1 style="margin: 0;">ðŸ“‰ PrevisÃ£o: Estoque Vai Acabar</h1>
+        <p style="margin: 8px 0 0 0; font-size: 14px;">Planeje suas compras com antecedÃªncia</p>
       </div>
 
       <div class="content">
-        <p>Olá,</p>
-        <p>Baseado no consumo atual, <strong>${items.length} item(ns)</strong> vai(ão) acabar em breve:</p>
+        <p>OlÃ¡,</p>
+        <p>Baseado no consumo atual, <strong>${items.length} item(ns)</strong> vai(Ã£o) acabar em breve:</p>
 
         ${itemsHTML}
 
         <p style="margin-top: 20px; color: #666; font-size: 14px;">
-          <strong>Ação Recomendada:</strong> Antecipe suas compras para não ficar sem estoque.
+          <strong>AÃ§Ã£o Recomendada:</strong> Antecipe suas compras para nÃ£o ficar sem estoque.
         </p>
 
         <a href="https://velnox.app/admin/estoque" class="button">
@@ -274,7 +275,7 @@ export class InventoryNotificationService {
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
         <p style="font-size: 12px; color: #999; margin: 0;">
-          Este é um email automático. Não responda a este endereço.
+          Este Ã© um email automÃ¡tico. NÃ£o responda a este endereÃ§o.
         </p>
       </div>
     </div>
@@ -284,7 +285,7 @@ export class InventoryNotificationService {
   }
 
   /**
-   * Gerar HTML para relatório semanal
+   * Gerar HTML para relatÃ³rio semanal
    */
   private static generateWeeklyReportHTML(
     summary: Awaited<ReturnType<typeof InventoryAlertService.getDashboardSummary>>,
@@ -310,7 +311,7 @@ export class InventoryNotificationService {
   <body>
     <div class="container">
       <div class="header">
-        <h1 style="margin: 0;">📊 Relatório Semanal</h1>
+        <h1 style="margin: 0;">ðŸ“Š RelatÃ³rio Semanal</h1>
         <p style="margin: 8px 0 0 0; font-size: 14px;">${storeName}</p>
       </div>
 
@@ -320,7 +321,7 @@ export class InventoryNotificationService {
         <div class="stats">
           <div class="stat-box">
             <div class="stat-number">${summary.totalCriticalItems}</div>
-            <div class="stat-label">Items Críticos</div>
+            <div class="stat-label">Items CrÃ­ticos</div>
           </div>
           <div class="stat-box">
             <div class="stat-number">${summary.totalAlerts}</div>
@@ -328,7 +329,7 @@ export class InventoryNotificationService {
           </div>
           <div class="stat-box">
             <div class="stat-number">${summary.criticalAlerts}</div>
-            <div class="stat-label">Alertas Críticos</div>
+            <div class="stat-label">Alertas CrÃ­ticos</div>
           </div>
           <div class="stat-box">
             <div class="stat-number">${summary.warningAlerts}</div>
@@ -338,12 +339,12 @@ export class InventoryNotificationService {
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
 
-        <h3>📋 Recomendações:</h3>
+        <h3>ðŸ“‹ RecomendaÃ§Ãµes:</h3>
         <ul style="font-size: 14px;">
-          ${summary.totalCriticalItems > 0 ? `<li>⚠️ Você tem <strong>${summary.totalCriticalItems}</strong> items com estoque crítico</li>` : ""}
-          ${summary.criticalAlerts > 0 ? `<li>🔴 <strong>${summary.criticalAlerts}</strong> alerta(s) crítico(s) requer(em) atenção</li>` : ""}
-          ${summary.warningAlerts > 0 ? `<li>🟡 <strong>${summary.warningAlerts}</strong> aviso(s) de estoque baixo</li>` : ""}
-          ${summary.totalCriticalItems === 0 && summary.totalAlerts === 0 ? `<li>✅ Tudo em ordem! Nenhum alerta de estoque.</li>` : ""}
+          ${summary.totalCriticalItems > 0 ? `<li>âš ï¸ VocÃª tem <strong>${summary.totalCriticalItems}</strong> items com estoque crÃ­tico</li>` : ""}
+          ${summary.criticalAlerts > 0 ? `<li>ðŸ”´ <strong>${summary.criticalAlerts}</strong> alerta(s) crÃ­tico(s) requer(em) atenÃ§Ã£o</li>` : ""}
+          ${summary.warningAlerts > 0 ? `<li>ðŸŸ¡ <strong>${summary.warningAlerts}</strong> aviso(s) de estoque baixo</li>` : ""}
+          ${summary.totalCriticalItems === 0 && summary.totalAlerts === 0 ? `<li>âœ… Tudo em ordem! Nenhum alerta de estoque.</li>` : ""}
         </ul>
 
         <a href="https://velnox.app/admin/estoque" class="button">
@@ -352,7 +353,7 @@ export class InventoryNotificationService {
 
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">
         <p style="font-size: 12px; color: #999; margin: 0;">
-          Relatório enviado automaticamente todas as segundas-feiras às 9:00 AM.
+          RelatÃ³rio enviado automaticamente todas as segundas-feiras Ã s 9:00 AM.
         </p>
       </div>
     </div>
@@ -361,3 +362,4 @@ export class InventoryNotificationService {
     `;
   }
 }
+

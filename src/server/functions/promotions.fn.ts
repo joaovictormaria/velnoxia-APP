@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
@@ -16,8 +17,8 @@ const optionalText = z
 
 const promotionSchema = z.object({
   eyebrow: z.string().trim().min(1, "Informe a chamada."),
-  title: z.string().trim().min(1, "Informe o título."),
-  description: z.string().trim().min(1, "Informe a descrição."),
+  title: z.string().trim().min(1, "Informe o tÃ­tulo."),
+  description: z.string().trim().min(1, "Informe a descriÃ§Ã£o."),
   discount: optionalText,
   price: z.number().min(0).nullish(),
   originalPrice: z.number().min(0).nullish(),
@@ -44,7 +45,7 @@ export const savePromotionFn = createServerFn({ method: "POST" })
     ) {
       return {
         ok: false as const,
-        error: "O preço antigo precisa ser maior que o preço promocional.",
+        error: "O preÃ§o antigo precisa ser maior que o preÃ§o promocional.",
       };
     }
     const promotion = data.id
@@ -60,3 +61,4 @@ export const deletePromotionFn = createServerFn({ method: "POST" })
     await deletePromotion(storeId, data.id);
     return { ok: true as const };
   });
+

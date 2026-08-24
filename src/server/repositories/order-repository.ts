@@ -190,7 +190,7 @@ export async function listMesasAbertas(
     tableNumber: tableNumberMap.get(tableId) ?? 0,
     pedidos,
     totalPedidos: pedidos.length,
-    totalValor: pedidos.reduce((sum, p) => sum + p.total, 0),
+    totalValor: pedidos.reduce((sum, p) => sum + Number(p.total), 0),
   }));
 
   return mesas;

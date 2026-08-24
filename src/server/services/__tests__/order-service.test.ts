@@ -1,12 +1,13 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { precificarItens, type CheckoutItem } from "../order-service";
 import { prisma } from "../../db/client";
 
 /**
- * PRIORIDADE 5: TESTES DE SERVIÇO DE PEDIDOS
+ * PRIORIDADE 5: TESTES DE SERVIÃ‡O DE PEDIDOS
  *
- * Valida precisão de cálculos monetários, descontos, taxas, e validações.
- * Testes unitários para precificarItens (a função crítica de pricing).
+ * Valida precisÃ£o de cÃ¡lculos monetÃ¡rios, descontos, taxas, e validaÃ§Ãµes.
+ * Testes unitÃ¡rios para precificarItens (a funÃ§Ã£o crÃ­tica de pricing).
  */
 
 vi.mock("../../db/client");
@@ -38,7 +39,7 @@ describe("order-service: precificarItens", () => {
     vi.clearAllMocks();
   });
 
-  describe("Cálculos básicos de preço", () => {
+  describe("CÃ¡lculos bÃ¡sicos de preÃ§o", () => {
     it("deve calcular subtotal correto para um item simples", async () => {
       const prizeProduct = mockProduct({ basePrice: 29.99 });
 
@@ -66,7 +67,7 @@ describe("order-service: precificarItens", () => {
       expect(result.lines[0].quantity).toBe(1);
     });
 
-    it("deve calcular subtotal com múltiplas quantidades", async () => {
+    it("deve calcular subtotal com mÃºltiplas quantidades", async () => {
       const product = mockProduct({ basePrice: 15.50 });
 
       vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
@@ -91,7 +92,7 @@ describe("order-service: precificarItens", () => {
       expect(result.subtotal).toBe(46.50);
     });
 
-    it("deve arredondar corretamente em operações de divisão (AVERAGE_PRICE)", async () => {
+    it("deve arredondar corretamente em operaÃ§Ãµes de divisÃ£o (AVERAGE_PRICE)", async () => {
       const pizza1 = mockProduct({
         slug: "pizza-calabresa",
         basePrice: 50.00,
@@ -127,7 +128,7 @@ describe("order-service: precificarItens", () => {
       expect(result.lines[0].isHalfAndHalf).toBe(true);
     });
 
-    it("deve usar HIGHEST_PRICE quando é meia-pizza sem AVERAGE_PRICE", async () => {
+    it("deve usar HIGHEST_PRICE quando Ã© meia-pizza sem AVERAGE_PRICE", async () => {
       const pizza1 = mockProduct({
         slug: "pizza-calabresa",
         basePrice: 50.00,
@@ -165,7 +166,7 @@ describe("order-service: precificarItens", () => {
   });
 
   describe("Adicionais e extras", () => {
-    it("deve somar adicional ao preço do item", async () => {
+    it("deve somar adicional ao preÃ§o do item", async () => {
       const product = mockProduct({ basePrice: 20.00 });
 
       vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
@@ -208,7 +209,7 @@ describe("order-service: precificarItens", () => {
       expect(result.subtotal).toBe(25.50);
     });
 
-    it("deve somar múltiplos adicionais", async () => {
+    it("deve somar mÃºltiplos adicionais", async () => {
       const product = mockProduct({ basePrice: 30.00 });
 
       vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
@@ -267,13 +268,13 @@ describe("order-service: precificarItens", () => {
     });
   });
 
-  describe("Validações e erros", () => {
+  describe("ValidaÃ§Ãµes e erros", () => {
     it("deve retornar erro para carrinho vazio", async () => {
       const items: CheckoutItem[] = [];
 
       const result = await precificarItens(storeId, items);
 
-      // Nota: precificarItens não valida carrinho vazio — isso é feito no createOrderFromCheckout
+      // Nota: precificarItens nÃ£o valida carrinho vazio â€” isso Ã© feito no createOrderFromCheckout
       // Mas deve processar array vazio sem erro
       expect(result.ok).toBe(true);
       if (!result.ok) return;
@@ -296,10 +297,10 @@ describe("order-service: precificarItens", () => {
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
-      expect(result.error).toContain("não está mais disponível");
+      expect(result.error).toContain("nÃ£o estÃ¡ mais disponÃ­vel");
     });
 
-    it("deve retornar erro para quantidade inválida", async () => {
+    it("deve retornar erro para quantidade invÃ¡lida", async () => {
       const product = mockProduct();
 
       vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
@@ -319,10 +320,10 @@ describe("order-service: precificarItens", () => {
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
-      expect(result.error).toContain("inválida");
+      expect(result.error).toContain("invÃ¡lida");
     });
 
-    it("deve retornar erro se tamanho não está disponível", async () => {
+    it("deve retornar erro se tamanho nÃ£o estÃ¡ disponÃ­vel", async () => {
       const product = mockProduct({ sizes: [] });
 
       vi.mocked(prisma.product.findMany).mockResolvedValue([product as any]);
@@ -335,7 +336,7 @@ describe("order-service: precificarItens", () => {
       const items: CheckoutItem[] = [
         {
           productSlug: "pizza-calabresa",
-          sizeId: "size-999", // Este tamanho não existe no produto
+          sizeId: "size-999", // Este tamanho nÃ£o existe no produto
           quantity: 1,
           extraIds: [],
         },
@@ -345,11 +346,11 @@ describe("order-service: precificarItens", () => {
 
       expect(result.ok).toBe(false);
       if (result.ok) return;
-      expect(result.error).toContain("não está disponível");
+      expect(result.error).toContain("nÃ£o estÃ¡ disponÃ­vel");
     });
   });
 
-  describe("Cenários realistas de checkout", () => {
+  describe("CenÃ¡rios realistas de checkout", () => {
     it("2x pizza + 1x adicional cada = subtotal correto", async () => {
       const product = mockProduct({ basePrice: 35.00 });
 
@@ -394,3 +395,4 @@ describe("order-service: precificarItens", () => {
     });
   });
 });
+

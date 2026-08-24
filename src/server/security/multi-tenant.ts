@@ -56,13 +56,13 @@ export class MultiTenantValidator {
     storeId: string,
     model: "Product" | "Category" | "Employee" | "Table" | "Coupon" | "Store",
   ): Promise<boolean> {
-    const resource = await prisma[model].findFirst({
+    const resource = await (prisma as any)[model.toLowerCase()].findFirst({
       where: {
         id: resourceId,
         storeId, // ← CRÍTICO: validar storeId
       },
       select: { id: true },
-    });
+    } as any);
 
     return !!resource;
   }

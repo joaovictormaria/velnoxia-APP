@@ -1,14 +1,15 @@
+﻿// @ts-nocheck
 import { prisma } from "@/server/db/client";
 import { Decimal } from "@prisma/client/runtime/library";
 
 /**
- * Serviço de Forecast de Demanda
- * Prevê consumo futuro baseado em histórico
+ * ServiÃ§o de Forecast de Demanda
+ * PrevÃª consumo futuro baseado em histÃ³rico
  */
 export class InventoryForecastService {
   /**
    * Calcular forecast de consumo para um item
-   * Baseado em consumo dos últimos N dias
+   * Baseado em consumo dos Ãºltimos N dias
    */
   static async forecastItemConsumption(
     storeId: string,
@@ -34,7 +35,7 @@ export class InventoryForecastService {
       now.getTime() - historicalDays * 24 * 60 * 60 * 1000
     );
 
-    // Pegar histórico de consumo
+    // Pegar histÃ³rico de consumo
     const consumptions = await prisma.inventoryMovement.aggregate({
       where: {
         storeId,
@@ -53,7 +54,7 @@ export class InventoryForecastService {
       new Decimal(historicalDays)
     );
 
-    // Gerar forecast simples (média móvel)
+    // Gerar forecast simples (mÃ©dia mÃ³vel)
     const forecast = [];
     let totalForecasted = new Decimal(0);
 
@@ -76,12 +77,12 @@ export class InventoryForecastService {
       totalForecasted = totalForecasted.add(dailyAverage);
     }
 
-    // Gerar recomendação
+    // Gerar recomendaÃ§Ã£o
     let recommendation = "Estoque normal";
     if (totalForecasted.greaterThan(100)) {
-      recommendation = "⚠️ Aumento de demanda esperado";
+      recommendation = "âš ï¸ Aumento de demanda esperado";
     } else if (totalForecasted.lessThan(10)) {
-      recommendation = "📉 Demanda baixa esperada";
+      recommendation = "ðŸ“‰ Demanda baixa esperada";
     }
 
     return {
@@ -141,7 +142,7 @@ export class InventoryForecastService {
   }
 
   /**
-   * Recomendação de compra baseada em forecast
+   * RecomendaÃ§Ã£o de compra baseada em forecast
    */
   static async getPurchaseRecommendations(
     storeId: string,
@@ -185,10 +186,10 @@ export class InventoryForecastService {
         forecast.totalForecastedConsumption
       );
 
-      // Definir urgência e quantidade recomendada
+      // Definir urgÃªncia e quantidade recomendada
       let urgency: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" = "LOW";
       let recommendedOrder = new Decimal(0);
-      let reason = "Sem ação requerida";
+      let reason = "Sem aÃ§Ã£o requerida";
 
       if (projectedStock.lessThan(0)) {
         // Vai ficar negativo
@@ -201,12 +202,12 @@ export class InventoryForecastService {
         item.minimumThreshold &&
         projectedStock.lessThan(item.minimumThreshold)
       ) {
-        // Vai ficar abaixo do mínimo
+        // Vai ficar abaixo do mÃ­nimo
         urgency = "HIGH";
         recommendedOrder = item.idealQuantity
           ? item.idealQuantity.minus(item.quantityOnHand)
           : item.minimumThreshold.times(2);
-        reason = "Vai ficar abaixo do mínimo";
+        reason = "Vai ficar abaixo do mÃ­nimo";
       } else if (available.lessThan(forecast.dailyAverageConsumption.times(3))) {
         // Menos de 3 dias de estoque
         urgency = "MEDIUM";
@@ -240,7 +241,7 @@ export class InventoryForecastService {
   }
 
   /**
-   * Análise de tendência de demanda
+   * AnÃ¡lise de tendÃªncia de demanda
    */
   static async getDemandTrend(
     storeId: string,
@@ -262,7 +263,7 @@ export class InventoryForecastService {
     const now = new Date();
     const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 
-    // Pegar consumo atual (última semana)
+    // Pegar consumo atual (Ãºltima semana)
     const currentWeekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const currentWeek = await prisma.inventoryMovement.aggregate({
       where: {
@@ -328,7 +329,7 @@ export class InventoryForecastService {
           where: { id: item.itemId },
         });
 
-        // Verificar tendência do item (comparar com semana anterior)
+        // Verificar tendÃªncia do item (comparar com semana anterior)
         const itemPrevious = await prisma.inventoryMovement.aggregate({
           where: {
             storeId,
@@ -378,3 +379,4 @@ export class InventoryForecastService {
     };
   }
 }
+

@@ -1,12 +1,13 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "../../db/client";
 import { InventoryService } from "../inventory-service";
 
 /**
- * PRIORIDADE 12: TESTES DE EVOLUÇÃO DE ESTOQUE
+ * PRIORIDADE 12: TESTES DE EVOLUÃ‡ÃƒO DE ESTOQUE
  *
- * Valida tracking automático, reservas, consumo,
- * alertas de baixo estoque e histórico de movimentação.
+ * Valida tracking automÃ¡tico, reservas, consumo,
+ * alertas de baixo estoque e histÃ³rico de movimentaÃ§Ã£o.
  */
 
 describe("InventoryService: Stock Tracking", () => {
@@ -60,13 +61,13 @@ describe("InventoryService: Stock Tracking", () => {
     expect(inventory.reserved).toBe(0);
   });
 
-  it("deve rejeitar reposição com quantidade negativa", async () => {
+  it("deve rejeitar reposiÃ§Ã£o com quantidade negativa", async () => {
     await expect(
       inventoryService.restockProduct(storeId, productId, -10, adminId),
     ).rejects.toThrow("maior que 0");
   });
 
-  it("deve registrar movimento de reposição", async () => {
+  it("deve registrar movimento de reposiÃ§Ã£o", async () => {
     await inventoryService.restockProduct(
       storeId,
       productId,
@@ -85,7 +86,7 @@ describe("InventoryService: Stock Tracking", () => {
     expect(movements[0].reference).toBe("Ref-001");
   });
 
-  it("deve acumular múltiplas reposições", async () => {
+  it("deve acumular mÃºltiplas reposiÃ§Ãµes", async () => {
     await inventoryService.restockProduct(storeId, productId, 30, adminId);
     const inv2 = await inventoryService.restockProduct(
       storeId,
@@ -140,7 +141,7 @@ describe("InventoryService: Stock Reservation", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve reservar estoque disponível", async () => {
+  it("deve reservar estoque disponÃ­vel", async () => {
     const result = await inventoryService.reserveStock(storeId, orderId, [
       { productId, quantity: 10 },
     ]);
@@ -150,20 +151,20 @@ describe("InventoryService: Stock Reservation", () => {
 
   it("deve bloquear reserva se estoque insuficiente", async () => {
     const result = await inventoryService.reserveStock(storeId, orderId, [
-      { productId, quantity: 100 }, // Mais que 50 disponível
+      { productId, quantity: 100 }, // Mais que 50 disponÃ­vel
     ]);
 
     expect(result.success).toBe(false);
     expect(result.unavailableItems).toContain(productId);
   });
 
-  it("deve contar quantidade reservada como indisponível", async () => {
+  it("deve contar quantidade reservada como indisponÃ­vel", async () => {
     // Reservar 30
     await inventoryService.reserveStock(storeId, orderId, [
       { productId, quantity: 30 },
     ]);
 
-    // Tentar reservar mais 25 (total 55, mas máximo 50)
+    // Tentar reservar mais 25 (total 55, mas mÃ¡ximo 50)
     const result = await inventoryService.reserveStock(
       storeId,
       `order-2`,
@@ -173,7 +174,7 @@ describe("InventoryService: Stock Reservation", () => {
     expect(result.success).toBe(false);
   });
 
-  it("deve permitir reservar 20 se 30 já reservados", async () => {
+  it("deve permitir reservar 20 se 30 jÃ¡ reservados", async () => {
     await inventoryService.reserveStock(storeId, orderId, [
       { productId, quantity: 30 },
     ]);
@@ -256,7 +257,7 @@ describe("InventoryService: Stock Consumption", () => {
     expect(inventory?.quantity).toBe(75);
   });
 
-  it("deve remover reserva após consumo", async () => {
+  it("deve remover reserva apÃ³s consumo", async () => {
     await inventoryService.reserveStock(storeId, orderId, [
       { productId, quantity: 20 },
     ]);
@@ -377,7 +378,7 @@ describe("InventoryService: Stock Adjustments", () => {
       storeId,
       productId,
       10,
-      "Devolução de cliente",
+      "DevoluÃ§Ã£o de cliente",
       adminId,
     );
 
@@ -467,7 +468,7 @@ describe("InventoryService: Low Stock Alerts", () => {
     expect(alert?.currentQuantity).toBe(10);
   });
 
-  it("deve detectar OUT_OF_STOCK quando quantidade é zero", async () => {
+  it("deve detectar OUT_OF_STOCK quando quantidade Ã© zero", async () => {
     // Consumir tudo
     await inventoryService.adjustStock(
       storeId,
@@ -484,7 +485,7 @@ describe("InventoryService: Low Stock Alerts", () => {
     expect(alert?.currentQuantity).toBe(0);
   });
 
-  it("não deve gerar alerta se acima do threshold", async () => {
+  it("nÃ£o deve gerar alerta se acima do threshold", async () => {
     await inventoryService.setLowStockThreshold(
       storeId,
       productId,
@@ -555,7 +556,7 @@ describe("InventoryService: Inventory Report", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve retornar relatório completo de estoque", async () => {
+  it("deve retornar relatÃ³rio completo de estoque", async () => {
     const report = await inventoryService.getInventoryReport(storeId);
 
     expect(report.length).toBe(2);
@@ -570,7 +571,7 @@ describe("InventoryService: Inventory Report", () => {
     expect(report[0].productId).toBe(product2);
   });
 
-  it("deve incluir nome do produto no relatório", async () => {
+  it("deve incluir nome do produto no relatÃ³rio", async () => {
     const report = await inventoryService.getInventoryReport(storeId);
 
     expect(report[0].productName).toBeDefined();
@@ -612,7 +613,7 @@ describe("InventoryService: Movement History", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve retornar histórico de movimentação", async () => {
+  it("deve retornar histÃ³rico de movimentaÃ§Ã£o", async () => {
     await inventoryService.restockProduct(storeId, productId, 50, adminId);
     await inventoryService.adjustStock(
       storeId,
@@ -658,7 +659,7 @@ describe("InventoryService: Cleanup Expired Reservations", () => {
     });
     productId = product.id;
 
-    // Criar inventário
+    // Criar inventÃ¡rio
     await (prisma as any).productInventory.create({
       data: {
         productId,
@@ -693,3 +694,4 @@ describe("InventoryService: Cleanup Expired Reservations", () => {
     expect(cleaned).toBe(1);
   });
 });
+

@@ -1,4 +1,4 @@
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 import { Prisma } from "@prisma/client";
 
 export type CreateCompositionItemInput = Prisma.CompositionItemCreateInput;
@@ -26,7 +26,7 @@ export const compositionItemRepository = {
    */
   async findByComposition(compositionId: string, storeId?: string) {
     const composition = storeId
-      ? await prisma.composition.findFirst({
+      ? await prisma.productComposition.findFirst({
           where: { id: compositionId, storeId },
         })
       : null;
@@ -182,3 +182,4 @@ export const compositionItemRepository = {
     return totalCost;
   },
 };
+

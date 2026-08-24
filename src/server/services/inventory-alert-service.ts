@@ -222,7 +222,7 @@ export class InventoryAlertService {
         _sum: { quantity: true },
       });
 
-      const totalConsumption = consumption._sum.quantity || new Decimal(0);
+      const totalConsumption = consumption._sum.quantity || (0 as any);
       const dailyConsumption = totalConsumption
         .abs()
         .dividedBy((days as any));

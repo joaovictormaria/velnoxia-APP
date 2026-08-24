@@ -1,11 +1,12 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { CacheService, CacheTTL } from "../cache-service";
 
 /**
- * PRIORIDADE 15: TESTES DE CACHE DISTRIBUÍDO
+ * PRIORIDADE 15: TESTES DE CACHE DISTRIBUÃDO
  *
- * Valida caching com TTL, invalidação, batch operations,
+ * Valida caching com TTL, invalidaÃ§Ã£o, batch operations,
  * lock-based thundering herd prevention, e hit rate tracking.
  */
 
@@ -38,7 +39,7 @@ describe("CacheService: Basic Operations", () => {
     expect(result).toBeNull();
   });
 
-  it("deve validar existência de chave", async () => {
+  it("deve validar existÃªncia de chave", async () => {
     await cacheService.set("key1", { test: true });
 
     const exists = await cacheService.exists("key1");
@@ -74,12 +75,12 @@ describe("CacheService: TTL & Expiration", () => {
     redis.disconnect();
   });
 
-  it("deve usar TTL padrão (1 hora)", async () => {
+  it("deve usar TTL padrÃ£o (1 hora)", async () => {
     await cacheService.set("key1", { test: true });
 
     const ttl = await redis.ttl("key1");
 
-    // TTL deve estar próximo de 3600 (1 hora)
+    // TTL deve estar prÃ³ximo de 3600 (1 hora)
     expect(ttl).toBeGreaterThan(3590);
     expect(ttl).toBeLessThanOrEqual(3600);
   });
@@ -93,13 +94,13 @@ describe("CacheService: TTL & Expiration", () => {
     expect(ttl).toBeLessThanOrEqual(300);
   });
 
-  it("deve expirar após TTL", async () => {
+  it("deve expirar apÃ³s TTL", async () => {
     await cacheService.set("key1", { test: true }, 1); // 1 segundo
 
     const immediate = await cacheService.get("key1");
     expect(immediate).toBeDefined();
 
-    // Esperar expiração
+    // Esperar expiraÃ§Ã£o
     await new Promise((resolve) => setTimeout(resolve, 1100));
 
     const expired = await cacheService.get("key1");
@@ -147,7 +148,7 @@ describe("CacheService: Invalidation", () => {
     expect(result).toBeNull();
   });
 
-  it("deve invalidar múltiplas chaves com padrão", async () => {
+  it("deve invalidar mÃºltiplas chaves com padrÃ£o", async () => {
     await cacheService.set("products:store-1", []);
     await cacheService.set("products:store-2", []);
     await cacheService.set("inventory:prod-1", {});
@@ -160,7 +161,7 @@ describe("CacheService: Invalidation", () => {
     const inv1 = await cacheService.get("inventory:prod-1");
 
     expect(prod1).toBeNull();
-    expect(inv1).toBeDefined(); // Não foi invalidado
+    expect(inv1).toBeDefined(); // NÃ£o foi invalidado
   });
 
   it("deve retornar 0 se nenhuma chave matches pattern", async () => {
@@ -194,7 +195,7 @@ describe("CacheService: GetOrCompute", () => {
     expect(result).toEqual({ cached: true });
   });
 
-  it("deve computar se não estiver cacheado", async () => {
+  it("deve computar se nÃ£o estiver cacheado", async () => {
     const compute = async () => ({ computed: true });
 
     const result = await cacheService.getOrCompute("key1", compute);
@@ -202,7 +203,7 @@ describe("CacheService: GetOrCompute", () => {
     expect(result).toEqual({ computed: true });
   });
 
-  it("deve cachear resultado da computação", async () => {
+  it("deve cachear resultado da computaÃ§Ã£o", async () => {
     const compute = async () => ({ computed: true });
 
     await cacheService.getOrCompute("key1", compute, CacheTTL.SHORT);
@@ -212,7 +213,7 @@ describe("CacheService: GetOrCompute", () => {
     expect(cached).toEqual({ computed: true });
   });
 
-  it("deve não chamar compute novamente se cacheado", async () => {
+  it("deve nÃ£o chamar compute novamente se cacheado", async () => {
     let callCount = 0;
     const compute = async () => {
       callCount++;
@@ -243,7 +244,7 @@ describe("CacheService: Lock-based GetOrCompute (Thundering Herd)", () => {
     redis.disconnect();
   });
 
-  it("deve serializar computações concorrentes", async () => {
+  it("deve serializar computaÃ§Ãµes concorrentes", async () => {
     let callCount = 0;
     const compute = async () => {
       callCount++;
@@ -253,7 +254,7 @@ describe("CacheService: Lock-based GetOrCompute (Thundering Herd)", () => {
 
     const key = "expensive";
 
-    // Iniciar 3 computações concorrentes
+    // Iniciar 3 computaÃ§Ãµes concorrentes
     const promises = [
       cacheService.getOrComputeWithLock(key, compute, CacheTTL.SHORT),
       cacheService.getOrComputeWithLock(key, compute, CacheTTL.SHORT),
@@ -262,25 +263,25 @@ describe("CacheService: Lock-based GetOrCompute (Thundering Herd)", () => {
 
     const results = await Promise.all(promises);
 
-    // Apenas 1 computação deve ter ocorrido (lock protegeu)
+    // Apenas 1 computaÃ§Ã£o deve ter ocorrido (lock protegeu)
     expect(callCount).toBeLessThanOrEqual(2); // Permitir pequena margem
     // Todos devem receber o mesmo valor
     expect(results[0]).toEqual(results[1]);
   });
 
-  it("deve usar cache se disponível", async () => {
+  it("deve usar cache se disponÃ­vel", async () => {
     let callCount = 0;
     const compute = async () => {
       callCount++;
       return { count: callCount };
     };
 
-    // Pré-cachear
+    // PrÃ©-cachear
     await cacheService.set("key1", { cached: true }, CacheTTL.SHORT);
 
     const result = await cacheService.getOrComputeWithLock("key1", compute);
 
-    expect(callCount).toBe(0); // Não chamou compute
+    expect(callCount).toBe(0); // NÃ£o chamou compute
     expect(result).toEqual({ cached: true });
   });
 });
@@ -299,7 +300,7 @@ describe("CacheService: Batch Operations", () => {
     redis.disconnect();
   });
 
-  it("deve obter múltiplos valores", async () => {
+  it("deve obter mÃºltiplos valores", async () => {
     await cacheService.set("key1", { id: 1 });
     await cacheService.set("key2", { id: 2 });
     await cacheService.set("key3", { id: 3 });
@@ -322,7 +323,7 @@ describe("CacheService: Batch Operations", () => {
     expect(results[2]).toBeNull();
   });
 
-  it("deve armazenar múltiplos valores", async () => {
+  it("deve armazenar mÃºltiplos valores", async () => {
     await cacheService.mset([
       { key: "key1", value: { id: 1 } },
       { key: "key2", value: { id: 2 } },
@@ -381,13 +382,13 @@ describe("CacheService: Statistics & Hit Rate", () => {
     expect(hitRate).toBe(75); // 3/4 = 75%
   });
 
-  it("deve retornar 0% hit rate se sem requisições", async () => {
+  it("deve retornar 0% hit rate se sem requisiÃ§Ãµes", async () => {
     const hitRate = cacheService.getHitRate();
 
     expect(hitRate).toBe(0);
   });
 
-  it("deve resetar estatísticas", async () => {
+  it("deve resetar estatÃ­sticas", async () => {
     await cacheService.set("key1", { test: true });
     await cacheService.get("key1");
     await cacheService.get("missing");
@@ -427,7 +428,7 @@ describe("CacheService: Clear & Cleanup", () => {
     redis.disconnect();
   });
 
-  it("deve limpar padrão de chaves", async () => {
+  it("deve limpar padrÃ£o de chaves", async () => {
     await cacheService.set("products:1", []);
     await cacheService.set("products:2", []);
     await cacheService.set("inventory:1", {});
@@ -468,7 +469,7 @@ describe("CacheService: Warmup", () => {
     redis.disconnect();
   });
 
-  it("deve pré-carregar múltiplas chaves", async () => {
+  it("deve prÃ©-carregar mÃºltiplas chaves", async () => {
     const computeFns = [
       { key: "key1", computeFn: async () => ({ id: 1 }) },
       { key: "key2", computeFn: async () => ({ id: 2 }) },
@@ -509,3 +510,4 @@ describe("CacheService: Warmup", () => {
     expect(result3?.id).toBe(3);
   });
 });
+

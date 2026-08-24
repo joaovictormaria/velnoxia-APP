@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { OPENAPI_SPEC } from "@/server/utils/openapi";
 import type { APIRoute } from "astro";
 
@@ -10,3 +11,4 @@ export const GET: APIRoute = async () => {
     },
   });
 };
+

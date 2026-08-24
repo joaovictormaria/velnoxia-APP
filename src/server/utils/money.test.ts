@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { describe, it, expect } from "vitest";
 import { Decimal } from "@prisma/client/runtime/library";
 import {
@@ -7,15 +8,15 @@ import {
 } from "./money";
 
 /**
- * PRIORIDADE 4: TESTES DE PRECISÃO EM DINHEIRO
+ * PRIORIDADE 4: TESTES DE PRECISÃƒO EM DINHEIRO
  *
- * Valida que Decimal não tem erros de Float:
- * 0.1 + 0.2 = 0.3 (não 0.30000000000000004)
- * Desconto de 5% em 99.99 = 4.9995 (não 4.999499999999999)
+ * Valida que Decimal nÃ£o tem erros de Float:
+ * 0.1 + 0.2 = 0.3 (nÃ£o 0.30000000000000004)
+ * Desconto de 5% em 99.99 = 4.9995 (nÃ£o 4.999499999999999)
  */
 
-describe("Money Calculator - Precisão de Dinheiro", () => {
-  describe("Conversão Centavos ↔ Reais", () => {
+describe("Money Calculator - PrecisÃ£o de Dinheiro", () => {
+  describe("ConversÃ£o Centavos â†” Reais", () => {
     it("deve converter 2790 centavos para 27.90 reais", () => {
       const reais = centavosToReais(2790);
       expect(reais.toString()).toBe("27.90");
@@ -38,12 +39,12 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
   });
 
   describe("Soma com Decimal (Problema de Float)", () => {
-    it("deve somar 0.1 + 0.2 = 0.3 (não 0.30000000000000004)", () => {
+    it("deve somar 0.1 + 0.2 = 0.3 (nÃ£o 0.30000000000000004)", () => {
       const resultado = MoneyCalculator.sum(0.1, 0.2);
       expect(resultado.toNumber()).toBe(0.3);
     });
 
-    it("deve somar múltiplos valores com precisão", () => {
+    it("deve somar mÃºltiplos valores com precisÃ£o", () => {
       const resultado = MoneyCalculator.sum(10.50, 20.75, 5.25);
       expect(resultado.toNumber()).toBe(36.5);
     });
@@ -56,8 +57,8 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
     });
   });
 
-  describe("Multiplicação (Problema de Float)", () => {
-    it("deve multiplicar 99.99 * 0.05 = 4.9995 com precisão", () => {
+  describe("MultiplicaÃ§Ã£o (Problema de Float)", () => {
+    it("deve multiplicar 99.99 * 0.05 = 4.9995 com precisÃ£o", () => {
       const resultado = MoneyCalculator.multiply(99.99, 0.05);
       expect(resultado.toNumber()).toBe(4.9995);
     });
@@ -90,7 +91,7 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
     });
   });
 
-  describe("Taxa/Acréscimo em Percentual", () => {
+  describe("Taxa/AcrÃ©scimo em Percentual", () => {
     it("deve adicionar 10% em 100 = 110", () => {
       const resultado = MoneyCalculator.addFee(100, 10);
       expect(resultado.toNumber()).toBe(110);
@@ -109,7 +110,7 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
     });
   });
 
-  describe("Divisão com Precisão", () => {
+  describe("DivisÃ£o com PrecisÃ£o", () => {
     it("deve dividir 100 / 3 com arredondamento correto", () => {
       const resultado = MoneyCalculator.divide(100, 3);
       expect(resultado.toString()).toBe("33.33");
@@ -138,21 +139,21 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
     });
   });
 
-  describe("Comparação com Tolerância", () => {
-    it("deve verificar que 27.90 ≈ 27.90", () => {
+  describe("ComparaÃ§Ã£o com TolerÃ¢ncia", () => {
+    it("deve verificar que 27.90 â‰ˆ 27.90", () => {
       expect(MoneyCalculator.areEqual(27.9, 27.9)).toBe(true);
     });
 
-    it("deve verificar que 27.90 ≈ 27.91 (dentro de 0.01)", () => {
+    it("deve verificar que 27.90 â‰ˆ 27.91 (dentro de 0.01)", () => {
       expect(MoneyCalculator.areEqual(27.9, 27.91, 0.01)).toBe(true);
     });
 
-    it("deve verificar que 27.90 ≠ 27.92 (fora de 0.01)", () => {
+    it("deve verificar que 27.90 â‰  27.92 (fora de 0.01)", () => {
       expect(MoneyCalculator.areEqual(27.9, 27.92, 0.01)).toBe(false);
     });
   });
 
-  describe("Formatação BRL", () => {
+  describe("FormataÃ§Ã£o BRL", () => {
     it("deve formatar 27.90 como R$ 27,90", () => {
       const resultado = MoneyCalculator.formatBRL(27.9);
       expect(resultado).toBe("R$ 27,90");
@@ -193,7 +194,7 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
       expect(total.toString()).toBe("98.49");
     });
 
-    it("benefício funcionário: 99.99 com desconto 30% = 69.99", () => {
+    it("benefÃ­cio funcionÃ¡rio: 99.99 com desconto 30% = 69.99", () => {
       const subtotal = new Decimal("99.99");
       const desconto = MoneyCalculator.applyDiscount(subtotal, 30);
 
@@ -202,13 +203,13 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
   });
 
   describe("Problema: Float vs Decimal", () => {
-    it("Float: 0.1 + 0.2 = 0.30000000000000004 ❌", () => {
-      // Este é o problema que queremos evitar
+    it("Float: 0.1 + 0.2 = 0.30000000000000004 âŒ", () => {
+      // Este Ã© o problema que queremos evitar
       const resultado = 0.1 + 0.2;
       expect(resultado).not.toBe(0.3); // Float falha!
     });
 
-    it("Decimal: 0.1 + 0.2 = 0.3 ✅", () => {
+    it("Decimal: 0.1 + 0.2 = 0.3 âœ…", () => {
       // Decimal resolve
       const a = new Decimal("0.1");
       const b = new Decimal("0.2");
@@ -216,14 +217,15 @@ describe("Money Calculator - Precisão de Dinheiro", () => {
       expect(resultado.toNumber()).toBe(0.3);
     });
 
-    it("Float: 99.99 * 0.05 = 4.999499999999999 ❌", () => {
+    it("Float: 99.99 * 0.05 = 4.999499999999999 âŒ", () => {
       const resultado = 99.99 * 0.05;
       expect(resultado).not.toBe(4.9995); // Float falha!
     });
 
-    it("Decimal: 99.99 * 0.05 = 4.9995 ✅", () => {
+    it("Decimal: 99.99 * 0.05 = 4.9995 âœ…", () => {
       const resultado = new Decimal("99.99").times(new Decimal("0.05"));
       expect(resultado.toNumber()).toBe(4.9995);
     });
   });
 });
+

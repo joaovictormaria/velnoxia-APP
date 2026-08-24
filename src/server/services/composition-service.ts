@@ -324,7 +324,7 @@ export class CompositionService {
           ...(compItem.inventoryItemId ? { item: { connect: { id: compItem.inventoryItemId } } } : {}),
           type: "CONSUMPTION",
           quantity: -quantityToConsume, // Negative for consumption
-          unitId: inventoryItem.baseUnit.id,
+          unit: { connect: { id: inventoryItem.baseUnit.id } },
           reference: compositionId,
           referenceType: "COMPOSITION",
           note: `Consumido por receita (${quantityToProduce}x)`,
@@ -332,8 +332,8 @@ export class CompositionService {
           authorId: authorData?.authorId,
           authorName: authorData?.authorName,
           idempotencyKey,
-          compositionId,
-        });
+          composition: { connect: { id: compositionId } },
+        } as any);
       }
 
       // Nota: Não marcamos como usada aqui. A receita pode continuar sendo editada.

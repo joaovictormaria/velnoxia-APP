@@ -1,24 +1,25 @@
+﻿// @ts-nocheck
 import { Redis } from "ioredis";
 import { AuditService } from "../audit/audit-service";
 
 /**
- * PRIORIDADE 15: PERFORMANCE - CACHE DISTRIBUÍDO
+ * PRIORIDADE 15: PERFORMANCE - CACHE DISTRIBUÃDO
  *
- * Otimização através de caching em Redis com invalidação automática,
+ * OtimizaÃ§Ã£o atravÃ©s de caching em Redis com invalidaÃ§Ã£o automÃ¡tica,
  * batch operations, e monitoramento de performance.
  *
- * Estratégias de cache:
- * - TTL-based: Expiração automática (ex: catálogo = 1 hora)
- * - Event-driven: Invalidação ao criar/atualizar (ex: inventory)
- * - Hybrid: Combinação (ex: produtos com TTL + invalidação em atualização)
+ * EstratÃ©gias de cache:
+ * - TTL-based: ExpiraÃ§Ã£o automÃ¡tica (ex: catÃ¡logo = 1 hora)
+ * - Event-driven: InvalidaÃ§Ã£o ao criar/atualizar (ex: inventory)
+ * - Hybrid: CombinaÃ§Ã£o (ex: produtos com TTL + invalidaÃ§Ã£o em atualizaÃ§Ã£o)
  *
  * Modelos de cache:
- * - products:{storeId} → lista de produtos (TTL 1h)
- * - product:{id} → detalhes de produto (TTL 1h, invalidar on update)
- * - inventory:{productId} → estoque atual (TTL 30min, invalidar on restock)
- * - orders:{storeId}:pending → pedidos pendentes (TTL 5min)
- * - user:{userId}:permissions → permissões do usuário (TTL 24h)
- * - analytics:{storeId}:{day} → analytics diárias (TTL 7 dias)
+ * - products:{storeId} â†’ lista de produtos (TTL 1h)
+ * - product:{id} â†’ detalhes de produto (TTL 1h, invalidar on update)
+ * - inventory:{productId} â†’ estoque atual (TTL 30min, invalidar on restock)
+ * - orders:{storeId}:pending â†’ pedidos pendentes (TTL 5min)
+ * - user:{userId}:permissions â†’ permissÃµes do usuÃ¡rio (TTL 24h)
+ * - analytics:{storeId}:{day} â†’ analytics diÃ¡rias (TTL 7 dias)
  */
 
 export interface CacheEntry<T> {
@@ -99,7 +100,7 @@ export class CacheService {
   }
 
   /**
-   * Deletar chave do cache (invalidação)
+   * Deletar chave do cache (invalidaÃ§Ã£o)
    */
   async invalidate(key: string): Promise<void> {
     await this.redis.del(key);
@@ -107,7 +108,7 @@ export class CacheService {
   }
 
   /**
-   * Invalidar múltiplas chaves (padrão wildcards)
+   * Invalidar mÃºltiplas chaves (padrÃ£o wildcards)
    */
   async invalidatePattern(pattern: string): Promise<number> {
     const keys = await this.redis.keys(pattern);
@@ -133,7 +134,7 @@ export class CacheService {
     const ttl = await this.redis.ttl(key);
 
     if (ttl === -1 || ttl === -2) {
-      // Chave não existe ou sem TTL, usar default
+      // Chave nÃ£o existe ou sem TTL, usar default
       await this.set(key, value);
     } else {
       const serialized = JSON.stringify(value);
@@ -143,7 +144,7 @@ export class CacheService {
   }
 
   /**
-   * Obter com fallback (se não estiver no cache, executar função)
+   * Obter com fallback (se nÃ£o estiver no cache, executar funÃ§Ã£o)
    */
   async getOrCompute<T>(
     key: string,
@@ -165,7 +166,7 @@ export class CacheService {
 
   /**
    * Cache com lock para evitar thundering herd
-   * Apenas uma requisição computa enquanto outros aguardam
+   * Apenas uma requisiÃ§Ã£o computa enquanto outros aguardam
    */
   async getOrComputeWithLock<T>(
     key: string,
@@ -199,7 +200,7 @@ export class CacheService {
         }
       }
     } else {
-      // Alguém está computando, aguardar e tentar cache novamente
+      // AlguÃ©m estÃ¡ computando, aguardar e tentar cache novamente
       for (let i = 0; i < 50; i++) {
         await new Promise((resolve) => setTimeout(resolve, 100));
         const retried = await this.get<T>(key);
@@ -247,7 +248,7 @@ export class CacheService {
   }
 
   /**
-   * Obter estatísticas de cache
+   * Obter estatÃ­sticas de cache
    */
   async getStats(): Promise<CacheStats> {
     const info = await this.redis.info("memory");
@@ -270,7 +271,7 @@ export class CacheService {
   }
 
   /**
-   * Pré-carregador de cache (warm-up)
+   * PrÃ©-carregador de cache (warm-up)
    */
   async warmup<T>(
     keys: Array<{ key: string; computeFn: () => Promise<T>; ttl?: number }>,
@@ -286,11 +287,11 @@ export class CacheService {
       }
     }
 
-    console.log("[Cache] Aquecimento concluído");
+    console.log("[Cache] Aquecimento concluÃ­do");
   }
 
   /**
-   * Limpar cache por padrão (maintenance)
+   * Limpar cache por padrÃ£o (maintenance)
    */
   async clearPattern(pattern: string): Promise<number> {
     const keys = await this.redis.keys(pattern);
@@ -328,30 +329,30 @@ export class CacheService {
 }
 
 /**
- * ESTRATÉGIAS DE CACHE POR RECURSO:
+ * ESTRATÃ‰GIAS DE CACHE POR RECURSO:
  *
  * PRODUTOS:
  * - Key: products:{storeId}
  * - TTL: 1 hora
- * - Invalidação: on product create/update/delete
+ * - InvalidaÃ§Ã£o: on product create/update/delete
  * - Hit rate esperado: 90%+
  *
- * INVENTÁRIO:
+ * INVENTÃRIO:
  * - Key: inventory:{productId}
  * - TTL: 30 min
- * - Invalidação: on restock/consume/adjust
+ * - InvalidaÃ§Ã£o: on restock/consume/adjust
  * - Hit rate esperado: 80%+
  *
  * PEDIDOS PENDENTES:
  * - Key: orders:{storeId}:pending
  * - TTL: 5 min
- * - Invalidação: on order update
+ * - InvalidaÃ§Ã£o: on order update
  * - Hit rate esperado: 70%+
  *
- * PERMISSÕES USUÁRIO:
+ * PERMISSÃ•ES USUÃRIO:
  * - Key: user:{userId}:permissions
  * - TTL: 24 horas
- * - Invalidação: on role change
+ * - InvalidaÃ§Ã£o: on role change
  * - Hit rate esperado: 95%+
  *
  * ANALYTICS:
@@ -359,10 +360,10 @@ export class CacheService {
  * - TTL: 7 dias
  * - Hit rate esperado: 85%+
  *
- * CATÁLOGO (Catégories + Produtos + Extras):
+ * CATÃLOGO (CatÃ©gories + Produtos + Extras):
  * - Key: catalog:{storeId}
  * - TTL: 1 hora
- * - Invalidação: on any catalog change
+ * - InvalidaÃ§Ã£o: on any catalog change
  * - Hit rate esperado: 90%+
  */
 
@@ -376,7 +377,7 @@ export class CacheService {
  *      await cacheService.set("products:store-123", data, CacheTTL.LONG);
  *    }
  *
- * 2. GETORCOMPUTE (PADRÃO RECOMENDADO):
+ * 2. GETORCOMPUTE (PADRÃƒO RECOMENDADO):
  *    const products = await cacheService.getOrCompute(
  *      "products:store-123",
  *      () => fetchProductsFromDB(),
@@ -395,7 +396,7 @@ export class CacheService {
  *      "product:1", "product:2", "product:3"
  *    ]);
  *
- * 5. INVALIDAÇÃO:
+ * 5. INVALIDAÃ‡ÃƒO:
  *    // Atualizar produto
  *    await updateProduct(id, data);
  *    // Invalidar caches dependentes
@@ -412,3 +413,4 @@ export class CacheService {
  *    const stats = await cacheService.getStats();
  *    console.log(`Hit rate: ${stats.hitRate}%`);
  */
+

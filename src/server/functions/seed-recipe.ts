@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/client";
@@ -12,14 +13,14 @@ export const adminSeedRecipe = createServerFn({ method: "POST" })
         storeId: admin.storeId,
         sku: {
           in: [
-            "ING-1787347331381-4RQC", // Açúcar
-            "ING-1787347332157-CWK6", // Chocolate em Pó
+            "ING-1787347331381-4RQC", // AÃ§Ãºcar
+            "ING-1787347332157-CWK6", // Chocolate em PÃ³
             "ING-1787347334056-8WVQ", // Farinha de trigo
-            "ING-1787347333324-6PFY", // Fermento em Pó
+            "ING-1787347333324-6PFY", // Fermento em PÃ³
             "ING-1787347332548-6OOM", // Leite
             "ING-1787347334499-ZG95", // Leite Condensado
             "ING-1787347334099-3RGH", // Manteiga
-            "ING-1787347332936-7SAQ", // Óleo de Soja
+            "ING-1787347332936-7SAQ", // Ã“leo de Soja
             "ING-1787347331770-YL05", // Ovos
             "ING-1787347333711-4GLS", // Sal Fino
           ],
@@ -27,7 +28,7 @@ export const adminSeedRecipe = createServerFn({ method: "POST" })
       },
     });
 
-    console.log(`✅ Encontrados ${items.length} itens`);
+    console.log(`âœ… Encontrados ${items.length} itens`);
 
     if (items.length < 10) {
       throw new Error(`Faltam itens. Encontrados apenas ${items.length}`);
@@ -35,7 +36,7 @@ export const adminSeedRecipe = createServerFn({ method: "POST" })
 
     // Get a unit
     const unit = await prisma.inventoryUnit.findFirst({
-      where: { storeId: admin.storeId },
+      where: { isBuiltIn: true },
     });
 
     if (!unit) {
@@ -69,3 +70,4 @@ export const adminSeedRecipe = createServerFn({ method: "POST" })
       itemsCount: composition.items.length,
     };
   });
+

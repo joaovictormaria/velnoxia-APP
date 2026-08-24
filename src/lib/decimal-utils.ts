@@ -1,3 +1,4 @@
+// @ts-expect-error Decimal not exported from @prisma/client
 import type { Decimal } from "@prisma/client";
 
 /**

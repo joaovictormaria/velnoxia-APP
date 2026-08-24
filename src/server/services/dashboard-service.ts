@@ -31,7 +31,7 @@ async function summaryForRange(storeId: string, from: Date, to: Date) {
     select: { total: true },
   });
   const count = orders.length;
-  const revenue = orders.reduce((sum, o) => sum + o.total, 0);
+  const revenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
   return {
     count,
     revenue,

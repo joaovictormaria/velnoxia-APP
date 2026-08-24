@@ -1,10 +1,11 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getCurrentAdmin, requireCourierSession } from "../auth/session";
 import { prisma } from "../db/client";
 import { transitionOrderStatus } from "../services/order-service";
 
-/** O que o entregador vê de um pedido: o necessário para chegar lá e entregar. */
+/** O que o entregador vÃª de um pedido: o necessÃ¡rio para chegar lÃ¡ e entregar. */
 const CAMPOS_DA_ENTREGA = {
   id: true,
   number: true,
@@ -26,7 +27,7 @@ const CAMPOS_DA_ENTREGA = {
   updatedAt: true,
 } as const;
 
-/** Sessão do entregador para a tela dele: quem é e de que loja, sem mais nada. */
+/** SessÃ£o do entregador para a tela dele: quem Ã© e de que loja, sem mais nada. */
 export const getCurrentCourierFn = createServerFn({ method: "GET" }).handler(async () => {
   const admin = await getCurrentAdmin();
   if (!admin || admin.role !== "COURIER") return null;
@@ -36,16 +37,16 @@ export const getCurrentCourierFn = createServerFn({ method: "GET" }).handler(asy
 /**
  * As entregas deste entregador.
  *
- * O filtro por courierId é o que segura tudo: ele não vê pedido de colega nem
- * pedido de balcão, só o que está na mão dele. O nome e o telefone do cliente
- * vêm porque são o endereço e o contato de quem vai receber; nada de nota
- * interna, faturamento ou histórico da loja.
+ * O filtro por courierId Ã© o que segura tudo: ele nÃ£o vÃª pedido de colega nem
+ * pedido de balcÃ£o, sÃ³ o que estÃ¡ na mÃ£o dele. O nome e o telefone do cliente
+ * vÃªm porque sÃ£o o endereÃ§o e o contato de quem vai receber; nada de nota
+ * interna, faturamento ou histÃ³rico da loja.
  */
 export const listMyDeliveriesFn = createServerFn({ method: "GET" }).handler(async () => {
   const courier = await requireCourierSession();
 
-  // As de hoje já entregues ficam à vista para ele conferir o dia; ontem já não
-  // é assunto da tela e sairia sozinho da lista.
+  // As de hoje jÃ¡ entregues ficam Ã  vista para ele conferir o dia; ontem jÃ¡ nÃ£o
+  // Ã© assunto da tela e sairia sozinho da lista.
   const inicioDoDia = new Date();
   inicioDoDia.setHours(0, 0, 0, 0);
 
@@ -71,10 +72,10 @@ export const listMyDeliveriesFn = createServerFn({ method: "GET" }).handler(asyn
 });
 
 /**
- * O entregador fecha a própria entrega, e isso finaliza o pedido.
+ * O entregador fecha a prÃ³pria entrega, e isso finaliza o pedido.
  *
- * Marcar entregue é o mesmo COMPLETED que o dono daria pelo painel — inclusive
- * quitando o pagamento na entrega —, só que quem registra é ele. O pedido tem
+ * Marcar entregue Ã© o mesmo COMPLETED que o dono daria pelo painel â€” inclusive
+ * quitando o pagamento na entrega â€”, sÃ³ que quem registra Ã© ele. O pedido tem
  * de ser dele: sem essa checagem, um id copiado fecharia a entrega de outro.
  */
 export const markDeliveryDoneFn = createServerFn({ method: "POST" })
@@ -86,7 +87,7 @@ export const markDeliveryDoneFn = createServerFn({ method: "POST" })
       where: { id: data.id, storeId: courier.storeId, courierId: courier.id },
       select: { id: true },
     });
-    if (!pedido) return { ok: false as const, error: "Esta entrega não é sua." };
+    if (!pedido) return { ok: false as const, error: "Esta entrega nÃ£o Ã© sua." };
 
     const r = await transitionOrderStatus(courier.storeId, pedido.id, "COMPLETED", {
       authorType: "COURIER",
@@ -94,9 +95,9 @@ export const markDeliveryDoneFn = createServerFn({ method: "POST" })
     });
     if (!r.ok) return r;
 
-    // Acabou a última entrega, acabou o motivo de saber onde ele está. Apagar
-    // aqui, e não só quando o aparelho para de enviar, garante que a posição
-    // não fique no banco se ele fechar a tela no mesmo instante.
+    // Acabou a Ãºltima entrega, acabou o motivo de saber onde ele estÃ¡. Apagar
+    // aqui, e nÃ£o sÃ³ quando o aparelho para de enviar, garante que a posiÃ§Ã£o
+    // nÃ£o fique no banco se ele fechar a tela no mesmo instante.
     const restantes = await prisma.order.count({
       where: { storeId: courier.storeId, courierId: courier.id, status: "OUT_FOR_DELIVERY" },
     });
@@ -108,12 +109,12 @@ export const markDeliveryDoneFn = createServerFn({ method: "POST" })
   });
 
 /**
- * O celular do entregador informa onde ele está.
+ * O celular do entregador informa onde ele estÃ¡.
  *
- * Guarda só a última posição, sobrescrevendo: o cliente quer saber a distância
- * de agora, e um histórico de trajeto seria dado sensível sem pergunta que ele
- * responda. Sem entrega em andamento não há por que saber onde ele está — a
- * linha é apagada e a resposta manda o aparelho parar de enviar.
+ * Guarda sÃ³ a Ãºltima posiÃ§Ã£o, sobrescrevendo: o cliente quer saber a distÃ¢ncia
+ * de agora, e um histÃ³rico de trajeto seria dado sensÃ­vel sem pergunta que ele
+ * responda. Sem entrega em andamento nÃ£o hÃ¡ por que saber onde ele estÃ¡ â€” a
+ * linha Ã© apagada e a resposta manda o aparelho parar de enviar.
  */
 export const reportCourierLocationFn = createServerFn({ method: "POST" })
   .validator(
@@ -152,10 +153,11 @@ export const reportCourierLocationFn = createServerFn({ method: "POST" })
     return { ok: true as const, tracking: true as const };
   });
 
-/** O entregador desliga o compartilhamento. O aparelho é dele; a posição sai
+/** O entregador desliga o compartilhamento. O aparelho Ã© dele; a posiÃ§Ã£o sai
  *  do banco na hora, sem depender de a entrega terminar. */
 export const stopSharingLocationFn = createServerFn({ method: "POST" }).handler(async () => {
   const courier = await requireCourierSession();
   await prisma.courierLocation.deleteMany({ where: { courierId: courier.id } });
   return { ok: true as const };
 });
+

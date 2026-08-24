@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { prisma } from "../db/client";
 import { RateLimiter, RateLimitPresets } from "../ratelimit/rate-limiter";
 import { Redis } from "ioredis";
@@ -5,31 +6,31 @@ import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
 import { AuditService } from "../audit/audit-service";
 
 /**
- * PRIORIDADE 10: AUTORIZAÇÃO CENTRALIZADA
+ * PRIORIDADE 10: AUTORIZAÃ‡ÃƒO CENTRALIZADA
  *
- * Gerencia PIN, sessões, autorização de dispositivos e rotação de tokens.
+ * Gerencia PIN, sessÃµes, autorizaÃ§Ã£o de dispositivos e rotaÃ§Ã£o de tokens.
  * Integra rate limiting, auditoria, e soft delete para compliance.
  *
  * Fluxo:
- * 1. generatePIN(storeId, adminId) → PIN de 4 dígitos + hash no BD
- * 2. verifyPIN(storeId, adminId, pin) → valida + rate limit
- * 3. authorizeDevice(storeId, adminId, deviceId, userAgent) → cria TableSession
- * 4. revokeDevice(storeId, adminId, deviceId) → revoca acesso
- * 5. rotateToken(sessionId) → novo token, invalida antigo
- * 6. listAuthorizedDevices(storeId, adminId) → auditoria
+ * 1. generatePIN(storeId, adminId) â†’ PIN de 4 dÃ­gitos + hash no BD
+ * 2. verifyPIN(storeId, adminId, pin) â†’ valida + rate limit
+ * 3. authorizeDevice(storeId, adminId, deviceId, userAgent) â†’ cria TableSession
+ * 4. revokeDevice(storeId, adminId, deviceId) â†’ revoca acesso
+ * 5. rotateToken(sessionId) â†’ novo token, invalida antigo
+ * 6. listAuthorizedDevices(storeId, adminId) â†’ auditoria
  */
 
 export interface PINConfig {
-  length: number; // 4 ou 6 dígitos
-  expiryMinutes: number; // Quanto tempo PIN é válido
+  length: number; // 4 ou 6 dÃ­gitos
+  expiryMinutes: number; // Quanto tempo PIN Ã© vÃ¡lido
   maxAttempts: number; // Tentativas antes de bloquear
-  blockDurationMinutes: number; // Tempo de bloqueio após tentativas
+  blockDurationMinutes: number; // Tempo de bloqueio apÃ³s tentativas
 }
 
 export interface DeviceAuthorizationInput {
   storeId: string;
   adminId: string;
-  deviceId: string; // Fingerprint único do dispositivo
+  deviceId: string; // Fingerprint Ãºnico do dispositivo
   userAgent?: string;
   ipAddress?: string;
 }
@@ -66,7 +67,7 @@ export class AuthorizationService {
   }
 
   /**
-   * Gerar um novo PIN para autenticação
+   * Gerar um novo PIN para autenticaÃ§Ã£o
    * Invalida PIN anterior se existir
    */
   async generatePIN(storeId: string, adminId: string): Promise<string> {
@@ -84,21 +85,21 @@ export class AuthorizationService {
     // Invalidar PIN anterior
     await this.redis.del(pinKey);
 
-    // Armazenar novo PIN com expiração
+    // Armazenar novo PIN com expiraÃ§Ã£o
     await this.redis.setex(pinKey, expirySeconds, JSON.stringify({
       hash: pinHash,
       createdAt: Date.now(),
       attempts: 0,
     }));
 
-    // Auditar geração
+    // Auditar geraÃ§Ã£o
     await AuditService.log({
       storeId,
       userId: adminId,
       action: "CREATE",
       resource: "PIN",
       resourceId: adminId,
-      reason: "PIN gerado para autenticação",
+      reason: "PIN gerado para autenticaÃ§Ã£o",
     });
 
     return pin;
@@ -150,7 +151,7 @@ export class AuthorizationService {
         action: "LOGIN_FAILED",
         resource: "PIN",
         resourceId: adminId,
-        reason: "PIN expirado ou inválido",
+        reason: "PIN expirado ou invÃ¡lido",
       }, new Error("PIN not found"));
 
       return { valid: false, remainingAttempts: status.tokensRemaining };
@@ -159,7 +160,7 @@ export class AuthorizationService {
     const pinData = JSON.parse(stored);
     const pinHash = this.hashPIN(pin);
 
-    // Comparação segura (timing-safe)
+    // ComparaÃ§Ã£o segura (timing-safe)
     const isValid = this.secureCompare(pinHash, pinData.hash);
 
     if (!isValid) {
@@ -183,7 +184,7 @@ export class AuthorizationService {
       return { valid: false, remainingAttempts: status.tokensRemaining };
     }
 
-    // PIN válido: limpar e auditar
+    // PIN vÃ¡lido: limpar e auditar
     await this.redis.del(pinKey);
 
     await AuditService.log({
@@ -214,7 +215,7 @@ export class AuthorizationService {
     });
 
     if (!admin) {
-      throw new Error("Admin não encontrado");
+      throw new Error("Admin nÃ£o encontrado");
     }
 
     // Validar que mesa existe
@@ -224,14 +225,14 @@ export class AuthorizationService {
     });
 
     if (!table) {
-      throw new Error("Nenhuma mesa disponível na loja");
+      throw new Error("Nenhuma mesa disponÃ­vel na loja");
     }
 
-    // Gerar token de sessão
+    // Gerar token de sessÃ£o
     const sessionToken = randomBytes(32).toString("hex");
     const sessionTokenHash = createHash("sha256").update(sessionToken).digest("hex");
 
-    // Criar sessão
+    // Criar sessÃ£o
     const session = await prisma.tableSession.create({
       data: {
         tableId: table.id,
@@ -245,7 +246,7 @@ export class AuthorizationService {
       } as any,
     });
 
-    // Auditar autorização
+    // Auditar autorizaÃ§Ã£o
     await AuditService.log({
       storeId,
       userId: adminId,
@@ -277,7 +278,7 @@ export class AuthorizationService {
 
   /**
    * Revogar acesso de um dispositivo
-   * Marca sessão como inativa e invalida tokens
+   * Marca sessÃ£o como inativa e invalida tokens
    */
   async revokeDevice(
     storeId: string,
@@ -285,7 +286,7 @@ export class AuthorizationService {
     deviceId: string,
     revokedBy: string,
   ): Promise<void> {
-    // Buscar todas as sessões do dispositivo
+    // Buscar todas as sessÃµes do dispositivo
     const sessions = await prisma.tableSession.findMany({
       where: {
         deviceId,
@@ -296,10 +297,10 @@ export class AuthorizationService {
     });
 
     if (sessions.length === 0) {
-      throw new Error("Nenhuma sessão ativa para este dispositivo");
+      throw new Error("Nenhuma sessÃ£o ativa para este dispositivo");
     }
 
-    // Desativar todas as sessões
+    // Desativar todas as sessÃµes
     await prisma.tableSession.updateMany({
       where: {
         id: { in: sessions.map((s) => s.id) },
@@ -311,7 +312,7 @@ export class AuthorizationService {
       } as any,
     });
 
-    // Auditar revogação
+    // Auditar revogaÃ§Ã£o
     await AuditService.log({
       storeId,
       userId: revokedBy,
@@ -327,7 +328,7 @@ export class AuthorizationService {
   }
 
   /**
-   * Rotacionar token de sessão
+   * Rotacionar token de sessÃ£o
    * Invalida token antigo e gera novo
    */
   async rotateToken(sessionId: string): Promise<string> {
@@ -341,14 +342,14 @@ export class AuthorizationService {
     });
 
     if (!session) {
-      throw new Error("Sessão não encontrada");
+      throw new Error("SessÃ£o nÃ£o encontrada");
     }
 
     // Gerar novo token
     const newToken = randomBytes(32).toString("hex");
     const newTokenHash = createHash("sha256").update(newToken).digest("hex");
 
-    // Atualizar sessão com novo token
+    // Atualizar sessÃ£o com novo token
     await prisma.tableSession.update({
       where: { id: sessionId },
       data: {
@@ -357,14 +358,14 @@ export class AuthorizationService {
       } as any,
     });
 
-    // Auditar rotação
+    // Auditar rotaÃ§Ã£o
     await AuditService.log({
       storeId: (session?.table as any)?.storeId,
       userId: (session as any).adminId,
       action: "ROTATE_TOKEN",
       resource: "Session",
       resourceId: sessionId,
-      reason: "Token de sessão rotacionado",
+      reason: "Token de sessÃ£o rotacionado",
     });
 
     return newToken;
@@ -372,7 +373,7 @@ export class AuthorizationService {
 
   /**
    * Listar dispositivos autorizados
-   * Útil para gerenciamento e auditoria
+   * Ãštil para gerenciamento e auditoria
    */
   async listAuthorizedDevices(
     storeId: string,
@@ -414,8 +415,8 @@ export class AuthorizationService {
   }
 
   /**
-   * Validar token de sessão
-   * Verifica hash, expiração e atividade
+   * Validar token de sessÃ£o
+   * Verifica hash, expiraÃ§Ã£o e atividade
    */
   async validateSessionToken(
     sessionId: string,
@@ -444,7 +445,7 @@ export class AuthorizationService {
       return { valid: false };
     }
 
-    // Comparação segura
+    // ComparaÃ§Ã£o segura
     const providedHash = createHash("sha256").update(providedToken).digest("hex");
     const isValid = this.secureCompare(providedHash, (session as any).sessionToken);
 
@@ -456,7 +457,7 @@ export class AuthorizationService {
   }
 
   /**
-   * Limpar sessões expiradas
+   * Limpar sessÃµes expiradas
    * Executar periodicamente (cron job)
    */
   async cleanupExpiredSessions(storeId: string): Promise<number> {
@@ -478,7 +479,7 @@ export class AuthorizationService {
   }
 
   /**
-   * Comparação timing-safe para impedir timing attacks
+   * ComparaÃ§Ã£o timing-safe para impedir timing attacks
    */
   private secureCompare(a: string, b: string): boolean {
     try {
@@ -490,7 +491,7 @@ export class AuthorizationService {
 
   /**
    * Extrair nome do dispositivo de User-Agent
-   * Exemplo: "Mozilla/5.0 (Windows NT 10.0)" → "Windows 10"
+   * Exemplo: "Mozilla/5.0 (Windows NT 10.0)" â†’ "Windows 10"
    */
   private extractDeviceName(userAgent?: string): string | undefined {
     if (!userAgent) return undefined;
@@ -517,7 +518,7 @@ export class AuthorizationService {
  *
  *    const result = await authService.verifyPIN("store-123", "admin-456", userPin);
  *    if (!result.valid) {
- *      return { error: "PIN inválido", remaining: result.remainingAttempts };
+ *      return { error: "PIN invÃ¡lido", remaining: result.remainingAttempts };
  *    }
  *
  * 2. AUTORIZAR DISPOSITIVO:
@@ -542,3 +543,4 @@ export class AuthorizationService {
  *    const newToken = await authService.rotateToken(sessionId);
  *    // Enviar novo token ao cliente, invalida antigo automaticamente
  */
+

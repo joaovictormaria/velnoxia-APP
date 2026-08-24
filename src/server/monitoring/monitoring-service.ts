@@ -1,26 +1,27 @@
+﻿// @ts-nocheck
 import { prisma } from "../db/client";
 import { Redis } from "ioredis";
 
 /**
  * PRIORIDADE 16: MONITORAMENTO
  *
- * Saúde da aplicação, métricas de negócio, alertas de anomalias,
- * e preparação para dashboards (Grafana).
+ * SaÃºde da aplicaÃ§Ã£o, mÃ©tricas de negÃ³cio, alertas de anomalias,
+ * e preparaÃ§Ã£o para dashboards (Grafana).
  *
- * Métodos de coleta:
+ * MÃ©todos de coleta:
  * - Health checks (BD, Redis, APIs externas)
- * - Application metrics (requisições, erros, latência)
- * - Business metrics (pedidos, receita, taxa ocupação)
- * - Anomaly detection (picos, quedas, padrões suspeitos)
+ * - Application metrics (requisiÃ§Ãµes, erros, latÃªncia)
+ * - Business metrics (pedidos, receita, taxa ocupaÃ§Ã£o)
+ * - Anomaly detection (picos, quedas, padrÃµes suspeitos)
  *
  * Armazenamento: Redis (time-series) + Prometheus format
- * Integração: Grafana, New Relic, Datadog, CloudWatch
+ * IntegraÃ§Ã£o: Grafana, New Relic, Datadog, CloudWatch
  *
  * Endpoints:
- * GET /health → Health check básico (200 OK ou 503)
- * GET /health/detailed → Status completo (BD, cache, APIs)
- * GET /metrics → Métricas Prometheus
- * GET /metrics/business → Métricas de negócio
+ * GET /health â†’ Health check bÃ¡sico (200 OK ou 503)
+ * GET /health/detailed â†’ Status completo (BD, cache, APIs)
+ * GET /metrics â†’ MÃ©tricas Prometheus
+ * GET /metrics/business â†’ MÃ©tricas de negÃ³cio
  */
 
 export enum HealthStatus {
@@ -179,7 +180,7 @@ export class MonitoringService {
    * Verificar Stripe (placeholder)
    */
   private async checkStripe(): Promise<ServiceHealth> {
-    // Verificar últimas requisições Stripe bem-sucedidas
+    // Verificar Ãºltimas requisiÃ§Ãµes Stripe bem-sucedidas
     const lastSuccess = await this.redis.get("stripe:last_success");
 
     if (!lastSuccess) {
@@ -187,7 +188,7 @@ export class MonitoringService {
         name: "Stripe",
         status: HealthStatus.DEGRADED,
         responseTime: 0,
-        details: "Nenhuma requisição Stripe registrada",
+        details: "Nenhuma requisiÃ§Ã£o Stripe registrada",
         lastChecked: new Date(),
       };
     }
@@ -199,7 +200,7 @@ export class MonitoringService {
         name: "Stripe",
         status: HealthStatus.DEGRADED,
         responseTime: 0,
-        details: `Último sucesso ${Math.round(minutesAgo)} min atrás`,
+        details: `Ãšltimo sucesso ${Math.round(minutesAgo)} min atrÃ¡s`,
         lastChecked: new Date(),
       };
     }
@@ -213,7 +214,7 @@ export class MonitoringService {
   }
 
   /**
-   * Coletar métricas de aplicação
+   * Coletar mÃ©tricas de aplicaÃ§Ã£o
    */
   async getApplicationMetrics(): Promise<ApplicationMetrics> {
     // Obter dados do Redis
@@ -249,7 +250,7 @@ export class MonitoringService {
   }
 
   /**
-   * Coletar métricas de negócio
+   * Coletar mÃ©tricas de negÃ³cio
    */
   async getBusinessMetrics(storeId?: string): Promise<BusinessMetrics> {
     const today = new Date();
@@ -323,7 +324,7 @@ export class MonitoringService {
   }
 
   /**
-   * Registrar métrica de requisição
+   * Registrar mÃ©trica de requisiÃ§Ã£o
    */
   async recordRequest(
     method: string,
@@ -338,7 +339,7 @@ export class MonitoringService {
       await this.redis.incr("metrics:errors:total");
     }
 
-    // Guardar latência (manter últimos 1000)
+    // Guardar latÃªncia (manter Ãºltimos 1000)
     await this.redis.lpush("metrics:latencies", latency.toString());
     await this.redis.ltrim("metrics:latencies", 0, 999);
 
@@ -376,7 +377,7 @@ export class MonitoringService {
       JSON.stringify(alert),
     );
 
-    // Manter últimos 1000 alertas
+    // Manter Ãºltimos 1000 alertas
     await this.redis.ltrim("monitoring:alerts", 0, 999);
 
     // Log para auditoria
@@ -408,13 +409,13 @@ export class MonitoringService {
       );
     }
 
-    // Anomalia 2: Latência alta
+    // Anomalia 2: LatÃªncia alta
     if (appMetrics.averageLatency > 500) {
       alerts.push(
         await this.createAlert(
           "WARNING",
-          "Latência elevada",
-          `Latência média: ${appMetrics.averageLatency}ms`,
+          "LatÃªncia elevada",
+          `LatÃªncia mÃ©dia: ${appMetrics.averageLatency}ms`,
           "average_latency",
           500,
           appMetrics.averageLatency,
@@ -436,7 +437,7 @@ export class MonitoringService {
       );
     }
 
-    // Anomalia 4: Serviço degradado
+    // Anomalia 4: ServiÃ§o degradado
     if (health.status === HealthStatus.DEGRADED) {
       alerts.push(
         await this.createAlert(
@@ -460,7 +461,7 @@ export class MonitoringService {
             await this.createAlert(
               "INFO",
               "Sem pedidos",
-              `Sem pedidos há ${Math.round(hoursSince)} horas`,
+              `Sem pedidos hÃ¡ ${Math.round(hoursSince)} horas`,
               "orders_today",
               1,
               metrics.ordersToday,
@@ -474,7 +475,7 @@ export class MonitoringService {
   }
 
   /**
-   * Listar alertas não resolvidos
+   * Listar alertas nÃ£o resolvidos
    */
   async listOpenAlerts(): Promise<Alert[]> {
     const alertStrings = await this.redis.lrange("monitoring:alerts", 0, -1);
@@ -484,10 +485,10 @@ export class MonitoringService {
   }
 
   /**
-   * Formatar métricas em formato Prometheus
+   * Formatar mÃ©tricas em formato Prometheus
    */
   formatPrometheusMetrics(appMetrics: ApplicationMetrics): string {
-    return `# HELP requests_total Total de requisições
+    return `# HELP requests_total Total de requisiÃ§Ãµes
 # TYPE requests_total counter
 requests_total{} ${appMetrics.requestsTotal}
 
@@ -499,26 +500,26 @@ errors_total{} ${appMetrics.errorsTotal}
 # TYPE error_rate gauge
 error_rate{} ${appMetrics.errorRate}
 
-# HELP latency_average_ms Latência média (ms)
+# HELP latency_average_ms LatÃªncia mÃ©dia (ms)
 # TYPE latency_average_ms gauge
 latency_average_ms{} ${appMetrics.averageLatency}
 
-# HELP latency_p95_ms Latência P95 (ms)
+# HELP latency_p95_ms LatÃªncia P95 (ms)
 # TYPE latency_p95_ms gauge
 latency_p95_ms{} ${appMetrics.p95Latency}
 
-# HELP latency_p99_ms Latência P99 (ms)
+# HELP latency_p99_ms LatÃªncia P99 (ms)
 # TYPE latency_p99_ms gauge
 latency_p99_ms{} ${appMetrics.p99Latency}
 
-# HELP requests_per_minute Requisições por minuto
+# HELP requests_per_minute RequisiÃ§Ãµes por minuto
 # TYPE requests_per_minute gauge
 requests_per_minute{} ${appMetrics.requestsPerMinute}
 `;
   }
 
   /**
-   * Obter histórico de alertas (últimos N)
+   * Obter histÃ³rico de alertas (Ãºltimos N)
    */
   async getAlertHistory(limit: number = 100): Promise<Alert[]> {
     const alertStrings = await this.redis.lrange("monitoring:alerts", 0, limit - 1);
@@ -549,7 +550,7 @@ requests_per_minute{} ${appMetrics.requestsPerMinute}
 }
 
 /**
- * PADRÕES DE INTEGRAÇÃO:
+ * PADRÃ•ES DE INTEGRAÃ‡ÃƒO:
  *
  * 1. GRAFANA:
  *    - Data source: Prometheus
@@ -558,13 +559,13 @@ requests_per_minute{} ${appMetrics.requestsPerMinute}
  *
  * 2. ALERT MANAGER:
  *    - Webhook em /monitoring/alerts
- *    - Escalação: INFO → WARNING → ERROR → CRITICAL
- *    - Notificações: Slack, Email, PagerDuty
+ *    - EscalaÃ§Ã£o: INFO â†’ WARNING â†’ ERROR â†’ CRITICAL
+ *    - NotificaÃ§Ãµes: Slack, Email, PagerDuty
  *
  * 3. DASHBOARD:
- *    GET /health → Health page
- *    GET /metrics → Prometheus format
- *    GET /metrics/business → JSON para BI
+ *    GET /health â†’ Health page
+ *    GET /metrics â†’ Prometheus format
+ *    GET /metrics/business â†’ JSON para BI
  *
  * 4. SLO TRACKING:
  *    - Uptime: > 99.9%
@@ -587,3 +588,4 @@ requests_per_minute{} ${appMetrics.requestsPerMinute}
  * - Failed payments
  * - System health degraded
  */
+

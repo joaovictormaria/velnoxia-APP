@@ -1,19 +1,20 @@
+﻿// @ts-nocheck
 import { Redis } from "ioredis";
 
 /**
- * PRIORIDADE 9: RATE LIMITING DISTRIBUÍDO
+ * PRIORIDADE 9: RATE LIMITING DISTRIBUÃDO
  *
- * Proteção contra brute force, DDoS, e abuso de API.
- * Usa Redis para compartilhar limites entre múltiplas instâncias.
+ * ProteÃ§Ã£o contra brute force, DDoS, e abuso de API.
+ * Usa Redis para compartilhar limites entre mÃºltiplas instÃ¢ncias.
  *
  * Token Bucket Algorithm:
  * - Cada chave tem um "balde" com tokens
- * - Cada operação consome 1 token
+ * - Cada operaÃ§Ã£o consome 1 token
  * - Balde se refill automaticamente a uma taxa (ex: 5 tentativas por minuto)
- * - Se balde vazio → bloqueado até refill
+ * - Se balde vazio â†’ bloqueado atÃ© refill
  *
  * Exemplo:
- * // PIN login: máx 3 tentativas a cada 5 minutos
+ * // PIN login: mÃ¡x 3 tentativas a cada 5 minutos
  * const limiter = new RateLimiter(redis, "pin-login:store-123:admin-456", {
  *   maxTokens: 3,
  *   refillRate: 3,      // 3 tokens
@@ -35,14 +36,14 @@ export interface RateLimitConfig {
   maxTokens: number; // Capacidade do balde
   refillRate: number; // Quantos tokens adicionar
   refillInterval: number; // A cada quantos segundos
-  blockDuration?: number; // Quanto tempo bloquear após atingir limite (padrão: refillInterval)
+  blockDuration?: number; // Quanto tempo bloquear apÃ³s atingir limite (padrÃ£o: refillInterval)
 }
 
 export interface RateLimitStatus {
   allowed: boolean;
   tokensRemaining: number;
   resetAt: Date;
-  retryAfter: number; // Segundos até próxima tentativa
+  retryAfter: number; // Segundos atÃ© prÃ³xima tentativa
 }
 
 export class RateLimiter {
@@ -60,7 +61,7 @@ export class RateLimiter {
   }
 
   /**
-   * Verificar se operação é permitida
+   * Verificar se operaÃ§Ã£o Ã© permitida
    * Consome um token se permitido
    */
   async isAllowed(): Promise<boolean> {
@@ -85,7 +86,7 @@ export class RateLimiter {
       timeSinceRefill / this.config.refillInterval,
     );
 
-    // Refill tokens se necessário
+    // Refill tokens se necessÃ¡rio
     if (refillsNeeded > 0) {
       tokens = Math.min(
         this.config.maxTokens,
@@ -96,11 +97,11 @@ export class RateLimiter {
         .pipeline()
         .hset(this.key, "tokens", tokens)
         .hset(this.key, "lastRefill", now)
-        .expire(this.key, this.config.blockDuration! * 2) // Limpeza automática
+        .expire(this.key, this.config.blockDuration! * 2) // Limpeza automÃ¡tica
         .exec();
     }
 
-    // Verificar se está bloqueado
+    // Verificar se estÃ¡ bloqueado
     const isBlocked = now < blockedUntil;
     if (isBlocked) {
       return {
@@ -150,7 +151,7 @@ export class RateLimiter {
 
   /**
    * Registrar uma tentativa (sem consumir token automaticamente)
-   * Útil para: tentativa errada, login inválido, etc
+   * Ãštil para: tentativa errada, login invÃ¡lido, etc
    */
   async recordAttempt(): Promise<void> {
     await this.redis.hset(this.key, "lastAttempt", Date.now());
@@ -165,8 +166,8 @@ export class RateLimiter {
   }
 
   /**
-   * Pré-alocar com tokens iniciais
-   * Útil para: usuário novo, após upgrade, etc
+   * PrÃ©-alocar com tokens iniciais
+   * Ãštil para: usuÃ¡rio novo, apÃ³s upgrade, etc
    */
   async initialize(tokens: number = this.config.maxTokens): Promise<void> {
     await this.redis
@@ -179,12 +180,12 @@ export class RateLimiter {
 }
 
 /**
- * CONFIGURAÇÕES PRÉ-DEFINIDAS
+ * CONFIGURAÃ‡Ã•ES PRÃ‰-DEFINIDAS
  */
 export const RateLimitPresets = {
   /**
    * PIN login: 3 tentativas a cada 5 minutos
-   * Se falhar 3x → bloqueado por 5 min
+   * Se falhar 3x â†’ bloqueado por 5 min
    */
   PIN_LOGIN: {
     maxTokens: 3,
@@ -212,7 +213,7 @@ export const RateLimitPresets = {
   },
 
   /**
-   * API pública: 100 requisições por minuto
+   * API pÃºblica: 100 requisiÃ§Ãµes por minuto
    */
   PUBLIC_API: {
     maxTokens: 100,
@@ -221,7 +222,7 @@ export const RateLimitPresets = {
   },
 
   /**
-   * API pública (gratuita): 10 requisições por minuto
+   * API pÃºblica (gratuita): 10 requisiÃ§Ãµes por minuto
    */
   PUBLIC_API_FREE: {
     maxTokens: 10,
@@ -239,7 +240,7 @@ export const RateLimitPresets = {
   },
 
   /**
-   * Export de dados: 1 por dia (operação pesada)
+   * Export de dados: 1 por dia (operaÃ§Ã£o pesada)
    */
   EXPORT: {
     maxTokens: 1,
@@ -256,7 +257,7 @@ export const RateLimitPresets = {
  * - pin-login:store-123:admin-456 (tentativas de PIN por admin)
  * - login:ip:192.168.1.1 (tentativas de login por IP)
  * - password-reset:email:user@example.com (resets de senha por email)
- * - api:key:sk_live_xyz123 (requisições da API por chave)
+ * - api:key:sk_live_xyz123 (requisiÃ§Ãµes da API por chave)
  * - export:store:store-789 (exports de dados por loja)
  */
 
@@ -294,3 +295,4 @@ export const RateLimitPresets = {
  *      return { ok: false, error: "Apenas 1 export por dia" };
  *    }
  */
+

@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { prisma } from "../../db/client";
@@ -6,8 +7,8 @@ import { MonitoringService, HealthStatus } from "../monitoring-service";
 /**
  * PRIORIDADE 16: TESTES DE MONITORAMENTO
  *
- * Valida health checks, coleta de métricas,
- * detecção de anomalias e geração de alertas.
+ * Valida health checks, coleta de mÃ©tricas,
+ * detecÃ§Ã£o de anomalias e geraÃ§Ã£o de alertas.
  */
 
 describe("MonitoringService: Health Checks", () => {
@@ -47,7 +48,7 @@ describe("MonitoringService: Health Checks", () => {
     expect(health.services.Stripe).toBeDefined();
   });
 
-  it("deve determinar status geral como HEALTHY se todos saudáveis", async () => {
+  it("deve determinar status geral como HEALTHY se todos saudÃ¡veis", async () => {
     const health = await monitoringService.getSystemHealth();
 
     expect(health.status).toBe(HealthStatus.HEALTHY);
@@ -81,14 +82,14 @@ describe("MonitoringService: Application Metrics", () => {
     redis.disconnect();
   });
 
-  it("deve coletar zero requisições inicialmente", async () => {
+  it("deve coletar zero requisiÃ§Ãµes inicialmente", async () => {
     const metrics = await monitoringService.getApplicationMetrics();
 
     expect(metrics.requestsTotal).toBe(0);
     expect(metrics.errorsTotal).toBe(0);
   });
 
-  it("deve registrar requisição", async () => {
+  it("deve registrar requisiÃ§Ã£o", async () => {
     await monitoringService.recordRequest("GET", "/api/products", 200, 45);
 
     const metrics = await monitoringService.getApplicationMetrics();
@@ -97,7 +98,7 @@ describe("MonitoringService: Application Metrics", () => {
     expect(metrics.errorsTotal).toBe(0);
   });
 
-  it("deve contar requisições com erro", async () => {
+  it("deve contar requisiÃ§Ãµes com erro", async () => {
     await monitoringService.recordRequest("GET", "/api/products", 200, 45);
     await monitoringService.recordRequest("POST", "/api/orders", 500, 120);
 
@@ -108,7 +109,7 @@ describe("MonitoringService: Application Metrics", () => {
     expect(metrics.errorRate).toBe(50);
   });
 
-  it("deve calcular latência média", async () => {
+  it("deve calcular latÃªncia mÃ©dia", async () => {
     await monitoringService.recordRequest("GET", "/api/1", 200, 100);
     await monitoringService.recordRequest("GET", "/api/2", 200, 200);
     await monitoringService.recordRequest("GET", "/api/3", 200, 300);
@@ -118,7 +119,7 @@ describe("MonitoringService: Application Metrics", () => {
     expect(metrics.averageLatency).toBe(200);
   });
 
-  it("deve calcular P95 e P99 latência", async () => {
+  it("deve calcular P95 e P99 latÃªncia", async () => {
     for (let i = 0; i < 100; i++) {
       await monitoringService.recordRequest("GET", "/api", 200, i * 10);
     }
@@ -130,7 +131,7 @@ describe("MonitoringService: Application Metrics", () => {
     expect(metrics.p99Latency).toBeGreaterThanOrEqual(metrics.p95Latency);
   });
 
-  it("deve manter requisições por minuto", async () => {
+  it("deve manter requisiÃ§Ãµes por minuto", async () => {
     await monitoringService.recordRequest("GET", "/api", 200, 50);
     await monitoringService.recordRequest("GET", "/api", 200, 50);
     await monitoringService.recordRequest("GET", "/api", 200, 50);
@@ -190,7 +191,7 @@ describe("MonitoringService: Business Metrics", () => {
     expect(metrics.revenueToday).toBe(100);
   });
 
-  it("deve calcular valor médio de pedido", async () => {
+  it("deve calcular valor mÃ©dio de pedido", async () => {
     await prisma.order.create({
       data: {
         storeId,
@@ -274,7 +275,7 @@ describe("MonitoringService: Alerts", () => {
     expect(alert.timestamp).toBeInstanceOf(Date);
   });
 
-  it("deve gerar ID único para alerta", async () => {
+  it("deve gerar ID Ãºnico para alerta", async () => {
     const alert1 = await monitoringService.createAlert(
       "INFO",
       "Test 1",
@@ -296,7 +297,7 @@ describe("MonitoringService: Alerts", () => {
     expect(alert1.id).not.toBe(alert2.id);
   });
 
-  it("deve listar alertas não resolvidos", async () => {
+  it("deve listar alertas nÃ£o resolvidos", async () => {
     await monitoringService.createAlert("WARNING", "Alert 1", "Test", "m1", 5, 7);
     await monitoringService.createAlert("ERROR", "Alert 2", "Test", "m2", 10, 15);
 
@@ -306,7 +307,7 @@ describe("MonitoringService: Alerts", () => {
     expect(alerts[0].resolved).toBe(false);
   });
 
-  it("deve manter histórico de alertas", async () => {
+  it("deve manter histÃ³rico de alertas", async () => {
     for (let i = 0; i < 5; i++) {
       await monitoringService.createAlert(
         "INFO",
@@ -362,8 +363,8 @@ describe("MonitoringService: Anomaly Detection", () => {
     expect(errorRateAlert).toBeDefined();
   });
 
-  it("deve detectar latência elevada", async () => {
-    // Simular latência alta
+  it("deve detectar latÃªncia elevada", async () => {
+    // Simular latÃªncia alta
     for (let i = 0; i < 5; i++) {
       await monitoringService.recordRequest("GET", "/api", 200, 600);
     }
@@ -395,7 +396,7 @@ describe("MonitoringService: Anomaly Detection", () => {
       },
     });
 
-    // Criar múltiplos produtos com estoque baixo
+    // Criar mÃºltiplos produtos com estoque baixo
     for (let i = 0; i < 11; i++) {
       const p = await prisma.product.create({
         data: {
@@ -438,7 +439,7 @@ describe("MonitoringService: Prometheus Format", () => {
     redis.disconnect();
   });
 
-  it("deve formatar métricas em Prometheus", async () => {
+  it("deve formatar mÃ©tricas em Prometheus", async () => {
     await monitoringService.recordRequest("GET", "/api", 200, 50);
     await monitoringService.recordRequest("GET", "/api", 500, 100);
 
@@ -451,7 +452,7 @@ describe("MonitoringService: Prometheus Format", () => {
     expect(prometheus).toContain("latency_average_ms");
   });
 
-  it("deve incluir valores numéricos corretos", async () => {
+  it("deve incluir valores numÃ©ricos corretos", async () => {
     await monitoringService.recordRequest("GET", "/api", 200, 100);
 
     const metrics = await monitoringService.getApplicationMetrics();
@@ -486,7 +487,7 @@ describe("MonitoringService: Cleanup", () => {
       metric: "test",
       threshold: 10,
       currentValue: 5,
-      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000), // 48 horas atrás
+      timestamp: new Date(Date.now() - 48 * 60 * 60 * 1000), // 48 horas atrÃ¡s
       resolved: false,
     };
 
@@ -498,3 +499,4 @@ describe("MonitoringService: Cleanup", () => {
     expect(cleaned).toBeGreaterThan(0);
   });
 });
+

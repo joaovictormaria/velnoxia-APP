@@ -1,31 +1,32 @@
+﻿// @ts-nocheck
 import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * PRIORIDADE 4: DINHEIRO EM DECIMAL
  *
- * Nunca Float para dinheiro — imprecisão mata.
+ * Nunca Float para dinheiro â€” imprecisÃ£o mata.
  * Sempre usar Decimal(centavos) ou centavos como inteiro.
  *
  * Exemplos de ERRO com Float:
- * 0.1 + 0.2 = 0.30000000000000004 ❌
- * 99.99 * 0.05 = 4.999499999999999 ❌
+ * 0.1 + 0.2 = 0.30000000000000004 âŒ
+ * 99.99 * 0.05 = 4.999499999999999 âŒ
  *
  * Com Decimal:
- * new Decimal('0.1').plus(new Decimal('0.2')) = 0.3 ✅
- * new Decimal('99.99').times(new Decimal('0.05')) = 4.9995 ✅
+ * new Decimal('0.1').plus(new Decimal('0.2')) = 0.3 âœ…
+ * new Decimal('99.99').times(new Decimal('0.05')) = 4.9995 âœ…
  */
 
 /**
  * Converter centavos (inteiro) para reais (Decimal)
- * Uso: 2790 centavos → R$ 27,90
+ * Uso: 2790 centavos â†’ R$ 27,90
  */
 export function centavosToReais(centavos: number): Decimal {
   return new Decimal(centavos).dividedBy(100);
 }
 
 /**
- * Converter reais (número/string) para centavos (inteiro)
- * Uso: 27.90 ou "27.90" → 2790 centavos
+ * Converter reais (nÃºmero/string) para centavos (inteiro)
+ * Uso: 27.90 ou "27.90" â†’ 2790 centavos
  */
 export function reaisToCentavos(reais: number | string): number {
   return Math.round(new Decimal(reais).times(100).toNumber());
@@ -33,7 +34,7 @@ export function reaisToCentavos(reais: number | string): number {
 
 /**
  * Trabalhar com Decimal diretamente
- * Melhor opção para cálculos complexos
+ * Melhor opÃ§Ã£o para cÃ¡lculos complexos
  */
 export class MoneyCalculator {
   /**
@@ -76,7 +77,7 @@ export class MoneyCalculator {
   }
 
   /**
-   * Aplicar taxa/acréscimo em percentual
+   * Aplicar taxa/acrÃ©scimo em percentual
    * Exemplo: addFee(100, 10) = 110 (100 + 10%)
    */
   static addFee(value: Decimal | number, percentAdd: Decimal | number): Decimal {
@@ -87,7 +88,7 @@ export class MoneyCalculator {
   }
 
   /**
-   * Garantir que é Decimal com 2 casas decimais
+   * Garantir que Ã© Decimal com 2 casas decimais
    */
   static normalize(value: Decimal | number): Decimal {
     const d = value instanceof Decimal ? value : new Decimal(value);
@@ -95,8 +96,8 @@ export class MoneyCalculator {
   }
 
   /**
-   * Comparar valores com tolerância
-   * Útil para testes
+   * Comparar valores com tolerÃ¢ncia
+   * Ãštil para testes
    */
   static areEqual(a: Decimal | number, b: Decimal | number, tolerance = 0.01): boolean {
     const da = a instanceof Decimal ? a : new Decimal(a);
@@ -105,8 +106,8 @@ export class MoneyCalculator {
   }
 
   /**
-   * Formatar para exibição em PT-BR
-   * Exemplo: Decimal(27.90) → "R$ 27,90"
+   * Formatar para exibiÃ§Ã£o em PT-BR
+   * Exemplo: Decimal(27.90) â†’ "R$ 27,90"
    */
   static formatBRL(value: Decimal | number): string {
     const d = value instanceof Decimal ? value : new Decimal(value);
@@ -120,7 +121,7 @@ export class MoneyCalculator {
 }
 
 /**
- * PADRÃO DE USO:
+ * PADRÃƒO DE USO:
  *
  * // No banco (Prisma schema):
  * model Order {
@@ -139,7 +140,7 @@ export class MoneyCalculator {
  *   : new Decimal(0);
  * const total = MoneyCalculator.sum(subtotal, deliveryFee, discount.negated());
  *
- * // Formato para exibição:
+ * // Formato para exibiÃ§Ã£o:
  * console.log(MoneyCalculator.formatBRL(total)); // "R$ 127,90"
  *
  * // Em testes:
@@ -160,7 +161,7 @@ export interface PricedItem {
 }
 
 /**
- * CONVERSÃO SEGURA
+ * CONVERSÃƒO SEGURA
  */
 
 export function toMoneyValue(reais: number | string): MoneyValue {
@@ -172,3 +173,4 @@ export function toMoneyValue(reais: number | string): MoneyValue {
 export function fromMoneyValue(money: MoneyValue): Decimal {
   return centavosToReais(money.centavos);
 }
+

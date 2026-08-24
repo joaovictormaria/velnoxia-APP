@@ -85,7 +85,7 @@ export const csrfProtection = defineEventHandler(async (event) => {
     const cookieToken = getCookie(event, CSRF_COOKIE_NAME);
     const headerToken = event.node!.req.headers[CSRF_HEADER_NAME] as string | undefined;
 
-    if (!validateCSRFToken(headerToken || "", cookieToken)) {
+    if (!validateCSRFToken(headerToken || "", cookieToken || "")) {
       throw createError({
         statusCode: 403,
         statusMessage: "CSRF token validation failed",

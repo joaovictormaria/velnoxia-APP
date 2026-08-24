@@ -183,16 +183,16 @@ export class OrderInventoryHandler {
 
           await InventoryService.recordMovement(order.storeId, {
             idempotencyKey: reversalKey,
-            itemId: movement.itemId,
+            item: { connect: { id: movement.itemId } },
             type: "REVERSAL",
             quantity: (movement as any).quantity * -1,
-            unitId: movement.unitId,
-            originalMovementId: movement.id,
+            unit: { connect: { id: movement.unitId } },
+            originalMovement: { connect: { id: movement.id } },
             reference: orderId,
             referenceType: "ORDER_CANCELLATION",
             authorType: "SYSTEM",
             authorName: "Order Cancellation Handler",
-          });
+          } as any);
         }
       } catch (error) {
         console.error(

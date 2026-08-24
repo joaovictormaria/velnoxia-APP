@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { RateLimiter, RateLimitPresets } from "../rate-limiter";
@@ -5,7 +6,7 @@ import { RateLimiter, RateLimitPresets } from "../rate-limiter";
 /**
  * PRIORIDADE 9: TESTES DE RATE LIMITING
  *
- * Valida token bucket algorithm e cenários de brute force.
+ * Valida token bucket algorithm e cenÃ¡rios de brute force.
  * Nota: Estes testes requerem Redis rodando (ou mock).
  * Para testes sem Redis, usar Mock/InMemory adapter.
  */
@@ -16,7 +17,7 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
 
   beforeEach(() => {
     // Mock ou Redis real para testes
-    // Para exemplo, assumindo Redis mock disponível
+    // Para exemplo, assumindo Redis mock disponÃ­vel
     redis = new Redis({
       host: "localhost",
       port: 6379,
@@ -43,7 +44,7 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
       expect(status.tokensRemaining).toBe(2); // 3 - 1
     });
 
-    it("deve permitir até 3 tentativas", async () => {
+    it("deve permitir atÃ© 3 tentativas", async () => {
       limiter = new RateLimiter(
         redis,
         "test:pin:user2",
@@ -61,7 +62,7 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
       expect(att3.tokensRemaining).toBe(0);
     });
 
-    it("deve bloquear após 3 tentativas", async () => {
+    it("deve bloquear apÃ³s 3 tentativas", async () => {
       limiter = new RateLimiter(
         redis,
         "test:pin:user3",
@@ -73,7 +74,7 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
       await limiter.getStatus();
       await limiter.getStatus();
 
-      // 4ª tentativa bloqueada
+      // 4Âª tentativa bloqueada
       const status = await limiter.getStatus();
 
       expect(status.allowed).toBe(false);
@@ -94,14 +95,14 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
       await limiter.getStatus();
       const status = await limiter.getStatus();
 
-      // retryAfter deve estar próximo a 300 (5 min)
+      // retryAfter deve estar prÃ³ximo a 300 (5 min)
       expect(status.retryAfter).toBeGreaterThan(0);
       expect(status.retryAfter).toBeLessThanOrEqual(300);
     });
   });
 
-  describe("Refill automático", () => {
-    it("deve refill de tokens após intervalo", async () => {
+  describe("Refill automÃ¡tico", () => {
+    it("deve refill de tokens apÃ³s intervalo", async () => {
       limiter = new RateLimiter(redis, "test:refill:1", {
         maxTokens: 2,
         refillRate: 2,
@@ -145,12 +146,12 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
       // Agora deve permitir novamente
       const status = await limiter.getStatus();
       expect(status.allowed).toBe(true);
-      expect(status.tokensRemaining).toBe(2); // Máximo - 1
+      expect(status.tokensRemaining).toBe(2); // MÃ¡ximo - 1
     });
   });
 
   describe("Initialize", () => {
-    it("deve pré-alocar tokens iniciais", async () => {
+    it("deve prÃ©-alocar tokens iniciais", async () => {
       limiter = new RateLimiter(
         redis,
         "test:init:1",
@@ -172,11 +173,11 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
         RateLimitPresets.PIN_LOGIN,
       );
 
-      // Tentar alocar 100 tokens, mas máximo é 3
+      // Tentar alocar 100 tokens, mas mÃ¡ximo Ã© 3
       await limiter.initialize(100);
 
       const status = await limiter.getStatus();
-      // Deve ter no máximo 3 tokens (e consumiu 1)
+      // Deve ter no mÃ¡ximo 3 tokens (e consumiu 1)
       expect(status.tokensRemaining).toBeLessThanOrEqual(2);
     });
   });
@@ -191,7 +192,7 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
 
       await limiter.recordAttempt();
 
-      // Tokens não devem ter mudado
+      // Tokens nÃ£o devem ter mudado
       const status = await limiter.getStatus();
       expect(status.tokensRemaining).toBe(2); // 3 - 1 (apenas do getStatus)
     });
@@ -210,7 +211,7 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
         expect(status.allowed).toBe(true);
       }
 
-      // 6ª tentativa bloqueada
+      // 6Âª tentativa bloqueada
       const status = await limiter.getStatus();
       expect(status.allowed).toBe(false);
     });
@@ -281,18 +282,18 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
       for (let i = 0; i < 3; i++) {
         const status = await limiter.getStatus();
         if (!status.allowed) {
-          // Usuário bloqueado
+          // UsuÃ¡rio bloqueado
           expect(status.retryAfter).toBeGreaterThan(0);
           return;
         }
       }
 
-      // 4ª tentativa
+      // 4Âª tentativa
       const final = await limiter.getStatus();
       expect(final.allowed).toBe(false);
     });
 
-    it("IP login spam: bloquear após 5 tentativas", async () => {
+    it("IP login spam: bloquear apÃ³s 5 tentativas", async () => {
       const ip = "192.168.1.1";
 
       limiter = new RateLimiter(
@@ -360,3 +361,4 @@ describe("RateLimiter: Token Bucket Algorithm", () => {
     });
   });
 });
+

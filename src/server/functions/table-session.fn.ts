@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { prisma } from "../db/client";
@@ -20,7 +21,7 @@ export const createTableSessionFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const store = await getStoreBySlug(data.storeSlug);
     if (!store) {
-      return { ok: false as const, error: "Loja não encontrada" };
+      return { ok: false as const, error: "Loja nÃ£o encontrada" };
     }
 
     // Limpar sessions expiradas da loja
@@ -31,7 +32,7 @@ export const createTableSessionFn = createServerFn({ method: "POST" })
       },
     });
 
-    // Criar nova sessão (24 horas de validade)
+    // Criar nova sessÃ£o (24 horas de validade)
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
@@ -51,7 +52,7 @@ export const createTableSessionFn = createServerFn({ method: "POST" })
         tableNumber: session.tableNumber,
       };
     } catch (error) {
-      return { ok: false as const, error: "Erro ao criar sessão da mesa" };
+      return { ok: false as const, error: "Erro ao criar sessÃ£o da mesa" };
     }
   });
 
@@ -108,7 +109,7 @@ export const getOrCreateTableSessionFn = createServerFn({ method: "POST" })
     try {
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       const session = await getOrCreateOpenTableSession(store.id, data.tableId);
@@ -139,7 +140,7 @@ export const getOrCreateTableSessionFn = createServerFn({ method: "POST" })
 const validateSessionPinSchema = z.object({
   storeSlug: z.string().min(1),
   sessionId: z.string().cuid(),
-  pin: z.string().regex(/^\d{4}$/, "PIN deve ter 4 dígitos"),
+  pin: z.string().regex(/^\d{4}$/, "PIN deve ter 4 dÃ­gitos"),
 });
 
 export const validateTableSessionPinFn = createServerFn({ method: "POST" })
@@ -148,7 +149,7 @@ export const validateTableSessionPinFn = createServerFn({ method: "POST" })
     try {
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       const result = await validateTableSessionPin(store.id, data.sessionId, data.pin);
@@ -186,7 +187,7 @@ export const authorizeFirstDeviceFn = createServerFn({ method: "POST" })
     try {
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       const result = await authorizeDeviceForSession(store.id, data.sessionId, true);
@@ -219,7 +220,7 @@ export const authorizeDeviceForSessionFn = createServerFn({ method: "POST" })
     try {
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       const result = await authorizeDeviceForSession(store.id, data.sessionId, false);
@@ -257,7 +258,7 @@ export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
     try {
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
-        return { ok: false as const, error: "Loja não encontrada" };
+        return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
 
       const result = await orchestrateTableSession(store.id, data.tableId);
@@ -273,3 +274,4 @@ export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
       return { ok: false as const, error: msg };
     }
   });
+

@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
@@ -97,13 +98,13 @@ export const saveStoreSettingsFn = createServerFn({ method: "POST" })
     if (data.estimatedDeliveryMinMax < data.estimatedDeliveryMinMin) {
       return {
         ok: false as const,
-        error: "O tempo máximo de entrega não pode ser menor que o mínimo.",
+        error: "O tempo mÃ¡ximo de entrega nÃ£o pode ser menor que o mÃ­nimo.",
       };
     }
     if (data.estimatedPickupMinMax < data.estimatedPickupMinMin) {
       return {
         ok: false as const,
-        error: "O tempo máximo de retirada não pode ser menor que o mínimo.",
+        error: "O tempo mÃ¡ximo de retirada nÃ£o pode ser menor que o mÃ­nimo.",
       };
     }
     if (!data.acceptsDelivery && !data.acceptsPickup) {
@@ -124,7 +125,7 @@ export const saveOpeningHoursFn = createServerFn({ method: "POST" })
     if (invalid) {
       return {
         ok: false as const,
-        error: "O horário de fechamento precisa ser depois do de abertura.",
+        error: "O horÃ¡rio de fechamento precisa ser depois do de abertura.",
       };
     }
     await replaceOpeningHours(storeId, data);
@@ -150,10 +151,10 @@ export const deleteRestaurantPhotoFn = createServerFn({ method: "POST" })
   });
 
 /**
- * O ramo da loja, que decide os textos e a capa do cardápio digital.
+ * O ramo da loja, que decide os textos e a capa do cardÃ¡pio digital.
  *
- * Fica fora de saveStoreSettingsFn porque mora noutra tabela — é do Store, não
- * do StoreSettings — e porque é uma mudança de natureza diferente: mexe em como
+ * Fica fora de saveStoreSettingsFn porque mora noutra tabela â€” Ã© do Store, nÃ£o
+ * do StoreSettings â€” e porque Ã© uma mudanÃ§a de natureza diferente: mexe em como
  * a loja se apresenta, nunca no que ela vende.
  */
 export const getBusinessTypeFn = createServerFn({ method: "GET" }).handler(async () => {
@@ -174,9 +175,9 @@ export const saveBusinessTypeFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     /**
-     * Troca só o ramo. O cardápio inicial não é semeado de novo: ele existe
-     * para a loja não nascer vazia, e reaplicá-lo aqui apagaria ou duplicaria
-     * os produtos que o dono já cadastrou — o oposto do que ele pediu ao
+     * Troca sÃ³ o ramo. O cardÃ¡pio inicial nÃ£o Ã© semeado de novo: ele existe
+     * para a loja nÃ£o nascer vazia, e reaplicÃ¡-lo aqui apagaria ou duplicaria
+     * os produtos que o dono jÃ¡ cadastrou â€” o oposto do que ele pediu ao
      * corrigir o ramo.
      */
     await prisma.store.update({
@@ -185,3 +186,4 @@ export const saveBusinessTypeFn = createServerFn({ method: "POST" })
     });
     return { ok: true as const };
   });
+

@@ -311,7 +311,7 @@ export async function validateDeviceToken(
     // In production, consider caching token hashes or using indexed search
     // For now, verify against each hash (safe but slower)
     try {
-      const { verifyDeviceToken } = await import("./device-token");
+      const { verifyDeviceToken } = await import("../auth/device-token");
       const isValid = await verifyDeviceToken(deviceToken, device.deviceTokenHash);
 
       if (isValid) {

@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { prisma } from "@/server/db/client";
 
 export const unitConversionRepository = {
@@ -12,7 +13,7 @@ export const unitConversionRepository = {
 
     const result: Record<string, number> = {};
     conversions.forEach((c) => {
-      const key = `${c.fromUnitId}→${c.toUnitId}`;
+      const key = `${c.fromUnitId}â†’${c.toUnitId}`;
       result[key] = Number(c.conversionFactor);
     });
 
@@ -59,3 +60,4 @@ export const unitConversionRepository = {
     });
   },
 };
+

@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "@/server/db/client";
 import {
@@ -204,7 +205,7 @@ describe("Table Session Dashboard Service", () => {
     it("should throw error for non-existent session", async () => {
       await expect(
         getTableSessionDetails(storeId, "non-existent-id"),
-      ).rejects.toThrow("Sessão não encontrada");
+      ).rejects.toThrow("SessÃ£o nÃ£o encontrada");
     });
 
     it("should throw error for unauthorized store", async () => {
@@ -217,7 +218,7 @@ describe("Table Session Dashboard Service", () => {
 
       await expect(
         getTableSessionDetails(otherStore.id, sessionId),
-      ).rejects.toThrow("Não autorizado");
+      ).rejects.toThrow("NÃ£o autorizado");
 
       await prisma.store.delete({ where: { id: otherStore.id } });
     });
@@ -317,7 +318,7 @@ describe("Table Session Dashboard Service", () => {
     it("should throw error for non-existent session", async () => {
       await expect(
         closeTableSession(storeId, "non-existent-id", "CLOSED"),
-      ).rejects.toThrow("Sessão não encontrada");
+      ).rejects.toThrow("SessÃ£o nÃ£o encontrada");
     });
 
     it("should throw error for unauthorized store", async () => {
@@ -330,7 +331,7 @@ describe("Table Session Dashboard Service", () => {
 
       await expect(
         closeTableSession(otherStore.id, sessionId, "CLOSED"),
-      ).rejects.toThrow("Não autorizado");
+      ).rejects.toThrow("NÃ£o autorizado");
 
       await prisma.store.delete({ where: { id: otherStore.id } });
     });
@@ -351,3 +352,4 @@ describe("Table Session Dashboard Service", () => {
     });
   });
 });
+

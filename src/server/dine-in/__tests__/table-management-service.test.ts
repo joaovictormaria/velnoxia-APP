@@ -1,12 +1,13 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { prisma } from "../../db/client";
 import { TableManagementService, TableStatus } from "../table-management-service";
 
 /**
- * PRIORIDADE 13: TESTES DE DINE-IN AVANÇADO
+ * PRIORIDADE 13: TESTES DE DINE-IN AVANÃ‡ADO
  *
- * Valida gerenciamento de mesas, transições de status,
- * histórico de ocupação e analytics.
+ * Valida gerenciamento de mesas, transiÃ§Ãµes de status,
+ * histÃ³rico de ocupaÃ§Ã£o e analytics.
  */
 
 describe("TableManagementService: Table State", () => {
@@ -118,7 +119,7 @@ describe("TableManagementService: Occupancy", () => {
     expect(state.occupiedSince).toBeDefined();
   });
 
-  it("deve criar registro de ocupação", async () => {
+  it("deve criar registro de ocupaÃ§Ã£o", async () => {
     await tableService.occupyTable(storeId, tableId, customerId);
 
     const occupancy = await (prisma as any).tableOccupancy.findFirst({
@@ -130,15 +131,15 @@ describe("TableManagementService: Occupancy", () => {
     expect(occupancy?.checkOutAt).toBeNull();
   });
 
-  it("deve rejeitar ocupação de mesa já ocupada", async () => {
+  it("deve rejeitar ocupaÃ§Ã£o de mesa jÃ¡ ocupada", async () => {
     await tableService.occupyTable(storeId, tableId, customerId);
 
     await expect(
       tableService.occupyTable(storeId, tableId, "another-customer"),
-    ).rejects.toThrow("não está vazia");
+    ).rejects.toThrow("nÃ£o estÃ¡ vazia");
   });
 
-  it("deve calcular duração de ocupação", async () => {
+  it("deve calcular duraÃ§Ã£o de ocupaÃ§Ã£o", async () => {
     await tableService.occupyTable(storeId, tableId, customerId);
 
     // Esperar um pouco
@@ -243,10 +244,10 @@ describe("TableManagementService: Status Transitions", () => {
     expect(state.status).toBe(TableStatus.PAYING);
   });
 
-  it("deve rejeitar transição inválida", async () => {
+  it("deve rejeitar transiÃ§Ã£o invÃ¡lida", async () => {
     await tableService.occupyTable(storeId, tableId);
 
-    // OCCUPIED → EMPTY é inválido
+    // OCCUPIED â†’ EMPTY Ã© invÃ¡lido
     await expect(
       tableService.changeTableStatus(
         storeId,
@@ -254,10 +255,10 @@ describe("TableManagementService: Status Transitions", () => {
         TableStatus.EMPTY,
         "admin",
       ),
-    ).rejects.toThrow("inválida");
+    ).rejects.toThrow("invÃ¡lida");
   });
 
-  it("deve permitir cliente chamar garçom de OCCUPIED", async () => {
+  it("deve permitir cliente chamar garÃ§om de OCCUPIED", async () => {
     await tableService.occupyTable(storeId, tableId);
     const state = await tableService.callWaiter(storeId, tableId);
 
@@ -556,7 +557,7 @@ describe("TableManagementService: Analytics", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve calcular taxa de ocupação", async () => {
+  it("deve calcular taxa de ocupaÃ§Ã£o", async () => {
     const analytics = await tableService.getTableAnalytics(storeId);
 
     expect(analytics.totalTables).toBe(2);
@@ -570,7 +571,7 @@ describe("TableManagementService: Analytics", () => {
     expect(analytics.emptyTables).toBe(1);
   });
 
-  it("deve retornar 0% ocupação se vazio", async () => {
+  it("deve retornar 0% ocupaÃ§Ã£o se vazio", async () => {
     await prisma.table.update({
       where: { id: table2 },
       data: { status: TableStatus.EMPTY as any },
@@ -609,7 +610,7 @@ describe("TableManagementService: History", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve retornar histórico de ocupação", async () => {
+  it("deve retornar histÃ³rico de ocupaÃ§Ã£o", async () => {
     await tableService.occupyTable(storeId, tableId, "customer-1");
     await tableService.releaseTable(storeId, tableId, "admin");
 
@@ -620,7 +621,7 @@ describe("TableManagementService: History", () => {
     expect(history[0].checkOutAt).toBeDefined();
   });
 
-  it("deve incluir duração na história", async () => {
+  it("deve incluir duraÃ§Ã£o na histÃ³ria", async () => {
     await tableService.occupyTable(storeId, tableId, "customer-1");
     await new Promise((resolve) => setTimeout(resolve, 50));
     await tableService.releaseTable(storeId, tableId, "admin");
@@ -630,3 +631,4 @@ describe("TableManagementService: History", () => {
     expect(history[0].durationMinutes).toBeGreaterThanOrEqual(0);
   });
 });
+

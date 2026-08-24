@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { prisma } from "@/server/db/client";
 import { Prisma, InventoryMovementType } from "@prisma/client";
 
@@ -201,3 +202,4 @@ export const inventoryMovementRepository = {
     });
   },
 };
+

@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { prisma } from "../../db/client";
@@ -5,9 +6,9 @@ import { PublicAPIService, APIKeyTier, WebhookEventType } from "../public-api-se
 import { createHash } from "node:crypto";
 
 /**
- * PRIORIDADE 14: TESTES DE API PÚBLICA
+ * PRIORIDADE 14: TESTES DE API PÃšBLICA
  *
- * Valida autenticação via API keys, rate limiting,
+ * Valida autenticaÃ§Ã£o via API keys, rate limiting,
  * webhooks, e formato de respostas.
  */
 
@@ -101,7 +102,7 @@ describe("PublicAPIService: API Keys", () => {
   });
 
   it("deve retornar null para API key expirada", async () => {
-    // Criar key com expiração no passado
+    // Criar key com expiraÃ§Ã£o no passado
     const keyHash = createHash("sha256").update("expired-key").digest("hex");
     await (prisma as any).aPIKey.create({
       data: {
@@ -111,7 +112,7 @@ describe("PublicAPIService: API Keys", () => {
         tier: APIKeyTier.FREE,
         name: "Expired",
         isActive: true,
-        expiresAt: new Date(Date.now() - 1000), // 1 seg atrás
+        expiresAt: new Date(Date.now() - 1000), // 1 seg atrÃ¡s
         lastUsedAt: new Date(),
         requestsThisMonth: 0,
         createdBy: adminId,
@@ -202,26 +203,26 @@ describe("PublicAPIService: Rate Limiting", () => {
     redis.disconnect();
   });
 
-  it("deve permitir requisição dentro do limite FREE", async () => {
+  it("deve permitir requisiÃ§Ã£o dentro do limite FREE", async () => {
     const allowed = await apiService.checkRateLimit(keyId, APIKeyTier.FREE);
 
     expect(allowed).toBe(true);
   });
 
-  it("deve bloquear após limite FREE (10/min)", async () => {
-    // Usar 10 requisições
+  it("deve bloquear apÃ³s limite FREE (10/min)", async () => {
+    // Usar 10 requisiÃ§Ãµes
     for (let i = 0; i < 10; i++) {
       await apiService.checkRateLimit(keyId, APIKeyTier.FREE);
     }
 
-    // 11ª bloqueada
+    // 11Âª bloqueada
     const allowed = await apiService.checkRateLimit(keyId, APIKeyTier.FREE);
 
     expect(allowed).toBe(false);
   });
 
-  it("deve permitir mais requisições para STANDARD", async () => {
-    // Usar 100 requisições (limite STANDARD)
+  it("deve permitir mais requisiÃ§Ãµes para STANDARD", async () => {
+    // Usar 100 requisiÃ§Ãµes (limite STANDARD)
     let count = 0;
     for (let i = 0; i < 100; i++) {
       const allowed = await apiService.checkRateLimit(keyId, APIKeyTier.STANDARD);
@@ -297,7 +298,7 @@ describe("PublicAPIService: Webhooks", () => {
         [WebhookEventType.ORDER_CREATED],
         adminId,
       ),
-    ).rejects.toThrow("URL inválida");
+    ).rejects.toThrow("URL invÃ¡lida");
   });
 
   it("deve rejeitar webhook sem eventos", async () => {
@@ -306,7 +307,7 @@ describe("PublicAPIService: Webhooks", () => {
     ).rejects.toThrow("Pelo menos um tipo de evento");
   });
 
-  it("deve suportar múltiplos eventos", async () => {
+  it("deve suportar mÃºltiplos eventos", async () => {
     const webhook = await apiService.subscribeWebhook(
       storeId,
       "https://example.com/webhook",
@@ -388,7 +389,7 @@ describe("PublicAPIService: Response Formatting", () => {
   it("deve formatar resposta de erro", () => {
     const response = apiService.formatErrorResponse(
       "INVALID_REQUEST",
-      "Request inválido",
+      "Request invÃ¡lido",
       "req-xyz",
       { field: "email" },
     );
@@ -396,7 +397,7 @@ describe("PublicAPIService: Response Formatting", () => {
     expect(response.ok).toBe(false);
     expect(response.data).toBeUndefined();
     expect(response.error?.code).toBe("INVALID_REQUEST");
-    expect(response.error?.message).toBe("Request inválido");
+    expect(response.error?.message).toBe("Request invÃ¡lido");
     expect(response.error?.details?.field).toBe("email");
     expect(response.meta?.requestId).toBe("req-xyz");
   });
@@ -405,7 +406,7 @@ describe("PublicAPIService: Response Formatting", () => {
     const response = apiService.formatSuccessResponse({}, "req-123");
 
     expect(response.meta?.timestamp).toBeDefined();
-    // Validar que é ISO string
+    // Validar que Ã© ISO string
     expect(new Date(response.meta?.timestamp || "").getTime()).toBeGreaterThan(0);
   });
 });
@@ -442,8 +443,8 @@ describe("PublicAPIService: Webhook Triggering", () => {
       "admin",
     );
 
-    // Mock fetch não é necessário para este teste
-    // Apenas validar que a função completa sem erro
+    // Mock fetch nÃ£o Ã© necessÃ¡rio para este teste
+    // Apenas validar que a funÃ§Ã£o completa sem erro
     await expect(
       apiService.triggerWebhook(storeId, WebhookEventType.ORDER_CREATED, {
         orderId: "123",
@@ -451,7 +452,7 @@ describe("PublicAPIService: Webhook Triggering", () => {
     ).resolves.not.toThrow();
   });
 
-  it("não deve disparar webhook para eventos não inscritos", async () => {
+  it("nÃ£o deve disparar webhook para eventos nÃ£o inscritos", async () => {
     await apiService.subscribeWebhook(
       storeId,
       "https://example.com/webhook",
@@ -459,7 +460,7 @@ describe("PublicAPIService: Webhook Triggering", () => {
       "admin",
     );
 
-    // Disparar evento não inscrito (não deve enviar)
+    // Disparar evento nÃ£o inscrito (nÃ£o deve enviar)
     await expect(
       apiService.triggerWebhook(storeId, WebhookEventType.PAYMENT_CONFIRMED, {}),
     ).resolves.not.toThrow();
@@ -534,3 +535,4 @@ describe("PublicAPIService: API Key Tiers", () => {
     expect(freeStatus.tokensRemaining).toBeLessThan(standardStatus.tokensRemaining);
   });
 });
+

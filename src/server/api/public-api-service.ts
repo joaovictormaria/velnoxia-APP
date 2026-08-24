@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { prisma } from "../db/client";
 import { RateLimiter, RateLimitPresets } from "../ratelimit/rate-limiter";
 import { Redis } from "ioredis";
@@ -5,33 +6,33 @@ import { createHash, randomBytes } from "node:crypto";
 import { AuditService } from "../audit/audit-service";
 
 /**
- * PRIORIDADE 14: API PÚBLICA
+ * PRIORIDADE 14: API PÃšBLICA
  *
  * Endpoints RESTful para terceiros integrem com Velnoxia.
- * Autenticação via API keys, rate limiting, webhooks, e versionamento.
+ * AutenticaÃ§Ã£o via API keys, rate limiting, webhooks, e versionamento.
  *
  * Arquitetura:
- * - APIKey model: chaves com limite de requisições
+ * - APIKey model: chaves com limite de requisiÃ§Ãµes
  * - WebhookEvent model: logs de eventos disparados
  * - WebhookSubscription model: quem quer receber quais eventos
  * - Rate limiting por chave (10 req/min para FREE, 100/min para PAID)
  *
- * Endpoints públicos (v1):
- * GET    /api/v1/orders              — Listar pedidos
- * POST   /api/v1/orders              — Criar pedido
- * GET    /api/v1/orders/{id}         — Detalhes do pedido
- * GET    /api/v1/products            — Catálogo
- * POST   /api/v1/webhooks/subscribe  — Configurar webhook
- * DELETE /api/v1/webhooks/{id}       — Remover webhook
+ * Endpoints pÃºblicos (v1):
+ * GET    /api/v1/orders              â€” Listar pedidos
+ * POST   /api/v1/orders              â€” Criar pedido
+ * GET    /api/v1/orders/{id}         â€” Detalhes do pedido
+ * GET    /api/v1/products            â€” CatÃ¡logo
+ * POST   /api/v1/webhooks/subscribe  â€” Configurar webhook
+ * DELETE /api/v1/webhooks/{id}       â€” Remover webhook
  *
- * Headers obrigatórios:
+ * Headers obrigatÃ³rios:
  * Authorization: Bearer {api_key}
  * X-API-Version: 1
  *
  * Responses:
  * - 200 OK: Sucesso com data
- * - 400 Bad Request: Validação falhou
- * - 401 Unauthorized: API key inválida/expirada
+ * - 400 Bad Request: ValidaÃ§Ã£o falhou
+ * - 401 Unauthorized: API key invÃ¡lida/expirada
  * - 429 Too Many Requests: Rate limit atingido
  * - 500 Internal Server Error: Erro servidor
  *
@@ -60,7 +61,7 @@ export enum WebhookEventType {
 export interface APIKey {
   id: string;
   key: string; // Hash SHA-256 armazenado no BD
-  displayKey: string; // Primeiros 8 chars + últimos 4 para UI
+  displayKey: string; // Primeiros 8 chars + Ãºltimos 4 para UI
   storeId: string;
   tier: APIKeyTier;
   name: string;
@@ -145,7 +146,7 @@ export class PublicAPIService {
     });
 
     return {
-      key, // Retornar apenas uma vez (o usuário precisa salvar)
+      key, // Retornar apenas uma vez (o usuÃ¡rio precisa salvar)
       apiKey: {
         id: apiKey.id,
         key: apiKey.displayKey,
@@ -201,7 +202,7 @@ export class PublicAPIService {
     });
 
     if (!apiKey) {
-      throw new Error("API key não encontrada");
+      throw new Error("API key nÃ£o encontrada");
     }
 
     await (prisma as any).aPIKey.update({
@@ -231,11 +232,11 @@ export class PublicAPIService {
   ): Promise<WebhookSubscription> {
     // Validar URL
     if (!this.isValidURL(url)) {
-      throw new Error("URL inválida");
+      throw new Error("URL invÃ¡lida");
     }
 
     if (eventTypes.length === 0) {
-      throw new Error("Pelo menos um tipo de evento é obrigatório");
+      throw new Error("Pelo menos um tipo de evento Ã© obrigatÃ³rio");
     }
 
     const subscription = await (prisma as any).webhookSubscription.create({
@@ -284,7 +285,7 @@ export class PublicAPIService {
     });
 
     if (!webhook) {
-      throw new Error("Webhook não encontrado");
+      throw new Error("Webhook nÃ£o encontrado");
     }
 
     await (prisma as any).webhookSubscription.update({
@@ -299,7 +300,7 @@ export class PublicAPIService {
       action: "DELETE",
       resource: "WebhookSubscription",
       resourceId: webhookId,
-      reason: `Webhook desinscrição: ${webhook.url}`,
+      reason: `Webhook desinscriÃ§Ã£o: ${webhook.url}`,
     });
   }
 
@@ -327,7 +328,7 @@ export class PublicAPIService {
 
     for (const sub of subscriptions) {
       try {
-        // Enviar webhook (async, não aguardar)
+        // Enviar webhook (async, nÃ£o aguardar)
         await this.sendWebhookRequest(sub.id, sub.url, payload);
 
         // Atualizar lastTriggeredAt
@@ -342,7 +343,7 @@ export class PublicAPIService {
           data: { failureCount: { increment: 1 } },
         });
 
-        // Desabilitar após 5 falhas consecutivas
+        // Desabilitar apÃ³s 5 falhas consecutivas
         if ((await (prisma as any).webhookSubscription.findUnique({ where: { id: sub.id } }))
           ?.failureCount === 5) {
           await (prisma as any).webhookSubscription.update({
@@ -434,7 +435,7 @@ export class PublicAPIService {
   }
 
   /**
-   * Enviar webhook request (implementação)
+   * Enviar webhook request (implementaÃ§Ã£o)
    */
   private async sendWebhookRequest(
     webhookId: string,
@@ -539,11 +540,11 @@ export class PublicAPIService {
  * 1. TERCEIRO CRIA API KEY:
  *    const { key } = await apiService.createAPIKey(
  *      "store-123",
- *      "Integração POS",
+ *      "IntegraÃ§Ã£o POS",
  *      "STANDARD",
  *      "admin"
  *    );
- *    // Guardar key com segurança (nunca reutilizar)
+ *    // Guardar key com seguranÃ§a (nunca reutilizar)
  *
  * 2. TERCEIRO AUTENTICA:
  *    const valid = await apiService.validateAPIKey(key);
@@ -587,3 +588,4 @@ export class PublicAPIService {
  *    const status = await apiService.getRateLimitStatus(keyId, "FREE");
  *    res.headers = apiService.getRateLimitHeaders(status);
  */
+

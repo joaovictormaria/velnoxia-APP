@@ -86,7 +86,7 @@ export async function listCustomers(
       email: c.email,
       createdAt: c.createdAt,
       orderCount: c.orders.length,
-      totalSpent: Math.round(pagos.reduce((sum, o) => sum + o.total, 0) * 100) / 100,
+      totalSpent: Math.round(pagos.reduce((sum, o) => sum + Number(o.total), 0) * 100) / 100,
       lastOrderAt: c.orders[0]?.createdAt ?? null,
       favoritos: [...vezesPorProduto.entries()]
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR"))

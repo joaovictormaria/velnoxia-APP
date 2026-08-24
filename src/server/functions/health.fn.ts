@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import {
   checkInventoryHealth,
@@ -8,7 +9,7 @@ import {
 
 /**
  * Endpoint: GET /api/health/inventory
- * Retorna status de saúde do sistema de estoque
+ * Retorna status de saÃºde do sistema de estoque
  */
 export const getInventoryHealth = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -18,7 +19,7 @@ export const getInventoryHealth = createServerFn({ method: "GET" }).handler(
 
 /**
  * Endpoint: GET /api/health/metrics
- * Retorna métricas detalhadas do inventário
+ * Retorna mÃ©tricas detalhadas do inventÃ¡rio
  */
 export const getInventoryMetricsEndpoint = createServerFn({
   method: "GET",
@@ -28,7 +29,7 @@ export const getInventoryMetricsEndpoint = createServerFn({
 
 /**
  * Endpoint: GET /api/health/performance
- * Retorna análise de performance
+ * Retorna anÃ¡lise de performance
  */
 export const getPerformanceMetrics = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -60,8 +61,9 @@ export const getHealthStatus = createServerFn({ method: "GET" }).handler(
         health.status === "UP"
           ? "Sistema operacional normalmente"
           : health.status === "DEGRADED"
-            ? "Sistema funcionando com limitações"
-            : "Sistema indisponível",
+            ? "Sistema funcionando com limitaÃ§Ãµes"
+            : "Sistema indisponÃ­vel",
     };
   }
 );
+

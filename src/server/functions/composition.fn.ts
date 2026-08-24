@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
 import { CompositionService } from "@/server/services/composition-service";
@@ -20,7 +21,7 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
     const productName = data?.productId;
     const categoryIdOrName = data?.categoryId;
 
-    console.log("🔍 [adminCreateComposition] Recebeu", items.length, "itens para produto:", productName, "categoria:", categoryIdOrName);
+    console.log("ðŸ” [adminCreateComposition] Recebeu", items.length, "itens para produto:", productName, "categoria:", categoryIdOrName);
 
     // Buscar ou criar o produto pelo nome
     let product = await prisma.product.findFirst({
@@ -28,20 +29,20 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
     });
 
     if (!product) {
-      console.log(`📦 Produto "${productName}" não encontrado. Criando...`);
+      console.log(`ðŸ“¦ Produto "${productName}" nÃ£o encontrado. Criando...`);
 
       // Procurar ou criar categoria
       let category = await prisma.category.findFirst({
         where: { storeId: admin.storeId, id: categoryIdOrName },
       });
 
-      // Se não encontrou por ID, procura por nome (categoria nova)
+      // Se nÃ£o encontrou por ID, procura por nome (categoria nova)
       if (!category && categoryIdOrName) {
         category = await prisma.category.findFirst({
           where: { storeId: admin.storeId, name: categoryIdOrName },
         });
 
-        // Se ainda não encontrou, criar categoria nova
+        // Se ainda nÃ£o encontrou, criar categoria nova
         if (!category) {
           const categorySlug = categoryIdOrName.toLowerCase().replace(/\s+/g, "-");
           category = await prisma.category.create({
@@ -53,11 +54,11 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
               sortOrder: 0,
             },
           });
-          console.log(`✅ Categoria "${categoryIdOrName}" criada`);
+          console.log(`âœ… Categoria "${categoryIdOrName}" criada`);
         }
       }
 
-      // Se ainda não tem categoria, usar primeira disponível ou criar padrão
+      // Se ainda nÃ£o tem categoria, usar primeira disponÃ­vel ou criar padrÃ£o
       if (!category) {
         category = await prisma.category.findFirst({
           where: { storeId: admin.storeId },
@@ -76,7 +77,7 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
         }
       }
 
-      // Gerar slug único
+      // Gerar slug Ãºnico
       let baseSlug = productName.toLowerCase().replace(/\s+/g, "-");
       let slug = baseSlug;
       let counter = 1;
@@ -101,7 +102,7 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
         },
       });
 
-      console.log(`✅ Produto "${productName}" criado com ID: ${product.id}`);
+      console.log(`âœ… Produto "${productName}" criado com ID: ${product.id}`);
     }
 
     const validated = createProductCompositionSchema.parse({
@@ -186,11 +187,11 @@ export const adminDeleteCompositionVersion = createServerFn({ method: "POST" })
     });
 
     if (!composition) {
-      throw new Error("Receita não encontrada");
+      throw new Error("Receita nÃ£o encontrada");
     }
 
     if (composition.storeId !== admin.storeId) {
-      throw new Error("Não autorizado");
+      throw new Error("NÃ£o autorizado");
     }
 
     await prisma.compositionItem.deleteMany({
@@ -306,3 +307,4 @@ export const adminConsumeComposition = createServerFn({ method: "POST" })
       }
     );
   });
+

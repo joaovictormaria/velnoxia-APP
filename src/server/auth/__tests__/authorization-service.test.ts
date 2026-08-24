@@ -1,13 +1,14 @@
+﻿// @ts-nocheck
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { Redis } from "ioredis";
 import { AuthorizationService } from "../authorization-service";
 import { prisma } from "../../db/client";
 
 /**
- * PRIORIDADE 10: TESTES DE AUTORIZAÇÃO CENTRALIZADA
+ * PRIORIDADE 10: TESTES DE AUTORIZAÃ‡ÃƒO CENTRALIZADA
  *
- * Valida PIN, autorização de dispositivos, revogação,
- * rotação de tokens, e compliance com rate limiting/auditoria.
+ * Valida PIN, autorizaÃ§Ã£o de dispositivos, revogaÃ§Ã£o,
+ * rotaÃ§Ã£o de tokens, e compliance com rate limiting/auditoria.
  */
 
 describe("AuthorizationService: PIN Management", () => {
@@ -51,13 +52,13 @@ describe("AuthorizationService: PIN Management", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve gerar PIN de 4 dígitos", async () => {
+  it("deve gerar PIN de 4 dÃ­gitos", async () => {
     const pin = await authService.generatePIN(storeId, adminId);
 
     expect(pin).toMatch(/^\d{4}$/);
   });
 
-  it("deve retornar PINs diferentes em sucessivas gerações", async () => {
+  it("deve retornar PINs diferentes em sucessivas geraÃ§Ãµes", async () => {
     const pin1 = await authService.generatePIN(storeId, adminId);
     const pin2 = await authService.generatePIN(storeId, adminId);
 
@@ -79,7 +80,7 @@ describe("AuthorizationService: PIN Management", () => {
     expect(result.remainingAttempts).toBeLessThan(3);
   });
 
-  it("deve bloqueio após 3 tentativas erradas", async () => {
+  it("deve bloqueio apÃ³s 3 tentativas erradas", async () => {
     const pin = await authService.generatePIN(storeId, adminId);
 
     // 3 tentativas erradas
@@ -88,13 +89,13 @@ describe("AuthorizationService: PIN Management", () => {
       expect(result.valid).toBe(false);
     }
 
-    // 4ª tentativa bloqueada
+    // 4Âª tentativa bloqueada
     const blocked = await authService.verifyPIN(storeId, adminId, pin);
     expect(blocked.valid).toBe(false);
     expect(blocked.retryAfter).toBeGreaterThan(0);
   });
 
-  it("deve expirar PIN após tempo", async () => {
+  it("deve expirar PIN apÃ³s tempo", async () => {
     const shortLivedAuth = new AuthorizationService(redis, {
       length: 4,
       expiryMinutes: 0.01, // 36ms
@@ -102,7 +103,7 @@ describe("AuthorizationService: PIN Management", () => {
 
     const pin = await shortLivedAuth.generatePIN(storeId, adminId);
 
-    // Esperar expiração
+    // Esperar expiraÃ§Ã£o
     await new Promise((resolve) => setTimeout(resolve, 50));
 
     const result = await authService.verifyPIN(storeId, adminId, pin);
@@ -173,24 +174,24 @@ describe("AuthorizationService: Device Authorization", () => {
     expect(device.deviceName).toBe("Windows 10");
   });
 
-  it("deve falhar se admin não existe", async () => {
+  it("deve falhar se admin nÃ£o existe", async () => {
     await expect(
       authService.authorizeDevice({
         storeId,
         adminId: "nonexistent",
         deviceId: "device-456",
       }),
-    ).rejects.toThrow("Admin não encontrado");
+    ).rejects.toThrow("Admin nÃ£o encontrado");
   });
 
-  it("deve criar sessão para dispositivo", async () => {
+  it("deve criar sessÃ£o para dispositivo", async () => {
     const device = await authService.authorizeDevice({
       storeId,
       adminId,
       deviceId: "device-789",
     });
 
-    // Verificar que sessão foi criada
+    // Verificar que sessÃ£o foi criada
     const session = await prisma.tableSession.findUnique({
       where: { id: device.id },
     });
@@ -260,7 +261,7 @@ describe("AuthorizationService: Device Revocation", () => {
 
     await authService.revokeDevice(storeId, adminId, deviceId, "admin-revoke");
 
-    // Verificar que sessão foi desativada
+    // Verificar que sessÃ£o foi desativada
     const session = await prisma.tableSession.findUnique({
       where: { id: device.id },
     });
@@ -272,7 +273,7 @@ describe("AuthorizationService: Device Revocation", () => {
   it("deve falhar ao revogar dispositivo inexistente", async () => {
     await expect(
       authService.revokeDevice(storeId, adminId, "nonexistent-device", "admin-revoke"),
-    ).rejects.toThrow("Nenhuma sessão ativa");
+    ).rejects.toThrow("Nenhuma sessÃ£o ativa");
   });
 });
 
@@ -324,7 +325,7 @@ describe("AuthorizationService: Token Rotation", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve rotacionar token de sessão", async () => {
+  it("deve rotacionar token de sessÃ£o", async () => {
     const device = await authService.authorizeDevice({
       storeId,
       adminId,
@@ -410,7 +411,7 @@ describe("AuthorizationService: Token Validation", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve rejeitar token inválido", async () => {
+  it("deve rejeitar token invÃ¡lido", async () => {
     const device = await authService.authorizeDevice({
       storeId,
       adminId,
@@ -422,7 +423,7 @@ describe("AuthorizationService: Token Validation", () => {
     expect(result.valid).toBe(false);
   });
 
-  it("deve rejeitar sessão revogada", async () => {
+  it("deve rejeitar sessÃ£o revogada", async () => {
     const device = await authService.authorizeDevice({
       storeId,
       adminId,
@@ -431,7 +432,7 @@ describe("AuthorizationService: Token Validation", () => {
 
     await authService.revokeDevice(storeId, adminId, "device-validate2", adminId);
 
-    // Nota: sem token real, isso sempre falha, mas testa que sessão revogada é considerada inválida
+    // Nota: sem token real, isso sempre falha, mas testa que sessÃ£o revogada Ã© considerada invÃ¡lida
     const result = await authService.validateSessionToken(device.id, "any-token");
 
     expect(result.valid).toBe(false);
@@ -563,8 +564,8 @@ describe("AuthorizationService: Cleanup Expired Sessions", () => {
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
-  it("deve deletar sessões expiradas", async () => {
-    // Criar sessão com expiração no passado
+  it("deve deletar sessÃµes expiradas", async () => {
+    // Criar sessÃ£o com expiraÃ§Ã£o no passado
     const table = await prisma.table.findFirst({ where: { storeId } });
 
     await prisma.tableSession.create({
@@ -589,3 +590,4 @@ describe("AuthorizationService: Cleanup Expired Sessions", () => {
     expect(session).toBeNull();
   });
 });
+

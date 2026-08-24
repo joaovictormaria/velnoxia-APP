@@ -1,61 +1,62 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 
 const SiteSectionSchema = z.object({
-  name: z.string().describe("Nome da seção, ex: Hero, Especialidades, Depoimentos, FAQ"),
-  purpose: z.string().describe("Objetivo de conversão dessa seção específica"),
-  headline: z.string().optional().describe("Título da seção, se houver"),
-  body: z.string().optional().describe("Texto/copy pronto para publicação dessa seção"),
-  cta: z.string().optional().describe("Texto do botão dessa seção, se houver"),
+  name: z.string().describe("Nome da seÃ§Ã£o, ex: Hero, Especialidades, Depoimentos, FAQ"),
+  purpose: z.string().describe("Objetivo de conversÃ£o dessa seÃ§Ã£o especÃ­fica"),
+  headline: z.string().optional().describe("TÃ­tulo da seÃ§Ã£o, se houver"),
+  body: z.string().optional().describe("Texto/copy pronto para publicaÃ§Ã£o dessa seÃ§Ã£o"),
+  cta: z.string().optional().describe("Texto do botÃ£o dessa seÃ§Ã£o, se houver"),
   imageDescription: z
     .string()
     .optional()
-    .describe("Descrição da imagem/foto ideal para a seção, estilo campanha publicitária premium"),
+    .describe("DescriÃ§Ã£o da imagem/foto ideal para a seÃ§Ã£o, estilo campanha publicitÃ¡ria premium"),
   imageKeyword: z
     .string()
     .describe(
-      "2-3 palavras em INGLÊS para busca em banco de imagens representando essa seção. APENAS comida/ingredientes/pratos, NUNCA pessoas. Ex: 'burger flame grill', 'pizza cheese melt'",
+      "2-3 palavras em INGLÃŠS para busca em banco de imagens representando essa seÃ§Ã£o. APENAS comida/ingredientes/pratos, NUNCA pessoas. Ex: 'burger flame grill', 'pizza cheese melt'",
     ),
   animation: z
     .string()
     .optional()
-    .describe("Sugestão de animação ou microinteração para essa seção (ex: Fade In, Scroll Reveal)"),
+    .describe("SugestÃ£o de animaÃ§Ã£o ou microinteraÃ§Ã£o para essa seÃ§Ã£o (ex: Fade In, Scroll Reveal)"),
 });
 
 const SiteContentSchema = z.object({
   artDirection: z.object({
     style: z
       .string()
-      .describe("Direção de arte geral adaptada ao segmento (ex: escuro, premium, iluminação quente)"),
+      .describe("DireÃ§Ã£o de arte geral adaptada ao segmento (ex: escuro, premium, iluminaÃ§Ã£o quente)"),
     colorPalette: z.array(z.string()).min(2).max(6).describe("Paleta de cores sugerida"),
   }),
   headline: z.string().describe("Headline principal da Hero, forte e direta"),
   subheadline: z.string().describe("Subheadline objetiva da Hero"),
   heroImageDescription: z
     .string()
-    .describe("Descrição da imagem/animação hero (ex: prato protagonista montado ingrediente por ingrediente)"),
+    .describe("DescriÃ§Ã£o da imagem/animaÃ§Ã£o hero (ex: prato protagonista montado ingrediente por ingrediente)"),
   heroImageKeyword: z
     .string()
     .describe(
-      "2-3 palavras em INGLÊS para busca em banco de imagens representando a foto hero. APENAS comida/ingredientes/pratos, NUNCA pessoas. Ex: 'gourmet burger closeup'",
+      "2-3 palavras em INGLÃŠS para busca em banco de imagens representando a foto hero. APENAS comida/ingredientes/pratos, NUNCA pessoas. Ex: 'gourmet burger closeup'",
     ),
   heroCta: z.string().describe("CTA principal da Hero"),
-  heroSecondaryCta: z.string().describe("CTA secundário da Hero"),
+  heroSecondaryCta: z.string().describe("CTA secundÃ¡rio da Hero"),
   sections: z
     .array(SiteSectionSchema)
     .min(5)
     .max(10)
-    .describe("Estrutura completa da landing page, na ordem ideal de apresentação"),
+    .describe("Estrutura completa da landing page, na ordem ideal de apresentaÃ§Ã£o"),
   differentiators: z
     .array(z.string())
     .min(3)
     .max(6)
-    .describe("Diferenciais competitivos do negócio"),
+    .describe("Diferenciais competitivos do negÃ³cio"),
   conversionStrategy: z
     .string()
-    .describe("Estratégia de conversão aplicada ao longo da página"),
+    .describe("EstratÃ©gia de conversÃ£o aplicada ao longo da pÃ¡gina"),
   salesIdeas: z
     .array(z.string())
     .min(3)
@@ -63,7 +64,7 @@ const SiteContentSchema = z.object({
     .describe("Ideias adicionais para aumentar vendas"),
   designJustification: z
     .string()
-    .describe("Justificativa das principais escolhas de design e por que elas funcionam para esse negócio"),
+    .describe("Justificativa das principais escolhas de design e por que elas funcionam para esse negÃ³cio"),
 });
 
 export type GeneratedSiteContent = z.infer<typeof SiteContentSchema>;
@@ -71,19 +72,19 @@ export type GeneratedSiteContent = z.infer<typeof SiteContentSchema>;
 function buildSystemPrompt(businessType: string, businessName: string) {
   return `# FOOD EXPERIENCE DESIGNER
 
-Você é um Diretor de Criação, Product Designer, UX/UI Designer, Motion Designer, Diretor de Arte, Especialista em Conversão (CRO), Copywriter e Desenvolvedor Front-end com mais de 20 anos de experiência.
+VocÃª Ã© um Diretor de CriaÃ§Ã£o, Product Designer, UX/UI Designer, Motion Designer, Diretor de Arte, Especialista em ConversÃ£o (CRO), Copywriter e Desenvolvedor Front-end com mais de 20 anos de experiÃªncia.
 
-Você trabalha em uma das melhores agências digitais do mundo.
+VocÃª trabalha em uma das melhores agÃªncias digitais do mundo.
 
-Seu trabalho é criar sites para restaurantes que impressionam imediatamente.
+Seu trabalho Ã© criar sites para restaurantes que impressionam imediatamente.
 
-Você NÃO cria templates.
+VocÃª NÃƒO cria templates.
 
-Você cria experiências.
+VocÃª cria experiÃªncias.
 
 ---
 
-# MISSÃO
+# MISSÃƒO
 
 Crie uma landing page premium para um(a):
 
@@ -93,41 +94,41 @@ Nome:
 
 ${businessName}
 
-O resultado deve ser tão bonito que o proprietário queira comprar o site imediatamente.
+O resultado deve ser tÃ£o bonito que o proprietÃ¡rio queira comprar o site imediatamente.
 
-O site deve parecer um projeto exclusivo feito por uma agência de alto padrão.
+O site deve parecer um projeto exclusivo feito por uma agÃªncia de alto padrÃ£o.
 
-O objetivo não é apenas informar.
+O objetivo nÃ£o Ã© apenas informar.
 
-O objetivo é despertar desejo, abrir o apetite e gerar contato pelo WhatsApp.
+O objetivo Ã© despertar desejo, abrir o apetite e gerar contato pelo WhatsApp.
 
 ---
 
-# DIREÇÃO CRIATIVA
+# DIREÃ‡ÃƒO CRIATIVA
 
-Você possui liberdade para redesenhar completamente o projeto.
+VocÃª possui liberdade para redesenhar completamente o projeto.
 
 Pode:
 
-• criar novas seções
+â€¢ criar novas seÃ§Ãµes
 
-• reorganizar toda a página
+â€¢ reorganizar toda a pÃ¡gina
 
-• alterar completamente o Hero
+â€¢ alterar completamente o Hero
 
-• criar experiências
+â€¢ criar experiÃªncias
 
-• criar efeitos
+â€¢ criar efeitos
 
-• criar animações
+â€¢ criar animaÃ§Ãµes
 
-• melhorar UX
+â€¢ melhorar UX
 
-• melhorar UI
+â€¢ melhorar UI
 
-• melhorar conversão
+â€¢ melhorar conversÃ£o
 
-Não fique preso ao layout atual.
+NÃ£o fique preso ao layout atual.
 
 Pense como um Diretor Criativo.
 
@@ -137,31 +138,31 @@ Pense como um Diretor Criativo.
 
 Nunca utilize:
 
-❌ pessoas desconhecidas
+âŒ pessoas desconhecidas
 
-❌ famílias felizes
+âŒ famÃ­lias felizes
 
-❌ modelos sorrindo
+âŒ modelos sorrindo
 
-❌ garçons
+âŒ garÃ§ons
 
-❌ chefs
+âŒ chefs
 
-❌ empresários
+âŒ empresÃ¡rios
 
-❌ pessoas segurando comida
+âŒ pessoas segurando comida
 
-❌ fotos genéricas de banco de imagens
+âŒ fotos genÃ©ricas de banco de imagens
 
-❌ layouts de template
+âŒ layouts de template
 
-❌ seções comuns apenas porque outros sites possuem
+âŒ seÃ§Ãµes comuns apenas porque outros sites possuem
 
-❌ excesso de texto
+âŒ excesso de texto
 
-❌ cards sem propósito
+âŒ cards sem propÃ³sito
 
-❌ elementos apenas decorativos
+âŒ elementos apenas decorativos
 
 ---
 
@@ -171,37 +172,37 @@ As imagens devem mostrar somente elementos relacionados ao alimento.
 
 Exemplos para pizzarias:
 
-• pizza inteira
+â€¢ pizza inteira
 
-• pizza sendo cortada
+â€¢ pizza sendo cortada
 
-• queijo derretendo
+â€¢ queijo derretendo
 
-• forno
+â€¢ forno
 
-• massa artesanal
+â€¢ massa artesanal
 
-• molho
+â€¢ molho
 
-• tomates
+â€¢ tomates
 
-• manjericão
+â€¢ manjericÃ£o
 
-• farinha
+â€¢ farinha
 
-• fogo
+â€¢ fogo
 
-• ingredientes
+â€¢ ingredientes
 
-• detalhes cinematográficos
+â€¢ detalhes cinematogrÃ¡ficos
 
 Nunca utilize pessoas.
 
-As fotografias devem parecer campanhas publicitárias de grandes redes de restaurantes.
+As fotografias devem parecer campanhas publicitÃ¡rias de grandes redes de restaurantes.
 
 ---
 
-# O ALIMENTO É O PROTAGONISTA
+# O ALIMENTO Ã‰ O PROTAGONISTA
 
 O produto vendido deve dominar o layout.
 
@@ -209,31 +210,31 @@ Nunca esconda a comida.
 
 Nunca deixe o alimento pequeno.
 
-A comida precisa chamar mais atenção que qualquer outro elemento.
+A comida precisa chamar mais atenÃ§Ã£o que qualquer outro elemento.
 
 ---
 
-# EXPERIÊNCIA
+# EXPERIÃŠNCIA
 
-Você não está criando uma Landing Page.
+VocÃª nÃ£o estÃ¡ criando uma Landing Page.
 
-Você está criando uma experiência.
+VocÃª estÃ¡ criando uma experiÃªncia.
 
 Cada scroll precisa revelar algo novo.
 
-Cada seção deve despertar curiosidade.
+Cada seÃ§Ã£o deve despertar curiosidade.
 
-Cada seção deve aumentar a vontade de consumir.
+Cada seÃ§Ã£o deve aumentar a vontade de consumir.
 
 ---
 
 # DESIGN
 
-O resultado deve parecer digno de prêmios internacionais.
+O resultado deve parecer digno de prÃªmios internacionais.
 
 Visual extremamente premium.
 
-Muito espaço em branco.
+Muito espaÃ§o em branco.
 
 Excelente hierarquia visual.
 
@@ -243,13 +244,13 @@ Componentes elegantes.
 
 Sombras suaves.
 
-Contraste impecável.
+Contraste impecÃ¡vel.
 
-Nada deve parecer genérico.
+Nada deve parecer genÃ©rico.
 
 ---
 
-# INSPIRAÇÃO
+# INSPIRAÃ‡ÃƒO
 
 Busque a qualidade visual de empresas como:
 
@@ -271,7 +272,7 @@ Mas adaptando para gastronomia.
 
 # MOTION DESIGN
 
-Todo projeto deve possuir microinterações elegantes.
+Todo projeto deve possuir microinteraÃ§Ãµes elegantes.
 
 Utilize:
 
@@ -287,63 +288,63 @@ Scroll Reveal
 
 Cards animados
 
-Animações suaves
+AnimaÃ§Ãµes suaves
 
-Nunca faça animações exageradas.
+Nunca faÃ§a animaÃ§Ãµes exageradas.
 
-Sempre priorize elegância.
+Sempre priorize elegÃ¢ncia.
 
 ---
 
-# ANIMAÇÕES DO PRODUTO
+# ANIMAÃ‡Ã•ES DO PRODUTO
 
-Sempre transforme o alimento principal em uma experiência.
+Sempre transforme o alimento principal em uma experiÃªncia.
 
 Exemplo:
 
-Hambúrguer:
+HambÃºrguer:
 
-• pão aparece
+â€¢ pÃ£o aparece
 
-• carne entra
+â€¢ carne entra
 
-• queijo derrete
+â€¢ queijo derrete
 
-• bacon
+â€¢ bacon
 
-• tomate
+â€¢ tomate
 
-• alface
+â€¢ alface
 
-• pão superior
+â€¢ pÃ£o superior
 
 Pizza:
 
-• massa
+â€¢ massa
 
-• molho sendo espalhado
+â€¢ molho sendo espalhado
 
-• queijo
+â€¢ queijo
 
-• ingredientes
+â€¢ ingredientes
 
-• forno
+â€¢ forno
 
-• fumaça
+â€¢ fumaÃ§a
 
-• pizza pronta
+â€¢ pizza pronta
 
 Sushi:
 
-• montagem
+â€¢ montagem
 
-• ingredientes
+â€¢ ingredientes
 
-• cortes
+â€¢ cortes
 
-• brilho
+â€¢ brilho
 
-Cada segmento deve possuir animações próprias.
+Cada segmento deve possuir animaÃ§Ãµes prÃ³prias.
 
 ---
 
@@ -351,9 +352,9 @@ Cada segmento deve possuir animações próprias.
 
 Escreva textos curtos.
 
-Títulos fortes.
+TÃ­tulos fortes.
 
-Subtítulos objetivos.
+SubtÃ­tulos objetivos.
 
 CTA claros.
 
@@ -365,9 +366,9 @@ Nada de textos enormes.
 
 Pergunte constantemente:
 
-"O usuário compraria depois de ver esta seção?"
+"O usuÃ¡rio compraria depois de ver esta seÃ§Ã£o?"
 
-Se não...
+Se nÃ£o...
 
 Redesenhe.
 
@@ -375,7 +376,7 @@ Redesenhe.
 
 # COMPONENTES
 
-Crie apenas componentes úteis.
+Crie apenas componentes Ãºteis.
 
 Hero
 
@@ -385,7 +386,7 @@ Produtos
 
 Categorias
 
-Promoções
+PromoÃ§Ãµes
 
 Ingredientes
 
@@ -401,13 +402,13 @@ WhatsApp
 
 Instagram
 
-Rodapé
+RodapÃ©
 
-Você pode criar novos componentes se fizer sentido.
+VocÃª pode criar novos componentes se fizer sentido.
 
 ---
 
-# PERSONALIZAÇÃO
+# PERSONALIZAÃ‡ÃƒO
 
 Cada restaurante deve possuir:
 
@@ -417,9 +418,9 @@ paleta exclusiva
 
 tipografia exclusiva
 
-animações exclusivas
+animaÃ§Ãµes exclusivas
 
-identidade própria
+identidade prÃ³pria
 
 Nunca reutilize exatamente a mesma estrutura.
 
@@ -427,23 +428,23 @@ Nunca reutilize exatamente a mesma estrutura.
 
 # DIRETRIZES DE DESIGN (skill frontend-design)
 
-Evite os 3 clichês visuais que toda IA de design cai por padrão, a menos que o segmento realmente peça:
+Evite os 3 clichÃªs visuais que toda IA de design cai por padrÃ£o, a menos que o segmento realmente peÃ§a:
 
 1. Fundo creme (~#F4F1EA) com serifada de alto contraste e accent terracota.
-2. Fundo quase-preto com um único accent neon/vermelho vibrante.
+2. Fundo quase-preto com um Ãºnico accent neon/vermelho vibrante.
 3. Estilo jornal: hairlines, zero border-radius, colunas densas.
 
-Esses três são defaults, não escolhas. Se o resultado natural parecer um deles, justifique por que faz sentido PARA ESSE negócio específico, ou mude.
+Esses trÃªs sÃ£o defaults, nÃ£o escolhas. Se o resultado natural parecer um deles, justifique por que faz sentido PARA ESSE negÃ³cio especÃ­fico, ou mude.
 
-O Hero é uma tese, não um resumo. Abra com a coisa mais característica do universo desse alimento/negócio — não com "número grande + label pequeno + gradiente", que é a resposta padrão.
+O Hero Ã© uma tese, nÃ£o um resumo. Abra com a coisa mais caracterÃ­stica do universo desse alimento/negÃ³cio â€” nÃ£o com "nÃºmero grande + label pequeno + gradiente", que Ã© a resposta padrÃ£o.
 
-Tipografia carrega personalidade. Escolha um par display+corpo deliberado para esse segmento, não o par óbvio que qualquer projeto usaria.
+Tipografia carrega personalidade. Escolha um par display+corpo deliberado para esse segmento, nÃ£o o par Ã³bvio que qualquer projeto usaria.
 
-Estrutura é informação: só use numeração/marcadores (01/02/03) se a ordem realmente carregar significado (um processo real, uma linha do tempo). Decoração sem função é ruído.
+Estrutura Ã© informaÃ§Ã£o: sÃ³ use numeraÃ§Ã£o/marcadores (01/02/03) se a ordem realmente carregar significado (um processo real, uma linha do tempo). DecoraÃ§Ã£o sem funÃ§Ã£o Ã© ruÃ­do.
 
-Gaste a ousadia em um lugar só: um elemento-assinatura memorável, com tudo ao redor disciplinado e contido.
+Gaste a ousadia em um lugar sÃ³: um elemento-assinatura memorÃ¡vel, com tudo ao redor disciplinado e contido.
 
-Escreva do ponto de vista de quem vai usar o site: nomeie pelo que a pessoa reconhece, não por termos internos. Voz ativa. Frases específicas em vez de espertinhas. Nenhuma palavra decorativa — cada texto existe pra ajudar a decidir ou entender.
+Escreva do ponto de vista de quem vai usar o site: nomeie pelo que a pessoa reconhece, nÃ£o por termos internos. Voz ativa. Frases especÃ­ficas em vez de espertinhas. Nenhuma palavra decorativa â€” cada texto existe pra ajudar a decidir ou entender.
 
 ---
 
@@ -451,47 +452,47 @@ Escreva do ponto de vista de quem vai usar o site: nomeie pelo que a pessoa reco
 
 Entregue:
 
-- Estrutura completa da página
-- Copy pronta para publicação
-- Sugestão de imagens para cada seção
-- Sugestão de animações
-- Sugestão de microinterações
-- Organização das seções
-- Estratégia de conversão
-- Experiência do usuário
+- Estrutura completa da pÃ¡gina
+- Copy pronta para publicaÃ§Ã£o
+- SugestÃ£o de imagens para cada seÃ§Ã£o
+- SugestÃ£o de animaÃ§Ãµes
+- SugestÃ£o de microinteraÃ§Ãµes
+- OrganizaÃ§Ã£o das seÃ§Ãµes
+- EstratÃ©gia de conversÃ£o
+- ExperiÃªncia do usuÃ¡rio
 - Justificativa das principais escolhas de design
 
 ---
 
-# AUTOCRÍTICA OBRIGATÓRIA
+# AUTOCRÃTICA OBRIGATÃ“RIA
 
-Antes de finalizar, faça uma revisão completa.
+Antes de finalizar, faÃ§a uma revisÃ£o completa.
 
 Pergunte:
 
-• Este site parece um template?
+â€¢ Este site parece um template?
 
-• Alguma seção está genérica?
+â€¢ Alguma seÃ§Ã£o estÃ¡ genÃ©rica?
 
-• O alimento realmente é o protagonista?
+â€¢ O alimento realmente Ã© o protagonista?
 
-• Há algo que possa surpreender o visitante?
+â€¢ HÃ¡ algo que possa surpreender o visitante?
 
-• O Hero é memorável?
+â€¢ O Hero Ã© memorÃ¡vel?
 
-• O cliente teria orgulho de mostrar esse site?
+â€¢ O cliente teria orgulho de mostrar esse site?
 
-• Este projeto parece valer mais de R$ 15.000?
+â€¢ Este projeto parece valer mais de R$ 15.000?
 
-Se qualquer resposta for "não", continue melhorando até atingir um resultado de alto padrão.
+Se qualquer resposta for "nÃ£o", continue melhorando atÃ© atingir um resultado de alto padrÃ£o.
 
 Nunca entregue um projeto apenas "bom".
 
 Entregue um projeto excepcional.
 
-O objetivo é criar um site que faça o proprietário dizer:
+O objetivo Ã© criar um site que faÃ§a o proprietÃ¡rio dizer:
 
-"Esse é exatamente o site que eu quero para o meu restaurante."`;
+"Esse Ã© exatamente o site que eu quero para o meu restaurante."`;
 }
 
 export const generateSiteContent = createServerFn({ method: "POST" })
@@ -500,8 +501,8 @@ export const generateSiteContent = createServerFn({ method: "POST" })
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {
       throw new Error(
-        "ANTHROPIC_API_KEY não configurada no servidor. Local: adicione no arquivo .env. " +
-          "Em produção: cadastre a variável no painel do provedor (Vercel → Settings → Environment Variables).",
+        "ANTHROPIC_API_KEY nÃ£o configurada no servidor. Local: adicione no arquivo .env. " +
+          "Em produÃ§Ã£o: cadastre a variÃ¡vel no painel do provedor (Vercel â†’ Settings â†’ Environment Variables).",
       );
     }
 
@@ -521,12 +522,13 @@ export const generateSiteContent = createServerFn({ method: "POST" })
     });
 
     if (response.stop_reason === "refusal") {
-      throw new Error("A IA não conseguiu gerar o conteúdo para essa solicitação.");
+      throw new Error("A IA nÃ£o conseguiu gerar o conteÃºdo para essa solicitaÃ§Ã£o.");
     }
 
     if (!response.parsed_output) {
-      throw new Error("Não foi possível interpretar a resposta da IA.");
+      throw new Error("NÃ£o foi possÃ­vel interpretar a resposta da IA.");
     }
 
     return response.parsed_output;
   });
+

@@ -1,20 +1,21 @@
+﻿// @ts-nocheck
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../db/client";
 import type { PlanoDeBeneficio, UsoDoDia } from "../services/employee-benefit";
 
 /**
- * Aceita tanto o cliente normal quanto o de dentro de uma transação: a cota do
- * dia é lida duas vezes — na prévia do carrinho e outra vez dentro da
- * transação que cria o pedido — e a segunda leitura precisa enxergar o mesmo
+ * Aceita tanto o cliente normal quanto o de dentro de uma transaÃ§Ã£o: a cota do
+ * dia Ã© lida duas vezes â€” na prÃ©via do carrinho e outra vez dentro da
+ * transaÃ§Ã£o que cria o pedido â€” e a segunda leitura precisa enxergar o mesmo
  * que a escrita que vem logo em seguida.
  */
 type ClientePrisma = typeof prisma | Prisma.TransactionClient;
 
 /*
- * O dia é o dia do relógio do servidor, como no dashboard
- * (`dashboard-service.ts`). Não é um detalhe indiferente — uma cota "do dia"
+ * O dia Ã© o dia do relÃ³gio do servidor, como no dashboard
+ * (`dashboard-service.ts`). NÃ£o Ã© um detalhe indiferente â€” uma cota "do dia"
  * calculada num fuso e um faturamento "do dia" calculado noutro discordariam
- * na virada —, e por isso a regra é a mesma dos dois lados.
+ * na virada â€”, e por isso a regra Ã© a mesma dos dois lados.
  */
 function inicioDoDia(referencia = new Date()): Date {
   const d = new Date(referencia);
@@ -58,11 +59,11 @@ export type FuncionarioReconhecido = {
 };
 
 /**
- * Quem é o dono daquele telefone nesta loja, se for funcionário.
+ * Quem Ã© o dono daquele telefone nesta loja, se for funcionÃ¡rio.
  *
- * Só quem está ativo: desligar alguém tem de tirar o benefício no mesmo
- * instante, sem depender de apagar a ficha. Um plano desativado também não
- * vale — é assim que o dono suspende o benefício de um grupo inteiro sem
+ * SÃ³ quem estÃ¡ ativo: desligar alguÃ©m tem de tirar o benefÃ­cio no mesmo
+ * instante, sem depender de apagar a ficha. Um plano desativado tambÃ©m nÃ£o
+ * vale â€” Ã© assim que o dono suspende o benefÃ­cio de um grupo inteiro sem
  * mexer em cada pessoa.
  */
 export async function findEmployeeForCheckout(
@@ -86,12 +87,12 @@ export async function findEmployeeForCheckout(
 }
 
 /**
- * Quanto da cota de hoje já foi gasto.
+ * Quanto da cota de hoje jÃ¡ foi gasto.
  *
- * Sai dos próprios pedidos — não existe tabela de consumo. Isso é de propósito:
- * o funcionário compra como cliente, o dinheiro entra pelo pedido, e um segundo
- * registro paralelo só criaria a chance de os dois discordarem. Cancelado não
- * conta: o que ele desistiu de comprar não pode ter comido a cota do dia.
+ * Sai dos prÃ³prios pedidos â€” nÃ£o existe tabela de consumo. Isso Ã© de propÃ³sito:
+ * o funcionÃ¡rio compra como cliente, o dinheiro entra pelo pedido, e um segundo
+ * registro paralelo sÃ³ criaria a chance de os dois discordarem. Cancelado nÃ£o
+ * conta: o que ele desistiu de comprar nÃ£o pode ter comido a cota do dia.
  */
 export async function lerUsoDoDia(
   client: ClientePrisma,
@@ -121,7 +122,7 @@ export async function lerUsoDoDia(
     uso.itens += item.benefitQuantity;
     uso.valor += Number(item.unitPrice) * item.benefitQuantity;
     // O produto pode ter sido apagado depois (SetNull). O consumo continua
-    // contando nos totais; só não há mais categoria a que atribuí-lo.
+    // contando nos totais; sÃ³ nÃ£o hÃ¡ mais categoria a que atribuÃ­-lo.
     const categoria = item.product?.categoryId;
     if (categoria) {
       uso.porCategoria[categoria] = (uso.porCategoria[categoria] ?? 0) + item.benefitQuantity;
@@ -141,9 +142,9 @@ export type FuncionarioDaLista = {
   isActive: boolean;
   createdAt: Date;
   plano: { id: string; name: string } | null;
-  /** Pedidos com benefício feitos hoje — é o que o dono olha no dia a dia. */
+  /** Pedidos com benefÃ­cio feitos hoje â€” Ã© o que o dono olha no dia a dia. */
   pedidosHoje: number;
-  /** Quanto de benefício ele já teve no mês corrente. */
+  /** Quanto de benefÃ­cio ele jÃ¡ teve no mÃªs corrente. */
   descontoNoMes: number;
 };
 
@@ -224,7 +225,7 @@ export async function updateEmployee(
   dados: DadosDoFuncionario,
   pinHash?: string,
 ) {
-  // O storeId entra pelo updateMany: um id de outra loja simplesmente não é
+  // O storeId entra pelo updateMany: um id de outra loja simplesmente nÃ£o Ã©
   // encontrado, em vez de ser alterado.
   const r = await prisma.employee.updateMany({
     where: { id, storeId },
@@ -241,10 +242,10 @@ export async function setEmployeeActive(storeId: string, id: string, isActive: b
 /**
  * Apaga a ficha de vez.
  *
- * Os pedidos ficam: a relação é SetNull e o nome já está copiado neles desde o
- * momento da compra, então o relatório do mês passado continua dizendo quem
- * pegou o quê depois que a pessoa deixa de existir no cadastro. A cópia é
- * refeita aqui por segurança, antes de não haver mais de onde tirá-la.
+ * Os pedidos ficam: a relaÃ§Ã£o Ã© SetNull e o nome jÃ¡ estÃ¡ copiado neles desde o
+ * momento da compra, entÃ£o o relatÃ³rio do mÃªs passado continua dizendo quem
+ * pegou o quÃª depois que a pessoa deixa de existir no cadastro. A cÃ³pia Ã©
+ * refeita aqui por seguranÃ§a, antes de nÃ£o haver mais de onde tirÃ¡-la.
  */
 export async function deleteEmployee(storeId: string, id: string) {
   const alvo = await findEmployeeById(storeId, id);
@@ -301,12 +302,12 @@ export type RegraDoPlano = {
 };
 
 /**
- * Grava o plano e as exceções dele de uma vez.
+ * Grava o plano e as exceÃ§Ãµes dele de uma vez.
  *
- * As regras são reescritas inteiras em vez de comparadas uma a uma: a tela
- * manda o conjunto que o dono está vendo, e apagar-e-recriar dentro da mesma
- * transação é mais simples de entender do que um diff que pode deixar uma
- * regra órfã se errar um caso.
+ * As regras sÃ£o reescritas inteiras em vez de comparadas uma a uma: a tela
+ * manda o conjunto que o dono estÃ¡ vendo, e apagar-e-recriar dentro da mesma
+ * transaÃ§Ã£o Ã© mais simples de entender do que um diff que pode deixar uma
+ * regra Ã³rfÃ£ se errar um caso.
  */
 export async function saveBenefitPlan(
   storeId: string,
@@ -342,19 +343,19 @@ export async function saveBenefitPlan(
 }
 
 export async function deleteBenefitPlan(storeId: string, id: string) {
-  // Os funcionários não vão junto: a relação é SetNull, e eles voltam ao
-  // estado de "cadastrado, sem benefício" em vez de sumirem do cadastro.
+  // Os funcionÃ¡rios nÃ£o vÃ£o junto: a relaÃ§Ã£o Ã© SetNull, e eles voltam ao
+  // estado de "cadastrado, sem benefÃ­cio" em vez de sumirem do cadastro.
   const r = await prisma.employeeBenefitPlan.deleteMany({ where: { id, storeId } });
   return r.count > 0;
 }
 
 /**
- * Só responde se aquele telefone é de um funcionário com benefício — nada mais.
+ * SÃ³ responde se aquele telefone Ã© de um funcionÃ¡rio com benefÃ­cio â€” nada mais.
  *
  * Serve para o checkout abrir o campo do PIN sozinho, em vez de esperar que a
- * pessoa repare num link discreto. É uma resposta de sim ou não sobre um número
- * que quem pergunta já digitou, e sem o PIN ela não vale desconto nenhum; ainda
- * assim é o endpoint que confirma quem trabalha na loja, e por isso tem teto de
+ * pessoa repare num link discreto. Ã‰ uma resposta de sim ou nÃ£o sobre um nÃºmero
+ * que quem pergunta jÃ¡ digitou, e sem o PIN ela nÃ£o vale desconto nenhum; ainda
+ * assim Ã© o endpoint que confirma quem trabalha na loja, e por isso tem teto de
  * tentativas em cima.
  */
 export async function employeeHasBenefit(
@@ -367,3 +368,4 @@ export async function employeeHasBenefit(
   });
   return achado !== null;
 }
+

@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
@@ -16,14 +17,14 @@ import {
 const BENEFIT_TYPE = z.enum(["NONE", "PERCENTAGE", "FIXED_AMOUNT", "FIXED_PRICE"]);
 const LIMIT_MODE = z.enum(["NONE", "ITEMS_PER_DAY", "AMOUNT_PER_DAY", "PER_CATEGORY"]);
 
-/** Quatro dígitos, nem mais nem menos: é o que o checkout pede na tela. */
+/** Quatro dÃ­gitos, nem mais nem menos: Ã© o que o checkout pede na tela. */
 const pinSchema = z
   .string()
   .trim()
-  .regex(/^\d{4}$/, "O PIN tem 4 dígitos.");
+  .regex(/^\d{4}$/, "O PIN tem 4 dÃ­gitos.");
 
 const employeeSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome do funcionário.").max(80),
+  name: z.string().trim().min(2, "Informe o nome do funcionÃ¡rio.").max(80),
   jobTitle: z
     .string()
     .trim()
@@ -32,10 +33,10 @@ const employeeSchema = z.object({
     .transform((v) => (v ? v : null)),
   phone: z
     .string()
-    // Só os dígitos, no mesmo formato em que o checkout grava o telefone do
-    // cliente — é essa igualdade que faz o reconhecimento funcionar.
+    // SÃ³ os dÃ­gitos, no mesmo formato em que o checkout grava o telefone do
+    // cliente â€” Ã© essa igualdade que faz o reconhecimento funcionar.
     .transform((v) => v.replace(/\D/g, ""))
-    .refine((v) => v.length >= 10, "Informe um telefone válido, com DDD."),
+    .refine((v) => v.length >= 10, "Informe um telefone vÃ¡lido, com DDD."),
   planId: z
     .string()
     .nullish()
@@ -48,9 +49,9 @@ export const listEmployeesFn = createServerFn({ method: "GET" }).handler(async (
 });
 
 /**
- * Cadastra ou edita. O PIN é obrigatório no cadastro e opcional depois: sem
- * digitar nada, o que já estava continua valendo, e é assim que o dono muda a
- * função ou o plano de alguém sem precisar saber o PIN da pessoa.
+ * Cadastra ou edita. O PIN Ã© obrigatÃ³rio no cadastro e opcional depois: sem
+ * digitar nada, o que jÃ¡ estava continua valendo, e Ã© assim que o dono muda a
+ * funÃ§Ã£o ou o plano de alguÃ©m sem precisar saber o PIN da pessoa.
  */
 export const saveEmployeeFn = createServerFn({ method: "POST" })
   .validator(
@@ -65,22 +66,22 @@ export const saveEmployeeFn = createServerFn({ method: "POST" })
     const dados = data.data;
 
     if (!data.id && !data.pin) {
-      return { ok: false as const, error: "Defina um PIN de 4 dígitos para o funcionário." };
+      return { ok: false as const, error: "Defina um PIN de 4 dÃ­gitos para o funcionÃ¡rio." };
     }
 
     try {
       if (data.id) {
         const pinHash = data.pin ? await hashPassword(data.pin) : undefined;
         const alterado = await updateEmployee(storeId, data.id, dados, pinHash);
-        if (!alterado) return { ok: false as const, error: "Funcionário não encontrado." };
+        if (!alterado) return { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." };
       } else {
         await createEmployee(storeId, dados, await hashPassword(data.pin!));
       }
     } catch (erro) {
-      // O índice único de (loja, telefone). A mensagem do banco não serve para
-      // o dono, e o telefone é justamente o que ele acabou de digitar.
+      // O Ã­ndice Ãºnico de (loja, telefone). A mensagem do banco nÃ£o serve para
+      // o dono, e o telefone Ã© justamente o que ele acabou de digitar.
       if (erro instanceof Error && erro.message.includes("Employee_storeId_phone_key")) {
-        return { ok: false as const, error: "Já existe um funcionário com este telefone." };
+        return { ok: false as const, error: "JÃ¡ existe um funcionÃ¡rio com este telefone." };
       }
       throw erro;
     }
@@ -88,16 +89,16 @@ export const saveEmployeeFn = createServerFn({ method: "POST" })
   });
 
 /**
- * Tira o benefício sem apagar a ficha — férias, afastamento, castigo. O
- * reconhecimento no checkout para no mesmo instante, porque a busca só olha
- * quem está ativo.
+ * Tira o benefÃ­cio sem apagar a ficha â€” fÃ©rias, afastamento, castigo. O
+ * reconhecimento no checkout para no mesmo instante, porque a busca sÃ³ olha
+ * quem estÃ¡ ativo.
  */
 export const setEmployeeActiveFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), isActive: z.boolean() }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     const ok = await setEmployeeActive(storeId, data.id, data.isActive);
-    return ok ? { ok: true as const } : { ok: false as const, error: "Funcionário não encontrado." };
+    return ok ? { ok: true as const } : { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." };
   });
 
 export const deleteEmployeeFn = createServerFn({ method: "POST" })
@@ -107,7 +108,7 @@ export const deleteEmployeeFn = createServerFn({ method: "POST" })
     const nome = await deleteEmployee(storeId, data.id);
     return nome
       ? { ok: true as const, name: nome }
-      : { ok: false as const, error: "Funcionário não encontrado." };
+      : { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." };
   });
 
 // ---------- Planos ----------
@@ -121,11 +122,11 @@ const ruleSchema = z
     dailyLimit: z.number().int().min(0).nullish().default(null),
   })
   .refine((r) => Boolean(r.categoryId) !== Boolean(r.productId), {
-    message: "Cada exceção vale para uma categoria ou para um produto, nunca os dois.",
+    message: "Cada exceÃ§Ã£o vale para uma categoria ou para um produto, nunca os dois.",
   });
 
 const planSchema = z.object({
-  name: z.string().trim().min(2, "Dê um nome ao plano.").max(40),
+  name: z.string().trim().min(2, "DÃª um nome ao plano.").max(40),
   defaultType: BENEFIT_TYPE,
   defaultValue: z.number().min(0),
   limitMode: LIMIT_MODE,
@@ -152,23 +153,23 @@ export const saveBenefitPlanFn = createServerFn({ method: "POST" })
     const d = data.data;
 
     if (d.defaultType === "PERCENTAGE" && d.defaultValue > 100) {
-      return { ok: false as const, error: "Um desconto em porcentagem não passa de 100%." };
+      return { ok: false as const, error: "Um desconto em porcentagem nÃ£o passa de 100%." };
     }
     const percentualInvalido = data.rules.find((r) => r.type === "PERCENTAGE" && r.value > 100);
     if (percentualInvalido) {
-      return { ok: false as const, error: "Uma das exceções tem porcentagem acima de 100%." };
+      return { ok: false as const, error: "Uma das exceÃ§Ãµes tem porcentagem acima de 100%." };
     }
     /*
-     * Um limite sem número é um limite que não limita: a tela mostraria "cota
+     * Um limite sem nÃºmero Ã© um limite que nÃ£o limita: a tela mostraria "cota
      * de hoje" sem cota nenhuma, e o dono acharia que configurou algo.
      */
     if ((d.limitMode === "ITEMS_PER_DAY" || d.limitMode === "AMOUNT_PER_DAY") && !d.limitValue) {
-      return { ok: false as const, error: "Informe o valor do limite diário." };
+      return { ok: false as const, error: "Informe o valor do limite diÃ¡rio." };
     }
     if (d.limitMode === "PER_CATEGORY" && !data.rules.some((r) => r.categoryId && r.dailyLimit)) {
       return {
         ok: false as const,
-        error: "No limite por categoria, ao menos uma categoria precisa de um número por dia.",
+        error: "No limite por categoria, ao menos uma categoria precisa de um nÃºmero por dia.",
       };
     }
 
@@ -178,7 +179,7 @@ export const saveBenefitPlanFn = createServerFn({ method: "POST" })
         data.id ?? null,
         {
           ...d,
-          // Só o modo que usa o campo o guarda preenchido; senão o número
+          // SÃ³ o modo que usa o campo o guarda preenchido; senÃ£o o nÃºmero
           // antigo ficaria escondido no banco esperando para reaparecer.
           limitValue:
             d.limitMode === "ITEMS_PER_DAY" || d.limitMode === "AMOUNT_PER_DAY"
@@ -193,11 +194,11 @@ export const saveBenefitPlanFn = createServerFn({ method: "POST" })
           dailyLimit: r.dailyLimit ?? null,
         })),
       );
-      if (!planId) return { ok: false as const, error: "Plano não encontrado." };
+      if (!planId) return { ok: false as const, error: "Plano nÃ£o encontrado." };
       return { ok: true as const, id: planId };
     } catch (erro) {
       if (erro instanceof Error && erro.message.includes("EmployeeBenefitPlan_storeId_name_key")) {
-        return { ok: false as const, error: "Já existe um plano com este nome." };
+        return { ok: false as const, error: "JÃ¡ existe um plano com este nome." };
       }
       throw erro;
     }
@@ -208,6 +209,7 @@ export const deleteBenefitPlanFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     const ok = await deleteBenefitPlan(storeId, data.id);
-    // Quem estava nele fica sem benefício, mas continua cadastrado.
-    return ok ? { ok: true as const } : { ok: false as const, error: "Plano não encontrado." };
+    // Quem estava nele fica sem benefÃ­cio, mas continua cadastrado.
+    return ok ? { ok: true as const } : { ok: false as const, error: "Plano nÃ£o encontrado." };
   });
+

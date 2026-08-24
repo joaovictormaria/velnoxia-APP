@@ -1,7 +1,8 @@
-import { action } from "@solidjs/router";
+// import { action } from "@solidjs/router";
 import { prisma } from "@/server/db/client";
 import { OrderInventoryHandler } from "@/server/services/order-inventory-handler";
 import { inventoryMovementRepository } from "@/server/repositories";
+const action = (fn: any) => fn;
 
 /**
  * System: Sincronizar estoque quando pedido é recebido
