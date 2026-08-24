@@ -15,6 +15,11 @@ function QRCodeRedirect() {
   useEffect(() => {
     if (!qrcodeId) return;
 
+    // Limpar dados de sessão anterior (novo cliente)
+    localStorage.removeItem("deviceToken");
+    localStorage.removeItem("pin");
+    localStorage.removeItem("sessionId");
+
     // Armazenar QR Token (tableId) no localStorage
     localStorage.setItem("tableId", qrcodeId);
 
