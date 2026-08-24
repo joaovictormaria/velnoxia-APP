@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { MesaModal } from "./MesaModal";
+import { useMutation } from "@tanstack/react-query";
 
 const CORES = [
   "bg-red-500",
@@ -41,6 +42,16 @@ export function MesaCard({
   onFinalize: (tableId: string, pedidoIds: string[]) => void;
 }) {
   const [showModal, setShowModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handleFinalize = async () => {
+    setIsProcessing(true);
+    try {
+      onFinalize(mesa.tableId, mesa.pedidos.map(p => p.id));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const cor = getCorPorMesa(mesa.tableId);
 
@@ -73,10 +84,18 @@ export function MesaCard({
 
           <button
             type="button"
-            onClick={() => onFinalize(mesa.tableId, mesa.pedidos.map(p => p.id))}
-            className="w-full rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+            onClick={handleFinalize}
+            disabled={isProcessing}
+            className="w-full flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:bg-neutral-400 disabled:cursor-not-allowed transition-colors"
           >
-            Finalizar pagamento
+            {isProcessing ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Processando...
+              </>
+            ) : (
+              "Finalizar pagamento"
+            )}
           </button>
         </div>
       </div>
