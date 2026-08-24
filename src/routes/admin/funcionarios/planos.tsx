@@ -76,14 +76,14 @@ function PlanosPage() {
     queryFn: () => listProductsFn({ data: {} }),
   });
 
-  const categorias = cardapio?.categories ?? [];
-  const produtos = cardapio?.products ?? [];
+  const categorias = (cardapio as any)?.categories ?? [];
+  const produtos = (cardapio as any)?.products ?? [];
 
   const nomeDoAlvo = (alvo: string) => {
     const [tipo, id] = alvo.split(":");
     return tipo === "categoria"
-      ? (categorias.find((c) => c.id === id)?.name ?? "categoria apagada")
-      : (produtos.find((p) => p.id === id)?.name ?? "produto apagado");
+      ? (categorias.find((c: any) => c.id === id)?.name ?? "categoria apagada")
+      : (produtos.find((p: any) => p.id === id)?.name ?? "produto apagado");
   };
 
   const salvar = useMutation({
@@ -324,14 +324,14 @@ function PlanosPage() {
                         >
                           <option value="">Escolha...</option>
                           <optgroup label="Categorias">
-                            {categorias.map((c) => (
+                            {categorias.map((c: any) => (
                               <option key={c.id} value={`categoria:${c.id}`}>
                                 {c.name}
                               </option>
                             ))}
                           </optgroup>
                           <optgroup label="Produtos">
-                            {produtos.map((p) => (
+                            {produtos.map((p: any) => (
                               <option key={p.id} value={`produto:${p.id}`}>
                                 {p.name}
                               </option>
@@ -460,7 +460,7 @@ function PlanosPage() {
                     {plano.limitMode === "NONE"
                       ? "sem limite diário"
                       : plano.limitMode === "ITEMS_PER_DAY"
-                        ? `até ${plano.limitValue} ${plano.limitValue === 1 ? "item" : "itens"} por dia`
+                        ? `até ${plano.limitValue} ${Number(plano.limitValue) === 1 ? "item" : "itens"} por dia`
                         : plano.limitMode === "AMOUNT_PER_DAY"
                           ? `até ${moeda.format(toNumber(plano.limitValue ?? 0))} por dia`
                           : "limite por categoria"}
