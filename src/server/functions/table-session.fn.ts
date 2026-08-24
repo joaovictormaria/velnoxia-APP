@@ -153,7 +153,16 @@ export const validateTableSessionPinFn = createServerFn({ method: "POST" })
 
       const result = await validateTableSessionPin(store.id, data.sessionId, data.pin);
 
-      return result as { ok: boolean; error?: string };
+      // Se PIN validado com sucesso, autorizar o dispositivo
+      if (result.ok) {
+        const device = await authorizeDeviceForSession(store.id, data.sessionId, false);
+        return {
+          ok: true as const,
+          deviceToken: device.deviceToken,
+        };
+      }
+
+      return result as { ok: false; error: string };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
       return { ok: false as const, error: msg };
