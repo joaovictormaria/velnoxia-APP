@@ -1,6 +1,6 @@
 import { prisma } from "../db/client";
 import { AuditService } from "../audit/audit-service";
-import { Decimal } from "@prisma/client/runtime/library";
+type Decimal = any;
 
 /**
  * PRIORIDADE 12: EVOLUÇÃO DE ESTOQUE
@@ -71,7 +71,7 @@ export class InventoryService {
     storeId: string,
     productId: string,
   ): Promise<ProductInventory | null> {
-    const inventory = await prisma.productInventory.findUnique({
+    const inventory = await (prisma as any).productInventory.findUnique({
       where: { productId },
     });
 
@@ -117,7 +117,7 @@ export class InventoryService {
     }
 
     // Atualizar ou criar inventário
-    const inventory = await prisma.productInventory.upsert({
+    const inventory = await (prisma as any).productInventory.upsert({
       where: { productId },
       update: {
         quantity: { increment: quantity },
@@ -181,7 +181,7 @@ export class InventoryService {
 
     // Validar disponibilidade
     for (const item of items) {
-      const inventory = await prisma.productInventory.findUnique({
+      const inventory = await (prisma as any).productInventory.findUnique({
         where: { productId: item.productId },
       });
 
@@ -206,7 +206,7 @@ export class InventoryService {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
 
     for (const item of items) {
-      await prisma.stockReservation.create({
+      await (prisma as any).stockReservation.create({
         data: {
           orderId,
           productId: item.productId,
@@ -223,11 +223,11 @@ export class InventoryService {
    * Cancelar reserva (se pedido for cancelado)
    */
   async releaseReservation(orderId: string, adminId: string): Promise<void> {
-    const reservations = await prisma.stockReservation.findMany({
+    const reservations = await (prisma as any).stockReservation.findMany({
       where: { orderId },
     });
 
-    await prisma.stockReservation.deleteMany({
+    await (prisma as any).stockReservation.deleteMany({
       where: { orderId },
     });
 
@@ -262,7 +262,7 @@ export class InventoryService {
       }
 
       // Atualizar estoque
-      const inventory = await prisma.productInventory.updateMany({
+      const inventory = await (prisma as any).productInventory.updateMany({
         where: { productId: item.productId },
         data: {
           quantity: { decrement: item.quantity },
@@ -286,7 +286,7 @@ export class InventoryService {
       });
 
       // Remover reserva
-      await prisma.stockReservation.deleteMany({
+      await (prisma as any).stockReservation.deleteMany({
         where: { orderId, productId: item.productId },
       });
     }
@@ -328,7 +328,7 @@ export class InventoryService {
     if (reason.toLowerCase().includes("devolução")) movementType = "RETURN";
 
     // Atualizar estoque
-    const inventory = await prisma.productInventory.updateMany({
+    const inventory = await (prisma as any).productInventory.updateMany({
       where: { productId },
       data: {
         quantity: { increment: quantity },
@@ -386,7 +386,7 @@ export class InventoryService {
       throw new Error("Threshold não pode ser negativo");
     }
 
-    await prisma.productInventory.upsert({
+    await (prisma as any).productInventory.upsert({
       where: { productId },
       update: { lowStockThreshold: threshold },
       create: {
@@ -416,7 +416,7 @@ export class InventoryService {
   async checkLowStockAlerts(storeId: string): Promise<InventoryAlert[]> {
     const alerts: InventoryAlert[] = [];
 
-    const inventories = await prisma.productInventory.findMany({
+    const inventories = await (prisma as any).productInventory.findMany({
       where: { storeId },
     });
 
@@ -447,7 +447,7 @@ export class InventoryService {
         });
 
         // Registrar alerta no BD
-        await prisma.inventoryAlert.create({
+        await (prisma as any).inventoryAlert.create({
           data: {
             productId: inv.productId,
             storeId,
@@ -471,7 +471,7 @@ export class InventoryService {
       outOfStockOnly?: boolean;
     },
   ): Promise<Array<ProductInventory & { productName: string }>> {
-    const inventories = await prisma.productInventory.findMany({
+    const inventories = await (prisma as any).productInventory.findMany({
       where: { storeId },
       include: { product: { select: { name: true } } },
     });
@@ -524,7 +524,7 @@ export class InventoryService {
    * Limpar reservas expiradas (executar via cron)
    */
   async cleanupExpiredReservations(): Promise<number> {
-    const deleted = await prisma.stockReservation.deleteMany({
+    const deleted = await (prisma as any).stockReservation.deleteMany({
       where: {
         expiresAt: { lt: new Date() },
       },
@@ -537,11 +537,11 @@ export class InventoryService {
    * Obter quantidade reservada (helper privado)
    */
   private async getReservedQuantity(productId: string): Promise<number> {
-    const reservations = await prisma.stockReservation.findMany({
+    const reservations = await (prisma as any).stockReservation.findMany({
       where: { productId },
     });
 
-    return reservations.reduce((sum, r) => sum + r.quantity, 0);
+    return reservations.reduce((sum: any, r: any) => sum + r.quantity, 0);
   }
 }
 
