@@ -61,7 +61,7 @@ export function validateCSRFToken(headerToken: string, cookieToken: string): boo
  * export default defineEventHandler(csrfProtection)
  */
 export const csrfProtection = defineEventHandler(async (event) => {
-  const method = event.node.req.method || "GET";
+  const method = event.node!.req.method || "GET";
 
   // GET: Gerar token se não existir
   if (method === "GET") {
@@ -83,9 +83,9 @@ export const csrfProtection = defineEventHandler(async (event) => {
   // POST/PUT/DELETE/PATCH: Validar token
   if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
     const cookieToken = getCookie(event, CSRF_COOKIE_NAME);
-    const headerToken = event.node.req.headers[CSRF_HEADER_NAME] as string;
+    const headerToken = event.node!.req.headers[CSRF_HEADER_NAME] as string | undefined;
 
-    if (!validateCSRFToken(headerToken, cookieToken)) {
+    if (!validateCSRFToken(headerToken || "", cookieToken)) {
       throw createError({
         statusCode: 403,
         statusMessage: "CSRF token validation failed",
@@ -114,7 +114,7 @@ export const CSRF_EXEMPT_PATHS = [
  */
 export const csrfProtectionWithExemptions = defineEventHandler(
   async (event) => {
-    const path = event.node.req.url || "";
+    const path = event.node!.req.url || "";
 
     // Check se path está eximo
     const isExempt = CSRF_EXEMPT_PATHS.some((exemptPath) =>
