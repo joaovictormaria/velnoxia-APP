@@ -217,7 +217,7 @@ export async function precificarItens(
       return { ok: false, error: `"${product.name}" não aceita meia-pizza.` };
     }
 
-    const primeiroPreco = priceForSize(product, sizeId);
+    const primeiroPreco = priceForSize(product as any, sizeId);
     if (primeiroPreco === null) {
       return { ok: false, error: `O tamanho escolhido para "${product.name}" não está disponível.` };
     }
@@ -230,7 +230,7 @@ export async function precificarItens(
        * cadastrado ali. Antes essa falta virava o preço base em silêncio: uma
        * gigante saía pelo preço de uma broto.
        */
-      let secondPrice = priceForSize(second, sizeId);
+      let secondPrice = priceForSize(second as any, sizeId);
       if (secondPrice === null) {
         return {
           ok: false,
@@ -244,7 +244,7 @@ export async function precificarItens(
           : Math.max(unitPrice, secondPrice);
     }
 
-    const opcoes = conferirOpcoes(gruposPorProduto.get(product.id) ?? [], item.optionIds ?? []);
+    const opcoes = conferirOpcoes(gruposPorProduto.get(product.id) as any ?? [], item.optionIds ?? []);
     if (!opcoes.ok) return { ok: false, error: opcoes.error };
 
     const permitidos = permitidosPorProduto.get(product.id) ?? new Set<string>();
@@ -273,7 +273,7 @@ export async function precificarItens(
     if (lineExtras.some((e) => e === null)) {
       return { ok: false, error: "Um dos adicionais não está mais disponível." };
     }
-    const resolvedExtras = lineExtras as {
+    const resolvedExtras = lineExtras as unknown as {
       extraId: string | null;
       optionItemId: string | null;
       groupNameSnapshot: string | null;
@@ -353,7 +353,7 @@ export async function createOrderFromCheckout(
     }
 
     sessionId = deviceInfo.sessionId;
-    deviceId = deviceInfo.id;
+    deviceId = (deviceInfo as any).deviceId;
   }
 
   // Validate tableId if provided: table must exist
@@ -413,10 +413,10 @@ export async function createOrderFromCheckout(
   if (!precos.ok) return precos;
   const { lines, linhasParaBeneficio, subtotal } = precos;
 
-  if (subtotal < settings.minOrderValue) {
+  if (Number(subtotal) < Number((settings as any).minOrderValue)) {
     return {
       ok: false,
-      error: `O pedido mínimo é de R$ ${settings.minOrderValue.toFixed(2).replace(".", ",")}.`,
+      error: `O pedido mínimo é de R$ ${Number((settings as any).minOrderValue).toFixed(2).replace(".", ",")}.`,
     };
   }
 
@@ -461,21 +461,21 @@ export async function createOrderFromCheckout(
       coupon.validFrom > now ||
       coupon.validUntil < now ||
       (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage) ||
-      (coupon.minOrderValue !== null && subtotal < Number(coupon.minOrderValue))
+      (coupon.minOrderValue !== null && Number(subtotal) < Number(coupon.minOrderValue))
     ) {
       return { ok: false, error: "Cupom inválido ou expirado." };
     }
     descontoDoCupom =
       coupon.discountType === "PERCENTAGE"
-        ? (subtotal * Number(coupon.discountValue)) / 100
+        ? (Number(subtotal) * Number(coupon.discountValue)) / 100
         : Number(coupon.discountValue);
-    descontoDoCupom = Math.min(Math.round(descontoDoCupom * 100) / 100, subtotal);
+    descontoDoCupom = Math.min(Math.round(descontoDoCupom * 100) / 100, Number(subtotal));
     couponId = coupon.id;
   }
 
   const deliveryFee =
     input.type === "DELIVERY" &&
-    !(settings.freeDeliveryMinOrder !== null && subtotal >= Number(settings.freeDeliveryMinOrder))
+    !(settings.freeDeliveryMinOrder !== null && Number(subtotal) >= Number(settings.freeDeliveryMinOrder))
       ? Number(settings.deliveryFee)
       : 0;
 
@@ -503,9 +503,9 @@ export async function createOrderFromCheckout(
     const employeeDiscount = beneficioFinal?.descontoTotal ?? 0;
     const discount = Math.min(
       Math.round((employeeDiscount + descontoDoCupom) * 100) / 100,
-      subtotal,
+      Number(subtotal),
     );
-    const total = Math.round((subtotal + deliveryFee - discount) * 100) / 100;
+    const total = Math.round((Number(subtotal) + deliveryFee - discount) * 100) / 100;
 
     const customer = await tx.customer.upsert({
       where: { storeId_phone: { storeId, phone } },
@@ -536,7 +536,7 @@ export async function createOrderFromCheckout(
         status: "RECEIVED",
         source: "SITE",
         paymentMethod: input.paymentMethod,
-        subtotal,
+        subtotal: Number(subtotal),
         deliveryFee,
         discount,
         total,
@@ -559,7 +559,7 @@ export async function createOrderFromCheckout(
         deliveryZipCode: input.delivery?.zipCode ?? null,
         customerNote: input.customerNote?.trim() || null,
         estimatedDeliveryAt: new Date(Date.now() + estimatedMinutes * 60_000),
-        autoPrintRequested: settings.autoPrintEnabled,
+        autoPrintRequested: (settings as any).autoPrintEnabled,
         items: {
           create: lines.map(({ extras: lineExtras, ...line }, i) => ({
             ...line,
@@ -602,7 +602,7 @@ export async function createOrderFromCheckout(
     ok: true,
     orderId: order.id,
     orderNumber: order.number,
-    total: order.total,
+    total: Number(order.total),
     trackingToken: order.trackingToken,
   };
 }
