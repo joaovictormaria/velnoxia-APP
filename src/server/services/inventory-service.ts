@@ -55,7 +55,7 @@ export class InventoryService {
       minimumThreshold: data.minimumThreshold,
       idealQuantity: data.idealQuantity,
       maximumCapacity: data.maximumCapacity,
-    });
+    } as any);
 
     return this.serializeItem(item);
   }
@@ -108,26 +108,26 @@ export class InventoryService {
     }
 
     // 2. Validate item exists
-    const item = await inventoryItemRepository.findById(storeId, data.itemId);
+    const item = await inventoryItemRepository.findById(storeId, (data as any).itemId);
     if (!item) {
       throw new Error("Item not found");
     }
 
     // 3. Validate unit exists
-    const unit = await inventoryUnitRepository.findById(data.unitId);
+    const unit = await inventoryUnitRepository.findById((data as any).unitId);
     if (!unit) {
       throw new Error("Unit not found");
     }
 
     // 4. Validate REVERSAL constraints
     if (data.type === "REVERSAL") {
-      if (!data.originalMovementId) {
+      if (!(data as any).originalMovementId) {
         throw new Error("REVERSAL requires originalMovementId");
       }
 
       const original = await inventoryMovementRepository.findById(
         storeId,
-        data.originalMovementId
+        (data as any).originalMovementId
       );
       if (!original) {
         throw new Error("Original movement not found");
@@ -141,7 +141,7 @@ export class InventoryService {
       // Check if already reversed
       const existingReversal = await inventoryMovementRepository.findReversal(
         storeId,
-        data.originalMovementId
+        (data as any).originalMovementId
       );
       if (existingReversal) {
         throw new Error("Movement has already been reversed");
@@ -155,14 +155,14 @@ export class InventoryService {
         data: {
           storeId,
           idempotencyKey: data.idempotencyKey,
-          itemId: data.itemId,
+          itemId: (data as any).itemId,
           type: data.type,
           quantity: data.quantity,
-          unitId: data.unitId,
+          unitId: (data as any).unitId,
           reference: data.reference,
           referenceType: data.referenceType,
-          originalMovementId: data.originalMovementId,
-          compositionId: data.compositionId,
+          originalMovementId: (data as any).originalMovementId,
+          compositionId: (data as any).compositionId,
           costAtTime: item.cost, // Congelar custo no momento da movimentação
           note: data.note,
           authorType: data.authorType,
@@ -176,7 +176,7 @@ export class InventoryService {
       const updates = this.calculateQuantityUpdates(
         item,
         data.type,
-        data.quantity
+        Number(data.quantity)
       );
 
       if (Object.keys(updates).length > 0) {
@@ -231,15 +231,15 @@ export class InventoryService {
       idempotencyKey: reversalKey,
       itemId: original.itemId,
       type: "REVERSAL",
-      quantity: original.quantity * -1,
+      quantity: Number(original.quantity) * -1,
       unitId: original.unitId,
-      originalMovementId,
+      originalMovementId: originalMovementId,
       reference: original.reference,
       referenceType: original.referenceType,
       authorType: authorData?.authorType,
       authorId: authorData?.authorId,
       authorName: authorData?.authorName,
-    });
+    } as any);
   }
 
   /**
@@ -264,7 +264,7 @@ export class InventoryService {
     }
 
     // Check availability
-    const quantityAvailable = item.quantityOnHand - item.quantityReserved;
+    const quantityAvailable = Number(item.quantityOnHand) - Number(item.quantityReserved);
     if (quantityAvailable < quantity) {
       throw new Error(
         `Insufficient quantity. Available: ${quantityAvailable}, Requested: ${quantity}`
@@ -283,7 +283,7 @@ export class InventoryService {
       reference: orderId,
       referenceType: "ORDER",
       authorType: "SYSTEM",
-    });
+    } as any);
   }
 
   /**
@@ -301,7 +301,7 @@ export class InventoryService {
     }
 
     // Check if reserved (quantityReserved >= quantity)
-    if (item.quantityReserved < quantity) {
+    if (Number(item.quantityReserved) < quantity) {
       throw new Error(
         `Insufficient reserved quantity. Reserved: ${item.quantityReserved}, Requested: ${quantity}`
       );
@@ -318,7 +318,7 @@ export class InventoryService {
       reference: orderId,
       referenceType: "ORDER",
       authorType: "SYSTEM",
-    });
+    } as any);
   }
 
   /**
