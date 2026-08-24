@@ -29,7 +29,7 @@ export interface WebhookPayload {
  */
 export async function handleStripeWebhook(payload: WebhookPayload): Promise<boolean> {
   // Verificar se evento já foi processado (idempotência)
-  const existente = await prisma.stripeWebhookEvent.findUnique({
+  const existente = await (prisma as any).stripeWebhookEvent.findUnique({
     where: { eventId: payload.id },
     select: { id: true },
   });
@@ -63,7 +63,7 @@ export async function handleStripeWebhook(payload: WebhookPayload): Promise<bool
     }
 
     // Registrar como processado
-    await prisma.stripeWebhookEvent.create({
+    await (prisma as any).stripeWebhookEvent.create({
       data: {
         eventId: payload.id,
         eventType: payload.type,
@@ -84,8 +84,8 @@ export async function handleStripeWebhook(payload: WebhookPayload): Promise<bool
  * Cria subscription e atualiza store com status ACTIVE
  */
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  if (session.subscription_data?.metadata?.storeId) {
-    const storeId = session.subscription_data.metadata.storeId as string;
+  if ((session as any).subscription_data?.metadata?.storeId) {
+    const storeId = (session as any).subscription_data.metadata.storeId as string;
 
     // Subscription já foi criada pelo Stripe na sessão
     const subscription = await stripe().subscriptions.retrieve(session.subscription as string);
@@ -126,9 +126,9 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
  * 4. PAGAMENTO BEM-SUCEDIDO — Renovação ou primeiro pagamento
  */
 async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
-  if (!invoice.subscription) return;
+  if (!(invoice as any).subscription) return;
 
-  const subscription = await stripe().subscriptions.retrieve(invoice.subscription as string);
+  const subscription = await stripe().subscriptions.retrieve((invoice as any).subscription as string);
   const storeId = subscription.metadata?.storeId as string | undefined;
 
   if (storeId) {
@@ -140,9 +140,9 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
  * 5. PAGAMENTO FALHOU — Cartão recusado, limite atingido
  */
 async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  if (!invoice.subscription) return;
+  if (!(invoice as any).subscription) return;
 
-  const subscription = await stripe().subscriptions.retrieve(invoice.subscription as string);
+  const subscription = await stripe().subscriptions.retrieve((invoice as any).subscription as string);
   const storeId = subscription.metadata?.storeId as string | undefined;
 
   if (storeId) {
@@ -163,7 +163,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 async function updateStoreSubscription(storeId: string, subscription: Stripe.Subscription) {
   // Extrair estado do Stripe (fonte de verdade)
   const stripeStatus = subscription.status as "active" | "past_due" | "canceled" | "trialing";
-  const paidUntil = subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : new Date();
+  const paidUntil = (subscription as any).current_period_end ? new Date((subscription as any).current_period_end * 1000) : new Date();
 
   // Decidir status da loja baseado no Stripe
   let storeStatus: "TRIAL" | "ACTIVE" | "SUSPENDED";
