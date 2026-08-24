@@ -223,3 +223,35 @@ export const setOrderAwaitingCourierFn = createServerFn({ method: "POST" })
     return setOrderAwaitingCourier(storeId, data.id, data.awaiting);
   });
 
+/**
+ * Confirmar pagamento do pedido manualmente (admin).
+ * Marca o pedido como PAID.
+ */
+export const confirmPaymentFn = createServerFn({ method: "POST" })
+  .validator(z.object({ orderId: z.string() }))
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+
+    // Verificar que o pedido pertence à loja
+    const order = await prisma.order.findFirst({
+      where: { id: data.orderId, storeId },
+      select: { id: true, paymentStatus: true },
+    });
+
+    if (!order) {
+      return { ok: false as const, error: "Pedido não encontrado" };
+    }
+
+    if (order.paymentStatus === "PAID") {
+      return { ok: false as const, error: "Pedido já foi marcado como pago" };
+    }
+
+    // Marcar como pago
+    await prisma.order.update({
+      where: { id: data.orderId },
+      data: { paymentStatus: "PAID" },
+    });
+
+    return { ok: true as const };
+  });
+

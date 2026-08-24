@@ -91,6 +91,8 @@ export async function listKanbanOrders(
             subtotal: true,
             sessionId: true,
             tableId: true,
+            paymentStatus: true,
+            paymentMethod: true,
             awaitingCourierSince: true,
             deliveryNeighborhood: true,
             items: {

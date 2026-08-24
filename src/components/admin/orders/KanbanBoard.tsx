@@ -6,6 +6,7 @@ import {
   CircleCheck,
   Clock,
   ShoppingBag,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
@@ -81,6 +82,10 @@ export type KanbanOrder = {
   courier: { name: string } | null;
   /** O nome copiado no despacho. Sobrevive à exclusão da conta. */
   courierNameSnapshot: string | null;
+  /** Status do pagamento: PENDING ou PAID */
+  paymentStatus: "PENDING" | "PAID";
+  /** Método de pagamento do pedido */
+  paymentMethod: "PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH" | "PAYROLL";
 };
 
 export type KanbanColumnData = {
@@ -266,6 +271,18 @@ function OrderCard({
             <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
               <Bike className="size-3" />
               {order.courier?.name ?? order.courierNameSnapshot}
+            </span>
+          )}
+          {order.paymentStatus === "PENDING" && (
+            <span className="flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+              <CreditCard className="size-3" />
+              Pendente
+            </span>
+          )}
+          {order.paymentStatus === "PAID" && (
+            <span className="flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+              <CircleCheck className="size-3" />
+              Pago
             </span>
           )}
         </div>
