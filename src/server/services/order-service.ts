@@ -364,6 +364,22 @@ export async function createOrderFromCheckout(
     }
   }
 
+  // CRITICAL: Validate session belongs to correct table (prevent IDOR)
+  // A device token is only valid for its specific session and table.
+  // A client cannot use token from Table A to order at Table B.
+  if (sessionId && input.tableId) {
+    const session = await prisma.tableSession.findUnique({
+      where: { id: sessionId },
+      select: { tableId: true },
+    });
+    if (!session || session.tableId !== input.tableId) {
+      return {
+        ok: false,
+        error: "Sua sessão de mesa expirou. Escaneie o QRCode da mesa novamente para continuar.",
+      };
+    }
+  }
+
   if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
     return { ok: false, error: "A loja não está aceitando entregas no momento." };
   }
