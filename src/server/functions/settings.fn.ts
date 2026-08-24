@@ -10,6 +10,7 @@ import {
   replaceOpeningHours,
   updateStoreSettings,
 } from "../repositories/store-settings-repository";
+import { serializeResponse } from "../utils/serialize-response";
 
 const weekday = z.enum([
   "MONDAY",
@@ -84,7 +85,13 @@ const openingHoursSchema = z.array(
 export const getStoreSettingsFn = createServerFn({ method: "GET" }).handler(
   async (): Promise<any> => {
     const { storeId } = await requireAdminSession();
-    return getStoreSettings(storeId);
+    try {
+      const settings = await getStoreSettings(storeId);
+      return serializeResponse(settings);
+    } catch (error: any) {
+      console.error("❌ getStoreSettings error:", error?.message || error);
+      throw error;
+    }
   },
 );
 
