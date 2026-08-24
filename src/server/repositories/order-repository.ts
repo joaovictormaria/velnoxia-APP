@@ -89,6 +89,8 @@ export async function listKanbanOrders(
             discount: true,
             deliveryFee: true,
             subtotal: true,
+            sessionId: true,
+            tableId: true,
             awaitingCourierSince: true,
             deliveryNeighborhood: true,
             items: {
