@@ -5,6 +5,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import { deleteCouponFn, listCouponsFn, saveCouponFn } from "@/server/functions/coupons.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { CupomDaPrevia } from "@/components/admin/preview/CupomDaPrevia";
+import { toNumber, toStr } from "@/lib/decimal-utils";
 
 export const Route = createFileRoute("/admin/cupons/")({
   component: CouponsPage,
@@ -279,8 +280,8 @@ function CouponsPage() {
                   <p className="text-sm text-neutral-600">
                     {c.discountType === "PERCENTAGE"
                       ? `${c.discountValue}% de desconto`
-                      : `${money(c.discountValue)} de desconto`}
-                    {c.minOrderValue !== null && ` · a partir de ${money(c.minOrderValue)}`}
+                      : `${money(toNumber(c.discountValue))} de desconto`}
+                    {c.minOrderValue !== null && ` · a partir de ${money(toNumber(c.minOrderValue))}`}
                   </p>
                   <p className="text-xs text-neutral-500">
                     {dateFormat.format(new Date(c.validFrom))} até{" "}
@@ -303,9 +304,9 @@ function CouponsPage() {
                       code: c.code,
                       description: c.description ?? "",
                       discountType: c.discountType,
-                      discountValue: String(c.discountValue),
-                      minOrderValue: c.minOrderValue?.toString() ?? "",
-                      maxUsage: c.maxUsage?.toString() ?? "",
+                      discountValue: toStr(c.discountValue),
+                      minOrderValue: toStr(c.minOrderValue),
+                      maxUsage: toStr(c.maxUsage),
                       validFrom: day(new Date(c.validFrom)),
                       validUntil: day(new Date(c.validUntil)),
                       isActive: c.isActive,

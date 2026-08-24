@@ -8,6 +8,7 @@ import {
   saveBenefitPlanFn,
 } from "@/server/functions/employees.fn";
 import { listProductsFn } from "@/server/functions/products.fn";
+import { toNumber } from "@/lib/decimal-utils";
 
 export const Route = createFileRoute("/admin/funcionarios/planos")({
   component: PlanosPage,
@@ -455,13 +456,13 @@ function PlanosPage() {
                     )}
                   </p>
                   <p className="mt-0.5 text-sm text-neutral-600">
-                    Padrão: {descreverRegra(plano.defaultType, plano.defaultValue)} ·{" "}
+                    Padrão: {descreverRegra(plano.defaultType, toNumber(plano.defaultValue))} ·{" "}
                     {plano.limitMode === "NONE"
                       ? "sem limite diário"
                       : plano.limitMode === "ITEMS_PER_DAY"
                         ? `até ${plano.limitValue} ${plano.limitValue === 1 ? "item" : "itens"} por dia`
                         : plano.limitMode === "AMOUNT_PER_DAY"
-                          ? `até ${moeda.format(plano.limitValue ?? 0)} por dia`
+                          ? `até ${moeda.format(toNumber(plano.limitValue ?? 0))} por dia`
                           : "limite por categoria"}
                   </p>
                   {plano.rules.length > 0 && (
@@ -473,7 +474,7 @@ function PlanosPage() {
                               ? `categoria:${regra.categoryId}`
                               : `produto:${regra.productId}`,
                           )}
-                          : {descreverRegra(regra.type, regra.value)}
+                          : {descreverRegra(regra.type, toNumber(regra.value))}
                           {regra.dailyLimit !== null && ` · até ${regra.dailyLimit} por dia`}
                         </li>
                       ))}
