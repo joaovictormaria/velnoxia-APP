@@ -130,8 +130,7 @@ export class AuthorizationService {
         resource: "PIN",
         resourceId: adminId,
         reason: `Muitas tentativas. Tente novamente em ${status.retryAfter}s`,
-        error: new Error("Rate limit exceeded"),
-      });
+      }, new Error("Rate limit exceeded"));
 
       return {
         valid: false,
@@ -152,8 +151,7 @@ export class AuthorizationService {
         resource: "PIN",
         resourceId: adminId,
         reason: "PIN expirado ou inválido",
-        error: new Error("PIN not found"),
-      });
+      }, new Error("PIN not found"));
 
       return { valid: false, remainingAttempts: status.tokensRemaining };
     }
@@ -180,8 +178,7 @@ export class AuthorizationService {
         resource: "PIN",
         resourceId: adminId,
         reason: `PIN incorreto (tentativa ${pinData.attempts})`,
-        error: new Error("Invalid PIN"),
-      });
+      }, new Error("Invalid PIN"));
 
       return { valid: false, remainingAttempts: status.tokensRemaining };
     }
@@ -245,7 +242,7 @@ export class AuthorizationService {
         ipAddress: ipAddress || "",
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 horas
         isActive: true,
-      },
+      } as any,
     });
 
     // Auditar autorização
@@ -294,7 +291,7 @@ export class AuthorizationService {
         deviceId,
         adminId,
         isActive: true,
-      },
+      } as any,
       select: { id: true },
     });
 
@@ -311,7 +308,7 @@ export class AuthorizationService {
         isActive: false,
         revokedAt: new Date(),
         revokedBy,
-      },
+      } as any,
     });
 
     // Auditar revogação
@@ -340,7 +337,7 @@ export class AuthorizationService {
         id: true,
         adminId: true,
         table: { select: { storeId: true } },
-      },
+      } as any,
     });
 
     if (!session) {
@@ -357,13 +354,13 @@ export class AuthorizationService {
       data: {
         sessionToken: newTokenHash,
         tokenRotatedAt: new Date(),
-      },
+      } as any,
     });
 
     // Auditar rotação
     await AuditService.log({
-      storeId: session.table.storeId,
-      userId: session.adminId,
+      storeId: (session?.table as any)?.storeId,
+      userId: (session as any).adminId,
       action: "ROTATE_TOKEN",
       resource: "Session",
       resourceId: sessionId,
@@ -385,7 +382,7 @@ export class AuthorizationService {
       where: {
         adminId,
         table: { storeId },
-      },
+      } as any,
       orderBy: { updatedAt: "desc" },
       select: {
         id: true,
@@ -397,10 +394,10 @@ export class AuthorizationService {
         isActive: true,
         revokedAt: true,
         revokedBy: true,
-      },
+      } as any,
     });
 
-    return sessions.map((session) => ({
+    return sessions.map((session: any) => ({
       id: session.id,
       storeId,
       adminId,
@@ -413,7 +410,7 @@ export class AuthorizationService {
       isActive: session.isActive,
       revokedAt: session.revokedAt || undefined,
       revokedBy: session.revokedBy || undefined,
-    }));
+    })) as AuthorizedDevice[];
   }
 
   /**
@@ -432,24 +429,24 @@ export class AuthorizationService {
         isActive: true,
         expiresAt: true,
         revokedAt: true,
-      },
+      } as any,
     });
 
-    if (!session || !session.isActive) {
+    if (!session || !(session as any).isActive) {
       return { valid: false };
     }
 
-    if (session.expiresAt < new Date()) {
+    if ((session as any).expiresAt < new Date()) {
       return { valid: false };
     }
 
-    if (session.revokedAt) {
+    if ((session as any).revokedAt) {
       return { valid: false };
     }
 
     // Comparação segura
     const providedHash = createHash("sha256").update(providedToken).digest("hex");
-    const isValid = this.secureCompare(providedHash, session.sessionToken);
+    const isValid = this.secureCompare(providedHash, (session as any).sessionToken);
 
     if (!isValid) {
       return { valid: false };
