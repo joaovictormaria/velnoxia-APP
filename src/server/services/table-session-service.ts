@@ -92,10 +92,9 @@ export async function getOrCreateOpenTableSession(
     // After this, pin is never exposed again
     return { ...session, pin } as OpenTableSession;
   } catch (error) {
-    // Unique constraint violated: another request created first
-    // This is expected behavior in race conditions
-    // Recover the session that was created
-    const existing = await prisma.tableSession.findFirstOrThrow({
+    // If create fails (e.g., unique constraint), try to find the session that was created
+    // First try OPEN status (normal case - race condition with another client)
+    let existing = await prisma.tableSession.findFirst({
       where: {
         tableId,
         storeId,
@@ -103,7 +102,32 @@ export async function getOrCreateOpenTableSession(
       },
     });
 
-    return existing as OpenTableSession;
+    if (existing) {
+      return existing as OpenTableSession;
+    }
+
+    // If no OPEN session found, it means the constraint was from a non-OPEN status
+    // This can happen if create failed for another reason
+    // Try to create again with a fresh PIN
+    const newPin = generatePin();
+    const newPinHash = await hashPin(newPin);
+
+    session = await prisma.tableSession.create({
+      data: {
+        storeId,
+        tableId,
+        pinHash: newPinHash,
+        status: "OPEN",
+        expiresAt,
+      },
+    });
+
+    if (process.env.NODE_ENV !== "production") {
+      const maskedPin = newPin.slice(0, 2) + "**";
+      console.log(`[TABLE SESSION] PIN for table ${tableId} (session ${session.id}): ${maskedPin}`);
+    }
+
+    return { ...session, pin: newPin } as OpenTableSession;
   }
 }
 
