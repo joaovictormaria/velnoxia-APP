@@ -78,9 +78,16 @@ function KanbanPage() {
 
   const finalizarMesa = useMutation({
     mutationFn: async (pedidoIds: string[]) => {
+      // Confirmar pagamento de todos os pedidos primeiro
+      const confirmResults = await Promise.all(
+        pedidoIds.map((id) => confirmPaymentFn({ data: { orderId: id } }))
+      );
+
+      // Depois finalizar a mesa (mudar status para COMPLETED)
       const results = await Promise.all(
         pedidoIds.map((id) => updateOrderStatusFn({ data: { id, status: "COMPLETED" } }))
       );
+
       return results;
     },
     onSuccess: async (res) => {
