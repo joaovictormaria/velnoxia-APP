@@ -28,7 +28,7 @@ describe("AuthorizationService: PIN Management", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     await prisma.employee.upsert({
@@ -38,7 +38,6 @@ describe("AuthorizationService: PIN Management", () => {
         id: adminId,
         storeId,
         name: "Test Admin",
-        role: "OWNER",
         phone: "1234567890",
       },
     });
@@ -128,7 +127,7 @@ describe("AuthorizationService: Device Authorization", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     await prisma.employee.upsert({
@@ -138,14 +137,13 @@ describe("AuthorizationService: Device Authorization", () => {
         id: adminId,
         storeId,
         name: "Test Admin",
-        role: "OWNER",
         phone: "1234567890",
       },
     });
 
     // Criar mesa
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1" },
+      data: { storeId, number: 1 } as any,
     });
   });
 
@@ -222,7 +220,7 @@ describe("AuthorizationService: Device Revocation", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     await prisma.employee.upsert({
@@ -232,14 +230,13 @@ describe("AuthorizationService: Device Revocation", () => {
         id: adminId,
         storeId,
         name: "Test Admin",
-        role: "OWNER",
         phone: "1234567890",
       },
     });
 
     // Criar mesa
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1" },
+      data: { storeId, number: 1 } as any,
     });
   });
 
@@ -296,7 +293,7 @@ describe("AuthorizationService: Token Rotation", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     await prisma.employee.upsert({
@@ -306,14 +303,13 @@ describe("AuthorizationService: Token Rotation", () => {
         id: adminId,
         storeId,
         name: "Test Admin",
-        role: "OWNER",
         phone: "1234567890",
       },
     });
 
     // Criar mesa
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1" },
+      data: { storeId, number: 1 } as any,
     });
   });
 
@@ -383,7 +379,7 @@ describe("AuthorizationService: Token Validation", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     await prisma.employee.upsert({
@@ -393,14 +389,13 @@ describe("AuthorizationService: Token Validation", () => {
         id: adminId,
         storeId,
         name: "Test Admin",
-        role: "OWNER",
         phone: "1234567890",
       },
     });
 
     // Criar mesa
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1" },
+      data: { storeId, number: 1 } as any,
     });
   });
 
@@ -460,7 +455,7 @@ describe("AuthorizationService: List Devices", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     await prisma.employee.upsert({
@@ -470,14 +465,13 @@ describe("AuthorizationService: List Devices", () => {
         id: adminId,
         storeId,
         name: "Test Admin",
-        role: "OWNER",
         phone: "1234567890",
       },
     });
 
     // Criar mesa
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1" },
+      data: { storeId, number: 1 } as any,
     });
   });
 
@@ -538,7 +532,7 @@ describe("AuthorizationService: Cleanup Expired Sessions", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     await prisma.employee.upsert({
@@ -548,14 +542,13 @@ describe("AuthorizationService: Cleanup Expired Sessions", () => {
         id: adminId,
         storeId,
         name: "Test Admin",
-        role: "OWNER",
         phone: "1234567890",
       },
     });
 
     // Criar mesa
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1" },
+      data: { storeId, number: 1 } as any,
     });
   });
 

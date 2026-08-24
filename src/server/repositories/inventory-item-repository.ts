@@ -74,7 +74,7 @@ export const inventoryItemRepository = {
       data: {
         ...data,
         storeId,
-      },
+      } as any,
       include: { baseUnit: true },
     });
   },
@@ -146,7 +146,7 @@ export const inventoryItemRepository = {
     }
 
     // quantityAvailable = quantityOnHand - quantityReserved
-    const quantityAvailable = item.quantityOnHand - item.quantityReserved;
+    const quantityAvailable = Number(item.quantityOnHand) - Number(item.quantityReserved);
 
     return {
       ...item,
