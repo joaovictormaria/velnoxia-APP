@@ -51,6 +51,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   const [tableId, setTableId] = useState<string | null>(null);
   const [tableNumber, setTableNumber] = useState<number | null>(null);
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
+  const isTableOrder = tableId !== null;
   /** null = not checked yet. The order service checks again when the order is
    *  placed; this only lets the customer see the discount before confirming. */
   const [couponResult, setCouponResult] = useState<
@@ -72,6 +73,8 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
     const storedDeviceToken = localStorage.getItem("deviceToken");
     if (storedTableId) {
       setTableId(storedTableId);
+      // Table orders must always be PICKUP (no delivery for mesa)
+      setType("PICKUP");
     }
     if (storedTableNumber) {
       setTableNumber(parseInt(storedTableNumber, 10));
@@ -413,7 +416,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
         <h2 className="font-display text-2xl font-bold text-charcoal">Finalizar pedido</h2>
 
         <div className="flex gap-2">
-          {storeInfo.acceptsDelivery && (
+          {storeInfo.acceptsDelivery && !isTableOrder && (
             <TypeButton active={type === "DELIVERY"} onClick={() => setType("DELIVERY")}>
               Entrega
             </TypeButton>
