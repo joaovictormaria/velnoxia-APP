@@ -223,7 +223,7 @@ export class CacheService {
 
     const values = await this.redis.mget(...keys);
 
-    return values.map((v) => (v ? (JSON.parse(v) as T) : null));
+    return values.map((v: any) => (v ? (JSON.parse(v) as T) : null));
   }
 
   /**

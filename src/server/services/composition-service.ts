@@ -301,7 +301,7 @@ export class CompositionService {
         // Calculate quantity to consume
         // compItem.quantity is in the unit specified by compItem.unit
         // We need to convert to the inventory item's base unit if they differ
-        let quantityToConsume = compItem.quantity * quantityToProduce;
+        let quantityToConsume = Number(compItem.quantity) * quantityToProduce;
 
         // If units are different, convert using contentSize
         if (compItem.unit.id !== inventoryItem.baseUnit.id) {
@@ -321,7 +321,7 @@ export class CompositionService {
         const idempotencyKey = `${storeId}#COMPOSITION#${compositionId}#${compItem.inventoryItemId}#${Date.now()}`;
 
         await InventoryService.recordMovement(storeId, {
-          itemId: compItem.inventoryItemId,
+          ...(compItem.inventoryItemId ? { item: { connect: { id: compItem.inventoryItemId } } } : {}),
           type: "CONSUMPTION",
           quantity: -quantityToConsume, // Negative for consumption
           unitId: inventoryItem.baseUnit.id,
