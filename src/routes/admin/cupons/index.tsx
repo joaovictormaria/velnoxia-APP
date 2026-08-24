@@ -5,7 +5,7 @@ import { Plus, Trash2, X } from "lucide-react";
 import { deleteCouponFn, listCouponsFn, saveCouponFn } from "@/server/functions/coupons.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { CupomDaPrevia } from "@/components/admin/preview/CupomDaPrevia";
-import { toNumber, toStr } from "@/lib/decimal-utils";
+import { toNumber as decimalToNumber, toStr } from "@/lib/decimal-utils";
 
 export const Route = createFileRoute("/admin/cupons/")({
   component: CouponsPage,
@@ -280,8 +280,8 @@ function CouponsPage() {
                   <p className="text-sm text-neutral-600">
                     {c.discountType === "PERCENTAGE"
                       ? `${c.discountValue}% de desconto`
-                      : `${money(toNumber(c.discountValue))} de desconto`}
-                    {c.minOrderValue !== null && ` · a partir de ${money(toNumber(c.minOrderValue))}`}
+                      : `${money(decimalToNumber(c.discountValue))} de desconto`}
+                    {c.minOrderValue !== null && ` · a partir de ${money(decimalToNumber(c.minOrderValue))}`}
                   </p>
                   <p className="text-xs text-neutral-500">
                     {dateFormat.format(new Date(c.validFrom))} até{" "}

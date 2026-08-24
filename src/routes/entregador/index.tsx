@@ -14,6 +14,7 @@ import {
 import { logoutFn } from "@/server/functions/auth.fn";
 import { useCourierLocation } from "@/lib/use-courier-location";
 import { rotaNoMapa } from "@/lib/endereco";
+import { toNumber } from "@/lib/decimal-utils";
 import {
   listMyDeliveriesFn,
   markDeliveryDoneFn,
@@ -145,7 +146,7 @@ function MinhasEntregasPage() {
                       #{entrega.number} - {entrega.customerName}
                     </span>
                     <span className="block text-xs text-neutral-500">
-                      {hora.format(new Date(entrega.updatedAt))} · {moeda.format(entrega.total)}
+                      {hora.format(new Date(entrega.updatedAt))} · {moeda.format(toNumber(entrega.total))}
                     </span>
                   </span>
                   <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
@@ -200,7 +201,7 @@ function CartaoDeEntrega({
           #{entrega.number} - {entrega.customerName}
         </h2>
         <span className="shrink-0 text-sm font-bold text-neutral-900">
-          {moeda.format(entrega.total)}
+          {moeda.format(toNumber(entrega.total))}
         </span>
       </div>
 
@@ -222,7 +223,7 @@ function CartaoDeEntrega({
         <Wallet className="size-4 shrink-0 text-neutral-400" />
         <span className={receberNaEntrega ? "font-semibold text-neutral-900" : "text-neutral-600"}>
           {receberNaEntrega
-            ? "Receber " + moeda.format(entrega.total) + " em " + (PAGAMENTO[entrega.paymentMethod] ?? entrega.paymentMethod)
+            ? "Receber " + moeda.format(toNumber(entrega.total)) + " em " + (PAGAMENTO[entrega.paymentMethod] ?? entrega.paymentMethod)
             : "Já pago (" + (PAGAMENTO[entrega.paymentMethod] ?? entrega.paymentMethod) + ")"}
         </span>
       </p>
