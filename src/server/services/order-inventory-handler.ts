@@ -85,7 +85,7 @@ export class OrderInventoryHandler {
         // Verificar se produto tem composição (receita)
         const composition = await prisma.productComposition.findFirst({
           where: {
-            productId: orderItem.productId,
+            productId: orderItem.productId || "",
             isActive: true,
           },
           include: {
@@ -95,7 +95,7 @@ export class OrderInventoryHandler {
           }
         });
 
-        if (composition && composition.items.length > 0) {
+        if (composition && (composition as any).items?.length > 0) {
           // Desconta ingredientes da receita
           await CompositionService.consumeComposition(
             order.storeId,
@@ -110,7 +110,7 @@ export class OrderInventoryHandler {
         } else {
           // Se não tem receita, desconta direto (produto simples)
           const product = await prisma.product.findUnique({
-            where: { id: orderItem.productId },
+            where: { id: orderItem.productId || "" },
             select: { inventoryItemId: true }
           });
 
@@ -185,7 +185,7 @@ export class OrderInventoryHandler {
             idempotencyKey: reversalKey,
             itemId: movement.itemId,
             type: "REVERSAL",
-            quantity: movement.quantity * -1,
+            quantity: (movement as any).quantity * -1,
             unitId: movement.unitId,
             originalMovementId: movement.id,
             reference: orderId,
