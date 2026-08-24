@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { InventoryService } from "../inventory-service";
 import { inventoryUnitRepository } from "@/server/repositories";
 import { prisma } from "@/server/db/client";
-import { Decimal } from "@prisma/client/runtime/library";
+import { Decimal } from "@prisma/client/runtime/client";;
 
 /**
  * Testes para correções P0/P1
@@ -64,11 +64,11 @@ describe("Inventory Corrections (P0/P1)", () => {
     it("deve preencher costAtTime com custo do item no momento", async () => {
       const movement = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: "test-cost-at-time-1",
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: "PURCHASE",
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       // Verificar que costAtTime foi preenchido
       expect(movement.costAtTime).toEqual(new Decimal("10.50"));
@@ -83,11 +83,11 @@ describe("Inventory Corrections (P0/P1)", () => {
       // Criar movimento
       const movement = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: "test-cost-at-time-2",
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: "CONSUMPTION",
         quantity: new Decimal(-25),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       expect(movement.costAtTime).toEqual(new Decimal("10.50"));
     });
@@ -173,11 +173,11 @@ describe("Inventory Corrections (P0/P1)", () => {
     it("deve impedir UPDATE direto em InventoryMovement", async () => {
       const movement = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: "test-immutable-1",
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: "PURCHASE",
         quantity: new Decimal(100),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       // Tentar atualizar deve falhar (constraint CHECK no BD)
       expect(
@@ -233,7 +233,7 @@ describe("Inventory Corrections (P0/P1)", () => {
           compositionId,
           inventoryItemId: testItemId,
           quantity: new Decimal("200"),
-          unitId: testUnitId,
+          unitId: testUnitId as any,
         },
       });
     });
@@ -286,10 +286,10 @@ describe("Inventory Corrections (P0/P1)", () => {
           data: {
             storeId: testStoreId,
             idempotencyKey: "test-invalid-original-" + Date.now(),
-            itemId: testItemId,
+            itemId: testItemId as any,
             type: "PURCHASE",
             quantity: new Decimal(50),
-            unitId: testUnitId,
+            unitId: testUnitId as any,
             originalMovementId: "some-id", // NÃO DEVE permitir
           },
         });
@@ -300,11 +300,11 @@ describe("Inventory Corrections (P0/P1)", () => {
       // Criar movimento original
       const original = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: "test-reversal-original",
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: "PURCHASE",
         quantity: new Decimal(100),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       // Criar REVERSAL
       const reversal = await InventoryService.reverseMovement(

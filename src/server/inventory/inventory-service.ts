@@ -141,7 +141,7 @@ export class InventoryService {
         quantity,
         reference,
         createdBy: adminId,
-      },
+      } as any,
     });
 
     // Auditar
@@ -282,7 +282,7 @@ export class InventoryService {
           quantity: -item.quantity, // Negativo para saída
           reference: orderId,
           createdBy: "system", // Consumo é automático
-        },
+        } as any,
       });
 
       // Remover reserva
@@ -348,7 +348,7 @@ export class InventoryService {
         quantity,
         notes: reason,
         createdBy: adminId,
-      },
+      } as any,
     });
 
     // Auditar
@@ -477,7 +477,7 @@ export class InventoryService {
     });
 
     const report = await Promise.all(
-      inventories.map(async (inv) => {
+      inventories.map(async (inv: any) => {
         const reserved = await this.getReservedQuantity(inv.productId);
         const available = inv.quantity - reserved;
 
@@ -514,10 +514,10 @@ export class InventoryService {
     limit: number = 100,
   ): Promise<InventoryMovement[]> {
     return await prisma.inventoryMovement.findMany({
-      where: { storeId, productId },
+      where: { storeId, productId } as any,
       orderBy: { createdAt: "desc" },
       take: limit,
-    });
+    }) as any;
   }
 
   /**
