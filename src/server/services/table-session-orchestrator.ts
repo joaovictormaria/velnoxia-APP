@@ -28,7 +28,15 @@ export async function orchestrateTableSession(
   const existingDevices = await checkExistingDevices(sessionResult.id);
   const isFirstDevice = existingDevices === 0;
 
-  // Step 3: Authorize device
+  // Step 3: If first device, mark table as OCCUPIED
+  if (isFirstDevice) {
+    await prisma.table.update({
+      where: { id: tableId },
+      data: { status: "OCCUPIED" },
+    });
+  }
+
+  // Step 4: Authorize device
   if (isFirstDevice) {
     // First device: authorize immediately without PIN
     const device = await authorizeDeviceForSession(storeId, sessionResult.id, true);

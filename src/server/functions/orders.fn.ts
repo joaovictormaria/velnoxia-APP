@@ -267,8 +267,9 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
       },
     });
 
-    // Se é um pedido de mesa, fechar a sessão para evitar novos acessos
+    // Se é um pedido de mesa, fechar a sessão e liberar a mesa
     if (order.tableId) {
+      // Fechar a sessão da mesa
       await prisma.tableSession.updateMany({
         where: {
           tableId: order.tableId,
@@ -278,6 +279,12 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
           status: "CLOSED",
           closedAt: new Date(),
         },
+      });
+
+      // Liberar a mesa (voltar ao status AVAILABLE)
+      await prisma.table.update({
+        where: { id: order.tableId },
+        data: { status: "AVAILABLE" },
       });
     }
 
