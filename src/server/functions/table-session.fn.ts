@@ -1,7 +1,6 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { prisma } from "../db/client";
 import { getStoreBySlug } from "../repositories/store-repository";
 import {
   getOrCreateOpenTableSession,
@@ -19,6 +18,7 @@ const createTableSessionSchema = z.object({
 export const createTableSessionFn = createServerFn({ method: "POST" })
   .validator(createTableSessionSchema)
   .handler(async ({ data }) => {
+    const { prisma } = await import("../db/client");
     const store = await getStoreBySlug(data.storeSlug);
     if (!store) {
       return { ok: false as const, error: "Loja nÃ£o encontrada" };
@@ -56,36 +56,6 @@ export const createTableSessionFn = createServerFn({ method: "POST" })
     }
   });
 
-/**
- * Validate table session token and get table info.
- * Returns null if token is invalid or expired.
- */
-export async function validateTableSession(
-  storeId: string,
-  sessionToken: string,
-): Promise<{ tableId: string; tableNumber: number } | null> {
-  const session = await prisma.tableSession.findFirst({
-    where: {
-      id: sessionToken,
-      storeId,
-      expiresAt: { gt: new Date() },
-    },
-    select: { tableId: true, tableNumber: true },
-  });
-
-  if (!session) {
-    // Clean up expired sessions while we're here
-    await prisma.tableSession.deleteMany({
-      where: {
-        storeId,
-        expiresAt: { lte: new Date() },
-      },
-    });
-    return null;
-  }
-
-  return session;
-}
 
 /**
  * Get or create an open table session.
