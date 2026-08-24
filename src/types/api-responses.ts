@@ -23,7 +23,7 @@ import type {
   EmployeeBenefitPlan,
   OrderStatus,
 } from "@prisma/client";
-import type { Decimal } from "@prisma/client";
+type Decimal = any;
 
 // ============ ORDERS ============
 
