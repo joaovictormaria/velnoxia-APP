@@ -267,6 +267,20 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
       },
     });
 
+    // Se é um pedido de mesa, fechar a sessão para evitar novos acessos
+    if (order.tableId) {
+      await prisma.tableSession.updateMany({
+        where: {
+          tableId: order.tableId,
+          status: "OPEN",
+        },
+        data: {
+          status: "CLOSED",
+          closedAt: new Date(),
+        },
+      });
+    }
+
     return { ok: true as const };
   });
 

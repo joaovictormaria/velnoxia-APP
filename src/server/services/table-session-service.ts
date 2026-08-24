@@ -51,6 +51,23 @@ export async function getOrCreateOpenTableSession(
     throw new Error("Não autorizado");
   }
 
+  // Check if table was recently closed (within last 5 minutes)
+  // This prevents immediate re-access after payment confirmation
+  const recentlyClosed = await prisma.tableSession.findFirst({
+    where: {
+      tableId,
+      storeId,
+      status: "CLOSED",
+      closedAt: {
+        gt: new Date(Date.now() - 5 * 60 * 1000), // Last 5 minutes
+      },
+    },
+  });
+
+  if (recentlyClosed) {
+    throw new Error("Mesa foi liberada. Escaneie o QR Code novamente após alguns minutos.");
+  }
+
   // Try to find existing OPEN session
   let session = await prisma.tableSession.findFirst({
     where: {
