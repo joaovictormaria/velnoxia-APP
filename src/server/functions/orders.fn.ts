@@ -19,6 +19,8 @@ import {
 import {
   convertOrderForClient,
   convertOrderItemsForClient,
+  convertCouponForClient,
+  decimalToNumber,
 } from "../utils/decimal-converter";
 
 const ORDER_STATUS = z.enum([
@@ -62,12 +64,19 @@ export const getOrderFn = createServerFn({ method: "GET" })
     if (!order) return null;
     return {
       ...convertOrderForClient(order),
-      items: convertOrderItemsForClient(order.items),
+      items: convertOrderItemsForClient(order.items).map((item) => ({
+        ...item,
+        // Convert extras prices (each extra has a price: Decimal field)
+        extras: item.extras?.map((extra: any) => ({
+          ...extra,
+          price: decimalToNumber(extra.price),
+        })) || [],
+      })),
       statusHistory: order.statusHistory.map((h) => ({
         ...h,
         createdAt: h.createdAt.toISOString(),
       })),
-      coupon: order.coupon,
+      coupon: order.coupon ? convertCouponForClient(order.coupon) : null,
       courier: order.courier,
       customer: order.customer
         ? {
