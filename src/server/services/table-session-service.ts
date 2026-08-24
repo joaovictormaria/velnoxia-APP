@@ -63,6 +63,7 @@ export async function getOrCreateOpenTableSession(
   if (session) {
     // Session exists, but we can't recover the PIN (it's hashed)
     // Return the session without PIN - it will only be shown on first creation
+    console.log(`[TABLE SESSION] Found existing OPEN session ${session.id} for table ${tableId}`);
     return session as OpenTableSession;
   }
 
@@ -82,6 +83,7 @@ export async function getOrCreateOpenTableSession(
   if (previousSession) {
     // Table was already used, create a fresh session for new customer
     // Continue to create new session below
+    console.log(`[TABLE SESSION] Previous session ${previousSession.id} is ${previousSession.status}, creating fresh session for table ${tableId}`);
   }
 
   // No open session: create new one

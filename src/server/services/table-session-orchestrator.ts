@@ -23,10 +23,12 @@ export async function orchestrateTableSession(
 }> {
   // Step 1: Get or create session (returns PIN if newly created)
   const sessionResult = await getOrCreateOpenTableSession(storeId, tableId);
+  console.log(`[ORCHESTRATE] Table ${tableId}: session ${sessionResult.id}, hasPin: ${!!(sessionResult as any).pin}`);
 
   // Step 2: Check if this is the first device
   const existingDevices = await checkExistingDevices(sessionResult.id);
   const isFirstDevice = existingDevices === 0;
+  console.log(`[ORCHESTRATE] Session ${sessionResult.id}: existingDevices=${existingDevices}, isFirstDevice=${isFirstDevice}`);
 
   // Step 3: If first device, mark table as OCCUPIED
   if (isFirstDevice) {
@@ -34,6 +36,7 @@ export async function orchestrateTableSession(
       where: { id: tableId },
       data: { status: "OCCUPIED" },
     });
+    console.log(`[ORCHESTRATE] Marked table ${tableId} as OCCUPIED`);
   }
 
   // Step 4: Authorize device
