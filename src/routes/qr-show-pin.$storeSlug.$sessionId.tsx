@@ -16,6 +16,7 @@ function QRShowPIN() {
   const [copied, setCopied] = useState(false);
   const [pinHint, setPinHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [pinMessage, setPinMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const storedTableId = localStorage.getItem("tableId");
@@ -30,11 +31,14 @@ function QRShowPIN() {
     })
       .then((res) => {
         if (res.ok) {
-          setPinHint(res.message);
-          // In development, extract PIN from console logs (user sees it)
-          // For now, show a placeholder
-          if (res.pinVisible) {
-            setPin("****"); // Placeholder - actual PIN is in console
+          setPinMessage(res.message);
+          // In development, PIN is shown in browser console
+          // Extract from console log or show from message
+          if (res.pinVisible && typeof window !== "undefined") {
+            // Look for PIN in browser's recent console logs
+            // The PIN was logged as "[TABLE SESSION] PIN for table... : XX**"
+            // For now, show instruction to check console
+            setPin("VEJA NO CONSOLE"); // Indicates PIN is in console
           }
         }
       })
@@ -93,9 +97,21 @@ function QRShowPIN() {
 
         {/* Instruções */}
         <div className="mb-8 rounded-2xl bg-blue-900/50 p-4 border border-blue-700">
-          <p className="text-sm text-blue-100 text-center leading-relaxed">
-            Outros dispositivos na sua mesa precisam deste código para acessar o cardápio
-          </p>
+          {pin === "VEJA NO CONSOLE" ? (
+            <div className="space-y-2">
+              <p className="text-sm text-blue-100 text-center font-semibold">
+                🔧 Modo Desenvolvimento
+              </p>
+              <p className="text-xs text-blue-200 text-center leading-relaxed">
+                Abra o Console do Navegador (F12) e procure pela mensagem <br />
+                <code className="bg-blue-950 px-2 py-1 rounded text-blue-300">[TABLE SESSION] PIN</code>
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-blue-100 text-center leading-relaxed">
+              Outros dispositivos na sua mesa precisam deste código para acessar o cardápio
+            </p>
+          )}
         </div>
 
         {/* Botão de Copiar */}

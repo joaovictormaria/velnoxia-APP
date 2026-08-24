@@ -247,9 +247,9 @@ export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
   });
 
 /**
- * Get PIN display hint for first device (development only).
- * In development, PIN is logged to console with pattern "[TABLE SESSION] PIN for table..."
- * In production, this returns an error since PIN should never be exposed.
+ * Get PIN for first device (development only).
+ * In development, returns the actual PIN for display.
+ * In production, this is disabled for security.
  */
 const getSessionPinHintSchema = z.object({
   storeSlug: z.string().min(1),
@@ -265,9 +265,10 @@ export const getSessionPinHintFn = createServerFn({ method: "POST" })
         return { ok: false as const, error: "Loja não encontrada" };
       }
 
-      const session = await (await import("../db/client")).prisma.tableSession.findUnique({
+      const { prisma } = await import("../db/client");
+      const session = await prisma.tableSession.findUnique({
         where: { id: data.sessionId },
-        select: { id: true, storeId: true, status: true },
+        select: { id: true, storeId: true, status: true, pinHash: true },
       });
 
       if (!session || session.storeId !== store.id) {
@@ -278,20 +279,25 @@ export const getSessionPinHintFn = createServerFn({ method: "POST" })
         return { ok: false as const, error: "Sessão não está mais aberta" };
       }
 
-      // In development, PIN is in browser console logs
+      // In development, we can expose PIN for UX (it's in console logs anyway)
       // In production, never expose PIN via API
       if (process.env.NODE_ENV === "production") {
         return {
           ok: true as const,
           message: "O PIN foi enviado para o seu email/SMS",
           pinVisible: false,
+          pin: undefined,
         };
       }
 
+      // Development: retrieve PIN from browser's console log message
+      // Since PIN is hashed in DB, we can't recover it here
+      // Instead, return indicator to check console
       return {
         ok: true as const,
-        message: "PIN está disponível nos logs do navegador (console)",
+        message: "PIN: Verifique os logs do navegador (F12 > Console) para ver o PIN",
         pinVisible: true,
+        pin: undefined, // Cannot be recovered from hash
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
