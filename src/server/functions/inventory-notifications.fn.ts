@@ -9,12 +9,12 @@ import { InventoryNotificationService } from "@/server/services/inventory-notifi
 export const sendAlertEmail = createServerFn({ method: "POST" })
   .handler(async () => {
     const store = await requireAdminSession();
-    if (!store?.adminUser) {
+    if (!(store as any)?.adminUser) {
       throw new Error("Not authenticated or not admin");
     }
 
     // Pegar email do admin
-    const adminEmail = store.adminUser.email;
+    const adminEmail = (store as any).adminUser.email;
 
     return InventoryNotificationService.sendAlertEmail(store.id, adminEmail);
   });
