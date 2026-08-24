@@ -79,9 +79,10 @@ export async function getOrCreateOpenTableSession(
       },
     });
 
-    // Log PIN for admin debugging (only in dev/test, never in production)
+    // Log masked PIN for admin debugging (only in dev/test, never in production)
     if (process.env.NODE_ENV !== "production") {
-      console.log(`[TABLE SESSION] PIN for table ${tableId} (session ${session.id}): ${pin}`);
+      const maskedPin = pin.slice(0, 2) + "**";
+      console.log(`[TABLE SESSION] PIN for table ${tableId} (session ${session.id}): ${maskedPin}`);
     }
 
     return session as OpenTableSession;
@@ -118,10 +119,14 @@ export async function validateTableSessionPin(
   storeId: string,
   sessionId: string,
   pin: string,
+  clientIp?: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  // Rate limit: max 3 wrong attempts per session per 5 minutes
-  const rateLimitKey = `pin-validate:${sessionId}`;
-  const MAX_ATTEMPTS = 3;
+  // Rate limit: max 5 wrong attempts per session-IP combination per 5 minutes
+  // This prevents brute force parallelization across multiple sessions
+  const rateLimitKey = clientIp
+    ? `pin-validate:${clientIp}:${sessionId}`
+    : `pin-validate:${sessionId}`;
+  const MAX_ATTEMPTS = 5;
   const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 
   if (!dentroDoLimite(rateLimitKey, MAX_ATTEMPTS, WINDOW_MS)) {
@@ -208,12 +213,31 @@ export async function validateTableSessionPin(
  *
  * Returns the deviceToken for the client to store and use in orders.
  * Token is never exposed in plaintext after this point; only hash is stored.
+ *
+ * Device limit: max 5 devices per session to prevent spam
  */
 export async function authorizeDeviceForSession(
   storeId: string,
   sessionId: string,
   isFirstDevice: boolean,
 ): Promise<{ id: string; deviceToken: string }> {
+  const MAX_DEVICES_PER_SESSION = 5;
+
+  // Check device count (only for non-first devices)
+  if (!isFirstDevice) {
+    const activeDeviceCount = await prisma.sessionDevice.count({
+      where: {
+        sessionId,
+        revokedAt: null,
+      },
+    });
+
+    if (activeDeviceCount >= MAX_DEVICES_PER_SESSION) {
+      throw new Error(
+        `Máximo de dispositivos (${MAX_DEVICES_PER_SESSION}) alcançado para esta mesa. Remova um dispositivo para continuar.`
+      );
+    }
+  }
   // Validate session exists and belongs to store
   const session = await prisma.tableSession.findUnique({
     where: { id: sessionId },

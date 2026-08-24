@@ -1,10 +1,11 @@
 import { hashPassword, verifyPassword } from "./password";
+import { randomInt } from "crypto";
 
 /**
- * Gerar PIN de 4 dígitos (0000-9999)
+ * Gerar PIN de 4 dígitos (0000-9999) usando CSPRNG
  */
 export function generatePin(): string {
-  const num = Math.floor(Math.random() * 10000);
+  const num = randomInt(0, 10000);
   return String(num).padStart(4, "0");
 }
 
