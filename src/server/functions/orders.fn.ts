@@ -39,14 +39,10 @@ export const listKanbanOrdersFn = createServerFn({ method: "GET" })
       getKanbanMetrics(storeId, data?.date),
     ]);
 
-    // Transform columns array into named properties expected by client
-    const preparing = board.columns.find((c) => c.status === "PREPARING")?.orders ?? [];
-    const ready = board.columns.find((c) => c.status === "TABLE_READY")?.orders ?? [];
-
     return {
+      columns: board.columns,
       awaiting: board.awaiting,
-      preparing,
-      ready,
+      mostrarEntrega: board.mostrarEntrega,
       metrics,
     };
   });
