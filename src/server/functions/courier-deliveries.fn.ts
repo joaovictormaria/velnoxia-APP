@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getCurrentAdmin, requireCourierSession } from "../auth/session";
 import { prisma } from "../db/client";
 import { transitionOrderStatus } from "../services/order-service";
+import { decimalToNumber } from "../utils/decimal-converter";
 
 /** O que o entregador vÃª de um pedido: o necessÃ¡rio para chegar lÃ¡ e entregar. */
 const CAMPOS_DA_ENTREGA = {
@@ -50,7 +51,7 @@ export const listMyDeliveriesFn = createServerFn({ method: "GET" }).handler(asyn
   const inicioDoDia = new Date();
   inicioDoDia.setHours(0, 0, 0, 0);
 
-  const [emRota, entregues] = await Promise.all([
+  const [emRotaRaw, entreguesRaw] = await Promise.all([
     prisma.order.findMany({
       where: { storeId: courier.storeId, courierId: courier.id, status: "OUT_FOR_DELIVERY" },
       orderBy: { updatedAt: "asc" },
@@ -67,6 +68,9 @@ export const listMyDeliveriesFn = createServerFn({ method: "GET" }).handler(asyn
       select: CAMPOS_DA_ENTREGA,
     }),
   ]);
+
+  const emRota = emRotaRaw.map((order) => ({ ...order, total: decimalToNumber(order.total) }));
+  const entregues = entreguesRaw.map((order) => ({ ...order, total: decimalToNumber(order.total) }));
 
   return { courierName: courier.name, storeName: courier.store.name, emRota, entregues };
 });

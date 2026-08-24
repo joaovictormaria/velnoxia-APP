@@ -16,6 +16,10 @@ import {
   setOrderAwaitingCourier,
   transitionOrderStatus,
 } from "../services/order-service";
+import {
+  convertOrderForClient,
+  convertOrderItemsForClient,
+} from "../utils/decimal-converter";
 
 const ORDER_STATUS = z.enum([
   "RECEIVED",
@@ -48,7 +52,16 @@ export const getOrderFn = createServerFn({ method: "GET" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    return getOrderById(storeId, data.id);
+    const order = await getOrderById(storeId, data.id);
+    if (!order) return null;
+    return {
+      ...convertOrderForClient(order),
+      items: convertOrderItemsForClient(order.items),
+      statusHistory: order.statusHistory,
+      coupon: order.coupon,
+      courier: order.courier,
+      customer: order.customer,
+    };
   });
 
 export const updateOrderStatusFn = createServerFn({ method: "POST" })

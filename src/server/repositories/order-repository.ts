@@ -1,5 +1,10 @@
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "../db/client";
+import {
+  convertOrderForClient,
+  convertOrderItemsForClient,
+  decimalToNumber,
+} from "../utils/decimal-converter";
 
 /**
  * UTC-day window for a "YYYY-MM-DD" string (or today, when omitted).
@@ -67,27 +72,36 @@ export async function listKanbanOrders(
 
   const columns = await Promise.all(
     KANBAN_STATUSES.map(async (status) => {
-      const [orders, total] = await Promise.all([
+      const [ordersRaw, total] = await Promise.all([
         prisma.order.findMany({
           where: { ...where, status },
           orderBy: { createdAt: ordemDaColuna(status) },
           take: perColumn,
-          include: {
+          select: {
+            id: true,
+            number: true,
+            customerName: true,
+            customerPhone: true,
+            status: true,
+            type: true,
+            createdAt: true,
+            total: true,
+            discount: true,
+            deliveryFee: true,
+            subtotal: true,
+            awaitingCourierSince: true,
+            deliveryNeighborhood: true,
             items: {
               select: { productNameSnapshot: true, quantity: true, sizeLabel: true },
             },
-            // The card shows the discount, so it needs to know which coupon was
-            // used and how much it took off.
             coupon: { select: { code: true } },
-            // Depois de despachado o cartão mostra quem levou, senão o dono
-            // teria de abrir o pedido só para lembrar a quem entregou.
             courier: { select: { name: true } },
-            // Para mostrar o número da mesa em pedidos de mesa
             table: { select: { number: true } },
           },
         }),
         prisma.order.count({ where: { ...where, status } }),
       ]);
+      const orders = ordersRaw.map((order) => convertOrderForClient(order));
       return { status, orders, total };
     }),
   );
@@ -97,7 +111,7 @@ export async function listKanbanOrders(
    * inteiros, sem a paginação de 8: é uma fila que precisa ser zerada, e um
    * pedido escondido atrás de um "+ 3 pedidos" é justamente o que esfria.
    */
-  const awaiting = await prisma.order.findMany({
+  const awaitingRaw = await prisma.order.findMany({
     where: { ...where, status: "PREPARING", awaitingCourierSince: { not: null } },
     orderBy: { awaitingCourierSince: "asc" },
     select: {
@@ -109,6 +123,10 @@ export async function listKanbanOrders(
       deliveryNeighborhood: true,
     },
   });
+
+  const awaiting = awaitingRaw.map((order) =>
+    convertOrderForClient(order)
+  );
 
   /*
    * Numa loja que só faz retirada, "Saiu p/ entrega" é uma coluna que nunca
@@ -136,7 +154,7 @@ export async function listMesasAbertas(
   const { from, to } = dayRange(options.date);
   const search = options.search?.trim();
 
-  const orders = await prisma.order.findMany({
+  const ordersRaw = await prisma.order.findMany({
     where: {
       storeId,
       status: "TABLE_READY" as const,
@@ -166,6 +184,11 @@ export async function listMesasAbertas(
     },
   });
 
+  const orders = ordersRaw.map((order) => ({
+    ...convertOrderForClient(order),
+    items: convertOrderItemsForClient(order.items),
+  }));
+
   // Buscar números das mesas
   const tableIds = Array.from(new Set(orders.map((o) => o.tableId!)));
   const tables = await prisma.table.findMany({
@@ -190,7 +213,7 @@ export async function listMesasAbertas(
     tableNumber: tableNumberMap.get(tableId) ?? 0,
     pedidos,
     totalPedidos: pedidos.length,
-    totalValor: pedidos.reduce((sum, p) => sum + Number(p.total), 0),
+    totalValor: pedidos.reduce((sum, p) => sum + decimalToNumber(p.total), 0),
   }));
 
   return mesas;

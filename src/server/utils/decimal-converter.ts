@@ -127,3 +127,11 @@ export function convertStoreSettingsForClient(settings: any) {
   );
 }
 
+export function convertOrderItemForClient(item: any) {
+  return convertDecimalFields(item, ["unitPrice", "employeeDiscount"], "number");
+}
+
+export function convertOrderItemsForClient(items: any[]) {
+  return convertDecimalFieldsArray(items, ["unitPrice", "employeeDiscount"], "number");
+}
+

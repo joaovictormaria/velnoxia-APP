@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { prisma } from "../db/client";
 import { distanciaDoEntregador } from "../services/delivery-tracking-service";
+import { decimalToNumber } from "../utils/decimal-converter";
 
 /** How long the link keeps answering after the order is finished, so whoever
  *  opens it right as the food arrives still sees the last state instead of a
@@ -74,7 +75,7 @@ export const trackOrderFn = createServerFn({ method: "GET" })
         number: order.number,
         status: order.status,
         type: order.type,
-        total: order.total,
+        total: decimalToNumber(order.total),
         customerName: order.customerName,
         createdAt: order.createdAt,
         estimatedDeliveryAt: order.estimatedDeliveryAt,
