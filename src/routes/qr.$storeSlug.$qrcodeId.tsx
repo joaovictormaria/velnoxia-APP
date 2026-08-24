@@ -13,40 +13,43 @@ function QRCodeRedirect() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Armazenar QR Token (tableId) no localStorage (expira ao confirmar pedido)
-    // Este ID permanece o mesmo para TODAS as sessões futuras da mesa.
-    if (qrcodeId) {
-      localStorage.setItem("tableId", qrcodeId);
+    if (!qrcodeId) return;
 
-      // Buscar número da mesa do mapeamento
-      const storeSlugKey = `tableNumbers_${storeSlug}`;
-      const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
-      const tableNumber = tableNumberMap[qrcodeId];
-      if (tableNumber) {
-        localStorage.setItem("tableNumber", tableNumber.toString());
-      }
+    // Armazenar QR Token (tableId) no localStorage
+    localStorage.setItem("tableId", qrcodeId);
 
-      // Orchestrar table session para obter deviceToken
-      orchestrateTableSessionFn({ data: { storeSlug, tableId: qrcodeId } })
-        .then((res) => {
-          if (res.ok) {
-            localStorage.setItem("sessionId", res.sessionId);
-            if (res.deviceToken) {
-              localStorage.setItem("deviceToken", res.deviceToken);
-            }
-          }
-        })
-        .catch(() => {
-          // Silêncio proposital: falha não impede navegação
-        });
+    // Buscar número da mesa do mapeamento
+    const storeSlugKey = `tableNumbers_${storeSlug}`;
+    const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
+    const tableNumber = tableNumberMap[qrcodeId];
+    if (tableNumber) {
+      localStorage.setItem("tableNumber", tableNumber.toString());
     }
 
-    // Redirecionar para o cardápio da loja
-    navigate({
-      to: "/$storeSlug",
-      params: { storeSlug },
-      search: { tableId: qrcodeId }
-    });
+    // Orchestrar table session para obter deviceToken, DEPOIS redirecionar
+    orchestrateTableSessionFn({ data: { storeSlug, tableId: qrcodeId } })
+      .then((res) => {
+        if (res.ok) {
+          localStorage.setItem("sessionId", res.sessionId);
+          if (res.deviceToken) {
+            localStorage.setItem("deviceToken", res.deviceToken);
+          }
+        }
+        // Redirecionar após obter o deviceToken (ou após timeout)
+        navigate({
+          to: "/$storeSlug",
+          params: { storeSlug },
+          search: { tableId: qrcodeId }
+        });
+      })
+      .catch(() => {
+        // Mesmo com erro, redirecionar
+        navigate({
+          to: "/$storeSlug",
+          params: { storeSlug },
+          search: { tableId: qrcodeId }
+        });
+      });
   }, [storeSlug, qrcodeId, navigate]);
 
   return (
