@@ -7,6 +7,7 @@ import {
 } from "@/lib/estoque-schemas";
 import { productCompositionRepository } from "@/server/repositories";
 import { prisma } from "@/server/db/client";
+import { serializeResponse } from "@/server/utils/serialize-response";
 
 /**
  * Admin only: Create a new recipe/composition
@@ -110,7 +111,8 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
       isActive: data?.isActive !== false,
     });
 
-    return CompositionService.createComposition(admin.storeId, product.id, validated);
+    const result = await CompositionService.createComposition(admin.storeId, product.id, validated);
+    return serializeComposition(result);
   });
 
 /**
@@ -159,7 +161,8 @@ export const adminActivateVersion = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return CompositionService.activateVersion(admin.storeId, data.compositionId);
+    const result = await CompositionService.activateVersion(admin.storeId, data.compositionId);
+    return serializeComposition(result);
   });
 
 /**
@@ -212,7 +215,8 @@ export const adminGetComposition = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return productCompositionRepository.findById(admin.storeId, data.compositionId);
+    const result = await productCompositionRepository.findById(admin.storeId, data.compositionId);
+    return serializeComposition(result);
   });
 
 /**
@@ -223,7 +227,8 @@ export const adminGetProductVersions = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return productCompositionRepository.findAllVersions(admin.storeId, data.productId);
+    const result = await productCompositionRepository.findAllVersions(admin.storeId, data.productId);
+    return serializeComposition(result);
   });
 
 /**
@@ -234,7 +239,8 @@ export const adminCalculateCompositionCost = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return CompositionService.calculateCost(admin.storeId, data.compositionId);
+    const result = await CompositionService.calculateCost(admin.storeId, data.compositionId);
+    return serializeComposition(result);
   });
 
 /**
@@ -245,7 +251,8 @@ export const getActiveComposition = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return CompositionService.getActiveComposition(admin.storeId, data.productId);
+    const result = await CompositionService.getActiveComposition(admin.storeId, data.productId);
+    return serializeComposition(result);
   });
 
 /**
@@ -255,9 +262,10 @@ export const adminGetAllCompositions = createServerFn({ method: "POST" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return productCompositionRepository.findAllByStore(admin.storeId, {
+    const result = await productCompositionRepository.findAllByStore(admin.storeId, {
       activeOnly: false,
     });
+    return serializeComposition(result);
   });
 
 /**
@@ -295,7 +303,7 @@ export const adminConsumeComposition = createServerFn({ method: "POST" })
       throw new Error("Composition ID is required");
     }
 
-    return CompositionService.consumeComposition(
+    const result = await CompositionService.consumeComposition(
       admin.storeId,
       compositionId,
       quantity,
@@ -305,5 +313,6 @@ export const adminConsumeComposition = createServerFn({ method: "POST" })
         authorName: admin.name,
       }
     );
+    return serializeComposition(result);
   });
 

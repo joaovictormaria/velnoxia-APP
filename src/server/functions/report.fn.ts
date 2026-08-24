@@ -28,14 +28,14 @@ export const adminGetStockReport = createServerFn({ method: "POST" })
     const includeInactive = data?.includeInactive === true;
 
     const items = await reportRepository.getStockLevelsByStore(admin.storeId, { sortBy, limit, includeInactive });
-    return items.map(serializeItem);
+    return items.map(serializeItem) as any;
   });
 
 export const adminGetLowStockAlerts2 = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getLowStockItems(admin.storeId);
+    return reportRepository.getLowStockItems(admin.storeId) as any;
   });
 
 export const adminGetMovementHistory = createServerFn({ method: "POST" })
@@ -67,34 +67,35 @@ export const adminGetCostAnalysis = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getMovementCostAnalysis(admin.storeId, { type: data.type || undefined });
+    return reportRepository.getMovementCostAnalysis(admin.storeId, { type: data.type || undefined }) as any;
   });
 
 export const adminGetCompositionUsageReport = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getCompositionUsageReport(admin.storeId);
+    return reportRepository.getCompositionUsageReport(admin.storeId) as any;
   });
 
 export const adminGetMovementStats = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getMovementStats(admin.storeId);
+    return reportRepository.getMovementStats(admin.storeId) as any;
   });
 
 export const adminGetOrderFulfillmentStats = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getOrderFulfillmentStats(admin.storeId);
+    return reportRepository.getOrderFulfillmentStats(admin.storeId) as any;
   });
 
 export const adminGetInventoryValueReport = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getInventoryValue(admin.storeId);
+    return reportRepository.getInventoryValue(admin.storeId) as any;
   });
+
 

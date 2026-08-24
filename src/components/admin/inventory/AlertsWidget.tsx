@@ -90,24 +90,24 @@ export function AlertsWidget() {
 
         {/* Runout Soon */}
         <div className={`p-4 rounded-lg border-2 ${
-          (forecast?.filter(i => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0) > 0
+          (forecast?.filter((i: any) => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0) > 0
             ? "bg-red-50 border-red-300"
             : "bg-gray-50 border-gray-200"
         }`}>
           <div className="flex items-center gap-2 mb-2">
             <TrendingDown className={
-              (forecast?.filter(i => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0) > 0
+              (forecast?.filter((i: any) => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0) > 0
                 ? "text-red-600"
                 : "text-gray-600"
             } />
             <span className="text-sm font-semibold">Vai Acabar</span>
           </div>
           <div className={`text-2xl font-bold ${
-            (forecast?.filter(i => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0) > 0
+            (forecast?.filter((i: any) => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0) > 0
               ? "text-red-600"
               : "text-gray-600"
           }`}>
-            {forecast?.filter(i => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0}
+            {forecast?.filter((i: any) => i.daysUntilRunout !== null && i.daysUntilRunout < 3).length || 0}
           </div>
           <p className="text-xs text-gray-600 mt-1">em 3 dias</p>
         </div>
@@ -118,7 +118,7 @@ export function AlertsWidget() {
         <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
           <h3 className="font-semibold text-red-900 mb-3">⚠️ Items Críticos</h3>
           <div className="space-y-2">
-            {criticalItems?.slice(0, 5).map((item) => (
+            {criticalItems?.slice(0, 5).map((item: any) => (
               <div key={item.id} className="flex justify-between items-center p-2 bg-white rounded border border-red-200">
                 <div>
                   <p className="font-medium text-sm">{item.name}</p>
@@ -150,7 +150,7 @@ export function AlertsWidget() {
         <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
           <h3 className="font-semibold text-orange-900 mb-3">📉 Previsão: Vai Acabar</h3>
           <div className="space-y-2">
-            {forecast.slice(0, 5).map((item) => (
+            {forecast.slice(0, 5).map((item: any) => (
               <div key={item.itemId} className="flex justify-between items-center p-2 bg-white rounded border border-orange-200">
                 <div>
                   <p className="font-medium text-sm">{item.itemName}</p>

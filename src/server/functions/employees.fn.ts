@@ -44,7 +44,7 @@ const employeeSchema = z.object({
 
 export const listEmployeesFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
-  return listEmployees(storeId);
+  return listEmployees(storeId) as any;
 });
 
 /**
@@ -84,7 +84,7 @@ export const saveEmployeeFn = createServerFn({ method: "POST" })
       }
       throw erro;
     }
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 /**
@@ -97,7 +97,7 @@ export const setEmployeeActiveFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     const ok = await setEmployeeActive(storeId, data.id, data.isActive);
-    return ok ? { ok: true as const } : { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." };
+    return ok ? { ok: true as const } : { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." } as any;
   });
 
 export const deleteEmployeeFn = createServerFn({ method: "POST" })
@@ -107,7 +107,7 @@ export const deleteEmployeeFn = createServerFn({ method: "POST" })
     const nome = await deleteEmployee(storeId, data.id);
     return nome
       ? { ok: true as const, name: nome }
-      : { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." };
+      : { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." } as any;
   });
 
 // ---------- Planos ----------
@@ -136,7 +136,7 @@ const planSchema = z.object({
 
 export const listBenefitPlansFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
-  return listBenefitPlans(storeId);
+  return listBenefitPlans(storeId) as any;
 });
 
 export const saveBenefitPlanFn = createServerFn({ method: "POST" })
@@ -209,6 +209,7 @@ export const deleteBenefitPlanFn = createServerFn({ method: "POST" })
     const { storeId } = await requireAdminSession();
     const ok = await deleteBenefitPlan(storeId, data.id);
     // Quem estava nele fica sem benefÃ­cio, mas continua cadastrado.
-    return ok ? { ok: true as const } : { ok: false as const, error: "Plano nÃ£o encontrado." };
+    return ok ? { ok: true as const } : { ok: false as const, error: "Plano nÃ£o encontrado." } as any;
   });
+
 

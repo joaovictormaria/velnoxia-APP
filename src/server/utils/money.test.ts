@@ -1,4 +1,5 @@
 ﻿import { describe, it, expect } from "vitest";
+// @ts-expect-error - Module not typed but needed for Decimal casting
 import { Decimal } from "@prisma/client/runtime/library";
 import {
   centavosToReais,

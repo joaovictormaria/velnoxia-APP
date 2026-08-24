@@ -267,7 +267,7 @@ function CouponsPage() {
         </p>
       ) : (
         <div className="space-y-2">
-          {data.map((c) => {
+          {data.map((c: any) => {
             const esgotado = c.maxUsage !== null && c.usageCount >= c.maxUsage;
             const vencido = new Date(c.validUntil) < new Date();
             return (

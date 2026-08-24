@@ -9,6 +9,7 @@ import {
   updateCategory,
 } from "../repositories/category-repository";
 import { optionGroupsSchema } from "../validation/option-group-schema";
+import { serializeResponse } from "../utils/serialize-response";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Informe o nome."),
@@ -39,7 +40,7 @@ const categorySchema = z.object({
 
 export const listCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
-  return listCategories(storeId);
+  return serializeResponse(await listCategories(storeId)) as any;
 });
 
 export const saveCategoryFn = createServerFn({ method: "POST" })

@@ -285,7 +285,7 @@ function PromotionsPage() {
         </p>
       ) : (
         <div className="space-y-2">
-          {data.map((p) => (
+          {data.map((p: any) => (
             <div
               key={p.id}
               className="flex flex-wrap items-center gap-4 rounded-xl border border-neutral-200 bg-white px-4 py-3"

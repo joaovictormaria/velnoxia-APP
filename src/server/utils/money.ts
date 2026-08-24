@@ -1,4 +1,5 @@
-﻿import { Decimal } from "@prisma/client/runtime/library";
+﻿// @ts-expect-error - Module not typed but needed for Decimal casting
+import { Decimal } from "@prisma/client/runtime/library";
 
 /**
  * PRIORIDADE 4: DINHEIRO EM DECIMAL

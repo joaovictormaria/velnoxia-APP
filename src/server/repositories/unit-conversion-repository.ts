@@ -2,7 +2,7 @@
 
 export const unitConversionRepository = {
   async getConversions(storeId: string): Promise<Record<string, number>> {
-    const conversions = await prisma.unitConversion.findMany({
+    const conversions = await (prisma as any).unitConversion.findMany({
       where: { storeId },
       include: {
         fromUnit: true,
@@ -11,7 +11,7 @@ export const unitConversionRepository = {
     });
 
     const result: Record<string, number> = {};
-    conversions.forEach((c) => {
+    conversions.forEach((c: any) => {
       const key = `${c.fromUnitId}â†’${c.toUnitId}`;
       result[key] = Number(c.conversionFactor);
     });

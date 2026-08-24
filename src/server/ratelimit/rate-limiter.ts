@@ -74,10 +74,10 @@ export class RateLimiter {
   async getStatus(): Promise<RateLimitStatus> {
     const data = await this.redis.hgetall(this.key);
 
-    let tokens = parseInt(data.tokens || this.config.maxTokens);
-    const lastRefill = parseInt(data.lastRefill || Date.now());
-    const lastAttempt = parseInt(data.lastAttempt || 0);
-    const blockedUntil = parseInt(data.blockedUntil || 0);
+    let tokens = parseInt(String(data.tokens || this.config.maxTokens));
+    const lastRefill = parseInt(String(data.lastRefill || Date.now()));
+    const lastAttempt = parseInt(String(data.lastAttempt || 0));
+    const blockedUntil = parseInt(String(data.blockedUntil || 0));
 
     const now = Date.now();
     const timeSinceRefill = (now - lastRefill) / 1000; // em segundos
@@ -94,8 +94,8 @@ export class RateLimiter {
 
       await this.redis
         .pipeline()
-        .hset(this.key, "tokens", tokens)
-        .hset(this.key, "lastRefill", now)
+        .hset(this.key, "tokens", String(tokens))
+        .hset(this.key, "lastRefill", String(now))
         .expire(this.key, this.config.blockDuration! * 2) // Limpeza automÃ¡tica
         .exec();
     }
@@ -117,8 +117,8 @@ export class RateLimiter {
       // Consumir um token
       await this.redis
         .pipeline()
-        .hset(this.key, "tokens", tokens - 1)
-        .hset(this.key, "lastAttempt", now)
+        .hset(this.key, "tokens", String(tokens - 1))
+        .hset(this.key, "lastAttempt", String(now))
         .expire(this.key, this.config.blockDuration! * 2)
         .exec();
 
@@ -134,8 +134,8 @@ export class RateLimiter {
 
       await this.redis
         .pipeline()
-        .hset(this.key, "blockedUntil", blockUntil)
-        .hset(this.key, "lastAttempt", now)
+        .hset(this.key, "blockedUntil", String(blockUntil))
+        .hset(this.key, "lastAttempt", String(now))
         .expire(this.key, this.config.blockDuration! * 2)
         .exec();
 

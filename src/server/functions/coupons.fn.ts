@@ -10,6 +10,7 @@ import {
   listCoupons,
   updateCoupon,
 } from "../repositories/coupon-repository";
+import { serializeResponse } from "../utils/serialize-response";
 
 const couponSchema = z.object({
   code: z
@@ -36,7 +37,7 @@ const couponSchema = z.object({
 
 export const listCouponsFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
-  return listCoupons(storeId);
+  return serializeResponse(await listCoupons(storeId)) as any;
 });
 
 export const saveCouponFn = createServerFn({ method: "POST" })
@@ -72,7 +73,7 @@ export const saveCouponFn = createServerFn({ method: "POST" })
     const coupon = data.id
       ? await updateCoupon(storeId, data.id, input)
       : await createCoupon(storeId, input);
-    return { ok: true as const, coupon };
+    return { ok: true as const, coupon: serializeResponse(coupon) } as any;
   });
 
 export const deleteCouponFn = createServerFn({ method: "POST" })
@@ -80,7 +81,7 @@ export const deleteCouponFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     await deleteCoupon(storeId, data.id);
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 /* ---- pÃºblico: conferir um cupom antes de fechar o pedido ---- */
@@ -130,6 +131,7 @@ export const previewCouponFn = createServerFn({ method: "POST" })
         ? (data.subtotal * Number(coupon.discountValue)) / 100
         : Number(coupon.discountValue);
     const discount = Math.min(Math.round(bruto * 100) / 100, data.subtotal);
-    return { ok: true as const, code: coupon.code, discount };
+    return { ok: true as const, code: coupon.code, discount } as any;
   });
+
 

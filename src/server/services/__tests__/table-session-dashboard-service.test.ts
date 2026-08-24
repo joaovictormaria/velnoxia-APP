@@ -96,7 +96,8 @@ describe("Table Session Dashboard Service", () => {
           type: "PICKUP",
           paymentMethod: "CASH",
           paymentStatus: "PENDING",
-          total: 100,
+          subtotal: 100,
+          total:100,
         },
       });
 
@@ -190,6 +191,7 @@ describe("Table Session Dashboard Service", () => {
           type: "PICKUP",
           paymentMethod: "CASH",
           paymentStatus: "PENDING",
+          subtotal: 50,
           total: 50,
         },
       });

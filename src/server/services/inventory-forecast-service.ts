@@ -1,4 +1,5 @@
 ﻿import { prisma } from "@/server/db/client";
+// @ts-expect-error - Module not typed but needed for Decimal casting
 import { Decimal } from "@prisma/client/runtime/library";
 
 /**

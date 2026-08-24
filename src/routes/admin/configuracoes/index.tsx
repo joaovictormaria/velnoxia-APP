@@ -180,7 +180,7 @@ function SettingsPage() {
     setHours(
       Object.fromEntries(
         WEEKDAYS.map((d) => {
-          const row = data.openingHours.find((h) => h.weekday === d);
+          const row = data.openingHours.find((h: any) => h.weekday === d);
           return [
             d,
             {

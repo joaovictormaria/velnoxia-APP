@@ -1,6 +1,6 @@
 ﻿import { prisma } from "../db/client";
 import { RateLimiter, RateLimitPresets } from "../ratelimit/rate-limiter";
-import { Redis } from "ioredis";
+import type { Redis } from "ioredis";
 import { createHash, randomBytes } from "node:crypto";
 import { AuditService } from "../audit/audit-service";
 

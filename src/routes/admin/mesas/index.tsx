@@ -66,7 +66,7 @@ function MesasPage() {
   useEffect(() => {
     if (!admin?.store?.slug || !tables.length) return;
 
-    const generatedQRCodes: GeneratedQRCode[] = tables.map(table => ({
+    const generatedQRCodes: GeneratedQRCode[] = tables.map((table: any) => ({
       id: table.id,
       number: table.number,
       url: `${window.location.origin}/qr/${admin.store.slug}/${table.id}`,

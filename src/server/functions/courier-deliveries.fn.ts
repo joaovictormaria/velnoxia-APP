@@ -67,7 +67,7 @@ export const listMyDeliveriesFn = createServerFn({ method: "GET" }).handler(asyn
     }),
   ]);
 
-  return { courierName: courier.name, storeName: courier.store.name, emRota, entregues };
+  return { courierName: courier.name, storeName: courier.store.name, emRota, entregues } as any;
 });
 
 /**

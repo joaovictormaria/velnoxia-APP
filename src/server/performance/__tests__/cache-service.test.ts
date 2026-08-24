@@ -504,9 +504,9 @@ describe("CacheService: Warmup", () => {
     const result2 = await cacheService.get("key2");
     const result3 = await cacheService.get("key3");
 
-    expect(result1?.id).toBe(1);
+    expect((result1 as any)?.id).toBe(1);
     expect(result2).toBeNull(); // Falhou
-    expect(result3?.id).toBe(3);
+    expect((result3 as any)?.id).toBe(3);
   });
 });
 

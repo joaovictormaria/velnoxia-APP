@@ -190,7 +190,7 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
 function slugifyProduct(name: string) {
   return name
     .normalize('NFD')
-    .replace(/[Ì€-Í¯]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');

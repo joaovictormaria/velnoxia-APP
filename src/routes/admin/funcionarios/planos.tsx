@@ -439,7 +439,7 @@ function PlanosPage() {
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-neutral-100">
-            {planos.map((plano) => (
+            {planos.map((plano: any) => (
               <li key={plano.id} className="flex flex-wrap items-start gap-3 py-4">
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-neutral-900">
@@ -467,7 +467,7 @@ function PlanosPage() {
                   </p>
                   {plano.rules.length > 0 && (
                     <ul className="mt-1.5 space-y-0.5">
-                      {plano.rules.map((regra) => (
+                      {plano.rules.map((regra: any) => (
                         <li key={regra.id} className="text-xs text-neutral-500">
                           {nomeDoAlvo(
                             regra.categoryId
@@ -499,7 +499,7 @@ function PlanosPage() {
                       limitValue: plano.limitValue === null ? "" : String(plano.limitValue),
                       allowPayroll: plano.allowPayroll,
                       isActive: plano.isActive,
-                      rules: plano.rules.map((regra) => ({
+                      rules: plano.rules.map((regra: any) => ({
                         alvo: regra.categoryId
                           ? `categoria:${regra.categoryId}`
                           : `produto:${regra.productId}`,

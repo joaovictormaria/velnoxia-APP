@@ -23,7 +23,7 @@ export const getInventoryHealth = createServerFn({ method: "GET" }).handler(
 export const getInventoryMetricsEndpoint = createServerFn({
   method: "GET",
 }).handler(async () => {
-  return await getInventoryMetrics();
+  return await getInventoryMetrics() as any;
 });
 
 /**
@@ -65,4 +65,5 @@ export const getHealthStatus = createServerFn({ method: "GET" }).handler(
     };
   }
 );
+
 

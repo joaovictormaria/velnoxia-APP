@@ -25,6 +25,7 @@ export const getStorefrontMenuFn = createServerFn({ method: "GET" })
       listActivePromotions(store.id),
       listPublishedPosts(store.id),
     ]);
-    return { categories, extras, promotions, posts, store: { ...settings, slug: store.slug } };
+    return { categories, extras, promotions, posts, store: { ...settings, slug: store.slug } } as any;
   });
+
 

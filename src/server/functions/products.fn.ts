@@ -54,7 +54,7 @@ export const listProductsFn = createServerFn({ method: "GET" })
       listProducts(storeId, data),
       listActiveCategories(storeId),
     ]);
-    return { products, categories };
+    return { products, categories } as any;
   });
 
 export const getProductFn = createServerFn({ method: "GET" })
@@ -65,12 +65,12 @@ export const getProductFn = createServerFn({ method: "GET" })
       getProductById(storeId, data.id),
       listActiveCategories(storeId),
     ]);
-    return { product, categories };
+    return { product, categories } as any;
   });
 
 export const getProductFormOptionsFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
-  return { categories: await listActiveCategories(storeId) };
+  return { categories: await listActiveCategories(storeId) } as any;
 });
 
 export const saveProductFn = createServerFn({ method: "POST" })
@@ -80,7 +80,7 @@ export const saveProductFn = createServerFn({ method: "POST" })
     const product = data.id
       ? await updateProduct(storeId, data.id, data.data)
       : await createProduct(storeId, data.data);
-    return { ok: true as const, product };
+    return { ok: true as const, product } as any;
   });
 
 export const setProductActiveFn = createServerFn({ method: "POST" })
@@ -88,7 +88,7 @@ export const setProductActiveFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     await setProductActive(storeId, data.id, data.isActive);
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 export const deleteProductFn = createServerFn({ method: "POST" })
@@ -96,7 +96,7 @@ export const deleteProductFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     await deleteProduct(storeId, data.id);
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 export const adminCreateCategoryFn = createServerFn({ method: "POST" })
@@ -123,7 +123,7 @@ export const adminCreateCategoryFn = createServerFn({ method: "POST" })
       });
     }
 
-    return category;
+    return category as any;
   });
 
 export const adminDeleteCategoryFn = createServerFn({ method: "POST" })
@@ -151,7 +151,7 @@ export const adminDeleteCategoryFn = createServerFn({ method: "POST" })
       return { success: true };
     }
 
-    return { success: false, message: "Categoria tem produtos associados" };
+    return { success: false, message: "Categoria tem produtos associados" } as any;
   });
 
 /**
@@ -186,6 +186,7 @@ export const adminLinkProductToInventory = createServerFn({ method: "POST" })
       data: { inventoryItemId: data.inventoryItemId }
     });
 
-    return { success: true, product: updated };
+    return { success: true, product: updated } as any;
   });
+
 

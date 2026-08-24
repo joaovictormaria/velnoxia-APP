@@ -187,6 +187,8 @@ describe("order-service: precificarItens", () => {
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
+          deletedAt: null,
+          deletedBy: null,
         },
       ]);
       vi.mocked(prisma.extraScope.findMany).mockResolvedValue([
@@ -239,6 +241,8 @@ describe("order-service: precificarItens", () => {
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
+          deletedAt: null,
+          deletedBy: null,
         },
       ]);
       vi.mocked(prisma.extraScope.findMany).mockResolvedValue([

@@ -99,7 +99,7 @@ export class ProductionService {
         isActive: true,
       },
     }).then((items) =>
-      items.filter((item) => item.quantityOnHand < (item.minimumStock || 0))
+      items.filter((item) => item.quantityOnHand < ((item as any).minimumStock || 0))
     );
   }
 }

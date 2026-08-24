@@ -28,7 +28,7 @@ const promotionSchema = z.object({
 
 export const listPromotionsFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
-  return listPromotions(storeId);
+  return listPromotions(storeId) as any;
 });
 
 export const savePromotionFn = createServerFn({ method: "POST" })
@@ -50,7 +50,7 @@ export const savePromotionFn = createServerFn({ method: "POST" })
     const promotion = data.id
       ? await updatePromotion(storeId, data.id, data.data)
       : await createPromotion(storeId, data.data);
-    return { ok: true as const, promotion };
+    return { ok: true as const, promotion } as any;
   });
 
 export const deletePromotionFn = createServerFn({ method: "POST" })
@@ -58,6 +58,7 @@ export const deletePromotionFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     await deletePromotion(storeId, data.id);
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
+
 

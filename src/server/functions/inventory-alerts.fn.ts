@@ -13,7 +13,7 @@ export const getInventoryAlertsSummary = createServerFn({ method: "GET" })
       throw new Error("Not authenticated");
     }
 
-    return InventoryAlertService.getDashboardSummary(store.id);
+    return InventoryAlertService.getDashboardSummary(store.id) as any;
   });
 
 /**
@@ -26,7 +26,7 @@ export const getCriticalItems = createServerFn({ method: "GET" })
       throw new Error("Not authenticated");
     }
 
-    return InventoryAlertService.getCriticalItems(store.id);
+    return InventoryAlertService.getCriticalItems(store.id) as any;
   });
 
 /**
@@ -40,7 +40,7 @@ export const getStockRunoutForecast = createServerFn({ method: "GET" })
       throw new Error("Not authenticated");
     }
 
-    return InventoryAlertService.getStockRunoutForecast(store.id, 7);
+    return InventoryAlertService.getStockRunoutForecast(store.id, 7) as any;
   });
 
 /**
@@ -54,7 +54,7 @@ export const checkItemAlerts = createServerFn({ method: "POST" })
       throw new Error("Not authenticated");
     }
 
-    return InventoryAlertService.checkItemAlerts(store.id, data.itemId);
+    return InventoryAlertService.checkItemAlerts(store.id, data.itemId) as any;
   });
 
 /**
@@ -67,6 +67,7 @@ export const checkAllAlerts = createServerFn({ method: "GET" })
       throw new Error("Not authenticated");
     }
 
-    return InventoryAlertService.checkStoreAlerts(store.id);
+    return InventoryAlertService.checkStoreAlerts(store.id) as any;
   });
+
 

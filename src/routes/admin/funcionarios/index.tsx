@@ -185,7 +185,7 @@ function FuncionariosPage() {
               className={ENTRADA}
             >
               <option value="">Sem benefício</option>
-              {(planos ?? []).map((p) => (
+              {(planos ?? []).map((p: any) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
                   {p.isActive ? "" : " (desativado)"}
@@ -245,7 +245,7 @@ function FuncionariosPage() {
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-neutral-100">
-            {funcionarios.map((f) => (
+            {funcionarios.map((f: any) => (
               <li key={f.id} className="flex flex-wrap items-center gap-3 py-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-red-50">
                   <BadgePercent className="size-5 text-[#E11D2E]" />

@@ -119,7 +119,7 @@ function MinhasEntregasPage() {
             <h1 className="px-1 text-sm font-bold tracking-wide text-neutral-400 uppercase">
               Na rua ({emRota.length})
             </h1>
-            {emRota.map((entrega) => (
+            {emRota.map((entrega: any) => (
               <CartaoDeEntrega
                 key={entrega.id}
                 entrega={entrega}
@@ -136,7 +136,7 @@ function MinhasEntregasPage() {
               Entregues hoje ({entregues.length})
             </h2>
             <ul className="mt-3 space-y-2">
-              {entregues.map((entrega) => (
+              {entregues.map((entrega: any) => (
                 <li
                   key={entrega.id}
                   className="flex items-center justify-between gap-3 rounded-xl bg-white/90 px-4 py-3"

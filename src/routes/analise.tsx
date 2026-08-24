@@ -63,7 +63,7 @@ function Analise() {
       },
     })
       .then((result) => {
-        setContent(result);
+        setContent(result as any);
         setStatus("done");
         localStorage.setItem(
           "velnox:generatedSite",

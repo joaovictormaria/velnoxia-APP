@@ -329,7 +329,7 @@ function CategoriesPage() {
                 </td>
               </tr>
             )}
-            {data?.map((c) => (
+            {data?.map((c: any) => (
               <tr key={c.id} className="hover:bg-neutral-50">
                 <td className="px-5 py-3 font-medium text-neutral-900">{c.name}</td>
                 <td className="px-5 py-3 text-neutral-600">{c.icon ?? "-"}</td>
@@ -362,7 +362,7 @@ function CategoriesPage() {
                           headline: c.headline ?? "",
                           subhead: c.subhead ?? "",
                           kind: c.kind,
-                          sizes: c.sizes.map((t) => t.label),
+                          sizes: c.sizes.map((t: any) => t.label),
                           sortOrder: c.sortOrder,
                           isActive: c.isActive,
                         });

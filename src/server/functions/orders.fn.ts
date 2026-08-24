@@ -15,6 +15,7 @@ import {
   setOrderAwaitingCourier,
   transitionOrderStatus,
 } from "../services/order-service";
+import { serializeResponse } from "../utils/serialize-response";
 
 const ORDER_STATUS = z.enum([
   "RECEIVED",
@@ -33,21 +34,21 @@ export const listKanbanOrdersFn = createServerFn({ method: "GET" })
       listKanbanOrders(storeId, data ?? {}),
       getKanbanMetrics(storeId, data?.date),
     ]);
-    return { ...board, metrics };
+    return serializeResponse({ ...board, metrics }) as any;
   });
 
 export const listMesasAbertasFn = createServerFn({ method: "GET" })
   .validator(z.object({ date: z.string().optional(), search: z.string().optional() }).optional())
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    return listMesasAbertas(storeId, data ?? {});
+    return serializeResponse(await listMesasAbertas(storeId, data ?? {})) as any;
   });
 
 export const getOrderFn = createServerFn({ method: "GET" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    return getOrderById(storeId, data.id);
+    return serializeResponse(await getOrderById(storeId, data.id)) as any;
   });
 
 export const updateOrderStatusFn = createServerFn({ method: "POST" })
@@ -58,7 +59,7 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
       authorType: "ADMIN",
       authorName: admin.name,
       note: data.note,
-    });
+    }) as any;
   });
 
 export const updateOrderNotesFn = createServerFn({ method: "POST" })
@@ -73,7 +74,7 @@ export const updateOrderNotesFn = createServerFn({ method: "POST" })
     const { storeId } = await requireAdminSession();
     const { id, ...notes } = data;
     await updateOrderNotes(storeId, id, notes);
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 /**
@@ -82,7 +83,7 @@ export const updateOrderNotesFn = createServerFn({ method: "POST" })
  */
 export const listPendingOrdersFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
-  return listPendingOrderIds(storeId);
+  return listPendingOrderIds(storeId) as any;
 });
 
 /**
@@ -111,7 +112,7 @@ export const getTableOrderCountsFn = createServerFn({ method: "GET" })
       }
     }
 
-    return Object.fromEntries(counts);
+    return Object.fromEntries(counts) as any;
   });
 
 export const getNextTableNumberFn = createServerFn({ method: "GET" })
@@ -123,7 +124,7 @@ export const getNextTableNumberFn = createServerFn({ method: "GET" })
       select: { number: true },
     });
 
-    return (maxTable?.number ?? 0) + 1;
+    return (maxTable?.number ?? 0) + 1 as any;
   });
 
 export const listTablesFn = createServerFn({ method: "GET" })
@@ -135,7 +136,7 @@ export const listTablesFn = createServerFn({ method: "GET" })
       select: { id: true, number: true, qrcodeUrl: true, qrcodeData: true },
     });
 
-    return tables;
+    return tables as any;
   });
 
 export const deleteTableFn = createServerFn({ method: "POST" })
@@ -152,7 +153,7 @@ export const deleteTableFn = createServerFn({ method: "POST" })
     }
 
     await prisma.table.delete({ where: { id: data.id } });
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 // Disabled for now - tableNumber doesn't exist on Order model
@@ -169,7 +170,7 @@ export const markOrderNotificationsReadFn = createServerFn({ method: "POST" })
       where: { storeId, relatedOrderId: data.orderId, isRead: false },
       data: { isRead: true },
     });
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 /**
@@ -184,7 +185,7 @@ export const dispatchOrderFn = createServerFn({ method: "POST" })
     return dispatchOrder(admin.storeId, data.id, data.courierId, {
       authorType: "ADMIN",
       authorName: admin.name,
-    });
+    }) as any;
   });
 
 /** Marca (ou desmarca) que o pedido estÃ¡ pronto esperando quem o leve. */
@@ -192,6 +193,7 @@ export const setOrderAwaitingCourierFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), awaiting: z.boolean() }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    return setOrderAwaitingCourier(storeId, data.id, data.awaiting);
+    return setOrderAwaitingCourier(storeId, data.id, data.awaiting) as any;
   });
+
 

@@ -82,7 +82,7 @@ const openingHoursSchema = z.array(
 );
 
 export const getStoreSettingsFn = createServerFn({ method: "GET" }).handler(
-  async () => {
+  async (): Promise<any> => {
     const { storeId } = await requireAdminSession();
     return getStoreSettings(storeId);
   },
@@ -113,7 +113,7 @@ export const saveStoreSettingsFn = createServerFn({ method: "POST" })
       };
     }
     const settings = await updateStoreSettings(storeId, data);
-    return { ok: true as const, settings };
+    return { ok: true as const, settings } as any;
   });
 
 export const saveOpeningHoursFn = createServerFn({ method: "POST" })
@@ -128,7 +128,7 @@ export const saveOpeningHoursFn = createServerFn({ method: "POST" })
       };
     }
     await replaceOpeningHours(storeId, data);
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 export const addRestaurantPhotoFn = createServerFn({ method: "POST" })
@@ -138,7 +138,7 @@ export const addRestaurantPhotoFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     const photo = await addRestaurantPhoto(storeId, data);
-    return { ok: true as const, photo };
+    return { ok: true as const, photo } as any;
   });
 
 export const deleteRestaurantPhotoFn = createServerFn({ method: "POST" })
@@ -146,7 +146,7 @@ export const deleteRestaurantPhotoFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
     await deleteRestaurantPhoto(storeId, data.id);
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
 
 /**
@@ -162,7 +162,7 @@ export const getBusinessTypeFn = createServerFn({ method: "GET" }).handler(async
     where: { id: storeId },
     select: { businessType: true },
   });
-  return store.businessType;
+  return store.businessType as any;
 });
 
 export const saveBusinessTypeFn = createServerFn({ method: "POST" })
@@ -183,6 +183,7 @@ export const saveBusinessTypeFn = createServerFn({ method: "POST" })
       where: { id: storeId },
       data: { businessType: data.businessType },
     });
-    return { ok: true as const };
+    return { ok: true as const } as any;
   });
+
 

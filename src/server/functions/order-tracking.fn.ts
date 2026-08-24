@@ -83,7 +83,7 @@ export const trackOrderFn = createServerFn({ method: "GET" })
         queuePosition,
         finished,
       },
-    };
+    } as any;
   });
 
 /**
@@ -103,4 +103,5 @@ export const getCourierDistanceFn = createServerFn({ method: "POST" })
   .handler(({ data }) =>
     distanciaDoEntregador(data.token, { latitude: data.latitude, longitude: data.longitude }),
   );
+
 
