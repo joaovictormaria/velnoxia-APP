@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db/client";
-import type { Decimal } from "@prisma/client";
+
+type Decimal = any;
 
 /**
  * Serviço de Análise de Custos de Produção
@@ -50,7 +51,7 @@ export class InventoryCostService {
         }>
       : never = [];
 
-    let totalCost = new Decimal(0);
+    let totalCost = (0 as Decimal);
 
     for (const consumption of consumptions) {
       if (!consumption.item.cost) {
@@ -58,7 +59,7 @@ export class InventoryCostService {
       }
 
       const quantity = consumption.quantity.abs(); // CONSUMPTION é negativo
-      const itemCost = new Decimal(consumption.item.cost);
+      const itemCost = (consumption.item.cost as Decimal);
       const lineCost = quantity.mul(itemCost);
 
       breakdown.push({
@@ -144,13 +145,13 @@ export class InventoryCostService {
       if (!movement.item.cost) continue;
 
       const quantity = movement.quantity.abs();
-      const itemCost = new Decimal(movement.item.cost);
+      const itemCost = (movement.item.cost);
       const lineCost = quantity.mul(itemCost);
 
       // Custo por pedido
       const orderId = movement.reference || "UNKNOWN";
       if (!costByOrder[orderId]) {
-        costByOrder[orderId] = new Decimal(0);
+        costByOrder[orderId] = (0 as Decimal);
       }
       costByOrder[orderId] = costByOrder[orderId].add(lineCost);
 
@@ -158,7 +159,7 @@ export class InventoryCostService {
       if (!costByItem[movement.item.name]) {
         costByItem[movement.item.name] = {
           count: 0,
-          total: new Decimal(0),
+          total: (0),
           usage: 0,
         };
       }
@@ -173,7 +174,7 @@ export class InventoryCostService {
         orders.set(orderId, {
           reference: movement.reference,
           createdAt: movement.createdAt,
-          cost: new Decimal(0),
+          cost: (0),
         });
       }
       const order = orders.get(orderId)!;
@@ -181,14 +182,14 @@ export class InventoryCostService {
     }
 
     // Calcular total
-    let totalCost = new Decimal(0);
+    let totalCost = (0 as Decimal);
     for (const cost of Object.values(costByOrder)) {
       totalCost = totalCost.add(cost);
     }
 
     const totalOrders = Object.keys(costByOrder).length;
     const averageCostPerOrder =
-      totalOrders > 0 ? totalCost.dividedBy(new Decimal(totalOrders)) : new Decimal(0);
+      totalOrders > 0 ? totalCost.dividedBy((totalOrders)) : (0 as Decimal);
 
     // Items mais caros
     const topExpensive = Object.entries(costByItem)
@@ -196,7 +197,7 @@ export class InventoryCostService {
         itemName: name,
         totalCost: data.total,
         usageCount: data.usage,
-        averageCost: data.total.dividedBy(new Decimal(data.usage)),
+        averageCost: data.total.dividedBy((data.usage)),
       }))
       .sort((a, b) => b.totalCost.toNumber() - a.totalCost.toNumber())
       .slice(0, 10);
@@ -208,11 +209,11 @@ export class InventoryCostService {
 
       const key = movement.type;
       if (!costByType[key]) {
-        costByType[key] = { count: 0, total: new Decimal(0) };
+        costByType[key] = { count: 0, total: (0) };
       }
       costByType[key].count += 1;
       costByType[key].total = costByType[key].total.add(
-        movement.quantity.abs().mul(new Decimal(movement.item.cost))
+        movement.quantity.abs().mul((movement.item.cost))
       );
     }
 
@@ -247,7 +248,7 @@ export class InventoryCostService {
   } {
     const profitAmount = sellingPrice.minus(costPrice);
     const marginPercent = sellingPrice.isZero()
-      ? new Decimal(0)
+      ? (0)
       : profitAmount.dividedBy(sellingPrice).times(100);
 
     return {
@@ -312,14 +313,14 @@ export class InventoryCostService {
           profitByProduct[key] = {
             productName: key,
             orders: 0,
-            totalSales: new Decimal(0),
-            totalCost: new Decimal(0),
+            totalSales: (0),
+            totalCost: (0),
           };
         }
 
         // Valor de venda
-        const itemSalesValue = new Decimal(item.price).mul(
-          new Decimal(item.quantity)
+        const itemSalesValue = (item.price).mul(
+          (item.quantity)
         );
         profitByProduct[key].totalSales =
           profitByProduct[key].totalSales.add(itemSalesValue);
@@ -337,7 +338,7 @@ export class InventoryCostService {
       .map((product) => {
         const profit = product.totalSales.minus(product.totalCost);
         const profitPercent = product.totalSales.isZero()
-          ? new Decimal(0)
+          ? (0)
           : profit.dividedBy(product.totalSales).times(100);
 
         return {
@@ -348,12 +349,12 @@ export class InventoryCostService {
           totalProfit: profit,
           profitPercent,
           averageOrderValue: product.totalSales.dividedBy(
-            new Decimal(product.orders)
+            (product.orders)
           ),
           averageCost: product.totalCost.dividedBy(
-            new Decimal(product.orders)
+            (product.orders)
           ),
-          averageProfit: profit.dividedBy(new Decimal(product.orders)),
+          averageProfit: profit.dividedBy((product.orders)),
         };
       })
       .sort((a, b) => b.profitPercent.toNumber() - a.profitPercent.toNumber());
@@ -373,14 +374,14 @@ export class InventoryCostService {
     ]);
 
     // Calcular KPIs
-    let totalSalesValue = new Decimal(0);
+    let totalSalesValue = (0 as Decimal);
     for (const item of profitability) {
       totalSalesValue = totalSalesValue.add(item.totalSalesValue);
     }
 
     const totalProfit = totalSalesValue.minus(costReport.summary.totalCost);
     const profitMargin = totalSalesValue.isZero()
-      ? new Decimal(0)
+      ? (0)
       : totalProfit.dividedBy(totalSalesValue).times(100);
 
     return {
