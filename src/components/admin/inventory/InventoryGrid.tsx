@@ -515,7 +515,7 @@ export function InventoryGrid(props: InventoryGridProps) {
           </thead>
           <tbody className="divide-y">
             {getSortedAndFilteredItems().map((item) => {
-              const threshold = Number(item.maximumQuantity ?? 0) * 0.3;
+              const threshold = Number((item as any).maximumQuantity ?? 0) * 0.3;
               const isLowStock = Number(item.quantityOnHand ?? 0) <= threshold && threshold > 0;
 
               return (
@@ -528,7 +528,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   {item.quantityOnHand.toFixed(2)} {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right text-amber-600">
-                  {(item.quantityUsedInRecipes ?? 0).toFixed(2)} {item.baseUnit.code}
+                  {((item as any).quantityUsedInRecipes ?? 0).toFixed(2)} {item.baseUnit.code}
                 </td>
                 <td className="px-4 py-2 text-right">R$ {(item.cost ?? 0).toFixed(2)}</td>
                 <td className="px-4 py-2 text-center space-x-3">

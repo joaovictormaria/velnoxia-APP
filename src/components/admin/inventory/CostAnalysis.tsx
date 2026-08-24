@@ -19,13 +19,13 @@ export function CostAnalysis() {
 
   const { data: kpis, isLoading: kpisLoading } = useQuery({
     queryKey: ["financial-kpis", days],
-    queryFn: () => getFinancialKPIs({ days }),
+    queryFn: () => getFinancialKPIs({ days } as any),
     refetchInterval: 5 * 60 * 1000, // 5 minutos
   });
 
   const { data: profitability, isLoading: profitabilityLoading } = useQuery({
     queryKey: ["product-profitability", days],
-    queryFn: () => getProductProfitability({ days }),
+    queryFn: () => getProductProfitability({ days } as any),
     refetchInterval: 5 * 60 * 1000,
   });
 

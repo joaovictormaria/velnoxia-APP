@@ -89,7 +89,7 @@ export function CardapioPicker({
         <Link
           to="/$storeSlug/carrinho"
           params={{ storeSlug }}
-          search={{ pagar: itemCount > 0 ? true : undefined, tableId: tableId ?? undefined }}
+          search={{ pagar: itemCount > 0 ? true : undefined, tableId: tableId ?? undefined } as any}
           className="flex items-center gap-2 rounded-full bg-tomato px-4 py-2 text-sm font-bold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90 active:scale-95"
         >
           <span className="relative">
@@ -111,7 +111,7 @@ export function CardapioPicker({
           <Link
             to="/$storeSlug/carrinho"
             params={{ storeSlug }}
-            search={{ pagar: true, tableId: tableId ?? undefined }}
+            search={{ pagar: true, tableId: tableId ?? undefined } as any}
             className="hidden items-center gap-2 rounded-full bg-charcoal px-5 py-2 text-sm font-bold text-mozzarella transition-colors hover:bg-charcoal/90 active:scale-95 lg:flex"
           >
             Finalizar compras

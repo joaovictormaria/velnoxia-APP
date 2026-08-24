@@ -270,7 +270,8 @@ function SettingsPage() {
           acceptedPaymentMethods: draft.acceptedPaymentMethods as "PIX"[],
         },
       });
-      if (!settingsRes.ok) throw new Error(settingsRes.error);
+      const settings = settingsRes as any;
+      if (!settings.ok) throw new Error(settings.error);
 
       const hoursRes = await saveOpeningHoursFn({
         data: WEEKDAYS.map((d) => ({ weekday: d, ...hours[d] })),

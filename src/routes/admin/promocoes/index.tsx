@@ -79,9 +79,10 @@ function PromotionsPage() {
           },
         },
       }),
-    onSuccess: (res) => {
-      if (!res.ok) {
-        setError(res.error);
+    onSuccess: (res: any) => {
+      const result = res as { ok: boolean; error?: string };
+      if (!result.ok) {
+        setError(result.error || "Erro ao salvar");
         return;
       }
       invalidate();

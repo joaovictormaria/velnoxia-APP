@@ -96,6 +96,7 @@ export function PreviaDaVitrine({
     // dados do lojista para desenhar algo que ele não vai ver.
     enabled: telaLarga,
   });
+  const menu = data as { categories: any[]; extras: any[]; promotions: any[]; posts: any[]; store: StorePayload & { slug: string } } | undefined;
 
   // Numa tela estreita a prévia não cabe: a vitrine é montada a 1800px e
   // encolhida, então em 360px ela viraria uma miniatura ilegível empurrando o
@@ -111,7 +112,7 @@ export function PreviaDaVitrine({
       </div>
     ) : (
       <Palco
-        data={data}
+        data={menu}
         aplicar={aplicar}
         aplicarLoja={aplicarLoja}
         largura={largura}

@@ -329,7 +329,7 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
       }
       setPlaced({
         number: res.orderNumber,
-        total: res.total,
+        total: Number(res.total),
         trackingToken: res.trackingToken,
       });
       clearCart();
