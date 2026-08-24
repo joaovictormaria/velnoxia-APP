@@ -1,3 +1,4 @@
+import { prisma } from "@/server/db/client";
 import { getOrCreateOpenTableSession, authorizeDeviceForSession } from "./table-session-service";
 
 /**
@@ -49,8 +50,6 @@ export async function orchestrateTableSession(
  * Check how many active (non-revoked) devices are authorized for a session.
  */
 async function checkExistingDevices(sessionId: string): Promise<number> {
-  const { prisma } = await import("@/server/db/client");
-
   const count = await prisma.sessionDevice.count({
     where: {
       sessionId,
