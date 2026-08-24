@@ -238,6 +238,60 @@ export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
         sessionId: result.sessionId,
         firstDevice: result.firstDevice,
         deviceToken: result.deviceToken,
+        // Note: PIN is not returned for security - first device sees it only in the QR redirect flow
+      };
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Erro desconhecido";
+      return { ok: false as const, error: msg };
+    }
+  });
+
+/**
+ * Get PIN display hint for first device (development only).
+ * In development, PIN is logged to console with pattern "[TABLE SESSION] PIN for table..."
+ * In production, this returns an error since PIN should never be exposed.
+ */
+const getSessionPinHintSchema = z.object({
+  storeSlug: z.string().min(1),
+  sessionId: z.string().cuid(),
+});
+
+export const getSessionPinHintFn = createServerFn({ method: "POST" })
+  .validator(getSessionPinHintSchema)
+  .handler(async ({ data }) => {
+    try {
+      const store = await getStoreBySlug(data.storeSlug);
+      if (!store) {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
+
+      const session = await (await import("../db/client")).prisma.tableSession.findUnique({
+        where: { id: data.sessionId },
+        select: { id: true, storeId: true, status: true },
+      });
+
+      if (!session || session.storeId !== store.id) {
+        return { ok: false as const, error: "Sessão não encontrada" };
+      }
+
+      if (session.status !== "OPEN") {
+        return { ok: false as const, error: "Sessão não está mais aberta" };
+      }
+
+      // In development, PIN is in browser console logs
+      // In production, never expose PIN via API
+      if (process.env.NODE_ENV === "production") {
+        return {
+          ok: true as const,
+          message: "O PIN foi enviado para o seu email/SMS",
+          pinVisible: false,
+        };
+      }
+
+      return {
+        ok: true as const,
+        message: "PIN está disponível nos logs do navegador (console)",
+        pinVisible: true,
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";

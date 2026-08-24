@@ -52,6 +52,7 @@ import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relator
 import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
 import { Route as QrPinStoreSlugSessionIdRouteImport } from './routes/qr-pin.$storeSlug.$sessionId'
+import { Route as QrShowPinStoreSlugSessionIdRouteImport } from './routes/qr-show-pin.$storeSlug.$sessionId'
 import { Route as QrStoreSlugQrcodeIdRouteImport } from './routes/qr.$storeSlug.$qrcodeId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -271,6 +272,12 @@ const QrPinStoreSlugSessionIdRoute = QrPinStoreSlugSessionIdRouteImport.update({
   path: '/qr-pin/$storeSlug/$sessionId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const QrShowPinStoreSlugSessionIdRoute =
+  QrShowPinStoreSlugSessionIdRouteImport.update({
+    id: '/qr-show-pin/$storeSlug/$sessionId',
+    path: '/qr-show-pin/$storeSlug/$sessionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const QrStoreSlugQrcodeIdRoute = QrStoreSlugQrcodeIdRouteImport.update({
   id: '/qr/$storeSlug/$qrcodeId',
   path: '/qr/$storeSlug/$qrcodeId',
@@ -309,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
+  '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -352,6 +360,7 @@ export interface FileRoutesByTo {
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
+  '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio': typeof AdminCardapioIndexRoute
@@ -399,6 +408,7 @@ export interface FileRoutesById {
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
+  '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -447,6 +457,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
     | '/qr-pin/$storeSlug/$sessionId'
+    | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
@@ -490,6 +501,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
     | '/qr-pin/$storeSlug/$sessionId'
+    | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes'
     | '/admin/cardapio'
@@ -536,6 +548,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
     | '/qr-pin/$storeSlug/$sessionId'
+    | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes/'
     | '/admin/cardapio/'
@@ -563,6 +576,7 @@ export interface RootRouteChildren {
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiUploadRoute: typeof ApiUploadRoute
   QrPinStoreSlugSessionIdRoute: typeof QrPinStoreSlugSessionIdRoute
+  QrShowPinStoreSlugSessionIdRoute: typeof QrShowPinStoreSlugSessionIdRoute
   QrStoreSlugQrcodeIdRoute: typeof QrStoreSlugQrcodeIdRoute
 }
 
@@ -869,6 +883,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QrPinStoreSlugSessionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/qr-show-pin/$storeSlug/$sessionId': {
+      id: '/qr-show-pin/$storeSlug/$sessionId'
+      path: '/qr-show-pin/$storeSlug/$sessionId'
+      fullPath: '/qr-show-pin/$storeSlug/$sessionId'
+      preLoaderRoute: typeof QrShowPinStoreSlugSessionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/qr/$storeSlug/$qrcodeId': {
       id: '/qr/$storeSlug/$qrcodeId'
       path: '/qr/$storeSlug/$qrcodeId'
@@ -985,6 +1006,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiUploadRoute: ApiUploadRoute,
   QrPinStoreSlugSessionIdRoute: QrPinStoreSlugSessionIdRoute,
+  QrShowPinStoreSlugSessionIdRoute: QrShowPinStoreSlugSessionIdRoute,
   QrStoreSlugQrcodeIdRoute: QrStoreSlugQrcodeIdRoute,
 }
 export const routeTree = rootRouteImport

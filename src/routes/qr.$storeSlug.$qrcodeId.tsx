@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { orchestrateTableSessionFn } from "@/server/functions/table-session.fn";
 
 export const Route = createFileRoute("/qr/$storeSlug/$qrcodeId")({
@@ -35,11 +35,10 @@ function QRCodeRedirect() {
           if (res.firstDevice && res.deviceToken) {
             // Primeiro dispositivo: autorizado automaticamente
             localStorage.setItem("deviceToken", res.deviceToken);
-            // Redirecionar direto para o cardápio
+            // Mostrar PIN antes de ir para o cardápio
             navigate({
-              to: "/$storeSlug",
-              params: { storeSlug },
-              search: { tableId: qrcodeId }
+              to: "/qr-show-pin/$storeSlug/$sessionId",
+              params: { storeSlug, sessionId: res.sessionId }
             });
           } else {
             // Segundo+ dispositivo: requer PIN
