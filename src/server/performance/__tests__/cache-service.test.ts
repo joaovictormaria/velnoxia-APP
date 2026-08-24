@@ -56,7 +56,7 @@ describe("CacheService: Basic Operations", () => {
     await cacheService.set("complex", complex);
     const retrieved = await cacheService.get("complex");
 
-    expect(retrieved?.nested?.array).toEqual([1, 2, 3]);
+    expect((retrieved as any)?.nested?.array).toEqual([1, 2, 3]);
   });
 });
 
@@ -120,7 +120,7 @@ describe("CacheService: TTL & Expiration", () => {
     const retrieved = await cacheService.get("key1");
 
     expect(ttlAfter).toBeCloseTo(ttlBefore, -1); // Aproximadamente igual
-    expect(retrieved?.v).toBe(2);
+    expect((retrieved as any)?.v).toBe(2);
   });
 });
 
@@ -307,9 +307,9 @@ describe("CacheService: Batch Operations", () => {
     const results = await cacheService.mget(["key1", "key2", "key3"]);
 
     expect(results.length).toBe(3);
-    expect(results[0]?.id).toBe(1);
-    expect(results[1]?.id).toBe(2);
-    expect(results[2]?.id).toBe(3);
+    expect((results[0] as any)?.id).toBe(1);
+    expect((results[1] as any)?.id).toBe(2);
+    expect((results[2] as any)?.id).toBe(3);
   });
 
   it("deve retornar null para chaves ausentes", async () => {
@@ -317,7 +317,7 @@ describe("CacheService: Batch Operations", () => {
 
     const results = await cacheService.mget(["key1", "missing", "key2"]);
 
-    expect(results[0]?.id).toBe(1);
+    expect((results[0] as any)?.id).toBe(1);
     expect(results[1]).toBeNull();
     expect(results[2]).toBeNull();
   });
@@ -333,9 +333,9 @@ describe("CacheService: Batch Operations", () => {
     const result2 = await cacheService.get("key2");
     const result3 = await cacheService.get("key3");
 
-    expect(result1?.id).toBe(1);
-    expect(result2?.id).toBe(2);
-    expect(result3?.id).toBe(3);
+    expect((result1 as any)?.id).toBe(1);
+    expect((result2 as any)?.id).toBe(2);
+    expect((result3 as any)?.id).toBe(3);
   });
 
   it("deve respeitar TTL customizado em mset", async () => {
@@ -481,9 +481,9 @@ describe("CacheService: Warmup", () => {
     const result2 = await cacheService.get("key2");
     const result3 = await cacheService.get("key3");
 
-    expect(result1?.id).toBe(1);
-    expect(result2?.id).toBe(2);
-    expect(result3?.id).toBe(3);
+    expect((result1 as any)?.id).toBe(1);
+    expect((result2 as any)?.id).toBe(2);
+    expect((result3 as any)?.id).toBe(3);
   });
 
   it("deve continuar se alguma chave falhar", async () => {

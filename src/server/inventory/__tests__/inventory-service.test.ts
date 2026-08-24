@@ -34,7 +34,7 @@ describe("InventoryService: Stock Tracking", () => {
         name: "Test Product",
         slug: "test-product",
         basePrice: 25.0,
-      },
+      } as any,
     });
     productId = product.id;
   });
@@ -76,11 +76,11 @@ describe("InventoryService: Stock Tracking", () => {
     );
 
     const movements = await prisma.inventoryMovement.findMany({
-      where: { productId },
+      where: { productId } as any,
     });
 
     expect(movements.length).toBe(1);
-    expect(movements[0].movementType).toBe("RESTOCK");
+    expect((movements[0] as any).movementType).toBe("RESTOCK");
     expect(movements[0].quantity).toBe(30);
     expect(movements[0].reference).toBe("Ref-001");
   });
@@ -124,7 +124,7 @@ describe("InventoryService: Stock Reservation", () => {
         name: "Test Product",
         slug: "test-prod",
         basePrice: 25.0,
-      },
+      } as any,
     });
     productId = product.id;
 
@@ -228,7 +228,7 @@ describe("InventoryService: Stock Consumption", () => {
         name: "Test Product",
         slug: "test-consume",
         basePrice: 25.0,
-      },
+      } as any,
     });
     productId = product.id;
 
@@ -286,7 +286,7 @@ describe("InventoryService: Stock Consumption", () => {
     ]);
 
     const movements = await prisma.inventoryMovement.findMany({
-      where: { productId, movementType: "CONSUME" },
+      where: { productId, movementType: "CONSUME" } as any,
     });
 
     expect(movements.length).toBe(1);
@@ -318,7 +318,7 @@ describe("InventoryService: Stock Adjustments", () => {
         name: "Test Product",
         slug: "test-adjust",
         basePrice: 25.0,
-      },
+      } as any,
     });
     productId = product.id;
 
@@ -366,7 +366,7 @@ describe("InventoryService: Stock Adjustments", () => {
     );
 
     const movements = await prisma.inventoryMovement.findMany({
-      where: { productId, movementType: "DAMAGE" },
+      where: { productId, movementType: "DAMAGE" } as any,
     });
 
     expect(movements.length).toBe(1);
@@ -382,7 +382,7 @@ describe("InventoryService: Stock Adjustments", () => {
     );
 
     const movements = await prisma.inventoryMovement.findMany({
-      where: { productId, movementType: "RETURN" },
+      where: { productId, movementType: "RETURN" } as any,
     });
 
     expect(movements.length).toBe(1);
@@ -412,7 +412,7 @@ describe("InventoryService: Low Stock Alerts", () => {
         name: "Test Product",
         slug: "test-alert",
         basePrice: 25.0,
-      },
+      } as any,
     });
     productId = product.id;
 
@@ -420,7 +420,7 @@ describe("InventoryService: Low Stock Alerts", () => {
   });
 
   afterEach(async () => {
-    await prisma.inventoryAlert.deleteMany({ where: { storeId } });
+    await (prisma as any).inventoryAlert.deleteMany({ where: { storeId } });
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
     await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });

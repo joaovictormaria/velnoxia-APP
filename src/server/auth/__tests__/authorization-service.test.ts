@@ -39,7 +39,7 @@ describe("AuthorizationService: PIN Management", () => {
         storeId,
         name: "Test Admin",
         phone: "1234567890",
-      },
+      } as any,
     });
   });
 
@@ -138,7 +138,7 @@ describe("AuthorizationService: Device Authorization", () => {
         storeId,
         name: "Test Admin",
         phone: "1234567890",
-      },
+      } as any,
     });
 
     // Criar mesa
@@ -196,8 +196,8 @@ describe("AuthorizationService: Device Authorization", () => {
     });
 
     expect(session).toBeDefined();
-    expect(session?.deviceId).toBe("device-789");
-    expect(session?.adminId).toBe(adminId);
+    expect((session as any)?.deviceId).toBe("device-789");
+    expect((session as any)?.adminId).toBe(adminId);
   });
 });
 
@@ -231,7 +231,7 @@ describe("AuthorizationService: Device Revocation", () => {
         storeId,
         name: "Test Admin",
         phone: "1234567890",
-      },
+      } as any,
     });
 
     // Criar mesa
@@ -265,8 +265,8 @@ describe("AuthorizationService: Device Revocation", () => {
       where: { id: device.id },
     });
 
-    expect(session?.isActive).toBe(false);
-    expect(session?.revokedAt).toBeDefined();
+    expect((session as any)?.isActive).toBe(false);
+    expect((session as any)?.revokedAt).toBeDefined();
   });
 
   it("deve falhar ao revogar dispositivo inexistente", async () => {
@@ -304,7 +304,7 @@ describe("AuthorizationService: Token Rotation", () => {
         storeId,
         name: "Test Admin",
         phone: "1234567890",
-      },
+      } as any,
     });
 
     // Criar mesa
@@ -333,19 +333,19 @@ describe("AuthorizationService: Token Rotation", () => {
 
     const oldSession = await prisma.tableSession.findUnique({
       where: { id: device.id },
-      select: { sessionToken: true },
+      select: { sessionToken: true } as any,
     });
 
     const newToken = await authService.rotateToken(device.id);
 
     const newSession = await prisma.tableSession.findUnique({
       where: { id: device.id },
-      select: { sessionToken: true, tokenRotatedAt: true },
+      select: { sessionToken: true, tokenRotatedAt: true } as any,
     });
 
     // Token mudou
-    expect(newSession?.sessionToken).not.toBe(oldSession?.sessionToken);
-    expect(newSession?.tokenRotatedAt).toBeDefined();
+    expect((newSession as any)?.sessionToken).not.toBe((oldSession as any)?.sessionToken);
+    expect((newSession as any)?.tokenRotatedAt).toBeDefined();
   });
 
   it("deve retornar novo token diferente", async () => {
@@ -390,7 +390,7 @@ describe("AuthorizationService: Token Validation", () => {
         storeId,
         name: "Test Admin",
         phone: "1234567890",
-      },
+      } as any,
     });
 
     // Criar mesa
@@ -466,7 +466,7 @@ describe("AuthorizationService: List Devices", () => {
         storeId,
         name: "Test Admin",
         phone: "1234567890",
-      },
+      } as any,
     });
 
     // Criar mesa
@@ -543,7 +543,7 @@ describe("AuthorizationService: Cleanup Expired Sessions", () => {
         storeId,
         name: "Test Admin",
         phone: "1234567890",
-      },
+      } as any,
     });
 
     // Criar mesa
@@ -574,7 +574,7 @@ describe("AuthorizationService: Cleanup Expired Sessions", () => {
         sessionToken: "expired-token",
         deviceId: "expired-device",
         expiresAt: new Date(Date.now() - 1000), // 1 segundo no passado
-      },
+      } as any,
     });
 
     const cleaned = await authService.cleanupExpiredSessions(storeId);
@@ -583,7 +583,7 @@ describe("AuthorizationService: Cleanup Expired Sessions", () => {
 
     // Verificar que foi deletado
     const session = await prisma.tableSession.findFirst({
-      where: { deviceId: "expired-device" },
+      where: { deviceId: "expired-device" } as any,
     });
 
     expect(session).toBeNull();

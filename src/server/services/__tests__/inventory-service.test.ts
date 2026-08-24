@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { InventoryService } from '../inventory-service';
 import { prisma } from '@/server/db/client';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Decimal } from '@prisma/client/runtime/client';
 
 /**
  * Testes do InventoryService
@@ -75,7 +75,7 @@ describe('InventoryService', () => {
         name: 'Item 1',
         sku: 'DUP-001',
         baseUnitId: testUnitId,
-        itemType: 'INGREDIENT',
+        itemType: 'INGREDIENT' as const,
       };
 
       await InventoryService.createItem(testStoreId, itemData);
@@ -110,13 +110,13 @@ describe('InventoryService', () => {
     it('deve registrar movimento PURCHASE', async () => {
       const movement = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-1',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         reference: 'FORNECEDOR-123',
         referenceType: 'SUPPLIER',
-      });
+      } as any) as any;
 
       expect(movement.type).toBe('PURCHASE');
       expect(movement.quantity).toEqual(new Decimal(50));
@@ -132,22 +132,22 @@ describe('InventoryService', () => {
       // Primeiro registra PURCHASE
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-2',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(100),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       // Depois CONSUMPTION
       const movement = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-consumption-1',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'CONSUMPTION',
         quantity: new Decimal(-30),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         reference: 'ORDER-123',
         referenceType: 'ORDER',
-      });
+      } as any);
 
       expect(movement.type).toBe('CONSUMPTION');
       expect(movement.quantity).toEqual(new Decimal(-30));
@@ -164,19 +164,19 @@ describe('InventoryService', () => {
 
       const result1 = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: key,
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       const result2 = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: key,
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       expect(result1.id).toBe(result2.id);
 
@@ -190,20 +190,20 @@ describe('InventoryService', () => {
     it('deve registrar LOSS corretamente', async () => {
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-3',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(100),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       const loss = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-loss-1',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'LOSS',
         quantity: new Decimal(-10),
-        unitId: testUnitId,
+        unitId: testUnitId as any,
         note: 'Produto quebrou',
-      });
+      } as any);
 
       expect(loss.type).toBe('LOSS');
 
@@ -227,11 +227,11 @@ describe('InventoryService', () => {
     it('deve reverter um movimento PURCHASE', async () => {
       const original = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-reverse',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       const reversal = await InventoryService.reverseMovement(
         testStoreId,
@@ -257,11 +257,11 @@ describe('InventoryService', () => {
     it('deve não permitir reverter um REVERSAL', async () => {
       const original = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-rev2',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       const reversal = await InventoryService.reverseMovement(
         testStoreId,
@@ -276,11 +276,11 @@ describe('InventoryService', () => {
     it('deve não permitir reverter duas vezes', async () => {
       const original = await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-rev3',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       await InventoryService.reverseMovement(testStoreId, original.id);
 
@@ -302,11 +302,11 @@ describe('InventoryService', () => {
       // Registrar compra inicial
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-reserve',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(100),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
     });
 
     it('deve reservar quantidade para pedido', async () => {
@@ -346,11 +346,11 @@ describe('InventoryService', () => {
       // Compra + reserva
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-purchase-consume',
-        itemId: testItemId,
+        itemId: testItemId as any,
         type: 'PURCHASE',
         quantity: new Decimal(100),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
     });
 
     it('deve consumir quantidade reservada', async () => {
@@ -440,21 +440,21 @@ describe('InventoryService', () => {
       // Registrar apenas 50
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-integrity-1',
-        itemId: item.id,
+        itemId: item.id as any,
         type: 'PURCHASE',
         quantity: new Decimal(50),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       // Tentar consumir mais que tem
       // Não deveria falhar se for LOSS, apenas se for CONSUMPTION
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'test-integrity-2',
-        itemId: item.id,
+        itemId: item.id as any,
         type: 'LOSS',
         quantity: new Decimal(-60),
-        unitId: testUnitId,
-      });
+        unitId: testUnitId as any,
+      } as any);
 
       const finalItem = await prisma.inventoryItem.findUnique({
         where: { id: item.id },

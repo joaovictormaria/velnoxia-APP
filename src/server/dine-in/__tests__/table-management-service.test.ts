@@ -33,7 +33,7 @@ describe("TableManagementService: Table State", () => {
         qrCode: "qr-001",
         capacity: 4,
         status: TableStatus.EMPTY,
-      },
+      } as any,
     });
     tableId = table.id;
   });
@@ -95,7 +95,7 @@ describe("TableManagementService: Occupancy", () => {
         number: 2,
         qrCode: "qr-002",
         status: TableStatus.EMPTY,
-      },
+      } as any,
     });
     tableId = table.id;
   });
@@ -171,7 +171,7 @@ describe("TableManagementService: Status Transitions", () => {
         number: 3,
         qrCode: "qr-003",
         status: TableStatus.EMPTY,
-      },
+      } as any,
     });
     tableId = table.id;
   });
@@ -299,7 +299,7 @@ describe("TableManagementService: Release & Cleaning", () => {
         number: 4,
         qrCode: "qr-004",
         status: TableStatus.EMPTY,
-      },
+      } as any,
     });
     tableId = table.id;
   });
@@ -390,7 +390,7 @@ describe("TableManagementService: Order Linking", () => {
         number: 5,
         qrCode: "qr-005",
         status: TableStatus.EMPTY,
-      },
+      } as any,
     });
     tableId = table.id;
 
@@ -398,7 +398,7 @@ describe("TableManagementService: Order Linking", () => {
       data: {
         storeId,
         number: 1,
-        status: "PENDING",
+        status: "PENDING" as any,
         subtotal: 100,
         total: 100,
       },
@@ -461,17 +461,17 @@ describe("TableManagementService: All Tables & Filtering", () => {
     });
 
     const t1 = await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1", status: TableStatus.EMPTY },
+      data: { storeId, number: 1, qrCode: "qr-1", status: TableStatus.EMPTY } as any,
     });
     table1 = t1.id;
 
     const t2 = await prisma.table.create({
-      data: { storeId, number: 2, qrCode: "qr-2", status: TableStatus.EMPTY },
+      data: { storeId, number: 2, qrCode: "qr-2", status: TableStatus.EMPTY } as any,
     });
     table2 = t2.id;
 
     const t3 = await prisma.table.create({
-      data: { storeId, number: 3, qrCode: "qr-3", status: TableStatus.EMPTY },
+      data: { storeId, number: 3, qrCode: "qr-3", status: TableStatus.EMPTY } as any,
     });
     table3 = t3.id;
   });
@@ -536,12 +536,12 @@ describe("TableManagementService: Analytics", () => {
     });
 
     const t1 = await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1", status: TableStatus.EMPTY },
+      data: { storeId, number: 1, qrCode: "qr-1", status: TableStatus.EMPTY } as any,
     });
     table1 = t1.id;
 
     const t2 = await prisma.table.create({
-      data: { storeId, number: 2, qrCode: "qr-2", status: TableStatus.OCCUPIED },
+      data: { storeId, number: 2, qrCode: "qr-2", status: TableStatus.OCCUPIED } as any,
     });
     table2 = t2.id;
   });
@@ -573,7 +573,7 @@ describe("TableManagementService: Analytics", () => {
   it("deve retornar 0% ocupação se vazio", async () => {
     await prisma.table.update({
       where: { id: table2 },
-      data: { status: TableStatus.EMPTY },
+      data: { status: TableStatus.EMPTY as any },
     });
 
     const analytics = await tableService.getTableAnalytics(storeId);
@@ -598,7 +598,7 @@ describe("TableManagementService: History", () => {
     });
 
     const table = await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1", status: TableStatus.EMPTY },
+      data: { storeId, number: 1, qrCode: "qr-1", status: TableStatus.EMPTY } as any,
     });
     tableId = table.id;
   });

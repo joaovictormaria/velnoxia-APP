@@ -178,7 +178,7 @@ describe("MonitoringService: Business Metrics", () => {
       data: {
         storeId,
         number: 1,
-        status: "COMPLETED",
+        status: "COMPLETED" as any,
         subtotal: 100,
         total: 100,
       },
@@ -382,10 +382,10 @@ describe("MonitoringService: Anomaly Detection", () => {
         name: "Low Stock Product",
         slug: "low-stock",
         basePrice: 25.0,
-      },
+      } as any,
     });
 
-    await prisma.productInventory.create({
+    await (prisma as any).productInventory.create({
       data: {
         productId: product.id,
         storeId,
@@ -403,10 +403,10 @@ describe("MonitoringService: Anomaly Detection", () => {
           name: `Product ${i}`,
           slug: `product-${i}`,
           basePrice: 25.0,
-        },
+        } as any,
       });
 
-      await prisma.productInventory.create({
+      await (prisma as any).productInventory.create({
         data: {
           productId: p.id,
           storeId,

@@ -34,7 +34,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
 
   it("deve criar produto com categoria válida", async () => {
     const category = await prisma.category.create({
-      data: { storeId, name: "Pizza", order: 1 },
+      data: { storeId, name: "Pizza", order: 1 } as any,
     });
 
     const product = await prisma.product.create({
@@ -44,7 +44,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
         slug: "muzzarela",
         categoryId: category.id,
         basePrice: 25.0,
-      },
+      } as any,
     });
 
     expect(product.categoryId).toBe(category.id);
@@ -59,7 +59,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
           slug: "invalido",
           categoryId: "nonexistent-category",
           basePrice: 25.0,
-        },
+        } as any,
       }),
     ).rejects.toThrow();
   });
@@ -69,7 +69,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
       data: {
         storeId,
         number: 1,
-        status: "PENDING",
+        status: "PENDING" as any,
         subtotal: 50.0,
         total: 50.0,
         // customerId is optional (null)
@@ -89,7 +89,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
         storeId,
         customerId: customer.id,
         number: 1,
-        status: "PENDING",
+        status: "PENDING" as any,
         subtotal: 50.0,
         total: 50.0,
       },
@@ -139,7 +139,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
         name: "Muzzarela",
         slug: "muzzarela",
         basePrice: 25.0,
-      },
+      } as any,
     });
 
     await expect(
@@ -149,14 +149,14 @@ describe("Indexes & Constraints: Unique Constraints", () => {
           name: "Outra Muzzarela",
           slug: "muzzarela", // Mesmo slug
           basePrice: 30.0,
-        },
+        } as any,
       }),
     ).rejects.toThrow();
   });
 
   it("deve permitir mesmo slug em lojas diferentes", async () => {
     const store2 = await prisma.store.create({
-      data: { id: "store-2", name: "Store 2" },
+      data: { id: "store-2", name: "Store 2" } as any,
     });
 
     const prod1 = await prisma.product.create({
@@ -165,7 +165,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
         name: "Muzzarela",
         slug: "muzzarela",
         basePrice: 25.0,
-      },
+      } as any,
     });
 
     const prod2 = await prisma.product.create({
@@ -174,7 +174,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
         name: "Muzzarela",
         slug: "muzzarela", // Mesmo slug OK em loja diferente
         basePrice: 30.0,
-      },
+      } as any,
     });
 
     expect(prod1.slug).toBe(prod2.slug);
@@ -191,7 +191,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
         email: "joao@example.com",
         phone: "11999999999",
         role: "OWNER",
-      },
+      } as any,
     });
 
     await expect(
@@ -202,19 +202,19 @@ describe("Indexes & Constraints: Unique Constraints", () => {
           email: "joao@example.com", // Mesmo email
           phone: "11988888888",
           role: "WAITER",
-        },
+        } as any,
       }),
     ).rejects.toThrow();
   });
 
   it("deve rejeitar QR code duplicado", async () => {
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-001" },
+      data: { storeId, number: 1, qrCode: "qr-001" } as any,
     });
 
     await expect(
       prisma.table.create({
-        data: { storeId, number: 2, qrCode: "qr-001" }, // Mesmo QR
+        data: { storeId, number: 2, qrCode: "qr-001" } as any, // Mesmo QR
       }),
     ).rejects.toThrow();
   });
@@ -225,7 +225,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
         storeId,
         code: "PROMO10",
         discountValue: 10.0,
-        discountType: "FIXED",
+        discountType: "FIXED" as any,
         isActive: true,
       },
     });
@@ -236,7 +236,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
           storeId,
           code: "PROMO10", // Mesmo código
           discountValue: 20.0,
-          discountType: "FIXED",
+          discountType: "FIXED" as any,
           isActive: true,
         },
       }),
@@ -262,7 +262,7 @@ describe("Indexes & Constraints: Query Performance", () => {
         data: {
           storeId,
           number: i + 1,
-          status: i % 2 === 0 ? "PENDING" : "COMPLETED",
+          status: (i % 2 === 0 ? "PENDING" : "COMPLETED") as any,
           subtotal: 50.0 + i * 5,
           total: 50.0 + i * 5,
         },
@@ -342,7 +342,7 @@ describe("Indexes & Constraints: Soft Delete", () => {
         name: "Ativo",
         slug: "ativo",
         basePrice: 25.0,
-      },
+      } as any,
     });
 
     const prod2 = await prisma.product.create({
@@ -351,7 +351,7 @@ describe("Indexes & Constraints: Soft Delete", () => {
         name: "Será deletado",
         slug: "deletado",
         basePrice: 25.0,
-      },
+      } as any,
     });
 
     // Soft delete prod2
@@ -379,7 +379,7 @@ describe("Indexes & Constraints: Soft Delete", () => {
         name: "Produto",
         slug: "produto",
         basePrice: 25.0,
-      },
+      } as any,
     });
 
     // Soft delete
@@ -407,9 +407,9 @@ describe("Indexes & Constraints: Multi-tenant Isolation", () => {
 
     await prisma.store.createMany({
       data: [
-        { id: store1, name: "Store 1" },
-        { id: store2, name: "Store 2" },
-      ],
+        { id: store1, name: "Store 1" } as any,
+        { id: store2, name: "Store 2" } as any,
+      ] as any,
     });
 
     // Criar produtos em cada loja
@@ -420,14 +420,14 @@ describe("Indexes & Constraints: Multi-tenant Isolation", () => {
           name: "Produto 1",
           slug: "produto-1",
           basePrice: 25.0,
-        },
+        } as any,
         {
           storeId: store2,
           name: "Produto 2",
           slug: "produto-2",
           basePrice: 30.0,
-        },
-      ],
+        } as any,
+      ] as any,
     });
   });
 
@@ -486,12 +486,12 @@ describe("Indexes & Constraints: Composite Indexes", () => {
         name: "Admin",
         phone: "11999999999",
         role: "OWNER",
-      },
+      } as any,
     });
 
     // Criar table para TableSession
     await prisma.table.create({
-      data: { storeId, number: 1, qrCode: "qr-1" },
+      data: { storeId, number: 1, qrCode: "qr-1" } as any,
     });
 
     // Criar múltiplas sessions
@@ -504,7 +504,7 @@ describe("Indexes & Constraints: Composite Indexes", () => {
           sessionToken: `token-${i}`,
           deviceId: `device-${i}`,
           isActive: i < 3, // Primeiras 3 ativas
-        },
+        } as any,
       });
     }
   });
@@ -522,7 +522,7 @@ describe("Indexes & Constraints: Composite Indexes", () => {
     const start = performance.now();
 
     const activeSessions = await prisma.tableSession.findMany({
-      where: { adminId: "emp-1", isActive: true },
+      where: { adminId: "emp-1", isActive: true } as any,
     });
 
     const duration = performance.now() - start;

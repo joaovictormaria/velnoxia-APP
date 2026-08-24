@@ -135,7 +135,7 @@ export class TableManagementService {
       throw new Error("Mesa não encontrada");
     }
 
-    if (table.status !== TableStatus.EMPTY) {
+    if ((table.status as any) !== TableStatus.EMPTY) {
       throw new Error(`Mesa não está vazia. Status atual: ${table.status}`);
     }
 
@@ -143,9 +143,9 @@ export class TableManagementService {
     await prisma.table.update({
       where: { id: tableId },
       data: {
-        status: TableStatus.OCCUPIED,
+        status: TableStatus.OCCUPIED as any,
         notes: customerId ? `Cliente: ${customerId}` : undefined,
-      },
+      } as any,
     });
 
     // Registrar ocupação
@@ -201,7 +201,7 @@ export class TableManagementService {
     // Atualizar status
     await prisma.table.update({
       where: { id: tableId },
-      data: { status: newStatus },
+      data: { status: newStatus as any },
     });
 
     // Auditar
@@ -259,9 +259,9 @@ export class TableManagementService {
     await prisma.table.update({
       where: { id: tableId },
       data: {
-        status: TableStatus.CLEANING,
+        status: TableStatus.CLEANING as any,
         notes: undefined,
-      },
+      } as any,
     });
 
     // Auditar
@@ -315,7 +315,7 @@ export class TableManagementService {
     // Volta para EMPTY
     await prisma.table.update({
       where: { id: tableId },
-      data: { status: TableStatus.EMPTY },
+      data: { status: TableStatus.EMPTY as any },
     });
 
     // Auditar
@@ -392,7 +392,7 @@ export class TableManagementService {
 
     await prisma.table.update({
       where: { id: tableId },
-      data: { status: TableStatus.CALLING },
+      data: { status: TableStatus.CALLING as any },
     });
 
     // Auditar como ação de sistema
@@ -434,7 +434,7 @@ export class TableManagementService {
     const tables = await prisma.table.findMany({
       where: {
         storeId,
-        status: TableStatus.CLEANING,
+        status: TableStatus.CLEANING as any,
         deletedAt: null,
       },
       orderBy: { updatedAt: "asc" }, // Ordem de prioridade
@@ -469,10 +469,10 @@ export class TableManagementService {
       },
     });
 
-    const emptyTables = tables.filter((t) => t.status === TableStatus.EMPTY).length;
+    const emptyTables = tables.filter((t) => (t.status as any) === TableStatus.EMPTY).length;
     const occupiedTables = tables.filter((t) =>
       [TableStatus.OCCUPIED, TableStatus.WAITING, TableStatus.SERVED].includes(
-        t.status as TableStatus,
+        t.status as any,
       ),
     ).length;
 
@@ -484,7 +484,7 @@ export class TableManagementService {
     const totalOrders = occupancies.reduce((sum: any, occ: any) => sum + (occ.ordersCount || 0), 0);
     const averageOrders = occupancies.length > 0 ? totalOrders / occupancies.length : 0;
 
-    const cleaningTables = tables.filter((t) => t.status === TableStatus.CLEANING).length;
+    const cleaningTables = tables.filter((t) => (t.status as any) === TableStatus.CLEANING).length;
 
     return {
       totalTables: tables.length,
