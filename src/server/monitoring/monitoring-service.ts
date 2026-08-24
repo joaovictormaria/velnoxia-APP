@@ -227,7 +227,7 @@ export class MonitoringService {
 
     const errorRate = requestsTotal > 0 ? (errorsTotal / requestsTotal) * 100 : 0;
     const averageLatency = latencies.length > 0
-      ? latencies.reduce((a, b) => a + b, 0) / latencies.length
+      ? latencies.reduce((a: any, b: any) => a + b, 0) / latencies.length
       : 0;
 
     const sortedLatencies = [...latencies].sort((a, b) => a - b);
@@ -264,7 +264,7 @@ export class MonitoringService {
     });
 
     const ordersToday = orders.length;
-    const revenueToday = orders.reduce((sum, o) => sum + o.total, 0);
+    const revenueToday = orders.reduce((sum: any, o: any) => sum + Number(o.total), 0);
     const averageOrderValue = ordersToday > 0 ? revenueToday / ordersToday : 0;
 
     // Clientes novos hoje
@@ -290,7 +290,7 @@ export class MonitoringService {
         where: { storeId, checkOutAt: { not: null } },
       });
 
-      const totalDuration = occupancies.reduce((sum, o) => sum + (o.durationMinutes || 0), 0);
+      const totalDuration = occupancies.reduce((sum: any, o: any) => sum + (o.durationMinutes || 0), 0);
       averageTableOccupancyTime = occupancies.length > 0
         ? totalDuration / occupancies.length
         : 0;
@@ -478,9 +478,9 @@ export class MonitoringService {
    */
   async listOpenAlerts(): Promise<Alert[]> {
     const alertStrings = await this.redis.lrange("monitoring:alerts", 0, -1);
-    const alerts = alertStrings.map((s) => JSON.parse(s) as Alert);
+    const alerts = alertStrings.map((s: any) => JSON.parse(s) as Alert);
 
-    return alerts.filter((a) => !a.resolved);
+    return alerts.filter((a: any) => !a.resolved);
   }
 
   /**
@@ -522,7 +522,7 @@ requests_per_minute{} ${appMetrics.requestsPerMinute}
    */
   async getAlertHistory(limit: number = 100): Promise<Alert[]> {
     const alertStrings = await this.redis.lrange("monitoring:alerts", 0, limit - 1);
-    return alertStrings.map((s) => JSON.parse(s) as Alert);
+    return alertStrings.map((s: any) => JSON.parse(s) as Alert);
   }
 
   /**
