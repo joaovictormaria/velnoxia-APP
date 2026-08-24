@@ -344,20 +344,20 @@ function OrderDetailPage() {
             </ul>
 
             <dl className="mt-3 space-y-1.5 border-t border-neutral-200 pt-3 text-sm">
-              <Row label="Subtotal" value={currency.format(order.subtotal)} />
-              {order.deliveryFee > 0 && (
-                <Row label="Taxa de entrega" value={currency.format(order.deliveryFee)} />
+              <Row label="Subtotal" value={currency.format(Number(order.subtotal))} />
+              {Number(order.deliveryFee) > 0 && (
+                <Row label="Taxa de entrega" value={currency.format(Number(order.deliveryFee))} />
               )}
-              {order.discount > 0 && (
+              {Number(order.discount) > 0 && (
                 <Row
                   label={
-                    order.employeeDiscount > 0
+                    Number(order.employeeDiscount) > 0
                       ? `Desconto de funcionário${
                           order.employeeNameSnapshot ? ` (${order.employeeNameSnapshot})` : ""
                         }`
                       : `Desconto${order.coupon ? ` (${order.coupon.code})` : ""}`
                   }
-                  value={`- ${currency.format(order.discount)}`}
+                  value={`- ${currency.format(Number(order.discount))}`}
                   accent="text-emerald-700"
                 />
               )}
@@ -374,7 +374,7 @@ function OrderDetailPage() {
               <div className="flex items-baseline justify-between border-t border-neutral-200 pt-2">
                 <dt className="text-lg font-bold text-neutral-900">Total</dt>
                 <dd className="text-lg font-bold text-neutral-900">
-                  {currency.format(order.total)}
+                  {currency.format(Number(order.total))}
                 </dd>
               </div>
             </dl>
