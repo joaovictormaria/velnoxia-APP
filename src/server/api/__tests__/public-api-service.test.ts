@@ -26,7 +26,7 @@ describe("PublicAPIService: API Keys", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
@@ -183,7 +183,7 @@ describe("PublicAPIService: Rate Limiting", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const { apiKey } = await apiService.createAPIKey(
@@ -265,7 +265,7 @@ describe("PublicAPIService: Webhooks", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
@@ -423,7 +423,7 @@ describe("PublicAPIService: Webhook Triggering", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
@@ -495,7 +495,7 @@ describe("PublicAPIService: API Key Tiers", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 

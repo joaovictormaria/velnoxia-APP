@@ -24,7 +24,7 @@ describe("InventoryService: Stock Tracking", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     // Setup product
@@ -41,7 +41,7 @@ describe("InventoryService: Stock Tracking", () => {
 
   afterEach(async () => {
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany({ where: { productId } });
+    await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -115,7 +115,7 @@ describe("InventoryService: Stock Reservation", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const product = await prisma.product.create({
@@ -133,9 +133,9 @@ describe("InventoryService: Stock Reservation", () => {
   });
 
   afterEach(async () => {
-    await prisma.stockReservation.deleteMany({ where: { orderId } });
+    await (prisma as any).stockReservation.deleteMany({ where: { orderId } });
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany({ where: { productId } });
+    await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -219,7 +219,7 @@ describe("InventoryService: Stock Consumption", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const product = await prisma.product.create({
@@ -236,9 +236,9 @@ describe("InventoryService: Stock Consumption", () => {
   });
 
   afterEach(async () => {
-    await prisma.stockReservation.deleteMany({ where: { orderId } });
+    await (prisma as any).stockReservation.deleteMany({ where: { orderId } });
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany({ where: { productId } });
+    await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -309,7 +309,7 @@ describe("InventoryService: Stock Adjustments", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const product = await prisma.product.create({
@@ -327,7 +327,7 @@ describe("InventoryService: Stock Adjustments", () => {
 
   afterEach(async () => {
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany({ where: { productId } });
+    await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -403,7 +403,7 @@ describe("InventoryService: Low Stock Alerts", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const product = await prisma.product.create({
@@ -422,7 +422,7 @@ describe("InventoryService: Low Stock Alerts", () => {
   afterEach(async () => {
     await prisma.inventoryAlert.deleteMany({ where: { storeId } });
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany({ where: { productId } });
+    await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -513,7 +513,7 @@ describe("InventoryService: Inventory Report", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const prod1 = await prisma.product.create({
@@ -546,7 +546,7 @@ describe("InventoryService: Inventory Report", () => {
 
   afterEach(async () => {
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany({
+    await (prisma as any).productInventory.deleteMany({
       where: { productId: { in: [product1, product2] } },
     });
     await prisma.product.deleteMany({
@@ -591,7 +591,7 @@ describe("InventoryService: Movement History", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const product = await prisma.product.create({
@@ -607,7 +607,7 @@ describe("InventoryService: Movement History", () => {
 
   afterEach(async () => {
     await prisma.inventoryMovement.deleteMany({ where: { storeId } });
-    await prisma.productInventory.deleteMany({ where: { productId } });
+    await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -645,7 +645,7 @@ describe("InventoryService: Cleanup Expired Reservations", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const product = await prisma.product.create({
@@ -659,7 +659,7 @@ describe("InventoryService: Cleanup Expired Reservations", () => {
     productId = product.id;
 
     // Criar inventário
-    await prisma.productInventory.create({
+    await (prisma as any).productInventory.create({
       data: {
         productId,
         storeId,
@@ -671,15 +671,15 @@ describe("InventoryService: Cleanup Expired Reservations", () => {
   });
 
   afterEach(async () => {
-    await prisma.stockReservation.deleteMany({});
-    await prisma.productInventory.deleteMany({ where: { productId } });
+    await (prisma as any).stockReservation.deleteMany({});
+    await (prisma as any).productInventory.deleteMany({ where: { productId } });
     await prisma.product.deleteMany({ where: { id: productId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
 
   it("deve deletar reservas expiradas", async () => {
     // Criar reserva expirada
-    await prisma.stockReservation.create({
+    await (prisma as any).stockReservation.create({
       data: {
         orderId: "order-expired",
         productId,

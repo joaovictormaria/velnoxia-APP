@@ -22,7 +22,7 @@ describe("TableManagementService: Table State", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     // Setup table
@@ -39,7 +39,7 @@ describe("TableManagementService: Table State", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({ where: { tableId } });
+    await (prisma as any).tableOccupancy.deleteMany({ where: { tableId } });
     await prisma.table.deleteMany({ where: { id: tableId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -86,7 +86,7 @@ describe("TableManagementService: Occupancy", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const table = await prisma.table.create({
@@ -101,7 +101,7 @@ describe("TableManagementService: Occupancy", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({ where: { tableId } });
+    await (prisma as any).tableOccupancy.deleteMany({ where: { tableId } });
     await prisma.table.deleteMany({ where: { id: tableId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -121,7 +121,7 @@ describe("TableManagementService: Occupancy", () => {
   it("deve criar registro de ocupação", async () => {
     await tableService.occupyTable(storeId, tableId, customerId);
 
-    const occupancy = await prisma.tableOccupancy.findFirst({
+    const occupancy = await (prisma as any).tableOccupancy.findFirst({
       where: { tableId },
     });
 
@@ -162,7 +162,7 @@ describe("TableManagementService: Status Transitions", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const table = await prisma.table.create({
@@ -177,7 +177,7 @@ describe("TableManagementService: Status Transitions", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({ where: { tableId } });
+    await (prisma as any).tableOccupancy.deleteMany({ where: { tableId } });
     await prisma.table.deleteMany({ where: { id: tableId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -290,7 +290,7 @@ describe("TableManagementService: Release & Cleaning", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const table = await prisma.table.create({
@@ -305,7 +305,7 @@ describe("TableManagementService: Release & Cleaning", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({ where: { tableId } });
+    await (prisma as any).tableOccupancy.deleteMany({ where: { tableId } });
     await prisma.table.deleteMany({ where: { id: tableId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });
@@ -332,7 +332,7 @@ describe("TableManagementService: Release & Cleaning", () => {
 
     await tableService.releaseTable(storeId, tableId, "admin");
 
-    const occupancy = await prisma.tableOccupancy.findFirst({
+    const occupancy = await (prisma as any).tableOccupancy.findFirst({
       where: { tableId, checkOutAt: { not: null } },
     });
 
@@ -359,7 +359,7 @@ describe("TableManagementService: Release & Cleaning", () => {
 
     await tableService.markTableCleaned(storeId, tableId, "waiter-123");
 
-    const occupancy = await prisma.tableOccupancy.findFirst({
+    const occupancy = await (prisma as any).tableOccupancy.findFirst({
       where: { tableId, cleanedAt: { not: null } },
     });
 
@@ -381,7 +381,7 @@ describe("TableManagementService: Order Linking", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const table = await prisma.table.create({
@@ -407,7 +407,7 @@ describe("TableManagementService: Order Linking", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({ where: { tableId } });
+    await (prisma as any).tableOccupancy.deleteMany({ where: { tableId } });
     await prisma.order.deleteMany({ where: { id: orderId } });
     await prisma.table.deleteMany({ where: { id: tableId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
@@ -457,7 +457,7 @@ describe("TableManagementService: All Tables & Filtering", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const t1 = await prisma.table.create({
@@ -477,7 +477,7 @@ describe("TableManagementService: All Tables & Filtering", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({
+    await (prisma as any).tableOccupancy.deleteMany({
       where: { tableId: { in: [table1, table2, table3] } },
     });
     await prisma.table.deleteMany({
@@ -532,7 +532,7 @@ describe("TableManagementService: Analytics", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const t1 = await prisma.table.create({
@@ -547,7 +547,7 @@ describe("TableManagementService: Analytics", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({
+    await (prisma as any).tableOccupancy.deleteMany({
       where: { tableId: { in: [table1, table2] } },
     });
     await prisma.table.deleteMany({
@@ -594,7 +594,7 @@ describe("TableManagementService: History", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     const table = await prisma.table.create({
@@ -604,7 +604,7 @@ describe("TableManagementService: History", () => {
   });
 
   afterEach(async () => {
-    await prisma.tableOccupancy.deleteMany({ where: { tableId } });
+    await (prisma as any).tableOccupancy.deleteMany({ where: { tableId } });
     await prisma.table.deleteMany({ where: { id: tableId } });
     await prisma.store.deleteMany({ where: { id: storeId } });
   });

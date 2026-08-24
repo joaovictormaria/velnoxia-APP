@@ -18,7 +18,7 @@ describe("Indexes & Constraints: Foreign Keys", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
@@ -120,7 +120,7 @@ describe("Indexes & Constraints: Unique Constraints", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
@@ -253,7 +253,7 @@ describe("Indexes & Constraints: Query Performance", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     // Criar dados de teste
@@ -326,7 +326,7 @@ describe("Indexes & Constraints: Soft Delete", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
@@ -475,7 +475,7 @@ describe("Indexes & Constraints: Composite Indexes", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
 
     // Criar employee para TableSession

@@ -154,7 +154,7 @@ describe("MonitoringService: Business Metrics", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
@@ -337,7 +337,7 @@ describe("MonitoringService: Anomaly Detection", () => {
     await prisma.store.upsert({
       where: { id: storeId },
       update: {},
-      create: { id: storeId, name: "Test Store" },
+      create: { id: storeId, name: "Test Store" } as any,
     });
   });
 
