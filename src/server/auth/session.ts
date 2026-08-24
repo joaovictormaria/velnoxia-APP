@@ -170,7 +170,7 @@ export async function requireCourierSession(): Promise<CurrentAdmin> {
 }
 
 export async function loginAdmin(email: string, password: string): Promise<CurrentAdmin | null> {
-  const admin = await prisma.adminUser.findUnique({ where: { email } });
+  const admin = await prisma.adminUser.findUnique({ where: { email: email.toLowerCase().trim() } });
   if (!admin || !admin.isActive) return null;
 
   const valid = await verifyPassword(password, admin.passwordHash);
