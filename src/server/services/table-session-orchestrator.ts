@@ -30,10 +30,16 @@ export async function orchestrateTableSession(
 
   // Step 3: If first device, mark table as OCCUPIED
   if (isFirstDevice) {
-    await prisma.table.update({
-      where: { id: tableId },
-      data: { status: "OCCUPIED" },
-    });
+    try {
+      await prisma.table.update({
+        where: { id: tableId },
+        data: { status: "OCCUPIED" },
+      });
+    } catch (error) {
+      // If update fails, don't break the entire flow
+      // Log but continue
+      console.error(`[TABLE SESSION] Failed to mark table ${tableId} as OCCUPIED:`, error);
+    }
   }
 
   // Step 4: Authorize device
