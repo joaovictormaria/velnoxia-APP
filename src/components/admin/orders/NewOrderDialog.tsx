@@ -165,7 +165,7 @@ export function NewOrderDialog() {
                           {item.productNameSnapshot} / {item.secondProductNameSnapshot}
                         </p>
                       )}
-                      {item.extras.map((e) => (
+                      {((item as any).extras || []).map((e: any) => (
                         <p
                           key={e.id}
                           className="flex justify-between gap-2 text-xs text-neutral-500"
@@ -185,19 +185,19 @@ export function NewOrderDialog() {
                     <span className="shrink-0 text-sm text-neutral-700">
                       {currency.format(
                         (item.unitPrice +
-                          item.extras.reduce((s, e) => s + e.priceSnapshot, 0)) *
+                          ((item as any).extras || []).reduce((s: any, e: any) => s + e.priceSnapshot, 0)) *
                           item.quantity,
                       )}
                     </span>
                   </li>
                 ))}
               </ul>
-              {order.discount > 0 && (
+              {Number(order.discount) > 0 && (
                 <div className="flex items-center justify-between text-sm text-emerald-700">
                   <span>
                     Desconto{order.coupon ? " · " + order.coupon.code : ""}
                   </span>
-                  <span>-{currency.format(order.discount)}</span>
+                  <span>-{currency.format(Number(order.discount))}</span>
                 </div>
               )}
               <div className="mt-3 flex items-baseline justify-between border-t border-neutral-200 pt-3">
