@@ -13,8 +13,8 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
 
     // Incluir e excluir testes
-    include: ['**/__tests__/**/*.test.ts', '**/*.test.ts'],
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+    include: ['src/**/__tests__/**/*.test.ts', 'src/**/*.test.ts'],
+    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache', 'velnox-landing'],
 
     // Coverage
     coverage: {

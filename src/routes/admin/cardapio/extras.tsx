@@ -143,7 +143,7 @@ function ExtrasPage() {
     setDraft({
       id: x.id,
       name: x.name,
-      price: x.price,
+      price: Number(x.price) || 0,
       isActive: x.isActive,
       categoryIds: x.categoryIds,
       productIds: x.productIds,
@@ -178,7 +178,7 @@ function ExtrasPage() {
           {x.name}
         </span>
         <span className="text-xs text-neutral-500 tabular-nums">
-          {currency.format(x.price)}
+          {currency.format(Number(x.price) || 0)}
           {!x.isActive && " · inativo"}
         </span>
       </span>

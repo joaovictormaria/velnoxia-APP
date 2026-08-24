@@ -64,10 +64,29 @@ function generateRequestId(): string {
 }
 
 /**
+ * Gerar um traceId válido W3C (32 caracteres hex)
+ * W3C Trace Context requer: 00-{32 hex}-{16 hex}-01
+ */
+function generateTraceId(): string {
+  return randomBytes(16).toString("hex");
+}
+
+/**
+ * Gerar um spanId válido W3C (16 caracteres hex)
+ */
+function generateSpanId(): string {
+  return randomBytes(8).toString("hex");
+}
+
+/**
  * Inicializar contexto para uma nova requisição
+ * Se extraído de headers (cross-service), preserva requestId/correlationId/traceId
+ * mas gera novo spanId (nova operação)
  */
 export function initializeContext(input: {
   correlationId?: string;
+  requestId?: string;
+  traceId?: string;
   userId?: string;
   userEmail?: string;
   storeId?: string;
@@ -77,10 +96,10 @@ export function initializeContext(input: {
   userAgent?: string;
 }): ObservabilityContext {
   const context: ObservabilityContext = {
-    requestId: generateRequestId(),
+    requestId: input.requestId || generateRequestId(),
     correlationId: input.correlationId || generateRequestId(),
-    traceId: `${generateRequestId()}-${generateRequestId()}`, // W3C format
-    spanId: generateRequestId(),
+    traceId: input.traceId || generateTraceId(), // 32 hex chars (W3C compliant)
+    spanId: generateSpanId(), // Sempre novo (nova operação no serviço atual)
     userId: input.userId,
     userEmail: input.userEmail,
     storeId: input.storeId,
@@ -149,7 +168,7 @@ export function updateContext(updates: Partial<ObservabilityContext>): void {
 export function createChildSpan(parentContext: ObservabilityContext): ObservabilityContext {
   return {
     ...parentContext,
-    spanId: generateRequestId(),
+    spanId: generateSpanId(),
   };
 }
 
