@@ -118,17 +118,17 @@ export const previewCouponFn = createServerFn({ method: "POST" })
     if (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage) {
       return { ok: false as const, error: "Esse cupom já atingiu o limite de usos." };
     }
-    if (coupon.minOrderValue !== null && data.subtotal < coupon.minOrderValue) {
+    if (coupon.minOrderValue !== null && data.subtotal < Number(coupon.minOrderValue)) {
       return {
         ok: false as const,
-        error: `Esse cupom vale a partir de ${coupon.minOrderValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
+        error: `Esse cupom vale a partir de ${Number(coupon.minOrderValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}.`,
       };
     }
 
     const bruto =
       coupon.discountType === "PERCENTAGE"
-        ? (data.subtotal * coupon.discountValue) / 100
-        : coupon.discountValue;
+        ? (data.subtotal * Number(coupon.discountValue)) / 100
+        : Number(coupon.discountValue);
     const discount = Math.min(Math.round(bruto * 100) / 100, data.subtotal);
     return { ok: true as const, code: coupon.code, discount };
   });
