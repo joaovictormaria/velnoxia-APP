@@ -225,7 +225,10 @@ export const setOrderAwaitingCourierFn = createServerFn({ method: "POST" })
 
 /**
  * Confirmar pagamento do pedido manualmente (admin).
- * Marca o pedido como PAID.
+ * Marca o pedido como PAID e COMPLETED (libera a mesa).
+ *
+ * Para pedidos de mesa: fecha a mesa automaticamente
+ * Para outros pedidos: marca como concluído
  */
 export const confirmPaymentFn = createServerFn({ method: "POST" })
   .validator(z.object({ orderId: z.string() }))
@@ -235,7 +238,7 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
     // Verificar que o pedido pertence à loja
     const order = await prisma.order.findFirst({
       where: { id: data.orderId, storeId },
-      select: { id: true, paymentStatus: true },
+      select: { id: true, paymentStatus: true, status: true, tableId: true },
     });
 
     if (!order) {
@@ -246,10 +249,13 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Pedido já foi marcado como pago" };
     }
 
-    // Marcar como pago
+    // Marcar como pago e completed (libera a mesa)
     await prisma.order.update({
       where: { id: data.orderId },
-      data: { paymentStatus: "PAID" },
+      data: {
+        paymentStatus: "PAID",
+        status: "COMPLETED", // Auto-complete quando pagamento confirmado
+      },
     });
 
     return { ok: true as const };

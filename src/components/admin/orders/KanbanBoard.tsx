@@ -294,7 +294,8 @@ function OrderCard({
         </div>
 
         <div className="mt-2 space-y-2">
-          {order.paymentStatus === "PENDING" && onConfirmPayment && (
+          {/* Mostrar botão de pagamento apenas para mesas prontas (TABLE_READY) com pagamento pendente */}
+          {order.paymentStatus === "PENDING" && status === "TABLE_READY" && onConfirmPayment && (
             <button
               type="button"
               onClick={(e) => {
