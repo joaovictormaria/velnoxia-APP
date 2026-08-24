@@ -222,7 +222,7 @@ function OrderDetailPage() {
             <p className="text-sm text-emerald-700">{order.customerPhone}</p>
             {order.customer && (
               <p className="mt-1 text-xs text-neutral-500">
-                {order.customer._count.orders}º pedido • cliente desde{" "}
+                {(order.customer as any)._count?.orders}º pedido • cliente desde{" "}
                 {new Date(order.customer.createdAt).toLocaleDateString("pt-BR")}
               </p>
             )}
@@ -254,11 +254,11 @@ function OrderDetailPage() {
                 </a>
               )}
 
-              {order.courier?.name ?? order.courierNameSnapshot ? (
+              {(order as any).courier?.name ?? order.courierNameSnapshot ? (
                 <p className="mt-3 flex items-center gap-2 border-t border-neutral-100 pt-3 text-sm text-neutral-800">
                   <Bike className="size-4 text-blue-600" />
-                  Levando: <strong>{order.courier?.name ?? order.courierNameSnapshot}</strong>
-                  {!order.courier && (
+                  Levando: <strong>{(order as any).courier?.name ?? order.courierNameSnapshot}</strong>
+                  {!(order as any).courier && (
                     <span className="text-xs text-neutral-500">(conta removida)</span>
                   )}
                 </p>
@@ -297,12 +297,12 @@ function OrderDetailPage() {
           <Card title="Itens do pedido" icon={ShoppingBag}>
             <ul className="divide-y divide-neutral-100">
               {order.items.map((item) => {
-                const extrasTotal = item.extras.reduce((s, e) => s + e.priceSnapshot, 0);
+                const extrasTotal = ((item as any).extras || []).reduce((s: any, e: any) => s + e.priceSnapshot, 0);
                 return (
                   <li key={item.id} className="flex gap-3 py-3">
-                    {item.product?.imageUrl && (
+                    {(item as any).product?.imageUrl && (
                       <img
-                        src={item.product.imageUrl}
+                        src={(item as any).product.imageUrl}
                         alt=""
                         className="size-12 shrink-0 rounded-lg object-cover"
                       />
@@ -315,7 +315,7 @@ function OrderDetailPage() {
                           : item.productNameSnapshot}
                         {item.sizeLabel ? ` ${item.sizeLabel}` : ""}
                       </p>
-                      {item.extras.map((e) => (
+                      {((item as any).extras || []).map((e: any) => (
                         <p
                           key={e.id}
                           className="flex justify-between gap-2 text-xs text-neutral-500"
