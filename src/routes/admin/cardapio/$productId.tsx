@@ -25,7 +25,7 @@ function EditProductPage() {
     slug: p.slug,
     description: p.description,
     categoryId: p.categoryId,
-    basePrice: p.basePrice,
+    basePrice: Number(p.basePrice),
     imageUrl: p.imageUrl,
     tag: p.tag,
     isActive: p.isActive,
@@ -37,7 +37,7 @@ function EditProductPage() {
       price: s.price,
       isAvailable: s.isAvailable,
     })) ?? [],
-    optionGroups: p.optionGroups?.map((g: any) => ({
+    optionGroups: (p as any).optionGroups?.map((g: any) => ({
       name: g.name,
       minChoices: g.minChoices,
       maxChoices: g.maxChoices,
@@ -46,5 +46,5 @@ function EditProductPage() {
     })),
   };
 
-  return <ProductForm productId={p.id} initial={initial} categories={product.categories} />;
+  return <ProductForm productId={p.id} initial={initial} categories={(product as any).categories} />;
 }

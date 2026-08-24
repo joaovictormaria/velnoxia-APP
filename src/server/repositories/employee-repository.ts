@@ -119,7 +119,7 @@ export async function lerUsoDoDia(
   const uso: UsoDoDia = { itens: 0, valor: 0, porCategoria: {} };
   for (const item of itens) {
     uso.itens += item.benefitQuantity;
-    uso.valor += item.unitPrice * item.benefitQuantity;
+    uso.valor += Number(item.unitPrice) * item.benefitQuantity;
     // O produto pode ter sido apagado depois (SetNull). O consumo continua
     // contando nos totais; só não há mais categoria a que atribuí-lo.
     const categoria = item.product?.categoryId;
@@ -199,7 +199,7 @@ export async function listEmployees(storeId: string): Promise<FuncionarioDaLista
     createdAt: f.createdAt,
     plano: f.plan,
     pedidosHoje: hoje.get(f.id) ?? 0,
-    descontoNoMes: Math.round((descontos.get(f.id) ?? 0) * 100) / 100,
+    descontoNoMes: Math.round(Number(descontos.get(f.id) ?? 0) * 100) / 100,
   }));
 }
 
