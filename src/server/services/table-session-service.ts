@@ -66,6 +66,24 @@ export async function getOrCreateOpenTableSession(
     return session as OpenTableSession;
   }
 
+  // Check if there's a CLOSED or PAID session (table was liberated)
+  // Don't reuse it - create a completely new session for the new customer
+  const previousSession = await prisma.tableSession.findFirst({
+    where: {
+      tableId,
+      storeId,
+      status: {
+        in: ["CLOSED", "PAID", "CANCELLED"],
+      },
+    },
+    orderBy: { closedAt: "desc" },
+  });
+
+  if (previousSession) {
+    // Table was already used, create a fresh session for new customer
+    // Continue to create new session below
+  }
+
   // No open session: create new one
   const pin = generatePin();
   const pinHash = await hashPin(pin);
