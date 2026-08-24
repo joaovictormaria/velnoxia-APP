@@ -21,7 +21,9 @@ import type {
   Customer,
   Employee,
   EmployeeBenefitPlan,
+  OrderStatus,
 } from "@prisma/client";
+import type { Decimal } from "@prisma/client";
 
 // ============ ORDERS ============
 
@@ -51,6 +53,16 @@ export type ProductResponse = Product & {
 export type ProductListResponse = {
   products: ProductResponse[];
   total: number;
+};
+
+export type ProductsWithCategoriesResponse = {
+  products: ProductResponse[];
+  categories: CategoryResponse[];
+};
+
+export type ProductDetailResponse = {
+  product: ProductResponse;
+  categories: CategoryResponse[];
 };
 
 // ============ EXTRAS ============
@@ -103,6 +115,60 @@ export type CouponListResponse = {
   coupons: CouponResponse[];
   total: number;
 };
+
+// ============ KANBAN & MESA ============
+
+export type KanbanMetrics = {
+  totalOrders: number;
+  avgPrepMinutes: number | null;
+  avgDeliveryMinutes: number | null;
+  completionRate: number | null;
+};
+
+export type KanbanResponse = {
+  awaiting: any[];
+  preparing: any[];
+  ready: any[];
+  metrics: KanbanMetrics;
+};
+
+export type MesaAbertas = {
+  mesaId: string;
+  numero: string;
+  cliente?: string;
+  pedidos: OrderResponse[];
+}[];
+
+export type MesasAbertasResponse = MesaAbertas;
+
+// ============ ORDER TRACKING ============
+
+export type TrackingResponse =
+  | { ok: false }
+  | {
+      ok: true;
+      order: {
+        number: string | number;
+        status: OrderStatus;
+        type: string;
+        total: Decimal;
+        customerName: string;
+        createdAt: Date;
+        estimatedDeliveryAt: Date | null;
+        storeSlug: string;
+        items: Array<{
+          productNameSnapshot: string;
+          quantity: number;
+          sizeLabel: string | null;
+        }>;
+        history: Array<{
+          status: OrderStatus;
+          createdAt: Date;
+        }>;
+        queuePosition: number | null;
+        finished: boolean;
+      };
+    };
 
 // ============ SUCCESS/ERROR RESPONSES ============
 

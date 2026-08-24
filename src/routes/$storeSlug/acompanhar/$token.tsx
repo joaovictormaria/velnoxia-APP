@@ -9,6 +9,7 @@ import {
   salvarPedidoEmAndamento,
 } from "@/lib/pizzaria2/pedido-em-andamento";
 import { cn } from "@/lib/utils";
+import type { TrackingResponse } from "@/types/api-responses";
 
 export const Route = createFileRoute("/$storeSlug/acompanhar/$token")({
   component: TrackingPage,
@@ -29,7 +30,7 @@ const hora = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digi
 
 function TrackingPage() {
   const { storeSlug, token } = Route.useParams();
-  const [data, setData] = useState<Awaited<ReturnType<typeof trackOrderFn>> | null>(null);
+  const [data, setData] = useState<TrackingResponse | null>(null);
 
   // Refetch on a timer: the customer leaves this screen open while they wait,
   // and the whole point is that it changes without them doing anything.
@@ -37,17 +38,23 @@ function TrackingPage() {
     let vivo = true;
     const buscar = () =>
       trackOrderFn({ data: { token } })
-        .then((r) => {
+        .then((r: any) => {
+          const response = r as TrackingResponse;
           if (!vivo) return;
-          setData(r);
+          setData(response);
           /*
            * O atalho do rodapé vive enquanto o pedido vive. Ele sai daqui, e
            * não de um relógio: quem sabe que o pedido terminou é o servidor,
            * e é esta resposta que traz a notícia — o pedido entregue ou
            * cancelado, ou o link que já parou de responder.
            */
-          if (!r.ok || r.order.finished) esquecerPedidoEmAndamento(storeSlug);
-          else salvarPedidoEmAndamento(storeSlug, { token, number: r.order.number });
+          if (!response.ok) {
+            esquecerPedidoEmAndamento(storeSlug);
+          } else if (response.order.finished) {
+            esquecerPedidoEmAndamento(storeSlug);
+          } else {
+            salvarPedidoEmAndamento(storeSlug, { token, number: response.order.number } as any);
+          }
         })
         .catch(() => undefined);
     buscar();
@@ -104,7 +111,7 @@ function TrackingPage() {
           {passos.map((passo, i) => {
             const feito = i <= atual;
             const agora = i === atual;
-            const quando = order.history.find((h) => h.status === passo.status);
+            const quando = order.history.find((h: any) => h.status === passo.status);
             const Icon = passo.icon;
             return (
               <li key={passo.status} className="flex items-center gap-3 py-2">
@@ -144,7 +151,7 @@ function TrackingPage() {
           Seu pedido
         </p>
         <ul className="mt-2 space-y-1">
-          {order.items.map((item, i) => (
+          {order.items.map((item: any, i: any) => (
             <li key={i} className="text-sm text-charcoal/70">
               {item.quantity}x {item.productNameSnapshot}
             </li>

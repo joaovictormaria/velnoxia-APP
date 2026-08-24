@@ -9,6 +9,7 @@ import {
   setProductActiveFn,
 } from "@/server/functions/products.fn";
 import { ProductForm, type ProductFormValues } from "@/components/admin/products/ProductForm";
+import type { ProductsWithCategoriesResponse, ProductDetailResponse } from "@/types/api-responses";
 
 export const Route = createFileRoute("/admin/cardapio/")({
   component: ProductsPage,
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/admin/cardapio/")({
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-type Produto = Awaited<ReturnType<typeof listProductsFn>>["products"][number];
+type Produto = ProductsWithCategoriesResponse["products"][number];
 
 /**
  * Os produtos em blocos, um por categoria.
@@ -32,6 +33,7 @@ type Produto = Awaited<ReturnType<typeof listProductsFn>>["products"][number];
 function agruparPorCategoria(produtos: Produto[]) {
   const grupos = new Map<string, { nome: string; produtos: Produto[] }>();
   for (const p of produtos) {
+    if (!p.category) continue;
     const grupo = grupos.get(p.category.id);
     if (grupo) grupo.produtos.push(p);
     else grupos.set(p.category.id, { nome: p.category.name, produtos: [p] });
@@ -52,12 +54,14 @@ function ProductsPage() {
         data: { categoryId: categoryId || undefined, search: search || undefined },
       }),
   });
+  const listData = data as ProductsWithCategoriesResponse | undefined;
 
   const { data: editingProductData } = useQuery({
     queryKey: ["product", editingProductId],
     queryFn: () => getProductFn({ data: { id: editingProductId! } }),
     enabled: !!editingProductId,
   });
+  const detailData = editingProductData as ProductDetailResponse | undefined;
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products"] });
 
@@ -100,7 +104,7 @@ function ProductsPage() {
 
   return (
     <>
-      {editingProductId && editingProductData?.product && (
+      {editingProductId && detailData?.product && (
         <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
           <div className="flex w-full max-w-5xl flex-col">
             <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
@@ -117,9 +121,9 @@ function ProductsPage() {
 
             <div className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5">
               <ProductForm
-                productId={editingProductData.product.id}
-                initial={buildProductFormValues(editingProductData.product)}
-                categories={editingProductData.categories}
+                productId={detailData.product.id}
+                initial={buildProductFormValues(detailData.product)}
+                categories={detailData.categories as any}
               />
             </div>
           </div>
@@ -145,7 +149,7 @@ function ProductsPage() {
           className="rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-base md:text-sm text-neutral-700"
         >
           <option value="">Todos os produtos</option>
-          {data?.categories.map((c) => (
+          {listData?.categories.map((c: { id: string; name: string }) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -177,7 +181,7 @@ function ProductsPage() {
             </tr>
           </thead>
 
-          {(isPending || data?.products.length === 0) && (
+          {(isPending || listData?.products.length === 0) && (
             <tbody>
               <tr>
                 <td colSpan={5} className="px-5 py-10 text-center text-neutral-500">
@@ -187,7 +191,7 @@ function ProductsPage() {
             </tbody>
           )}
 
-          {agruparPorCategoria(data?.products ?? []).map((grupo) => (
+          {agruparPorCategoria(listData?.products ?? []).map((grupo) => (
             <tbody key={grupo.id} className="divide-y divide-neutral-100">
               <tr>
                 <th
@@ -220,11 +224,11 @@ function ProductsPage() {
                     <span className="font-medium text-neutral-900">{p.name}</span>
                   </div>
                 </td>
-                <td className="px-5 py-3 text-neutral-900">{currency.format(p.basePrice)}</td>
+                <td className="px-5 py-3 text-neutral-900">{currency.format(Number(p.basePrice))}</td>
                 <td className="px-5 py-3 text-neutral-600">
-                  {p.sizes.length === 0
+                  {!p.sizes || p.sizes.length === 0
                     ? "-"
-                    : p.sizes.map((s) => s.categorySize.label).join(", ")}
+                    : p.sizes.map((s: any) => s.categorySize.label).join(", ")}
                 </td>
                 <td className="px-5 py-3">
                   <button

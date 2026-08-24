@@ -20,6 +20,7 @@ type TabId = "dashboard" | "items" | "movements" | "compositions" | "audit" | "c
 
 function EstoquePage() {
   const { admin } = Route.useRouteContext();
+  const adminContext = admin!;
   const [activeTab, setActiveTab] = useState<TabId>("dashboard");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [selectedMovementItemId, setSelectedMovementItemId] = useState<string>("");
@@ -125,18 +126,18 @@ function EstoquePage() {
         {/* Content */}
         <div className="space-y-6">
           {activeTab === "dashboard" && (
-            <ReportsDashboard storeId={admin.storeId} />
+            <ReportsDashboard storeId={adminContext.storeId} />
           )}
 
           {activeTab === "items" && (
-            <InventoryGrid storeId={admin.storeId} />
+            <InventoryGrid storeId={adminContext.storeId} />
           )}
 
           {activeTab === "movements" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1">
                 <MovementForm
-                  storeId={admin.storeId}
+                  storeId={adminContext.storeId}
                   onItemSelected={setSelectedMovementItemId}
                   onSuccess={() => {
                     // Força recarregar o histórico após registrar uma movimentação
@@ -149,7 +150,7 @@ function EstoquePage() {
               </div>
               <div className="lg:col-span-2">
                 {selectedMovementItemId ? (
-                  <AuditLog key={selectedMovementItemId} storeId={admin.storeId} itemId={selectedMovementItemId} />
+                  <AuditLog key={selectedMovementItemId} storeId={adminContext.storeId} itemId={selectedMovementItemId} />
                 ) : (
                   <div className="p-8 text-center border-2 border-dashed rounded bg-neutral-50 text-neutral-600">
                     <p className="text-sm">Selecione um item para ver o histórico de movimentações</p>
@@ -307,7 +308,7 @@ function EstoquePage() {
 
                   {newProductId && newProductId.trim() && selectedCategoryId && (
                     <CompositionBuilder
-                      storeId={admin.storeId}
+                      storeId={adminContext.storeId}
                       productId={newProductId}
                       categoryId={selectedCategoryId}
                       mode="create"
@@ -413,7 +414,7 @@ function EstoquePage() {
 
                 {selectedProductId && editingCompositionId && (
                   <CompositionBuilder
-                    storeId={admin.storeId}
+                    storeId={adminContext.storeId}
                     productId={selectedProductId}
                     mode="edit"
                     compositionId={editingCompositionId}
@@ -430,11 +431,11 @@ function EstoquePage() {
           )}
 
           {activeTab === "audit" && (
-            <AuditLog storeId={admin.storeId} />
+            <AuditLog storeId={adminContext.storeId} />
           )}
 
           {activeTab === "charts" && (
-            <StockChart storeId={admin.storeId} period="month" />
+            <StockChart storeId={adminContext.storeId} period="month" />
           )}
         </div>
       </div>

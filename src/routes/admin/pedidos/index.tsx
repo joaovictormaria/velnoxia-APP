@@ -19,6 +19,7 @@ import {
 } from "@/components/admin/orders/DispatchDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
 import { listKanbanOrdersFn, listMesasAbertasFn, updateOrderStatusFn } from "@/server/functions/orders.fn";
+import type { KanbanResponse, MesasAbertasResponse } from "@/types/api-responses";
 
 export const Route = createFileRoute("/admin/pedidos/")({
   component: KanbanPage,
@@ -49,14 +50,16 @@ function KanbanPage() {
     staleTime: 3_000,
     gcTime: 10 * 60 * 1000,
   });
+  const kanban = data as KanbanResponse | undefined;
 
-  const { data: mesas = [] } = useQuery({
+  const { data: mesasData = [] } = useQuery({
     queryKey: ["mesas", "abertas", date, search],
     queryFn: () => listMesasAbertasFn({ data: { date, search: search || undefined } }),
     refetchInterval: 3_000,
     staleTime: 3_000,
     gcTime: 10 * 60 * 1000,
   });
+  const mesas = mesasData as MesasAbertasResponse;
 
   const advance = useMutation({
     mutationFn: (vars: { id: string; status: OrderStatus }) =>
@@ -95,8 +98,8 @@ function KanbanPage() {
     advance.mutate({ id: order.id, status });
   }
 
-  const metrics = data?.metrics;
-  const awaiting = data?.awaiting ?? [];
+  const metrics = kanban?.metrics;
+  const awaiting = kanban?.awaiting ?? [];
 
   return (
     <div className="space-y-6">
@@ -143,7 +146,7 @@ function KanbanPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-neutral-900">Mesas Abertas ({mesas.length})</h2>
           <div className="flex flex-wrap gap-3">
-            {mesas.map((mesa) => (
+            {mesas.map((mesa: any) => (
               <div key={mesa.tableId} className="w-64">
                 <MesaCard
                   mesa={mesa}
@@ -159,12 +162,16 @@ function KanbanPage() {
         <WaitingList orders={awaiting} onPick={setDispatching} />
       )}
 
-      {isPending && !data ? (
+      {isPending && !kanban ? (
         <p className="text-sm text-neutral-500">Carregando...</p>
       ) : (
         <KanbanBoard
-          columns={data?.columns ?? []}
-          mostrarEntrega={data?.mostrarEntrega ?? true}
+          columns={{
+            awaiting: kanban?.awaiting ?? [],
+            preparing: kanban?.preparing ?? [],
+            ready: kanban?.ready ?? [],
+          } as any}
+          mostrarEntrega={false}
           onAdvance={handleAdvance}
           onDispatch={(order) =>
             setDispatching({
