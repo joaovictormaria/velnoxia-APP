@@ -2,6 +2,7 @@
 import { z } from "zod";
 import { prisma } from "../db/client";
 import { distanciaDoEntregador } from "../services/delivery-tracking-service";
+import { checkRateLimit, getClientIp } from "../middleware/rate-limit";
 
 /** How long the link keeps answering after the order is finished, so whoever
  *  opens it right as the food arrives still sees the last state instead of a
@@ -17,6 +18,12 @@ const GRACE_MINUTES = 30;
 export const trackOrderFn = createServerFn({ method: "GET" })
   .validator(z.object({ token: z.string().trim().min(10).max(64) }))
   .handler(async ({ data }) => {
+    // Rate limit by token to prevent brute force token guessing
+    const rateLimit = checkRateLimit(data.token);
+    if (!rateLimit.allowed) {
+      return { ok: false as const };
+    }
+
     const order = await prisma.order.findUnique({
       where: { trackingToken: data.token },
       select: {
@@ -100,8 +107,14 @@ export const getCourierDistanceFn = createServerFn({ method: "POST" })
       longitude: z.number().min(-180).max(180),
     }),
   )
-  .handler(({ data }) =>
-    distanciaDoEntregador(data.token, { latitude: data.latitude, longitude: data.longitude }),
-  );
+  .handler(({ data }) => {
+    // Rate limit by token to prevent brute force
+    const rateLimit = checkRateLimit(data.token);
+    if (!rateLimit.allowed) {
+      return { ok: false, error: "Tente novamente em alguns segundos" };
+    }
+
+    return distanciaDoEntregador(data.token, { latitude: data.latitude, longitude: data.longitude });
+  });
 
 
