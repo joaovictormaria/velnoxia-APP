@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db/client";
-import type { Decimal } from "@prisma/client";
+
+type Decimal = any;
 
 /**
  * Serviço de Alertas de Estoque
@@ -117,7 +118,7 @@ export class InventoryAlertService {
     Array<{
       itemId: string;
       itemName: string;
-      alerts: Awaited<ReturnType<typeof this.checkItemAlerts>>;
+      alerts: Awaited<ReturnType<typeof InventoryAlertService.checkItemAlerts>>;
     }>
   > {
     const items = await prisma.inventoryItem.findMany({
@@ -283,13 +284,13 @@ export class InventoryAlertService {
         0
       ),
       criticalAlerts: storeAlerts.reduce(
-        (sum, item) =>
-          sum + item.alerts.filter((a) => a.severity === "CRITICAL").length,
+        (sum: any, item: any) =>
+          sum + item.alerts.filter((a: any) => a.severity === "CRITICAL").length,
         0
       ),
       warningAlerts: storeAlerts.reduce(
-        (sum, item) =>
-          sum + item.alerts.filter((a) => a.severity === "WARNING").length,
+        (sum: any, item: any) =>
+          sum + item.alerts.filter((a: any) => a.severity === "WARNING").length,
         0
       ),
     };
