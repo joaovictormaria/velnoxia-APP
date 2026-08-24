@@ -188,7 +188,7 @@ function OrderCard({
   let next = NEXT_STATUS[status];
 
   if (status === "PREPARING") {
-    if (order.tableId) {
+    if (order.sessionId) {
       // Mesa: vai para "Mesas Abertas"
       next = { status: "TABLE_READY" as OrderStatus, label: "Pronto (Mesa aberta)" };
     } else if (order.type === "PICKUP") {
