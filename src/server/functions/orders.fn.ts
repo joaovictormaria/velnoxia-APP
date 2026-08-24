@@ -268,9 +268,11 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
     });
 
     // Se é um pedido de mesa, fechar a sessão e liberar a mesa
+    console.log(`[CONFIRM PAYMENT] Order ${data.orderId}: tableId=${order.tableId}`);
     if (order.tableId) {
+      console.log(`[CONFIRM PAYMENT] Closing session for table ${order.tableId}`);
       // Fechar a sessão da mesa
-      await prisma.tableSession.updateMany({
+      const sessionResult = await prisma.tableSession.updateMany({
         where: {
           tableId: order.tableId,
           status: "OPEN",
@@ -280,12 +282,16 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
           closedAt: new Date(),
         },
       });
+      console.log(`[CONFIRM PAYMENT] Closed ${sessionResult.count} sessions for table ${order.tableId}`);
 
       // Liberar a mesa (voltar ao status AVAILABLE)
       await prisma.table.update({
         where: { id: order.tableId },
         data: { status: "AVAILABLE" },
       });
+      console.log(`[CONFIRM PAYMENT] Table ${order.tableId} marked as AVAILABLE`);
+    } else {
+      console.log(`[CONFIRM PAYMENT] No tableId for order ${data.orderId} - not a table order`);
     }
 
     return { ok: true as const };
