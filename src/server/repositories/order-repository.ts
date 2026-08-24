@@ -2,26 +2,17 @@ import type { OrderStatus } from "@prisma/client";
 import { prisma } from "../db/client";
 
 /**
- * Local-day window for a "YYYY-MM-DD" string (or now, when omitted).
- *
- * `new Date("2026-08-15")` parses as UTC midnight, which in UTC-3 lands on the
- * previous local day — so the whole window would be shifted by one day. Build
- * the date from its parts instead, which the Date constructor reads as local.
+ * UTC-day window for a "YYYY-MM-DD" string (or today, when omitted).
+ * Works with UTC timestamps from the database without timezone mismatch.
  */
 function dayRange(day?: string) {
-  const now = new Date();
+  const dateStr = day || new Date().toISOString().split("T")[0];
+  const [year, month, date] = dateStr.split("-").map(Number);
 
-  const local = (() => {
-    if (!day) {
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    }
-    const [year, month, date] = day.split("-").map(Number);
-    return new Date(year, month - 1, date);
-  })();
+  // Create date at UTC midnight, not local midnight
+  const fromMs = Date.UTC(year, month - 1, date, 0, 0, 0, 0);
+  const toMs = Date.UTC(year, month - 1, date, 23, 59, 59, 999);
 
-  const clientTimezoneOffset = -180 * 60 * 1000;
-  const fromMs = local.getTime() - clientTimezoneOffset;
-  const toMs = fromMs + 24 * 60 * 60 * 1000 - 1;
   return { from: new Date(fromMs), to: new Date(toMs) };
 }
 
