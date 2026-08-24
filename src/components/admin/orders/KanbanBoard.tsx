@@ -225,7 +225,16 @@ function OrderCard({
             </span>
           )}
           <span className="shrink-0 text-xs text-neutral-500">
-            {time.format(new Date(order.createdAt))}
+            {(() => {
+              try {
+                const date = typeof order.createdAt === 'string'
+                  ? new Date(order.createdAt)
+                  : order.createdAt;
+                return time.format(date);
+              } catch {
+                return '-';
+              }
+            })()}
           </span>
         </div>
 
