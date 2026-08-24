@@ -67,7 +67,7 @@ export type CheckoutInput = {
 };
 
 export type CheckoutResult =
-  | { ok: true; orderId: string; orderNumber: number; total: number; trackingToken: string | null }
+  | { ok: true; orderId: string; orderNumber: number; total: number | string; trackingToken: string | null }
   | { ok: false; error: string };
 
 /**
@@ -78,9 +78,9 @@ export type CheckoutResult =
  * pequena por uma gigante, e o erro só apareceria no fim do mês.
  */
 function priceForSize(
-  product: { basePrice: number; sizes: { categorySizeId: string; price: number }[] },
+  product: { basePrice: number | string; sizes: { categorySizeId: string; price: number | string }[] },
   sizeId: string | null,
-): number | null {
+): number | string | null {
   if (!sizeId) return product.basePrice;
   return product.sizes.find((s) => s.categorySizeId === sizeId)?.price ?? null;
 }
@@ -94,7 +94,7 @@ type LinhaDoPedido = {
   isHalfAndHalf: boolean;
   secondProductId: string | null;
   secondProductNameSnapshot: string | null;
-  unitPrice: number;
+  unitPrice: number | string;
   quantity: number;
   note: string | null;
   extras: {
@@ -102,12 +102,12 @@ type LinhaDoPedido = {
     optionItemId: string | null;
     groupNameSnapshot: string | null;
     nameSnapshot: string;
-    priceSnapshot: number;
+    priceSnapshot: number | string;
   }[];
 };
 
 export type Precificacao =
-  | { ok: true; lines: LinhaDoPedido[]; linhasParaBeneficio: LinhaParaBeneficio[]; subtotal: number }
+  | { ok: true; lines: LinhaDoPedido[]; linhasParaBeneficio: LinhaParaBeneficio[]; subtotal: number | string }
   | { ok: false; error: string };
 
 /**
@@ -222,7 +222,7 @@ export async function precificarItens(
       return { ok: false, error: `O tamanho escolhido para "${product.name}" não está disponível.` };
     }
 
-    let unitPrice = primeiroPreco;
+    let unitPrice = Number(primeiroPreco);
     if (second) {
       /**
        * Os dois sabores precisam do mesmo tamanho, e o tamanho pertence à
@@ -230,16 +230,17 @@ export async function precificarItens(
        * cadastrado ali. Antes essa falta virava o preço base em silêncio: uma
        * gigante saía pelo preço de uma broto.
        */
-      const secondPrice = priceForSize(second, sizeId);
+      let secondPrice = priceForSize(second, sizeId);
       if (secondPrice === null) {
         return {
           ok: false,
           error: `"${second.name}" não tem preço nesse tamanho. Escolha outro sabor ou outro tamanho.`,
         };
       }
+      secondPrice = Number(secondPrice);
       unitPrice =
         product.halfPizzaPricingRule === "AVERAGE_PRICE"
-          ? (unitPrice + secondPrice) / 2
+          ? Math.round((unitPrice + secondPrice) / 2 * 100) / 100
           : Math.max(unitPrice, secondPrice);
     }
 
@@ -291,7 +292,7 @@ export async function precificarItens(
     }));
 
     const todosAdicionais = [...resolvedExtras, ...escolhas];
-    const extrasTotal = todosAdicionais.reduce((s, e) => s + e.priceSnapshot, 0);
+    const extrasTotal = todosAdicionais.reduce((s, e) => s + Number(e.priceSnapshot), 0);
     subtotal += (unitPrice + extrasTotal) * item.quantity;
 
     lines.push({
@@ -460,22 +461,22 @@ export async function createOrderFromCheckout(
       coupon.validFrom > now ||
       coupon.validUntil < now ||
       (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage) ||
-      (coupon.minOrderValue !== null && subtotal < coupon.minOrderValue)
+      (coupon.minOrderValue !== null && subtotal < Number(coupon.minOrderValue))
     ) {
       return { ok: false, error: "Cupom inválido ou expirado." };
     }
     descontoDoCupom =
       coupon.discountType === "PERCENTAGE"
-        ? (subtotal * coupon.discountValue) / 100
-        : coupon.discountValue;
+        ? (subtotal * Number(coupon.discountValue)) / 100
+        : Number(coupon.discountValue);
     descontoDoCupom = Math.min(Math.round(descontoDoCupom * 100) / 100, subtotal);
     couponId = coupon.id;
   }
 
   const deliveryFee =
     input.type === "DELIVERY" &&
-    !(settings.freeDeliveryMinOrder !== null && subtotal >= settings.freeDeliveryMinOrder)
-      ? settings.deliveryFee
+    !(settings.freeDeliveryMinOrder !== null && subtotal >= Number(settings.freeDeliveryMinOrder))
+      ? Number(settings.deliveryFee)
       : 0;
 
   const estimatedMinutes =
