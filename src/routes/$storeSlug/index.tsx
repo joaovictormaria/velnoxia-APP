@@ -145,7 +145,7 @@ function PizzariaInicio() {
               return (
                 <div
                   key={product.id}
-                  className="flex flex-col rounded-lg overflow-hidden bg-white border border-charcoal/10 hover:shadow-lg transition-shadow"
+                  className="flex flex-col rounded-lg overflow-hidden bg-white border-2 border-white hover:shadow-lg transition-shadow"
                 >
                   <div className="relative">
                     {product.image ? (
