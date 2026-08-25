@@ -174,7 +174,7 @@ export function ProductForm({
 
       {/* PERFIL DO PRATO - Card com foto + todos os campos - Full width */}
       <div
-        className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-5 py-8 md:py-5"
+        className="rounded-2xl border border-neutral-200 bg-white p-5"
         onFocusCapture={() => setFoco("foto-do-produto")}
       >
           {/* Mobile Layout */}
