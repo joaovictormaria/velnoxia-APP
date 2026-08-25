@@ -137,13 +137,6 @@ function ProductsPage() {
       <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-neutral-900">Cardápio - Lista de Produtos</h1>
-        <Link
-          to="/admin/cardapio/novo"
-          className="flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a]"
-        >
-          <Plus className="size-4" />
-          Novo produto
-        </Link>
       </header>
 
       <div className="flex flex-wrap gap-3">
@@ -253,6 +246,15 @@ function ProductsPage() {
           ))}
         </div>
       )}
+
+      {/* Botão flutuante de novo produto */}
+      <Link
+        to="/admin/cardapio/novo"
+        className="fixed bottom-6 right-6 flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] shadow-lg"
+      >
+        <Plus className="size-4" />
+        Novo produto
+      </Link>
     </div>
     </>
   );
