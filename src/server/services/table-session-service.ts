@@ -68,17 +68,10 @@ export async function getOrCreateOpenTableSession(
   console.log(`[TABLE SESSION] Searching for OPEN session for table ${tableId}...`);
   if (session) {
     // Se a sessão OPEN não tem pedidos, significa que foi abandonada
-    // Fechar e criar uma nova
+    // Não é permitido reutilizar - criar uma nova
     if (session.orders.length === 0) {
-      console.log(`[TABLE SESSION] Found OPEN session ${session.id} but it has NO orders. Closing stale session...`);
-      await prisma.tableSession.update({
-        where: { id: session.id },
-        data: {
-          status: "CLOSED",
-          closedAt: new Date(),
-        },
-      });
-      session = null; // Forçar criação de nova sessão
+      console.log(`[TABLE SESSION] Found OPEN session ${session.id} but it has NO orders. Creating fresh session instead...`);
+      session = null; // Forçar criação de nova sessão (não reusar sessão vazia)
     } else {
       // Session exists, but we can't recover the PIN (it's hashed)
       // Return the session without PIN - it will only be shown on first creation
