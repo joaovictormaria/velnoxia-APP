@@ -309,7 +309,9 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
       });
     },
     onSuccess: (res) => {
+      console.log("[Checkout] Response:", res);
       if (!res.ok) {
+        console.error("[Checkout] Error:", res.error);
         setError(res.error);
         return;
       }
@@ -337,7 +339,10 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
       });
       clearCart();
     },
-    onError: () => setError("Não foi possível enviar o pedido. Tente novamente."),
+    onError: (err) => {
+      console.error("[Checkout] Mutation Error:", err);
+      setError("Não foi possível enviar o pedido. Tente novamente.");
+    },
   });
 
   if (placed) {
