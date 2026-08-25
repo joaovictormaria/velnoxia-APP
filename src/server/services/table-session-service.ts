@@ -60,12 +60,14 @@ export async function getOrCreateOpenTableSession(
     },
   });
 
+  console.log(`[TABLE SESSION] Searching for OPEN session for table ${tableId}...`);
   if (session) {
     // Session exists, but we can't recover the PIN (it's hashed)
     // Return the session without PIN - it will only be shown on first creation
-    console.log(`[TABLE SESSION] Found existing OPEN session ${session.id} for table ${tableId}`);
+    console.log(`[TABLE SESSION] ✓ Found existing OPEN session ${session.id} for table ${tableId}. This is NOT first device!`);
     return session as OpenTableSession;
   }
+  console.log(`[TABLE SESSION] ✗ No OPEN session found for table ${tableId}. Looking for closed sessions...`);
 
   // Check if there's a CLOSED or PAID session (table was liberated)
   // Don't reuse it - create a completely new session for the new customer
@@ -83,7 +85,9 @@ export async function getOrCreateOpenTableSession(
   if (previousSession) {
     // Table was already used, create a fresh session for new customer
     // Continue to create new session below
-    console.log(`[TABLE SESSION] Previous session ${previousSession.id} is ${previousSession.status}, creating fresh session for table ${tableId}`);
+    console.log(`[TABLE SESSION] Found previous ${previousSession.status} session ${previousSession.id}, creating fresh session for new customer`);
+  } else {
+    console.log(`[TABLE SESSION] No previous sessions found either - creating fresh new session`);
   }
 
   // No open session: create new one

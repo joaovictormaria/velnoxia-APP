@@ -244,21 +244,28 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
 
+    console.log(`[CONFIRM PAYMENT] ➜ Received confirmPaymentFn for orderId: ${data.orderId}`);
+
     // Verificar que o pedido pertence à loja
     const order = await prisma.order.findFirst({
       where: { id: data.orderId, storeId },
-      select: { id: true, paymentStatus: true, status: true, tableId: true },
+      select: { id: true, paymentStatus: true, status: true, tableId: true, sessionId: true },
     });
 
+    console.log(`[CONFIRM PAYMENT] Order details: ${JSON.stringify({ id: order?.id, paymentStatus: order?.paymentStatus, status: order?.status, tableId: order?.tableId, sessionId: order?.sessionId })}`);
+
     if (!order) {
+      console.log(`[CONFIRM PAYMENT] ✗ Order not found for orderId: ${data.orderId}`);
       return { ok: false as const, error: "Pedido não encontrado" };
     }
 
     if (order.paymentStatus === "PAID") {
+      console.log(`[CONFIRM PAYMENT] ✗ Order already paid: ${data.orderId}`);
       return { ok: false as const, error: "Pedido já foi marcado como pago" };
     }
 
     // Marcar como pago e completed (libera a mesa)
+    console.log(`[CONFIRM PAYMENT] Updating order status to COMPLETED and PAID for ${data.orderId}`);
     await prisma.order.update({
       where: { id: data.orderId },
       data: {
@@ -266,33 +273,43 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
         status: "COMPLETED", // Auto-complete quando pagamento confirmado
       },
     });
+    console.log(`[CONFIRM PAYMENT] ✓ Order marked as PAID + COMPLETED`);
 
     // Se é um pedido de mesa, fechar a sessão e liberar a mesa
-    console.log(`[CONFIRM PAYMENT] Order ${data.orderId}: tableId=${order.tableId}, sessionId=${order.sessionId}`);
+    console.log(`[CONFIRM PAYMENT] Checking for table session: tableId=${order.tableId}, sessionId=${order.sessionId}`);
     if (order.sessionId) {
-      console.log(`[CONFIRM PAYMENT] Closing session ${order.sessionId} for order ${data.orderId}`);
-      // Fechar a sessão específica usando sessionId do order
-      await prisma.tableSession.update({
-        where: { id: order.sessionId },
-        data: {
-          status: "CLOSED",
-          closedAt: new Date(),
-        },
-      });
-      console.log(`[CONFIRM PAYMENT] Session ${order.sessionId} marked as CLOSED`);
+      console.log(`[CONFIRM PAYMENT] ✓ Found sessionId, closing session ${order.sessionId}`);
+      try {
+        // Fechar a sessão específica usando sessionId do order
+        const sessionUpdate = await prisma.tableSession.update({
+          where: { id: order.sessionId },
+          data: {
+            status: "CLOSED",
+            closedAt: new Date(),
+          },
+        });
+        console.log(`[CONFIRM PAYMENT] ✓ Session ${order.sessionId} marked as CLOSED. Updated session: ${JSON.stringify({ id: sessionUpdate.id, status: sessionUpdate.status, closedAt: sessionUpdate.closedAt })}`);
+      } catch (err) {
+        console.log(`[CONFIRM PAYMENT] ✗ Error closing session: ${err}`);
+      }
 
       // Liberar a mesa também (voltar ao status AVAILABLE)
       if (order.tableId) {
-        await prisma.table.update({
-          where: { id: order.tableId },
-          data: { status: "AVAILABLE" },
-        });
-        console.log(`[CONFIRM PAYMENT] Table ${order.tableId} marked as AVAILABLE`);
+        try {
+          const tableUpdate = await prisma.table.update({
+            where: { id: order.tableId },
+            data: { status: "AVAILABLE" },
+          });
+          console.log(`[CONFIRM PAYMENT] ✓ Table ${order.tableId} marked as AVAILABLE. Table status: ${tableUpdate.status}`);
+        } catch (err) {
+          console.log(`[CONFIRM PAYMENT] ✗ Error updating table: ${err}`);
+        }
       }
     } else {
-      console.log(`[CONFIRM PAYMENT] No sessionId for order ${data.orderId} - not a table order`);
+      console.log(`[CONFIRM PAYMENT] ✗ No sessionId - not a table order`);
     }
 
+    console.log(`[CONFIRM PAYMENT] ✓ confirmPaymentFn completed successfully for orderId: ${data.orderId}`);
     return { ok: true as const };
   });
 
