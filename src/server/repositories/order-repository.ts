@@ -7,16 +7,26 @@ import {
 } from "../utils/decimal-converter";
 
 /**
- * UTC-day window for a "YYYY-MM-DD" string (or today, when omitted).
- * Works with UTC timestamps from the database without timezone mismatch.
+ * Day window in São Paulo timezone (UTC-3/UTC-2 with DST).
+ * Takes a YYYY-MM-DD string (from client) and returns a UTC range
+ * that covers that entire day in São Paulo time.
+ *
+ * Example: dayRange("2026-08-24") covers 2026-08-24 00:00 to 23:59 in SP
+ * Which is 2026-08-24 03:00 UTC to 2026-08-25 02:59:59 UTC
  */
 function dayRange(day?: string) {
   const dateStr = day || new Date().toISOString().split("T")[0];
   const [year, month, date] = dateStr.split("-").map(Number);
 
-  // Create date at UTC midnight, not local midnight
-  const fromMs = Date.UTC(year, month - 1, date, 0, 0, 0, 0);
-  const toMs = Date.UTC(year, month - 1, date, 23, 59, 59, 999);
+  // Interpreter the date string as São Paulo midnight (UTC-3)
+  // Create local time: YYYY-MM-DD 00:00 in São Paulo
+  const localDate = new Date(year, month - 1, date, 0, 0, 0, 0);
+  // Convert to UTC by adding 3 hours (São Paulo is UTC-3)
+  const fromMs = localDate.getTime() + 3 * 60 * 60 * 1000;
+
+  // End of day: YYYY-MM-DD 23:59:59 in São Paulo
+  const localEndDate = new Date(year, month - 1, date, 23, 59, 59, 999);
+  const toMs = localEndDate.getTime() + 3 * 60 * 60 * 1000;
 
   return { from: new Date(fromMs), to: new Date(toMs) };
 }
