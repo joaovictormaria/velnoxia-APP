@@ -191,13 +191,11 @@ function ProductsPage() {
               {/* Lista scrollável de produtos */}
               <div className="overflow-y-auto flex-1 p-3 space-y-2">
                 {grupo.produtos.map((p) => (
-                  <div key={p.id} className="relative bg-neutral-50 rounded-lg p-3 hover:bg-neutral-100 transition-colors border border-neutral-200">
-                    {/* Tag badge no canto superior direito */}
-                    {p.tag && (
-                      <div className="absolute -top-2 -right-2 inline-flex items-center gap-1 rounded-full bg-blue-500 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-md">
-                        {p.tag}
-                      </div>
-                    )}
+                  <div key={p.id} className="relative bg-neutral-50 rounded-lg overflow-hidden hover:bg-neutral-100 transition-colors border border-neutral-200">
+                    {/* Barra colorida no topo */}
+                    <div className="h-1 bg-blue-500" />
+                    {/* Conteúdo do card */}
+                    <div className="p-3">
                     <div className="flex items-center gap-2">
                       {p.imageUrl ? (
                         <img
@@ -243,6 +241,7 @@ function ProductsPage() {
                           <Trash2 className="size-3.5" />
                         </button>
                       </div>
+                    </div>
                     </div>
                   </div>
                 ))}
