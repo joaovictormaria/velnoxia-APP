@@ -22,25 +22,49 @@ export function ImageUploadField({
     setUploading(true);
     setError(null);
     try {
+      console.log(`[Upload] Iniciando upload: ${file.name} (${file.type}, ${file.size} bytes)`);
+
       const presign = await createUploadUrlFn({
         data: { kind, contentType: file.type },
       });
+
       if (!presign.ok) {
+        console.error(`[Upload] Erro ao gerar URL: ${presign.error}`);
         setError(presign.error);
         return;
       }
+
+      console.log(`[Upload] URL gerada: ${presign.uploadUrl}`);
+
       const res = await fetch(presign.uploadUrl, {
         method: "PUT",
         headers: { "Content-Type": file.type },
         body: file,
       });
+
+      console.log(`[Upload] Resposta HTTP: ${res.status} ${res.statusText}`);
+
       if (!res.ok) {
-        setError("Falha ao enviar a imagem para o armazenamento.");
+        let errorDetail = "";
+        try {
+          const errorBody = await res.text();
+          errorDetail = errorBody ? ` - ${errorBody}` : "";
+        } catch {
+          // Ignorar erro ao ler resposta
+        }
+
+        const errorMsg = `Falha ao enviar (HTTP ${res.status}${errorDetail}). Verifique se está logado e tente novamente.`;
+        console.error(`[Upload] ${errorMsg}`);
+        setError(errorMsg);
         return;
       }
+
+      console.log(`[Upload] Sucesso! URL pública: ${presign.publicUrl}`);
       onChange(presign.publicUrl);
-    } catch {
-      setError("Não foi possível enviar a imagem.");
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+      console.error(`[Upload] Erro ao enviar: ${errorMsg}`, error);
+      setError(`Não foi possível enviar a imagem: ${errorMsg}`);
     } finally {
       setUploading(false);
     }
