@@ -194,13 +194,11 @@ export function ProductForm({
         </p>
       )}
 
-      {/* Layout: Perfil do Prato (esquerda) + Tamanhos (direita) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* PERFIL DO PRATO - Card com foto + todos os campos */}
-        <div
-          className="rounded-2xl border border-neutral-200 bg-white p-5"
-          onFocusCapture={() => setFoco("foto-do-produto")}
-        >
+      {/* PERFIL DO PRATO - Card com foto + todos os campos - Full width */}
+      <div
+        className="rounded-2xl border border-neutral-200 bg-white p-5"
+        onFocusCapture={() => setFoco("foto-do-produto")}
+      >
           <div className="flex gap-4">
             {/* Foto */}
             <div className="max-w-32 shrink-0">
@@ -406,7 +404,6 @@ export function ProductForm({
             </div>
           </div>
         </div>
-      </div>
 
       {/* PREVIEW - Full width abaixo */}
       {storeSlug && (
