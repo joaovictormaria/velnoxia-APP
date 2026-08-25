@@ -585,8 +585,9 @@ export async function createOrderFromCheckout(
         estimatedDeliveryAt: new Date(Date.now() + estimatedMinutes * 60_000),
         autoPrintRequested: (settings as any).autoPrintEnabled,
         items: {
-          create: lines.map(({ extras: lineExtras, ...line }, i) => ({
+          create: lines.map(({ extras: lineExtras, productId, ...line }, i) => ({
             ...line,
+            product: productId ? { connect: { id: productId } } : undefined,
             // Por linha, porque a cota pode acabar no meio de uma: dois com
             // desconto e o terceiro cheio não cabe num campo único do pedido.
             employeeDiscount: beneficioFinal?.porLinha[i]?.desconto ?? 0,
