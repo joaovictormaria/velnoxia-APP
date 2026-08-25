@@ -178,7 +178,7 @@ export function ProductForm({
         onFocusCapture={() => setFoco("foto-do-produto")}
       >
           {/* Mobile: Foto e botão de voltar lado a lado, centrados */}
-          <div className="flex md:hidden gap-3 items-start mb-4">
+          <div className="flex md:hidden gap-0 items-start mb-4">
             <Link
               to="/admin/cardapio"
               className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:border-neutral-300 shrink-0"
