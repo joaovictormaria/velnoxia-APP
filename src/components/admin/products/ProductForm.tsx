@@ -166,17 +166,6 @@ export function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <header className="flex items-center gap-3">
-        <Link
-          to="/admin/cardapio"
-          className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:border-neutral-300"
-          title="Voltar para cardápio"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="hidden sm:inline">Voltar</span>
-        </Link>
-      </header>
-
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
           {error}
