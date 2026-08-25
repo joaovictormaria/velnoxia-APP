@@ -49,6 +49,7 @@ import { Route as AdminPedidosIndexRouteImport } from './routes/admin/pedidos/in
 import { Route as AdminPedidosOrderIdRouteImport } from './routes/admin/pedidos/$orderId'
 import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoes/index'
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
+import { Route as AdminRelatoriosDashboardKpiRouteImport } from './routes/admin/relatorios/dashboard-kpi'
 import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosHistoricoRouteImport } from './routes/admin/relatorios/historico'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
@@ -258,6 +259,12 @@ const AdminRelatoriosIndexRoute = AdminRelatoriosIndexRouteImport.update({
   path: '/relatorios/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminRelatoriosDashboardKpiRoute =
+  AdminRelatoriosDashboardKpiRouteImport.update({
+    id: '/relatorios/dashboard-kpi',
+    path: '/relatorios/dashboard-kpi',
+    getParentRoute: () => AdminRouteRoute,
+  } as any)
 const AdminRelatoriosFuncionariosRoute =
   AdminRelatoriosFuncionariosRouteImport.update({
     id: '/relatorios/funcionarios',
@@ -326,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
+  '/admin/relatorios/dashboard-kpi': typeof AdminRelatoriosDashboardKpiRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/historico': typeof AdminRelatoriosHistoricoRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -372,6 +380,7 @@ export interface FileRoutesByTo {
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
+  '/admin/relatorios/dashboard-kpi': typeof AdminRelatoriosDashboardKpiRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/historico': typeof AdminRelatoriosHistoricoRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -422,6 +431,7 @@ export interface FileRoutesById {
   '/admin/cardapio/novo': typeof AdminCardapioNovoRoute
   '/admin/funcionarios/planos': typeof AdminFuncionariosPlanosRoute
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
+  '/admin/relatorios/dashboard-kpi': typeof AdminRelatoriosDashboardKpiRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/historico': typeof AdminRelatoriosHistoricoRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
@@ -473,6 +483,7 @@ export interface FileRouteTypes {
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
     | '/admin/pedidos/$orderId'
+    | '/admin/relatorios/dashboard-kpi'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/historico'
     | '/admin/relatorios/produtos'
@@ -519,6 +530,7 @@ export interface FileRouteTypes {
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
     | '/admin/pedidos/$orderId'
+    | '/admin/relatorios/dashboard-kpi'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/historico'
     | '/admin/relatorios/produtos'
@@ -568,6 +580,7 @@ export interface FileRouteTypes {
     | '/admin/cardapio/novo'
     | '/admin/funcionarios/planos'
     | '/admin/pedidos/$orderId'
+    | '/admin/relatorios/dashboard-kpi'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/historico'
     | '/admin/relatorios/produtos'
@@ -887,6 +900,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/relatorios/dashboard-kpi': {
+      id: '/admin/relatorios/dashboard-kpi'
+      path: '/relatorios/dashboard-kpi'
+      fullPath: '/admin/relatorios/dashboard-kpi'
+      preLoaderRoute: typeof AdminRelatoriosDashboardKpiRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/relatorios/funcionarios': {
       id: '/admin/relatorios/funcionarios'
       path: '/relatorios/funcionarios'
@@ -970,6 +990,7 @@ interface AdminRouteRouteChildren {
   AdminCardapioNovoRoute: typeof AdminCardapioNovoRoute
   AdminFuncionariosPlanosRoute: typeof AdminFuncionariosPlanosRoute
   AdminPedidosOrderIdRoute: typeof AdminPedidosOrderIdRoute
+  AdminRelatoriosDashboardKpiRoute: typeof AdminRelatoriosDashboardKpiRoute
   AdminRelatoriosFuncionariosRoute: typeof AdminRelatoriosFuncionariosRoute
   AdminRelatoriosHistoricoRoute: typeof AdminRelatoriosHistoricoRoute
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
@@ -1001,6 +1022,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCardapioNovoRoute: AdminCardapioNovoRoute,
   AdminFuncionariosPlanosRoute: AdminFuncionariosPlanosRoute,
   AdminPedidosOrderIdRoute: AdminPedidosOrderIdRoute,
+  AdminRelatoriosDashboardKpiRoute: AdminRelatoriosDashboardKpiRoute,
   AdminRelatoriosFuncionariosRoute: AdminRelatoriosFuncionariosRoute,
   AdminRelatoriosHistoricoRoute: AdminRelatoriosHistoricoRoute,
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
