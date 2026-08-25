@@ -279,23 +279,25 @@ export function ProductForm({
                 </div>
               </div>
 
-              {/* Descrição */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
-                  Descrição
-                </label>
-                <textarea
-                  onFocus={() => setFoco("descricao-do-produto")}
-                  value={values.description}
-                  onChange={(e) => set("description", e.target.value)}
-                  rows={2}
-                  className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
-                />
-              </div>
+              {/* Descrição e Tamanhos disponíveis - lado a lado */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Descrição */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Descrição
+                  </label>
+                  <textarea
+                    onFocus={() => setFoco("descricao-do-produto")}
+                    value={values.description}
+                    onChange={(e) => set("description", e.target.value)}
+                    rows={2}
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  />
+                </div>
 
-              {/* Tamanhos disponíveis - dentro do card de perfil */}
-              <div className="border-t border-neutral-200 pt-3">
-                <p className="mb-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">Tamanhos disponíveis</p>
+                {/* Tamanhos disponíveis */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">Tamanhos disponíveis</p>
 
                 {!values.categoryId ? (
                   <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
@@ -340,6 +342,7 @@ export function ProductForm({
                     </p>
                   </>
                 )}
+                </div>
               </div>
 
               {/* Opções - dentro do card de perfil */}
