@@ -17,6 +17,7 @@ import {
   MapPin,
   Milk,
   Pizza,
+  Plus,
   Salad,
   Sandwich,
   Snowflake,
@@ -41,12 +42,13 @@ import { ReviewsProvider } from "@/lib/pizzaria2/reviews-provider";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { useMenu } from "@/lib/pizzaria2/menu-provider";
+import { useCart } from "@/lib/pizzaria2/cart";
 import { HERO_BOUNDARY_ID } from "@/lib/pizzaria2/hero-overlap";
 import { cn } from "@/lib/utils";
 
 import { heroFor } from "@/lib/pizzaria2/hero-by-type";
 import { CARE_ICONS } from "@/lib/pizzaria2/care-icons";
-import { formatCurrency } from "@/lib/pizzaria2/menu";
+import { defaultSize, sizePrice } from "@/lib/pizzaria2/menu";
 
 /** The trade config names its icons, so they are resolved here. */
 
@@ -94,6 +96,7 @@ function PizzariaInicio() {
   } = useStore();
   const whatsappHref = buildWhatsappHref();
   const { promotions, posts, products } = useMenu();
+  const { addLine } = useCart();
 
   // Hero comes from the store business type — photo and copy travel together.
   const {
@@ -121,32 +124,57 @@ function PizzariaInicio() {
           </Reveal>
 
           <div className="grid grid-cols-3 gap-4">
-            {products.slice(0, 3).map((product) => (
-              <button
-                key={product.id}
-                onClick={goToCardapio}
-                className="rounded-lg overflow-hidden bg-white border border-charcoal/10 hover:shadow-lg transition-shadow text-left"
-              >
-                {product.imageUrl ? (
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="w-full h-40 object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-40 bg-charcoal/5 flex items-center justify-center">
-                    <Pizza className="size-8 text-charcoal/30" />
+            {products.slice(0, 3).map((product) => {
+              const Icon = product.icon;
+              const price = sizePrice(product);
+
+              function handleAddProduct() {
+                addLine({
+                  name: product.name,
+                  sizeLabel: defaultSize(product)?.label,
+                  image: product.image,
+                  icon: product.icon,
+                  unitPrice: price,
+                  extras: [],
+                  qty: 1,
+                  productSlug: product.slug,
+                  sizeId: defaultSize(product)?.id,
+                });
+              }
+
+              return (
+                <div
+                  key={product.id}
+                  className="flex flex-col rounded-lg overflow-hidden bg-white border border-charcoal/10 hover:shadow-lg transition-shadow"
+                >
+                  {product.image ? (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-40 bg-charcoal/5 flex items-center justify-center">
+                      {Icon ? <Icon className="size-8 text-charcoal/30" /> : <Pizza className="size-8 text-charcoal/30" />}
+                    </div>
+                  )}
+                  <div className="flex flex-col flex-1 p-3">
+                    <h3 className="font-semibold text-charcoal text-sm line-clamp-1">{product.name}</h3>
+                    <p className="text-xs text-charcoal/60 line-clamp-2 mt-1">{product.desc}</p>
+                    <div className="flex items-center justify-between gap-2 mt-auto pt-3">
+                      <p className="text-base font-bold text-tomato">R$ {price.toFixed(2).replace(".", ",")}</p>
+                      <button
+                        type="button"
+                        onClick={handleAddProduct}
+                        className="inline-flex shrink-0 items-center justify-center gap-1 rounded-full bg-tomato px-3 py-2 text-sm font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+                      >
+                        <Plus className="size-4" />
+                      </button>
+                    </div>
                   </div>
-                )}
-                <div className="p-4 space-y-2">
-                  <h3 className="font-semibold text-charcoal text-sm">{product.name}</h3>
-                  <p className="text-xs text-charcoal/60 line-clamp-2">{product.description}</p>
-                  {product.basePrice ? (
-                    <p className="text-base font-bold text-tomato">{formatCurrency(product.basePrice)}</p>
-                  ) : null}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
