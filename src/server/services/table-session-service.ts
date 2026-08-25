@@ -58,14 +58,33 @@ export async function getOrCreateOpenTableSession(
       storeId,
       status: "OPEN",
     },
+    include: {
+      orders: {
+        select: { id: true },
+      },
+    },
   });
 
   console.log(`[TABLE SESSION] Searching for OPEN session for table ${tableId}...`);
   if (session) {
-    // Session exists, but we can't recover the PIN (it's hashed)
-    // Return the session without PIN - it will only be shown on first creation
-    console.log(`[TABLE SESSION] ✓ Found existing OPEN session ${session.id} for table ${tableId}. This is NOT first device!`);
-    return session as OpenTableSession;
+    // Se a sessão OPEN não tem pedidos, significa que foi abandonada
+    // Fechar e criar uma nova
+    if (session.orders.length === 0) {
+      console.log(`[TABLE SESSION] Found OPEN session ${session.id} but it has NO orders. Closing stale session...`);
+      await prisma.tableSession.update({
+        where: { id: session.id },
+        data: {
+          status: "CLOSED",
+          closedAt: new Date(),
+        },
+      });
+      session = null; // Forçar criação de nova sessão
+    } else {
+      // Session exists, but we can't recover the PIN (it's hashed)
+      // Return the session without PIN - it will only be shown on first creation
+      console.log(`[TABLE SESSION] ✓ Found existing OPEN session ${session.id} for table ${tableId}. This is NOT first device!`);
+      return session as OpenTableSession;
+    }
   }
   console.log(`[TABLE SESSION] ✗ No OPEN session found for table ${tableId}. Looking for closed sessions...`);
 
