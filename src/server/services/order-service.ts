@@ -132,7 +132,11 @@ export async function precificarItens(
   ];
   const products = await prisma.product.findMany({
     where: { storeId, slug: { in: slugs }, isActive: true },
-    include: { sizes: { where: { isAvailable: true } } },
+    include: {
+      sizes: { where: { isAvailable: true } },
+      // Buscar cost do InventoryItem linkado
+      inventoryItem: { select: { cost: true } },
+    },
   });
   const productBySlug = new Map(products.map((p) => [p.slug, p]));
 
@@ -295,6 +299,9 @@ export async function precificarItens(
     const extrasTotal = todosAdicionais.reduce((s, e) => s + Number(e.priceSnapshot), 0);
     subtotal += (unitPrice + extrasTotal) * item.quantity;
 
+    // Capturar custo do produto no momento da venda (snapshot para auditoria)
+    const unitCost = product.inventoryItem?.cost ?? null;
+
     lines.push({
       productId: product.id,
       productNameSnapshot: product.name,
@@ -303,6 +310,7 @@ export async function precificarItens(
       secondProductId: second?.id ?? null,
       secondProductNameSnapshot: second?.name ?? null,
       unitPrice: Math.round(unitPrice * 100) / 100,
+      unitCost: unitCost ? Number(unitCost) : null,
       quantity: item.quantity,
       note: item.note?.trim() || null,
       extras: todosAdicionais,
