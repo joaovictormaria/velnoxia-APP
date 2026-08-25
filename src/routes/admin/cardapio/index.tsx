@@ -218,7 +218,7 @@ function ProductsPage() {
                       <button
                         type="button"
                         onClick={() => setEditingProductId(p.id)}
-                        className="flex-1 flex items-center justify-center gap-1 p-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
+                        className="flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
                         title={`Editar ${p.name}`}
                       >
                         <Pencil className="size-3.5" />
