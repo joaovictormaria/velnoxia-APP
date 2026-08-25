@@ -299,9 +299,6 @@ export async function precificarItens(
     const extrasTotal = todosAdicionais.reduce((s, e) => s + Number(e.priceSnapshot), 0);
     subtotal += (unitPrice + extrasTotal) * item.quantity;
 
-    // Capturar custo do produto no momento da venda (snapshot para auditoria)
-    const unitCost = product.inventoryItem?.cost ?? null;
-
     lines.push({
       productId: product.id,
       productNameSnapshot: product.name,
@@ -310,7 +307,6 @@ export async function precificarItens(
       secondProductId: second?.id ?? null,
       secondProductNameSnapshot: second?.name ?? null,
       unitPrice: Math.round(unitPrice * 100) / 100,
-      unitCost: unitCost ? Number(unitCost) : null,
       quantity: item.quantity,
       note: item.note?.trim() || null,
       extras: todosAdicionais,
@@ -588,8 +584,6 @@ export async function createOrderFromCheckout(
           create: lines.map(({ extras: lineExtras, productId, ...line }, i) => ({
             ...line,
             product: productId ? { connect: { id: productId } } : undefined,
-            // Por linha, porque a cota pode acabar no meio de uma: dois com
-            // desconto e o terceiro cheio não cabe num campo único do pedido.
             employeeDiscount: beneficioFinal?.porLinha[i]?.desconto ?? 0,
             benefitQuantity: beneficioFinal?.porLinha[i]?.quantidade ?? 0,
             extras: { create: lineExtras },
