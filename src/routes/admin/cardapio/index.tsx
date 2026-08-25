@@ -108,6 +108,14 @@ function ProductsPage() {
         <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
           <div className="flex w-full max-w-7xl flex-col">
             <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setEditingProductId(null)}
+                aria-label="Voltar"
+                className="rounded-lg p-1.5 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
+              >
+                <ArrowLeft className="size-5" />
+              </button>
               <h2 className="text-base font-semibold text-neutral-900">Editar Produto</h2>
               <button
                 type="button"
