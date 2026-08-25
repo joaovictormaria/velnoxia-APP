@@ -143,7 +143,7 @@ function PizzariaInicio() {
               }
 
               return (
-                <div key={product.id} className="bg-white rounded-lg p-3 shadow-sm">
+                <div key={product.id} className="bg-white rounded-lg p-1">
                   <div className="flex flex-col rounded-lg overflow-hidden border-2 border-white hover:shadow-lg transition-shadow"
                 >
                   <div className="relative">
