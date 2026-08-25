@@ -213,28 +213,16 @@ function ProductsPage() {
                       </div>
                     </div>
 
-                    {/* Ações - linha única */}
+                    {/* Ações */}
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() =>
-                          toggleActive.mutate({ id: p.id, isActive: !p.isActive })
-                        }
-                        className={`flex-1 text-xs font-medium px-1.5 py-1 rounded transition-colors ${
-                          p.isActive
-                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
-                            : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300"
-                        }`}
-                      >
-                        {p.isActive ? "Ativo" : "Inativo"}
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => setEditingProductId(p.id)}
-                        className="p-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1 p-1.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-xs font-medium"
                         title={`Editar ${p.name}`}
                       >
                         <Pencil className="size-3.5" />
+                        Editar
                       </button>
                       <button
                         type="button"
@@ -243,7 +231,7 @@ function ProductsPage() {
                             remove.mutate(p.id);
                           }
                         }}
-                        className="p-1 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                        className="p-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                         title={`Excluir ${p.name}`}
                       >
                         <Trash2 className="size-3.5" />
