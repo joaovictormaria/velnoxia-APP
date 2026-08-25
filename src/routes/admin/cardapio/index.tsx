@@ -105,7 +105,9 @@ function ProductsPage() {
   return (
     <>
       {editingProductId && detailData?.product && (
-        <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
+        <>
+          <style>{`body { overflow: hidden; }`}</style>
+          <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
           <div className="flex w-full max-w-7xl flex-col">
             <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
               <button
@@ -137,6 +139,7 @@ function ProductsPage() {
             </div>
           </div>
         </div>
+        </>
       )}
 
       <div className="space-y-6">
