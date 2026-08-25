@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { generateUUID } from "@/lib/uuid";
 import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
 import { getTableOrderCountsFn, getNextTableNumberFn, listTablesFn, deleteTableFn } from "@/server/functions/orders.fn";
-import { createTableFn } from "@/routes/api/tables/create";
+import { createTableFn } from "@/server/functions/tables/create";
 
 const CORES = [
   "bg-red-500",
