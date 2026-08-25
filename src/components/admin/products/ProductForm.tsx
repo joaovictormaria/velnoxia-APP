@@ -196,7 +196,7 @@ export function ProductForm({
 
       {/* Layout: Perfil do Prato (esquerda) + Dados dos Inputs (direita em grid) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr]">
-        {/* PERFIL DO PRATO - Card com foto + campos principais */}
+        {/* PERFIL DO PRATO - Card com foto + todos os campos */}
         <div
           className="rounded-2xl border border-neutral-200 bg-white p-5"
           onFocusCapture={() => setFoco("foto-do-produto")}
@@ -212,7 +212,7 @@ export function ProductForm({
               />
             </div>
 
-            {/* Campos principais */}
+            {/* Campos */}
             <div className="flex-1 space-y-3">
               {/* Nome */}
               <div>
@@ -268,39 +268,34 @@ export function ProductForm({
                   />
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* DADOS DOS INPUTS - Descrição e Selo */}
-        <div>
-          <div className="space-y-4">
-            {/* Descrição */}
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
-                Descrição
-              </label>
-              <textarea
-                onFocus={() => setFoco("descricao-do-produto")}
-                value={values.description}
-                onChange={(e) => set("description", e.target.value)}
-                rows={2}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
-              />
-            </div>
+              {/* Descrição */}
+              <div>
+                <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                  Descrição
+                </label>
+                <textarea
+                  onFocus={() => setFoco("descricao-do-produto")}
+                  value={values.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  rows={2}
+                  className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                />
+              </div>
 
-            {/* Selo */}
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
-                Selo (opcional)
-              </label>
-              <input
-                onFocus={() => setFoco("etiqueta-do-produto")}
-                value={values.tag ?? ""}
-                onChange={(e) => set("tag", e.target.value || null)}
-                placeholder="Ex: Mais pedida, Novidade"
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
-              />
+              {/* Selo */}
+              <div>
+                <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                  Selo (opcional)
+                </label>
+                <input
+                  onFocus={() => setFoco("etiqueta-do-produto")}
+                  value={values.tag ?? ""}
+                  onChange={(e) => set("tag", e.target.value || null)}
+                  placeholder="Ex: Mais pedida, Novidade"
+                  className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+                />
+              </div>
             </div>
           </div>
         </div>
