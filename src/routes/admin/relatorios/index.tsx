@@ -26,6 +26,13 @@ function ReportsPage() {
         </Link>
         <br />
         <Link
+          to="/admin/relatorios/historico"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#E11D2E] hover:underline"
+        >
+          Histórico de Transações <ArrowRight className="size-4" />
+        </Link>
+        <br />
+        <Link
           to="/admin/relatorios/produtos"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-[#E11D2E] hover:underline"
         >
