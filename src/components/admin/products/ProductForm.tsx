@@ -166,23 +166,24 @@ export function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
           <Link
             to="/admin/cardapio"
-            className="mb-1 flex items-center gap-1.5 text-sm text-[#E11D2E] hover:underline"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:border-neutral-300"
+            title="Voltar para cardápio"
           >
             <ArrowLeft className="size-4" />
-            Voltar
+            <span className="hidden sm:inline">Voltar</span>
           </Link>
-          <h1 className="text-3xl font-bold text-neutral-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">
             {productId ? "Editar Produto" : "Novo Produto"}
           </h1>
         </div>
         <button
           type="submit"
           disabled={save.isPending}
-          className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] disabled:opacity-60"
+          className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] disabled:opacity-60 w-full sm:w-auto"
         >
           {save.isPending ? "Salvando..." : "Salvar alterações"}
         </button>
