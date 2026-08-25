@@ -212,25 +212,24 @@ export function ProductForm({
 
             {/* Campos */}
             <div className="flex-1 space-y-3">
-              {/* Nome */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
-                  Nome do produto
-                </label>
-                <input
-                  onFocus={() => setFoco("nome-do-produto")}
-                  value={values.name}
-                  onChange={(e) => {
-                    set("name", e.target.value);
-                    if (enderecoSegueONome) set("slug", slugify(e.target.value));
-                  }}
-                  required
-                  className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
-                />
-              </div>
+              {/* Nome e Categoria - lado a lado */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Nome do produto
+                  </label>
+                  <input
+                    onFocus={() => setFoco("nome-do-produto")}
+                    value={values.name}
+                    onChange={(e) => {
+                      set("name", e.target.value);
+                      if (enderecoSegueONome) set("slug", slugify(e.target.value));
+                    }}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  />
+                </div>
 
-              {/* Categoria e Preço - lado a lado */}
-              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
                     Categoria
@@ -249,22 +248,23 @@ export function ProductForm({
                     ))}
                   </select>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
-                    Preço base
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    onFocus={() => setFoco("preco-do-produto")}
-                    value={values.basePrice}
-                    onChange={(e) => set("basePrice", Number(e.target.value))}
-                    required
-                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
-                  />
-                </div>
+              {/* Preço base */}
+              <div>
+                <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                  Preço base
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  onFocus={() => setFoco("preco-do-produto")}
+                  value={values.basePrice}
+                  onChange={(e) => set("basePrice", Number(e.target.value))}
+                  required
+                  className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                />
               </div>
 
               {/* Descrição */}
