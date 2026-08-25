@@ -176,9 +176,6 @@ export function ProductForm({
             <ArrowLeft className="size-4" />
             <span className="hidden sm:inline">Voltar</span>
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold text-neutral-900">
-            {productId ? "Editar Produto" : "Novo Produto"}
-          </h1>
         </div>
         <button
           type="submit"
