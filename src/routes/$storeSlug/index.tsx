@@ -120,7 +120,7 @@ function PizzariaInicio() {
       <section className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20">
         <div className="mx-auto max-w-[1200px]">
           <Reveal variant="up" className="mb-6">
-            <h2 className="text-2xl font-bold text-charcoal">Mais Pedidos</h2>
+            <h2 className="text-xl font-bold text-charcoal">Mais Pedidos</h2>
           </Reveal>
 
           <div className="grid grid-cols-3 gap-4">
@@ -159,7 +159,7 @@ function PizzariaInicio() {
                     </div>
                   )}
                   <div className="flex flex-col flex-1 p-3">
-                    <h3 className="font-semibold text-charcoal text-sm line-clamp-1">{product.name}</h3>
+                    <h3 className="font-semibold text-charcoal text-xs line-clamp-2">{product.name}</h3>
                     <p className="text-xs text-charcoal/60 line-clamp-2 mt-1">{product.desc}</p>
                     <div className="flex items-center justify-between gap-2 mt-auto pt-3">
                       <p className="text-base font-bold text-tomato">R$ {price.toFixed(2).replace(".", ",")}</p>
