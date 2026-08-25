@@ -101,7 +101,7 @@ export function ImageUploadField({
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-1 text-[10px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-60"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-3 py-1 text-[10px] font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:opacity-60 whitespace-nowrap"
         >
           {uploading && <Loader2 className="size-3 animate-spin" />}
           {uploading ? "Enviando..." : "Alterar foto"}
