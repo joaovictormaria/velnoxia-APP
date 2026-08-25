@@ -670,7 +670,15 @@ export async function transitionOrderStatus(
   // not be found, not be moved.
   const order = await prisma.order.findFirst({
     where: { id: orderId, storeId },
-    select: { status: true, type: true, courierId: true, paymentMethod: true, tableId: true },
+    select: {
+      status: true,
+      type: true,
+      courierId: true,
+      paymentMethod: true,
+      tableId: true,
+      paymentStatus: true,
+      total: true,
+    },
   });
   if (!order) return { ok: false, error: "Pedido não encontrado." };
   if (order.status === status) return { ok: true };
@@ -715,6 +723,19 @@ export async function transitionOrderStatus(
          */
         ...(status === "COMPLETED" && order.paymentMethod !== "PAYROLL"
           ? { paymentStatus: "PAID" as const }
+          : {}),
+        // Se cancelando, registrar cancelledAt e refund se foi pago
+        ...(status === "CANCELLED"
+          ? {
+              cancelledAt: new Date(),
+              // Se foi pago (PAID), registrar refund automático
+              ...(order.paymentStatus === "PAID"
+                ? {
+                    refund: order.total,
+                    refundedAt: new Date(),
+                  }
+                : {}),
+            }
           : {}),
         // Sair do preparo encerra a espera de qualquer jeito: o pedido saiu,
         // foi cancelado ou virou retirada, e nenhum deles ainda aguarda alguem.
