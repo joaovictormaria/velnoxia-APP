@@ -123,7 +123,7 @@ function PizzariaInicio() {
             <h2 className="text-xl font-bold text-charcoal">Mais Pedidos</h2>
           </Reveal>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-0">
             {products.slice(0, 3).map((product) => {
               const Icon = product.icon;
               const price = sizePrice(product);
