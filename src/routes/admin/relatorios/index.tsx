@@ -19,6 +19,13 @@ function ReportsPage() {
 
       <div className="space-y-2">
         <Link
+          to="/admin/relatorios/receita"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#E11D2E] hover:underline"
+        >
+          Relatório de Receita <ArrowRight className="size-4" />
+        </Link>
+        <br />
+        <Link
           to="/admin/relatorios/produtos"
           className="inline-flex items-center gap-1.5 text-sm font-medium text-[#E11D2E] hover:underline"
         >

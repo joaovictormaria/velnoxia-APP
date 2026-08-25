@@ -51,6 +51,7 @@ import { Route as AdminPromocoesIndexRouteImport } from './routes/admin/promocoe
 import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relatorios/index'
 import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
+import { Route as AdminRelatoriosReceitaRouteImport } from './routes/admin/relatorios/receita'
 import { Route as QrPinStoreSlugSessionIdRouteImport } from './routes/qr-pin.$storeSlug.$sessionId'
 import { Route as QrShowPinStoreSlugSessionIdRouteImport } from './routes/qr-show-pin.$storeSlug.$sessionId'
 import { Route as QrStoreSlugQrcodeIdRouteImport } from './routes/qr.$storeSlug.$qrcodeId'
@@ -267,6 +268,11 @@ const AdminRelatoriosProdutosRoute = AdminRelatoriosProdutosRouteImport.update({
   path: '/relatorios/produtos',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminRelatoriosReceitaRoute = AdminRelatoriosReceitaRouteImport.update({
+  id: '/relatorios/receita',
+  path: '/relatorios/receita',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const QrPinStoreSlugSessionIdRoute = QrPinStoreSlugSessionIdRouteImport.update({
   id: '/qr-pin/$storeSlug/$sessionId',
   path: '/qr-pin/$storeSlug/$sessionId',
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
+  '/admin/relatorios/receita': typeof AdminRelatoriosReceitaRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
@@ -359,6 +366,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
+  '/admin/relatorios/receita': typeof AdminRelatoriosReceitaRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
@@ -407,6 +415,7 @@ export interface FileRoutesById {
   '/admin/pedidos/$orderId': typeof AdminPedidosOrderIdRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
+  '/admin/relatorios/receita': typeof AdminRelatoriosReceitaRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
@@ -456,6 +465,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
+    | '/admin/relatorios/receita'
     | '/qr-pin/$storeSlug/$sessionId'
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
@@ -500,6 +510,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
+    | '/admin/relatorios/receita'
     | '/qr-pin/$storeSlug/$sessionId'
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos/$orderId'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/produtos'
+    | '/admin/relatorios/receita'
     | '/qr-pin/$storeSlug/$sessionId'
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
@@ -876,6 +888,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosProdutosRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/relatorios/receita': {
+      id: '/admin/relatorios/receita'
+      path: '/relatorios/receita'
+      fullPath: '/admin/relatorios/receita'
+      preLoaderRoute: typeof AdminRelatoriosReceitaRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/qr-pin/$storeSlug/$sessionId': {
       id: '/qr-pin/$storeSlug/$sessionId'
       path: '/qr-pin/$storeSlug/$sessionId'
@@ -933,6 +952,7 @@ interface AdminRouteRouteChildren {
   AdminPedidosOrderIdRoute: typeof AdminPedidosOrderIdRoute
   AdminRelatoriosFuncionariosRoute: typeof AdminRelatoriosFuncionariosRoute
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
+  AdminRelatoriosReceitaRoute: typeof AdminRelatoriosReceitaRoute
   AdminAvaliacoesIndexRoute: typeof AdminAvaliacoesIndexRoute
   AdminCardapioIndexRoute: typeof AdminCardapioIndexRoute
   AdminClientesIndexRoute: typeof AdminClientesIndexRoute
@@ -962,6 +982,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminPedidosOrderIdRoute: AdminPedidosOrderIdRoute,
   AdminRelatoriosFuncionariosRoute: AdminRelatoriosFuncionariosRoute,
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
+  AdminRelatoriosReceitaRoute: AdminRelatoriosReceitaRoute,
   AdminAvaliacoesIndexRoute: AdminAvaliacoesIndexRoute,
   AdminCardapioIndexRoute: AdminCardapioIndexRoute,
   AdminClientesIndexRoute: AdminClientesIndexRoute,
