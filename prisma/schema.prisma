@@ -832,6 +832,11 @@ model Order {
   discount    Decimal @db.Decimal(10, 2) @default(0)
   total       Decimal
 
+  /// Valor reembolsado se pedido foi cancelado após pagamento
+  refund    Decimal? @db.Decimal(10, 2)
+  /// Data do reembolso (se aplicável)
+  refundedAt DateTime?
+
   couponId String?
   coupon   Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
 
@@ -865,6 +870,8 @@ model Order {
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
   deletedBy String?
+  /// Data de cancelamento (independente de deletedAt para auditoria)
+  cancelledAt DateTime?
 
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
@@ -899,6 +906,8 @@ model OrderItem {
   secondProductNameSnapshot String?
 
   unitPrice Decimal
+  /// Custo unitário capturado no momento da venda (snapshot para auditoria)
+  unitCost  Decimal?
   quantity  Int     @default(1)
   note      String?
 
