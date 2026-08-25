@@ -414,9 +414,9 @@ export function ProductForm({
           </div>
         </div>
 
-      {/* PREVIEW - Full width abaixo */}
+      {/* PREVIEW - Full width abaixo (hidden on mobile) */}
       {storeSlug && (
-      <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+      <div className="hidden md:block rounded-2xl border border-neutral-200 bg-white p-6">
         <p className="mb-4 text-sm font-semibold text-neutral-900">Preview do Produto</p>
         <PreviaDaVitrine
           storeSlug={storeSlug}
