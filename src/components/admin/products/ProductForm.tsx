@@ -194,8 +194,8 @@ export function ProductForm({
         </p>
       )}
 
-      {/* Layout: Perfil do Prato (esquerda) + Dados dos Inputs (direita em grid) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr]">
+      {/* Layout: Perfil do Prato (esquerda) + Tamanhos (direita) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* PERFIL DO PRATO - Card com foto + todos os campos */}
         <div
           className="rounded-2xl border border-neutral-200 bg-white p-5"
@@ -299,6 +299,114 @@ export function ProductForm({
             </div>
           </div>
         </div>
+
+        {/* TAMANHOS E OPÇÕES - Direita, empilhados */}
+        <div className="space-y-4">
+          {/* TAMANHOS DISPONÍVEIS */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+            <p className="mb-3 text-sm font-medium text-neutral-900">Tamanhos disponíveis</p>
+
+            {!values.categoryId ? (
+              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
+                Escolha uma categoria. São os tamanhos dela que aparecem aqui.
+              </p>
+            ) : tamanhosDaCategoria.length === 0 ? (
+              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
+                A categoria não tem tamanhos. Produto vendido pelo preço base.
+              </p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  {tamanhosDaCategoria.map(({ id, label }) => {
+                    const size = sizeFor(id);
+                    return (
+                      <div key={id} className="flex items-center gap-3">
+                        <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(size)}
+                            onChange={(e) => toggleSize(id, e.target.checked)}
+                            className="size-4 accent-[#E11D2E]"
+                          />
+                          {label}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          disabled={!size}
+                          value={size?.price ?? ""}
+                          onChange={(e) => setSizePrice(id, Number(e.target.value))}
+                          placeholder="—"
+                          className="w-24 rounded-lg border border-neutral-200 px-2 py-1 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-neutral-500">
+                  Sem tamanhos marcados, o produto é vendido pelo preço base.
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* OPÇÕES */}
+          <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
+            <p className="text-sm font-semibold text-neutral-900">Opções</p>
+
+            <Toggle
+              label="Produto disponível"
+              checked={values.isActive}
+              onChange={(v) => set("isActive", v)}
+            />
+
+            {aceitaMeioAMeio && (
+              <>
+                <Toggle
+                  label="Permitir meia a meia (2 sabores)"
+                  checked={values.allowHalfAndHalf}
+                  onChange={(v) => set("allowHalfAndHalf", v)}
+                />
+
+                {values.allowHalfAndHalf && (
+                  <>
+                    <Field label="Regra de preço">
+                      <select
+                        value={values.halfPizzaPricingRule}
+                        onChange={(e) =>
+                          set(
+                            "halfPizzaPricingRule",
+                            e.target.value as ProductFormValues["halfPizzaPricingRule"],
+                          )
+                        }
+                        className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
+                      >
+                        <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
+                        <option value="AVERAGE_PRICE">Média entre os sabores</option>
+                      </select>
+                    </Field>
+
+                    <p className="text-xs text-neutral-500">
+                      {values.halfPizzaPricingRule === "HIGHEST_PRICE"
+                        ? "A pizza sai pelo preço do sabor mais caro dos dois."
+                        : "A pizza sai pela média dos preços dos dois sabores."}
+                    </p>
+                  </>
+                )}
+              </>
+            )}
+
+            <Field label="Ordem de exibição">
+              <input
+                type="number"
+                value={values.sortOrder}
+                onChange={(e) => set("sortOrder", Number(e.target.value))}
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
+              />
+            </Field>
+          </div>
+        </div>
       </div>
 
       {/* PREVIEW - Full width abaixo */}
@@ -334,164 +442,33 @@ export function ProductForm({
       </div>
       )}
 
-      {/* Endereço do produto no site - read-only */}
+      {/* Perguntas do produto - abaixo do preview */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-        <div>
-          <p className="text-sm font-semibold text-neutral-900 mb-2">Endereço do produto no site</p>
-          <input
-            value={values.slug}
-            readOnly
-            tabIndex={-1}
-            aria-describedby="dica-do-slug"
-            className="w-full cursor-default rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-sm text-neutral-500"
+        <p className="text-sm font-semibold text-neutral-900">
+          Perguntas só deste produto
+        </p>
+        <p className="mt-1 text-xs text-neutral-500">
+          O que o cliente escolhe antes de adicionar ao carrinho — o sabor do suco, o
+          tipo de pão. Vale só para este produto.
+        </p>
+
+        {categoriaEscolhida && categoriaEscolhida.optionGroups.length > 0 && (
+          <p className="mt-2.5 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+            A categoria {categoriaEscolhida.name} já pergunta{" "}
+            <span className="font-semibold">
+              {categoriaEscolhida.optionGroups.map((g) => g.name).join(", ")}
+            </span>{" "}
+            em todos os produtos dela. Não precisa repetir aqui.
+          </p>
+        )}
+
+        <div className="mt-3">
+          <OptionGroupEditor
+            value={values.optionGroups}
+            onChange={(optionGroups) => set("optionGroups", optionGroups)}
+            businessType={businessType ?? ""}
           />
-          <span id="dica-do-slug" className="mt-1 block text-xs text-neutral-500">
-            Criado sozinho a partir do nome do produto.
-          </span>
         </div>
-      </div>
-
-      {/* Outros campos - abaixo */}
-      <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
-
-          <div>
-            <p className="mb-2 text-sm font-medium text-neutral-900">Tamanhos disponíveis</p>
-
-            {!values.categoryId ? (
-              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
-                Escolha uma categoria acima. São os tamanhos dela que aparecem aqui.
-              </p>
-            ) : tamanhosDaCategoria.length === 0 ? (
-              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
-                A categoria escolhida não tem tamanhos, então este produto é vendido pelo preço
-                base — o normal para bebidas e porções. Para vender por tamanho (P/M/G,
-                300ml/500ml, Brotinho/Grande), cadastre os tamanhos dela em Cardápio →
-                Categorias.
-              </p>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  {tamanhosDaCategoria.map(({ id, label }) => {
-                    const size = sizeFor(id);
-                    return (
-                      <div key={id} className="flex items-center gap-3">
-                        <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(size)}
-                            onChange={(e) => toggleSize(id, e.target.checked)}
-                            className="size-4 accent-[#E11D2E]"
-                          />
-                          {label}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          disabled={!size}
-                          value={size?.price ?? ""}
-                          onChange={(e) => setSizePrice(id, Number(e.target.value))}
-                          placeholder="—"
-                          className="w-28 rounded-lg border border-neutral-200 px-3 py-1.5 text-base md:text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-2 text-xs text-neutral-500">
-                  Sem tamanhos marcados, o produto é vendido pelo preço base.
-                </p>
-              </>
-            )}
-          </div>
-
-          {/* Perguntas do produto, separadas das da categoria.
-              "Bebidas" tem refrigerante e suco: os sabores de um não são os do
-              outro, e uma pergunta na categoria obrigaria os dois à mesma
-              lista. Aqui o dono pergunta só do item que está editando. */}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-            <p className="text-sm font-semibold text-neutral-900">
-              Perguntas só deste produto
-            </p>
-            <p className="mt-1 text-xs text-neutral-500">
-              O que o cliente escolhe antes de adicionar ao carrinho — o sabor do suco, o
-              tipo de pão. Vale só para este produto.
-            </p>
-
-            {categoriaEscolhida && categoriaEscolhida.optionGroups.length > 0 && (
-              <p className="mt-2.5 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
-                A categoria {categoriaEscolhida.name} já pergunta{" "}
-                <span className="font-semibold">
-                  {categoriaEscolhida.optionGroups.map((g) => g.name).join(", ")}
-                </span>{" "}
-                em todos os produtos dela. Não precisa repetir aqui.
-              </p>
-            )}
-
-            <div className="mt-3">
-              <OptionGroupEditor
-                value={values.optionGroups}
-                onChange={(optionGroups) => set("optionGroups", optionGroups)}
-                businessType={businessType ?? ""}
-              />
-            </div>
-          </div>
-        </div>
-
-      {/* Opções - full width */}
-      <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-5">
-        <p className="text-sm font-semibold text-neutral-900">Opções</p>
-
-          <Toggle
-            label="Produto disponível"
-            checked={values.isActive}
-            onChange={(v) => set("isActive", v)}
-          />
-
-          {aceitaMeioAMeio && (
-            <>
-              <Toggle
-                label="Permitir meia a meia (2 sabores)"
-                checked={values.allowHalfAndHalf}
-                onChange={(v) => set("allowHalfAndHalf", v)}
-              />
-
-              {values.allowHalfAndHalf && (
-                <>
-                  <Field label="Regra de preço">
-                    <select
-                      value={values.halfPizzaPricingRule}
-                      onChange={(e) =>
-                        set(
-                          "halfPizzaPricingRule",
-                          e.target.value as ProductFormValues["halfPizzaPricingRule"],
-                        )
-                      }
-                      className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
-                    >
-                      <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
-                      <option value="AVERAGE_PRICE">Média entre os sabores</option>
-                    </select>
-                  </Field>
-
-                  <p className="text-xs text-neutral-500">
-                    {values.halfPizzaPricingRule === "HIGHEST_PRICE"
-                      ? "A pizza sai pelo preço do sabor mais caro dos dois."
-                      : "A pizza sai pela média dos preços dos dois sabores."}
-                  </p>
-                </>
-              )}
-            </>
-          )}
-
-          <Field label="Ordem de exibição">
-            <input
-              type="number"
-              value={values.sortOrder}
-              onChange={(e) => set("sortOrder", Number(e.target.value))}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
-            />
-          </Field>
       </div>
     </form>
   );
