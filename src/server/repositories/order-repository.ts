@@ -25,6 +25,7 @@ const KANBAN_STATUSES: OrderStatus[] = [
   "RECEIVED",
   "PREPARING",
   "OUT_FOR_DELIVERY",
+  "TABLE_READY",
   "COMPLETED",
 ];
 
