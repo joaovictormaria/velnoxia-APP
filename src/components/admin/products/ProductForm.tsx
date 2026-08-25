@@ -197,12 +197,13 @@ export function ProductForm({
       {/* Layout: Perfil do Prato (esquerda) + Dados dos Inputs (direita em grid) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr]">
         {/* PERFIL DO PRATO - Esquerda */}
-        <div className="space-y-4">
-          <div
-            className="rounded-2xl border border-neutral-200 bg-white p-5"
-            onFocusCapture={() => setFoco("foto-do-produto")}
-          >
-            <div className="max-w-32">
+        <div
+          className="rounded-2xl border border-neutral-200 bg-white p-5"
+          onFocusCapture={() => setFoco("foto-do-produto")}
+        >
+          <div className="flex gap-5">
+            {/* Foto */}
+            <div className="max-w-32 shrink-0">
               <ImageUploadField
                 kind="product"
                 label="Foto do produto"
@@ -210,25 +211,25 @@ export function ProductForm({
                 onChange={(url) => set("imageUrl", url)}
               />
             </div>
-          </div>
 
-          {/* Info cards do produto */}
-          <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5">
-            <div>
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Nome</p>
-              <p className="mt-1 text-sm font-bold text-neutral-900 line-clamp-2">{values.name || "—"}</p>
-            </div>
-            <div className="border-t border-neutral-200 pt-3">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Preço base</p>
-              <p className="mt-1 text-lg font-bold text-[#E11D2E]">
-                R$ {Number(values.basePrice).toFixed(2).replace(".", ",")}
-              </p>
-            </div>
-            <div className="border-t border-neutral-200 pt-3">
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Categoria</p>
-              <p className="mt-1 text-sm text-neutral-700">
-                {categories.find((c) => c.id === values.categoryId)?.name || "—"}
-              </p>
+            {/* Info do produto */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Nome</p>
+                <p className="mt-1 text-sm font-bold text-neutral-900 line-clamp-2">{values.name || "—"}</p>
+              </div>
+              <div className="border-t border-neutral-200 pt-3">
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Preço base</p>
+                <p className="mt-1 text-lg font-bold text-[#E11D2E]">
+                  R$ {Number(values.basePrice).toFixed(2).replace(".", ",")}
+                </p>
+              </div>
+              <div className="border-t border-neutral-200 pt-3">
+                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Categoria</p>
+                <p className="mt-1 text-sm text-neutral-700">
+                  {categories.find((c) => c.id === values.categoryId)?.name || "—"}
+                </p>
+              </div>
             </div>
           </div>
         </div>
