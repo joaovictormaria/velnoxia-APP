@@ -212,8 +212,8 @@ export function ProductForm({
 
             {/* Campos */}
             <div className="flex-1 space-y-3">
-              {/* Nome, Categoria, Preço e Selo - lado a lado */}
-              <div className="grid grid-cols-5 gap-2">
+              {/* Nome, Categoria, Preço, Selo e Ordem - lado a lado */}
+              <div className="grid grid-cols-6 gap-2">
                 <div className="col-span-2">
                   <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
                     Nome do produto
@@ -275,6 +275,18 @@ export function ProductForm({
                     onChange={(e) => set("tag", e.target.value || null)}
                     placeholder="Ex: Mais pedida"
                     className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Ordem exibição
+                  </label>
+                  <input
+                    type="number"
+                    value={values.sortOrder}
+                    onChange={(e) => set("sortOrder", Number(e.target.value))}
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
                   />
                 </div>
               </div>
@@ -391,15 +403,6 @@ export function ProductForm({
                       )}
                     </>
                   )}
-
-                  <Field label="Ordem de exibição">
-                    <input
-                      type="number"
-                      value={values.sortOrder}
-                      onChange={(e) => set("sortOrder", Number(e.target.value))}
-                      className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
-                    />
-                  </Field>
                 </div>
               </div>
             </div>
