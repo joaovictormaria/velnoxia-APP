@@ -212,8 +212,8 @@ export function ProductForm({
 
             {/* Campos */}
             <div className="flex-1 space-y-3">
-              {/* Nome, Categoria e Preço - lado a lado */}
-              <div className="grid grid-cols-4 gap-2">
+              {/* Nome, Categoria, Preço e Selo - lado a lado */}
+              <div className="grid grid-cols-5 gap-2">
                 <div className="col-span-2">
                   <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
                     Nome do produto
@@ -264,6 +264,19 @@ export function ProductForm({
                     className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Selo (opcional)
+                  </label>
+                  <input
+                    onFocus={() => setFoco("etiqueta-do-produto")}
+                    value={values.tag ?? ""}
+                    onChange={(e) => set("tag", e.target.value || null)}
+                    placeholder="Ex: Mais pedida"
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+                  />
+                </div>
               </div>
 
               {/* Descrição */}
@@ -277,20 +290,6 @@ export function ProductForm({
                   onChange={(e) => set("description", e.target.value)}
                   rows={2}
                   className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
-                />
-              </div>
-
-              {/* Selo */}
-              <div>
-                <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
-                  Selo (opcional)
-                </label>
-                <input
-                  onFocus={() => setFoco("etiqueta-do-produto")}
-                  value={values.tag ?? ""}
-                  onChange={(e) => set("tag", e.target.value || null)}
-                  placeholder="Ex: Mais pedida, Novidade"
-                  className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
                 />
               </div>
 
