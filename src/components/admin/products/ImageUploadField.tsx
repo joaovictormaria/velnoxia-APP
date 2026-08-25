@@ -117,7 +117,7 @@ export function ImageUploadField({
         )}
       </div>
 
-      <p className="text-xs text-neutral-500">Formatos: JPG, PNG, WEBP. Tamanho máx. 2MB.</p>
+      <p className="text-[10px] text-neutral-500">Formatos: JPG, PNG, WEBP. Tamanho máx. 2MB.</p>
       {error && <p className="text-xs text-[#E11D2E]">{error}</p>}
     </div>
   );
