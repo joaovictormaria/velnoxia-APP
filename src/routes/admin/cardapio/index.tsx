@@ -106,7 +106,7 @@ function ProductsPage() {
     <>
       {editingProductId && detailData?.product && (
         <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
-          <div className="flex w-full max-w-5xl flex-col">
+          <div className="flex w-full max-w-7xl flex-col">
             <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
               <h2 className="text-base font-semibold text-neutral-900">Editar Produto</h2>
               <button
