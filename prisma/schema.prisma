@@ -876,6 +876,7 @@ model Order {
   items         OrderItem[]
   statusHistory OrderStatusHistory[]
   reviews       Review[]
+  webhookEvents PaymentWebhookEvent[]
 
   @@unique([storeId, number])
   @@index([storeId, status, createdAt, deletedAt])
@@ -1418,4 +1419,69 @@ model AuditLog {
   @@index([storeId, resource, resourceId])
   @@index([userId, createdAt])
   @@index([action])
+}
+
+// ---------- Payment & Billing Webhooks ----------
+
+/// Webhook de pagamento de pedido (Stripe, PIX, etc)
+/// Imutável: rastreia todos os webhooks recebidos
+/// Garante idempotência: mesmo webhook não é processado duas vezes
+model PaymentWebhookEvent {
+  id            String   @id @default(cuid())
+
+  /// ID único do webhook (para idempotência)
+  webhookId     String   @unique
+  /// Provedor (STRIPE, PIX, MANUAL, etc)
+  provider      String
+  /// Tipo de evento (payment.confirmed, payment.failed, etc)
+  eventType     String
+
+  /// ID do pedido (se conhecemos)
+  orderId       String?
+  order         Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// Payload do webhook (JSON)
+  payload       String   @db.Text
+
+  /// Status do processamento
+  status        String   @default("PENDING") // PENDING, PROCESSED, FAILED
+  /// Se falhou, a razão
+  errorMessage  String?
+
+  /// Quando foi recebido
+  receivedAt    DateTime @default(now())
+  /// Quando foi processado
+  processedAt   DateTime?
+
+  createdAt     DateTime @default(now())
+
+  @@index([webhookId])
+  @@index([orderId])
+  @@index([provider, status])
+  @@index([createdAt])
+}
+
+/// Webhook de billing (assinatura da loja)
+/// Complementa o PaymentWebhookEvent com eventos de assinatura
+model StripeWebhookEvent {
+  id            String   @id @default(cuid())
+
+  /// ID único do evento Stripe
+  eventId       String   @unique
+  /// Tipo de evento (checkout.session.completed, invoice.payment_succeeded, etc)
+  eventType     String
+
+  /// ID da loja (se aplicável)
+  storeId       String?
+  /// Payload do webhook (JSON)
+  payload       String?  @db.Text
+
+  /// Quando foi processado
+  processedAt   DateTime @default(now())
+
+  createdAt     DateTime @default(now())
+
+  @@index([eventId])
+  @@index([storeId])
+  @@index([eventType])
 }
