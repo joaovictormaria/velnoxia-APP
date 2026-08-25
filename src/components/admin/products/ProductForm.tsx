@@ -181,12 +181,14 @@ export function ProductForm({
           <div className="flex md:hidden flex-col gap-4 mt-6">
             {/* Foto Mobile - Redonda */}
             <div className="flex justify-center">
-              <ImageUploadField
-                kind="product"
-                label=""
-                value={values.imageUrl}
-                onChange={(url) => set("imageUrl", url)}
-              />
+              <div className="w-40 h-40 rounded-full overflow-hidden">
+                <ImageUploadField
+                  kind="product"
+                  label=""
+                  value={values.imageUrl}
+                  onChange={(url) => set("imageUrl", url)}
+                />
+              </div>
             </div>
 
             {/* Campos Mobile */}
