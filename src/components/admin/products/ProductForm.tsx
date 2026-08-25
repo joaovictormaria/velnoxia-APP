@@ -196,103 +196,87 @@ export function ProductForm({
 
       {/* Layout: Perfil do Prato (esquerda) + Dados dos Inputs (direita em grid) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr]">
-        {/* PERFIL DO PRATO - Esquerda */}
+        {/* PERFIL DO PRATO - Card com foto + campos principais */}
         <div
           className="rounded-2xl border border-neutral-200 bg-white p-5"
           onFocusCapture={() => setFoco("foto-do-produto")}
         >
-          <div className="flex gap-5">
+          <div className="flex gap-4">
             {/* Foto */}
             <div className="max-w-32 shrink-0">
               <ImageUploadField
                 kind="product"
-                label="Foto do produto"
+                label="Foto"
                 value={values.imageUrl}
                 onChange={(url) => set("imageUrl", url)}
               />
             </div>
 
-            {/* Info do produto */}
+            {/* Campos principais */}
             <div className="flex-1 space-y-3">
+              {/* Nome */}
               <div>
-                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Nome</p>
-                <p className="mt-1 text-sm font-bold text-neutral-900 line-clamp-2">{values.name || "—"}</p>
+                <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                  Nome do produto
+                </label>
+                <input
+                  onFocus={() => setFoco("nome-do-produto")}
+                  value={values.name}
+                  onChange={(e) => {
+                    set("name", e.target.value);
+                    if (enderecoSegueONome) set("slug", slugify(e.target.value));
+                  }}
+                  required
+                  className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                />
               </div>
-              <div className="border-t border-neutral-200 pt-3">
-                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Preço base</p>
-                <p className="mt-1 text-lg font-bold text-[#E11D2E]">
-                  R$ {Number(values.basePrice).toFixed(2).replace(".", ",")}
-                </p>
-              </div>
-              <div className="border-t border-neutral-200 pt-3">
-                <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Categoria</p>
-                <p className="mt-1 text-sm text-neutral-700">
-                  {categories.find((c) => c.id === values.categoryId)?.name || "—"}
-                </p>
+
+              {/* Categoria e Preço - lado a lado */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Categoria
+                  </label>
+                  <select
+                    value={values.categoryId}
+                    onChange={(e) => set("categoryId", e.target.value)}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-900"
+                  >
+                    <option value="">Selecione...</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Preço base
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    onFocus={() => setFoco("preco-do-produto")}
+                    value={values.basePrice}
+                    onChange={(e) => set("basePrice", Number(e.target.value))}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* DADOS DOS INPUTS - Direita em grid 3x2 */}
+        {/* DADOS DOS INPUTS - Descrição e Selo */}
         <div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {/* Nome */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
-                Nome do produto
-              </label>
-              <input
-                onFocus={() => setFoco("nome-do-produto")}
-                value={values.name}
-                onChange={(e) => {
-                  set("name", e.target.value);
-                  if (enderecoSegueONome) set("slug", slugify(e.target.value));
-                }}
-                required
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
-              />
-            </div>
-
-            {/* Categoria */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
-                Categoria
-              </label>
-              <select
-                value={values.categoryId}
-                onChange={(e) => set("categoryId", e.target.value)}
-                required
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
-              >
-                <option value="">Selecione...</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Preço base */}
-            <div>
-              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
-                Preço base
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                onFocus={() => setFoco("preco-do-produto")}
-                value={values.basePrice}
-                onChange={(e) => set("basePrice", Number(e.target.value))}
-                required
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
-              />
-            </div>
-
-            {/* Descrição - full width */}
-            <div className="md:col-span-2 lg:col-span-3">
+          <div className="space-y-4">
+            {/* Descrição */}
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
               <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
                 Descrição
               </label>
@@ -306,7 +290,7 @@ export function ProductForm({
             </div>
 
             {/* Selo */}
-            <div className="md:col-span-2 lg:col-span-3">
+            <div className="rounded-2xl border border-neutral-200 bg-white p-5">
               <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
                 Selo (opcional)
               </label>
