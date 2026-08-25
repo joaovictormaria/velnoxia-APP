@@ -191,7 +191,7 @@ function ProductsPage() {
               <div className="overflow-y-auto flex-1 p-3 space-y-2">
                 {grupo.produtos.map((p) => (
                   <div key={p.id} className="bg-neutral-50 rounded-lg p-3 hover:bg-neutral-100 transition-colors border border-neutral-200">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2">
                       {p.imageUrl ? (
                         <img
                           src={p.imageUrl}
@@ -207,35 +207,35 @@ function ProductsPage() {
                         <div className="font-medium text-neutral-900 text-xs truncate">
                           {p.name}
                         </div>
-                        <div className="text-base font-bold text-[#E11D2E]">
+                        <div className="text-sm font-bold text-[#E11D2E]">
                           R$ {Number(p.basePrice).toFixed(2).replace(".", ",")}
                         </div>
                       </div>
-                    </div>
 
-                    {/* Ações */}
-                    <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-neutral-200">
-                      <button
-                        type="button"
-                        onClick={() => setEditingProductId(p.id)}
-                        className="flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
-                        title={`Editar ${p.name}`}
-                      >
-                        <Pencil className="size-3.5" />
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`Excluir "${p.name}"?`)) {
-                            remove.mutate(p.id);
-                          }
-                        }}
-                        className="px-1 py-1.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
-                        title={`Excluir ${p.name}`}
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
+                      {/* Ações */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingProductId(p.id)}
+                          className="flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
+                          title={`Editar ${p.name}`}
+                        >
+                          <Pencil className="size-3.5" />
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Excluir "${p.name}"?`)) {
+                              remove.mutate(p.id);
+                            }
+                          }}
+                          className="px-1 py-1.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
+                          title={`Excluir ${p.name}`}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
