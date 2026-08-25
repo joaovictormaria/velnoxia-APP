@@ -119,14 +119,6 @@ function ProductsPage() {
                 <ArrowLeft className="size-5" />
               </button>
               <h2 className="text-base font-semibold text-neutral-900">Editar Produto</h2>
-              <button
-                type="button"
-                onClick={() => setEditingProductId(null)}
-                aria-label="Fechar"
-                className="ml-auto rounded-lg p-1.5 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
-              >
-                <X className="size-5" />
-              </button>
             </div>
 
             <div className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5">
