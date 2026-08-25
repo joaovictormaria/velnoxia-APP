@@ -74,7 +74,7 @@ export function ImageUploadField({
     <div className="space-y-2">
       <p className="text-sm font-medium text-neutral-900">{label}</p>
 
-      <div className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+      <div className="overflow-hidden rounded-full border border-neutral-200 bg-neutral-50">
         {value ? (
           <img src={value} alt="" className="aspect-square w-full object-cover" />
         ) : (
