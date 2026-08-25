@@ -202,12 +202,14 @@ export function ProductForm({
             className="rounded-2xl border border-neutral-200 bg-white p-5"
             onFocusCapture={() => setFoco("foto-do-produto")}
           >
-            <ImageUploadField
-              kind="product"
-              label="Foto do produto"
-              value={values.imageUrl}
-              onChange={(url) => set("imageUrl", url)}
-            />
+            <div className="max-w-48">
+              <ImageUploadField
+                kind="product"
+                label="Foto do produto"
+                value={values.imageUrl}
+                onChange={(url) => set("imageUrl", url)}
+              />
+            </div>
           </div>
 
           {/* Info cards do produto */}
