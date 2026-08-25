@@ -124,6 +124,7 @@ function ProductsPage() {
                 productId={detailData.product.id}
                 initial={buildProductFormValues(detailData.product)}
                 categories={detailData.categories as any}
+                onSuccess={() => setEditingProductId(null)}
               />
             </div>
           </div>

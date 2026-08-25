@@ -43,6 +43,7 @@ export function ProductForm({
   productId,
   initial,
   categories,
+  onSuccess,
 }: {
   productId: string | null;
   initial: ProductFormValues;
@@ -54,6 +55,7 @@ export function ProductForm({
     sizes: { id: string; label: string }[];
     optionGroups: { id: string; name: string }[];
   }[];
+  onSuccess?: () => void;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -131,7 +133,13 @@ export function ProductForm({
     onSuccess: async () => {
       // Await the refetch so the list never flashes the pre-save values.
       await queryClient.invalidateQueries({ queryKey: ["products"] });
-      router.navigate({ to: "/admin/cardapio" });
+
+      // Se há callback (modal), chamar; senão navegar (rota direta)
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        router.navigate({ to: "/admin/cardapio" });
+      }
     },
     onError: (e: Error) => setError(e.message),
   });
