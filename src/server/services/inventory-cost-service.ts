@@ -1,7 +1,6 @@
 ﻿// @ts-nocheck
 import { prisma } from "@/server/db/client";
-
-type Decimal = any;
+import { Decimal } from "@prisma/client/runtime/client";
 
 /**
  * ServiÃ§o de AnÃ¡lise de Custos de ProduÃ§Ã£o
