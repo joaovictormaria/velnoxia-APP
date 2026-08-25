@@ -53,9 +53,10 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
     let adminUserId: string;
     console.log(`🏪 [SIGNUP] Iniciando transação para criar store...`);
     try {
-      const admin = await prisma.$transaction(async (tx) => {
-        console.log(`🏢 [SIGNUP] Criando store: ${data.storeName} (${slug})`);
-        const store = await tx.store.create({
+      const admin = await prisma.$transaction(
+        async (tx) => {
+          console.log(`🏢 [SIGNUP] Criando store: ${data.storeName} (${slug})`);
+          const store = await tx.store.create({
           data: {
             slug,
             name: data.storeName,
@@ -163,7 +164,9 @@ export const createStoreAccountFn = createServerFn({ method: "POST" })
           },
           select: { id: true },
         });
-      });
+        },
+        { timeout: 30000 }  // 30 segundos para a transação
+      );
       adminUserId = admin.id;
       console.log(`✅ [SIGNUP] Transação concluída, adminUserId: ${adminUserId}`);
     } catch (error) {
