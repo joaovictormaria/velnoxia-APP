@@ -167,114 +167,105 @@ function ProductsPage() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
-            <tr>
-              {/* Sem coluna "Categoria": ela agora é o título de cada bloco, e
-                  repeti-la em toda linha só gastaria largura. */}
-              <th className="px-5 py-3 font-medium">Produto</th>
-              <th className="px-5 py-3 font-medium">Preço</th>
-              <th className="px-5 py-3 font-medium">Tamanhos</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 text-right font-medium">Ações</th>
-            </tr>
-          </thead>
-
-          {(isPending || listData?.products.length === 0) && (
-            <tbody>
-              <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-neutral-500">
-                  {isPending ? "Carregando..." : "Nenhum produto encontrado."}
-                </td>
-              </tr>
-            </tbody>
-          )}
-
+      {isPending ? (
+        <div className="text-center py-10 text-neutral-500">Carregando...</div>
+      ) : listData?.products.length === 0 ? (
+        <div className="text-center py-10 text-neutral-500">Nenhum produto encontrado.</div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-max">
           {agruparPorCategoria(listData?.products ?? []).map((grupo) => (
-            <tbody key={grupo.id} className="divide-y divide-neutral-100">
-              <tr>
-                <th
-                  colSpan={5}
-                  scope="colgroup"
-                  className="border-y border-neutral-200 bg-neutral-50 px-5 py-2.5 text-left"
-                >
-                  <span className="text-sm font-bold text-neutral-900">{grupo.nome}</span>
-                  <span className="ml-2 text-xs font-normal text-neutral-500">
-                    {grupo.produtos.length}{" "}
-                    {grupo.produtos.length === 1 ? "produto" : "produtos"}
-                  </span>
-                </th>
-              </tr>
-              {grupo.produtos.map((p) => (
-              <tr key={p.id} className="hover:bg-neutral-50">
-                <td className="px-5 py-3">
-                  <div className="flex items-center gap-3">
-                    {p.imageUrl ? (
-                      <img
-                        src={p.imageUrl}
-                        alt=""
-                        className="size-10 shrink-0 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400">
-                        <ImageIcon className="size-4" />
-                      </span>
+            <div
+              key={grupo.id}
+              className="flex flex-col rounded-2xl border border-neutral-200 bg-white overflow-hidden"
+              style={{ maxHeight: "600px" }}
+            >
+              {/* Header da categoria */}
+              <div className="border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-neutral-100 px-4 py-3 sticky top-0 z-10">
+                <div className="text-sm font-bold text-neutral-900">{grupo.nome}</div>
+                <div className="text-xs text-neutral-500 mt-0.5">
+                  {grupo.produtos.length} {grupo.produtos.length === 1 ? "item" : "itens"}
+                </div>
+              </div>
+
+              {/* Lista scrollável de produtos */}
+              <div className="overflow-y-auto flex-1 divide-y divide-neutral-100">
+                {grupo.produtos.map((p) => (
+                  <div key={p.id} className="p-4 hover:bg-neutral-50 transition-colors">
+                    <div className="flex items-start gap-3 mb-2">
+                      {p.imageUrl ? (
+                        <img
+                          src={p.imageUrl}
+                          alt=""
+                          className="size-12 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400">
+                          <ImageIcon className="size-5" />
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-neutral-900 text-sm truncate">
+                          {p.name}
+                        </div>
+                        <div className="text-lg font-bold text-[#E11D2E] mt-1">
+                          {currency.format(Number(p.basePrice))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {p.description && (
+                      <div className="text-xs text-neutral-600 mb-2 line-clamp-2">
+                        {p.description}
+                      </div>
                     )}
-                    <span className="font-medium text-neutral-900">{p.name}</span>
-                  </div>
-                </td>
-                <td className="px-5 py-3 text-neutral-900">{currency.format(Number(p.basePrice))}</td>
-                <td className="px-5 py-3 text-neutral-600">
-                  {!p.sizes || p.sizes.length === 0
-                    ? "-"
-                    : p.sizes.map((s: any) => s.categorySize.label).join(", ")}
-                </td>
-                <td className="px-5 py-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      toggleActive.mutate({ id: p.id, isActive: !p.isActive })
-                    }
-                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
-                      p.isActive
-                        ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
-                    }`}
-                  >
-                    {p.isActive ? "Ativo" : "Inativo"}
-                  </button>
-                </td>
-                <td className="px-5 py-3">
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingProductId(p.id)}
-                      className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-600 transition-colors hover:bg-neutral-100"
-                      aria-label={`Editar ${p.name}`}
-                    >
-                      <Pencil className="size-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm(`Excluir "${p.name}"? Esta ação não pode ser desfeita.`)) {
-                          remove.mutate(p.id);
+
+                    <div className="flex items-center gap-2 mb-2">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleActive.mutate({ id: p.id, isActive: !p.isActive })
                         }
-                      }}
-                      className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-600 transition-colors hover:bg-red-50 hover:text-[#E11D2E]"
-                      aria-label={`Excluir ${p.name}`}
-                    >
-                      <Trash2 className="size-4" />
-                    </button>
+                        className={`text-xs font-medium px-2 py-1 rounded-full transition-colors ${
+                          p.isActive
+                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                        }`}
+                      >
+                        {p.isActive ? "Ativo" : "Inativo"}
+                      </button>
+                    </div>
+
+                    {/* Ações */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-neutral-100">
+                      <button
+                        type="button"
+                        onClick={() => setEditingProductId(p.id)}
+                        className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-blue-50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
+                        title={`Editar ${p.name}`}
+                      >
+                        <Pencil className="size-3.5" />
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Excluir "${p.name}"? Esta ação não pode ser desfeita.`)) {
+                            remove.mutate(p.id);
+                          }
+                        }}
+                        className="rounded-lg border border-neutral-200 flex h-8 w-8 items-center justify-center text-neutral-600 transition-colors hover:bg-red-50 hover:text-[#E11D2E]"
+                        title={`Excluir ${p.name}`}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
                   </div>
-                </td>
-                </tr>
-              ))}
-            </tbody>
+                ))}
+              </div>
+            </div>
           ))}
-        </table>
-      </div>
+        </div>
+      )}
     </div>
     </>
   );
