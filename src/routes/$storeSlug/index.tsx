@@ -147,17 +147,25 @@ function PizzariaInicio() {
                   key={product.id}
                   className="flex flex-col rounded-lg overflow-hidden bg-white border border-charcoal/10 hover:shadow-lg transition-shadow"
                 >
-                  {product.image ? (
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-40 object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-40 bg-charcoal/5 flex items-center justify-center">
-                      {Icon ? <Icon className="size-8 text-charcoal/30" /> : <Pizza className="size-8 text-charcoal/30" />}
-                    </div>
-                  )}
+                  <div className="relative">
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-40 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-charcoal/5 flex items-center justify-center">
+                        {Icon ? <Icon className="size-8 text-charcoal/30" /> : <Pizza className="size-8 text-charcoal/30" />}
+                      </div>
+                    )}
+                    {product.tag && (
+                      <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-tomato px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--on-primary)] shadow-[0_4px_12px_-4px_rgba(23,23,23,0.4)]">
+                        {product.tag === "Mais pedida" && <Flame className="h-3 w-3" />}
+                        {product.tag}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-col flex-1 p-3">
                     <h3 className="font-semibold text-charcoal text-xs line-clamp-2">{product.name}</h3>
                     <p className="text-xs text-charcoal/60 line-clamp-2 mt-1">{product.desc}</p>
@@ -166,9 +174,9 @@ function PizzariaInicio() {
                       <button
                         type="button"
                         onClick={handleAddProduct}
-                        className="inline-flex shrink-0 items-center justify-center gap-1 rounded-full bg-tomato px-3 py-2 text-sm font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+                        className="inline-flex shrink-0 items-center justify-center rounded-full bg-tomato p-1.5 text-xs font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
                       >
-                        <Plus className="size-4" />
+                        <Plus className="size-3" />
                       </button>
                     </div>
                   </div>
