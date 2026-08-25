@@ -179,7 +179,7 @@ export function ProductForm({
       >
           <div className="flex flex-col md:flex-row gap-6">
             {/* Foto */}
-            <div className="flex justify-center md:justify-start w-32 h-32 md:w-40 md:h-40 flex-shrink-0 mx-auto md:mx-0">
+            <div className="flex justify-center md:justify-start w-24 h-24 md:w-40 md:h-40 flex-shrink-0 mx-auto md:mx-0">
               <ImageUploadField
                 kind="product"
                 label=""
