@@ -141,7 +141,9 @@ function PizzariaInicio() {
                 <div className="p-4 space-y-2">
                   <h3 className="font-semibold text-charcoal text-sm">{product.name}</h3>
                   <p className="text-xs text-charcoal/60 line-clamp-2">{product.description}</p>
-                  <p className="text-base font-bold text-tomato">{formatCurrency(product.basePrice)}</p>
+                  {product.basePrice ? (
+                    <p className="text-base font-bold text-tomato">{formatCurrency(product.basePrice)}</p>
+                  ) : null}
                 </div>
               </button>
             ))}
