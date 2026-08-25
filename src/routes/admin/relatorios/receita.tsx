@@ -2,7 +2,22 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from "recharts";
 import { getFinancialKPIs } from "@/server/functions/inventory-costs.fn";
+import { getFinancialTimeline } from "@/server/functions/financial-timeline.fn";
 
 export const Route = createFileRoute("/admin/relatorios/receita")({
   component: ReportFinancialPage,
@@ -51,6 +66,19 @@ function ReportFinancialPage() {
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao carregar dados");
         return null;
+      }
+    },
+  });
+
+  const { data: timelineData } = useQuery({
+    queryKey: ["financialTimeline", period],
+    queryFn: async () => {
+      try {
+        const result = await getFinancialTimeline({ data: { days: getDaysForPeriod(period) } });
+        return (result as any) || [];
+      } catch (err) {
+        console.error("Erro ao carregar timeline:", err);
+        return [];
       }
     },
   });
@@ -195,6 +223,148 @@ function ReportFinancialPage() {
           </div>
         </div>
       </div>
+
+      {/* Gráficos de Evolução */}
+      {timelineData && timelineData.length > 0 ? (
+        <div className="space-y-6">
+          <h3 className="text-lg font-bold text-neutral-900">Evolução Temporal</h3>
+
+          {/* Gráfico de Linha - Faturamento vs Custos vs Lucro */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+            <p className="mb-4 text-sm font-semibold text-neutral-700">
+              Faturamento vs Custos vs Lucro
+            </p>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={timelineData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(date) => {
+                    const d = new Date(date + "T00:00:00");
+                    return d.toLocaleDateString("pt-BR", {
+                      month: "short",
+                      day: "numeric",
+                    });
+                  }}
+                />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip
+                  formatter={(value: any) => currency.format(value)}
+                  labelFormatter={(date) => {
+                    const d = new Date(date + "T00:00:00");
+                    return d.toLocaleDateString("pt-BR");
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="totalSales"
+                  stroke="#10b981"
+                  name="Faturamento"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalCost"
+                  stroke="#f97316"
+                  name="Custos"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalProfit"
+                  stroke="#3b82f6"
+                  name="Lucro"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Gráfico de Área - Lucro Diário */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+            <p className="mb-4 text-sm font-semibold text-neutral-700">Lucro Diário</p>
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={timelineData}>
+                <defs>
+                  <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(date) => {
+                    const d = new Date(date + "T00:00:00");
+                    return d.toLocaleDateString("pt-BR", {
+                      month: "short",
+                      day: "numeric",
+                    });
+                  }}
+                />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip
+                  formatter={(value: any) => currency.format(value)}
+                  labelFormatter={(date) => {
+                    const d = new Date(date + "T00:00:00");
+                    return d.toLocaleDateString("pt-BR");
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="totalProfit"
+                  stroke="#3b82f6"
+                  fillOpacity={1}
+                  fill="url(#colorProfit)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Gráfico de Barras - Pedidos por Dia */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+            <p className="mb-4 text-sm font-semibold text-neutral-700">
+              Quantidade de Pedidos
+            </p>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={timelineData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(date) => {
+                    const d = new Date(date + "T00:00:00");
+                    return d.toLocaleDateString("pt-BR", {
+                      month: "short",
+                      day: "numeric",
+                    });
+                  }}
+                />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip
+                  labelFormatter={(date) => {
+                    const d = new Date(date + "T00:00:00");
+                    return d.toLocaleDateString("pt-BR");
+                  }}
+                />
+                <Bar dataKey="orderCount" fill="#8b5cf6" name="Pedidos" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-8 text-center">
+          <p className="text-sm text-neutral-500">
+            📊 Gráficos aparecem quando há pedidos finalizados neste período
+          </p>
+        </div>
+      )}
 
       <p className="text-xs text-neutral-500">
         💡 Dica: O lucro aqui é o lucro bruto (receita - custo de matéria-prima). Outras despesas

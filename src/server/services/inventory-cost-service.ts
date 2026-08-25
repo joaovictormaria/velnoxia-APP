@@ -281,11 +281,12 @@ export class InventoryCostService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Pegar pedidos do perÃ­odo
+    // Pegar pedidos do perÃ­odo (apenas COMPLETED)
     const orders = await prisma.order.findMany({
       where: {
         storeId,
         createdAt: { gte: startDate },
+        status: "COMPLETED",
       },
       include: {
         items: {

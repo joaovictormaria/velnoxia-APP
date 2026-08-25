@@ -295,8 +295,222 @@ async function createConversion(
   }
 }
 
-// Executar seed
-main()
+/**
+ * Seed de dados financeiros fakes para testes
+ */
+async function seedFinancialData() {
+  console.log("\n💰 Seeding dados financeiros de teste...");
+
+  // Criar ou pegar store
+  let store = await prisma.store.findFirst();
+  if (!store) {
+    console.log("📦 Criando loja de teste...");
+    store = await prisma.store.create({
+      data: {
+        id: "store_dev",
+        name: "Loja teste de desenvolvedor",
+        slug: "loja-teste",
+      },
+    });
+    console.log(`✅ Loja criada: ${store.name}`);
+  }
+
+  console.log(`📍 Usando loja: ${store.name}`);
+
+  // Pegar ou criar categoria
+  let category = await prisma.category.findFirst({
+    where: { storeId: store.id },
+  });
+
+  if (!category) {
+    console.log("📂 Criando categoria de teste...");
+    category = await prisma.category.create({
+      data: {
+        storeId: store.id,
+        name: "Produtos Teste",
+        slug: "produtos-teste",
+        sortOrder: 1,
+        imageUrl: null,
+      },
+    });
+  }
+
+  // Criar alguns produtos fakes
+  console.log("🍔 Criando produtos de teste...");
+  const productNames = [
+    "Hambúrguer Simples",
+    "Hambúrguer Duplo",
+    "Pizza Margherita",
+    "Refrigerante 2L",
+    "Batata Frita",
+  ];
+
+  const createdProducts = [];
+  const costs: Record<string, number> = {
+    "hambúrguer-simples": 15,
+    "hambúrguer-duplo": 22,
+    "pizza-margherita": 12,
+    "refrigerante-2l": 5,
+    "batata-frita": 8,
+  };
+
+  for (const name of productNames) {
+    const slug = name.toLowerCase().replace(/\s+/g, "-");
+    const cost = costs[slug] || 10;
+
+    const product = await prisma.product.upsert({
+      where: { storeId_slug: { storeId: store.id, slug } },
+      update: {},
+      create: {
+        storeId: store.id,
+        categoryId: category.id,
+        name: name,
+        slug: slug,
+        description: `Produto teste: ${name}`,
+        basePrice: 50, // R$ 50 padrão
+        isActive: true,
+        sortOrder: 1,
+        imageUrl: null,
+      },
+    });
+    createdProducts.push(product);
+  }
+
+  console.log(`✅ ${createdProducts.length} produtos criados!\n`);
+
+  // Pegar alguns produtos
+  const products = await prisma.product.findMany({
+    where: { storeId: store.id, isActive: true },
+    take: 5,
+  });
+
+  if (products.length === 0) {
+    console.log("⚠️  Erro ao encontrar produtos. Pulando seed financeiro.");
+    return;
+  }
+
+  console.log(`📦 Criando pedidos com ${products.length} produtos...\n`);
+
+  // Criar pedidos para os últimos 30 dias
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 30);
+
+  let orderCount = 0;
+  let orderNumber = Math.floor(Date.now() / 1000) % 1000000; // Base em timestamp para evitar colisões
+
+  for (let day = 0; day < 30; day++) {
+    const currentDate = new Date(startDate);
+    currentDate.setDate(currentDate.getDate() + day);
+
+    // 2-5 pedidos por dia
+    const ordersPerDay = Math.floor(Math.random() * 4) + 2;
+
+    for (let i = 0; i < ordersPerDay; i++) {
+      try {
+        // Selecionar 1-3 produtos aleatórios
+        const selectedProducts = products
+          .sort(() => Math.random() - 0.5)
+          .slice(0, Math.floor(Math.random() * 3) + 1);
+
+        let subtotal = 0;
+        const items: any[] = [];
+
+        for (const product of selectedProducts) {
+          const quantity = Math.floor(Math.random() * 3) + 1;
+          // Preço entre R$ 20 e R$ 80
+          const unitPrice = Math.floor(Math.random() * 60) + 20;
+          const lineTotal = unitPrice * quantity;
+
+          subtotal += lineTotal;
+
+          items.push({
+            productId: product.id,
+            productNameSnapshot: product.name,
+            unitPrice: unitPrice,
+            quantity: quantity,
+            note: null,
+            employeeDiscount: 0,
+            benefitQuantity: 0,
+            extras: {
+              create: [],
+            },
+          });
+        }
+
+        // Aplicar desconto aleatório (0-15%)
+        const discountPercent = Math.floor(Math.random() * 15);
+        const discount = Math.round(subtotal * (discountPercent / 100));
+
+        const total = subtotal - discount;
+
+        // Criar cliente fictício
+        const customerPhone = `1199${String(day * 100 + i).padStart(6, "0")}`;
+        const customer = await prisma.customer.upsert({
+          where: {
+            storeId_phone: {
+              storeId: store.id,
+              phone: customerPhone,
+            },
+          },
+          update: {},
+          create: {
+            storeId: store.id,
+            phone: customerPhone,
+            name: `Cliente Teste ${day}-${i}`,
+          },
+        });
+
+        // Criar pedido
+        await prisma.order.create({
+          data: {
+            storeId: store.id,
+            number: orderNumber++, // Incrementar sequência
+            customerId: customer.id,
+            customerName: `Cliente Teste ${day}-${i}`,
+            customerPhone: customer.phone,
+            trackingToken: `test-${day}-${i}-${Math.random().toString(36).substr(2, 9)}`,
+            type: "PICKUP",
+            status: "COMPLETED",
+            source: "SITE",
+            paymentMethod: Math.random() > 0.5 ? "PIX" : "CASH",
+            paymentStatus: Math.random() > 0.1 ? "PAID" : "PENDING",
+            subtotal,
+            deliveryFee: 0,
+            discount,
+            total,
+            createdAt: currentDate,
+            updatedAt: currentDate,
+            items: {
+              create: items,
+            },
+            statusHistory: {
+              create: {
+                status: "COMPLETED",
+                authorType: "SYSTEM",
+                authorName: "Seed",
+                createdAt: currentDate,
+              },
+            },
+          },
+        });
+
+        orderCount++;
+      } catch (error) {
+        console.error(`⚠️  Erro ao criar pedido ${day}-${i}:`, error);
+      }
+    }
+  }
+
+  console.log(`✅ ${orderCount} pedidos de teste criados!\n`);
+}
+
+// Executar seeds
+async function runAllSeeds() {
+  await main();
+  await seedFinancialData();
+}
+
+runAllSeeds()
   .then(async () => {
     await prisma.$disconnect();
   })
