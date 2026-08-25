@@ -212,8 +212,8 @@ export function ProductForm({
 
             {/* Campos */}
             <div className="flex-1 space-y-3">
-              {/* Nome, Categoria, Preço, Selo e Ordem - lado a lado */}
-              <div className="grid grid-cols-6 gap-2">
+              {/* Nome, Categoria, Preço, Selo, Ordem e Disponível - lado a lado */}
+              <div className="grid grid-cols-7 gap-2">
                 <div className="col-span-2">
                   <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
                     Nome do produto
@@ -289,6 +289,17 @@ export function ProductForm({
                     className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
                   />
                 </div>
+
+                <div className="flex flex-col justify-end">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                    Disponível
+                  </label>
+                  <Toggle
+                    label=""
+                    checked={values.isActive}
+                    onChange={(v) => set("isActive", v)}
+                  />
+                </div>
               </div>
 
               {/* Descrição e Tamanhos disponíveis - lado a lado */}
@@ -362,12 +373,6 @@ export function ProductForm({
                 <p className="mb-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">Opções</p>
 
                 <div className="space-y-3">
-                  <Toggle
-                    label="Produto disponível"
-                    checked={values.isActive}
-                    onChange={(v) => set("isActive", v)}
-                  />
-
                   {aceitaMeioAMeio && (
                     <>
                       <Toggle
