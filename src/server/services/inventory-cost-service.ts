@@ -289,7 +289,7 @@ export class InventoryCostService {
         createdAt: { gte: startDate },
       },
       include: {
-        orderItems: {
+        items: {
           include: {
             product: true,
           },
