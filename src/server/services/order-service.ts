@@ -134,7 +134,7 @@ export async function precificarItens(
     where: { storeId, slug: { in: slugs }, isActive: true },
     include: {
       sizes: { where: { isAvailable: true } },
-      // Buscar cost do InventoryItem linkado
+      // Buscar cost do InventoryItem linkado (opcional - produto pode não ter inventory)
       inventoryItem: { select: { cost: true } },
     },
   });
