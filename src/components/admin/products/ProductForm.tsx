@@ -199,7 +199,7 @@ export function ProductForm({
         className="rounded-2xl border border-neutral-200 bg-white p-5"
         onFocusCapture={() => setFoco("foto-do-produto")}
       >
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             {/* Foto */}
             <div className="max-w-32 shrink-0">
               <ImageUploadField
@@ -213,7 +213,7 @@ export function ProductForm({
             {/* Campos */}
             <div className="flex-1 space-y-3">
               {/* Nome, Categoria, Preço, Selo, Ordem e Disponível - lado a lado */}
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-2">
                 <div className="col-span-2">
                   <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
                     Nome do produto
@@ -303,7 +303,7 @@ export function ProductForm({
               </div>
 
               {/* Descrição e Tamanhos disponíveis - lado a lado */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {/* Descrição */}
                 <div>
                   <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
