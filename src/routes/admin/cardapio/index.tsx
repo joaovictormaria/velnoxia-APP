@@ -188,75 +188,65 @@ function ProductsPage() {
               </div>
 
               {/* Lista scrollável de produtos */}
-              <div className="overflow-y-auto flex-1 divide-y divide-neutral-100">
+              <div className="overflow-y-auto flex-1 p-3 space-y-2">
                 {grupo.produtos.map((p) => (
-                  <div key={p.id} className="p-4 hover:bg-neutral-50 transition-colors">
-                    <div className="flex items-start gap-3 mb-2">
+                  <div key={p.id} className="bg-neutral-50 rounded-lg p-3 hover:bg-neutral-100 transition-colors border border-neutral-200">
+                    <div className="flex items-center gap-2 mb-2">
                       {p.imageUrl ? (
                         <img
                           src={p.imageUrl}
                           alt=""
-                          className="size-12 shrink-0 rounded-lg object-cover"
+                          className="size-10 shrink-0 rounded object-cover"
                         />
                       ) : (
-                        <span className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400">
-                          <ImageIcon className="size-5" />
+                        <span className="flex size-10 shrink-0 items-center justify-center rounded bg-neutral-200 text-neutral-400">
+                          <ImageIcon className="size-4" />
                         </span>
                       )}
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-neutral-900 text-sm truncate">
+                        <div className="font-medium text-neutral-900 text-xs truncate">
                           {p.name}
                         </div>
-                        <div className="text-lg font-bold text-[#E11D2E] mt-1">
-                          {currency.format(Number(p.basePrice))}
+                        <div className="text-base font-bold text-[#E11D2E]">
+                          R$ {Number(p.basePrice).toFixed(2).replace(".", ",")}
                         </div>
                       </div>
                     </div>
 
-                    {p.description && (
-                      <div className="text-xs text-neutral-600 mb-2 line-clamp-2">
-                        {p.description}
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 mb-2">
+                    {/* Ações - linha única */}
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() =>
                           toggleActive.mutate({ id: p.id, isActive: !p.isActive })
                         }
-                        className={`text-xs font-medium px-2 py-1 rounded-full transition-colors ${
+                        className={`flex-1 text-xs font-medium px-1.5 py-1 rounded transition-colors ${
                           p.isActive
-                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                            : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
+                            ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                            : "bg-neutral-200 text-neutral-600 hover:bg-neutral-300"
                         }`}
                       >
                         {p.isActive ? "Ativo" : "Inativo"}
                       </button>
-                    </div>
-
-                    {/* Ações */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-neutral-100">
                       <button
                         type="button"
                         onClick={() => setEditingProductId(p.id)}
-                        className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-blue-50 px-2 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
+                        className="p-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
                         title={`Editar ${p.name}`}
                       >
                         <Pencil className="size-3.5" />
-                        Editar
                       </button>
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`Excluir "${p.name}"? Esta ação não pode ser desfeita.`)) {
+                          if (confirm(`Excluir "${p.name}"?`)) {
                             remove.mutate(p.id);
                           }
                         }}
-                        className="rounded-lg border border-neutral-200 flex h-8 w-8 items-center justify-center text-neutral-600 transition-colors hover:bg-red-50 hover:text-[#E11D2E]"
+                        className="p-1 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                         title={`Excluir ${p.name}`}
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className="size-3.5" />
                       </button>
                     </div>
                   </div>
