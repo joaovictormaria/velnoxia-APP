@@ -345,65 +345,65 @@ export function ProductForm({
                   </>
                 )}
               </div>
+
+              {/* Opções - dentro do card de perfil */}
+              <div className="border-t border-neutral-200 pt-3">
+                <p className="mb-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">Opções</p>
+
+                <div className="space-y-3">
+                  <Toggle
+                    label="Produto disponível"
+                    checked={values.isActive}
+                    onChange={(v) => set("isActive", v)}
+                  />
+
+                  {aceitaMeioAMeio && (
+                    <>
+                      <Toggle
+                        label="Permitir meia a meia (2 sabores)"
+                        checked={values.allowHalfAndHalf}
+                        onChange={(v) => set("allowHalfAndHalf", v)}
+                      />
+
+                      {values.allowHalfAndHalf && (
+                        <>
+                          <Field label="Regra de preço">
+                            <select
+                              value={values.halfPizzaPricingRule}
+                              onChange={(e) =>
+                                set(
+                                  "halfPizzaPricingRule",
+                                  e.target.value as ProductFormValues["halfPizzaPricingRule"],
+                                )
+                              }
+                              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
+                            >
+                              <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
+                              <option value="AVERAGE_PRICE">Média entre os sabores</option>
+                            </select>
+                          </Field>
+
+                          <p className="text-xs text-neutral-500">
+                            {values.halfPizzaPricingRule === "HIGHEST_PRICE"
+                              ? "A pizza sai pelo preço do sabor mais caro dos dois."
+                              : "A pizza sai pela média dos preços dos dois sabores."}
+                          </p>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  <Field label="Ordem de exibição">
+                    <input
+                      type="number"
+                      value={values.sortOrder}
+                      onChange={(e) => set("sortOrder", Number(e.target.value))}
+                      className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
+                    />
+                  </Field>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* OPÇÕES - Direita */}
-        <div>
-          <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
-            <p className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">Opções</p>
-
-            <Toggle
-              label="Produto disponível"
-              checked={values.isActive}
-              onChange={(v) => set("isActive", v)}
-            />
-
-            {aceitaMeioAMeio && (
-              <>
-                <Toggle
-                  label="Permitir meia a meia (2 sabores)"
-                  checked={values.allowHalfAndHalf}
-                  onChange={(v) => set("allowHalfAndHalf", v)}
-                />
-
-                {values.allowHalfAndHalf && (
-                  <>
-                    <Field label="Regra de preço">
-                      <select
-                        value={values.halfPizzaPricingRule}
-                        onChange={(e) =>
-                          set(
-                            "halfPizzaPricingRule",
-                            e.target.value as ProductFormValues["halfPizzaPricingRule"],
-                          )
-                        }
-                        className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
-                      >
-                        <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
-                        <option value="AVERAGE_PRICE">Média entre os sabores</option>
-                      </select>
-                    </Field>
-
-                    <p className="text-xs text-neutral-500">
-                      {values.halfPizzaPricingRule === "HIGHEST_PRICE"
-                        ? "A pizza sai pelo preço do sabor mais caro dos dois."
-                        : "A pizza sai pela média dos preços dos dois sabores."}
-                    </p>
-                  </>
-                )}
-              </>
-            )}
-
-            <Field label="Ordem de exibição">
-              <input
-                type="number"
-                value={values.sortOrder}
-                onChange={(e) => set("sortOrder", Number(e.target.value))}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
-              />
-            </Field>
           </div>
         </div>
       </div>
