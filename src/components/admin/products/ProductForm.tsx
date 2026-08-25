@@ -178,7 +178,7 @@ export function ProductForm({
         onFocusCapture={() => setFoco("foto-do-produto")}
       >
           {/* Mobile Layout */}
-          <div className="flex md:hidden flex-col gap-4 mt-6">
+          <div className="flex md:hidden flex-col gap-4">
             {/* Foto Mobile - Redonda */}
             <div className="flex justify-center">
               <div className="w-40 h-40 rounded-full overflow-hidden">
