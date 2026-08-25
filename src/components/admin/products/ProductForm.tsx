@@ -194,100 +194,73 @@ export function ProductForm({
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        {/* Topo à direita, como na tela de categorias: os campos ficam ao lado
-            e a prévia acompanha o que se digita sem sair do campo de visão. */}
-        <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-2 lg:row-start-1 lg:block">
-          {/* O produto no meio do cardápio, como o cliente o encontra: foto,
-              etiqueta, descrição e preço já no lugar. É a resposta para "como isso
-              vai ficar", que antes exigia salvar e abrir a loja noutra aba. */}
-          {storeSlug && (
-          <PreviaDaVitrine
-            storeSlug={storeSlug}
-            foco={foco}
-            aplicar={(payload) =>
-              aplicarRascunhoDeProduto(payload, {
-                id: productId,
-                name: values.name,
-                slug: values.slug,
-                description: values.description,
-                categoryId: values.categoryId,
-                basePrice: values.basePrice,
-                imageUrl: values.imageUrl,
-                tag: values.tag,
-                isActive: values.isActive,
-                allowHalfAndHalf: values.allowHalfAndHalf,
-                sortOrder: values.sortOrder,
-                // O rótulo do tamanho mora na categoria; o formulário guarda só o
-                // id, e a vitrine precisa do nome para escrever "Grande".
-                sizes: values.sizes.map((t) => ({
-                  ...t,
-                  label: tamanhosDaCategoria.find((x) => x.id === t.categorySizeId)?.label ?? "",
-                })),
-              })
-            }
-            largura={1000}
+      {/* Layout: Perfil do Prato (esquerda) + Dados dos Inputs (direita em grid) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* PERFIL DO PRATO - Esquerda */}
+        <div className="space-y-4">
+          <div
+            className="rounded-2xl border border-neutral-200 bg-white p-5"
+            onFocusCapture={() => setFoco("foto-do-produto")}
           >
-            <CardsDoCardapio categorySlug={slugDaCategoria} slugEmEdicao={values.slug} />
-          </PreviaDaVitrine>
-          )}
+            <ImageUploadField
+              kind="product"
+              label="Foto do produto"
+              value={values.imageUrl}
+              onChange={(url) => set("imageUrl", url)}
+            />
+          </div>
+
+          {/* Info cards do produto */}
+          <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-5">
+            <div>
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Nome</p>
+              <p className="mt-1 text-sm font-bold text-neutral-900 line-clamp-2">{values.name || "—"}</p>
+            </div>
+            <div className="border-t border-neutral-200 pt-3">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Preço base</p>
+              <p className="mt-1 text-lg font-bold text-[#E11D2E]">
+                R$ {Number(values.basePrice).toFixed(2).replace(".", ",")}
+              </p>
+            </div>
+            <div className="border-t border-neutral-200 pt-3">
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Categoria</p>
+              <p className="mt-1 text-sm text-neutral-700">
+                {categories.find((c) => c.id === values.categoryId)?.name || "—"}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div
-          className="rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-1"
-          onFocusCapture={() => setFoco("foto-do-produto")}
-        >
-          <ImageUploadField
-            kind="product"
-            label="Foto do produto"
-            value={values.imageUrl}
-            onChange={(url) => set("imageUrl", url)}
-          />
-        </div>
+        {/* DADOS DOS INPUTS - Direita em grid 3x2 */}
+        <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Nome */}
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
+                Nome do produto
+              </label>
+              <input
+                onFocus={() => setFoco("nome-do-produto")}
+                value={values.name}
+                onChange={(e) => {
+                  set("name", e.target.value);
+                  if (enderecoSegueONome) set("slug", slugify(e.target.value));
+                }}
+                required
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              />
+            </div>
 
-        <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-2">
-          <Field label="Nome do produto">
-            <input
-              onFocus={() => setFoco("nome-do-produto")}
-              value={values.name}
-              onChange={(e) => {
-                set("name", e.target.value);
-                if (enderecoSegueONome) set("slug", slugify(e.target.value));
-              }}
-              required
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
-            />
-          </Field>
-
-          {/*
-           * Só de leitura: quem monta o endereço é o sistema, a partir do nome.
-           *
-           * Editável, ele convidava a lojista a mexer no que é a identidade da
-           * página do produto — e um endereço digitado à mão é onde nascem
-           * acento, espaço e slug repetido, que o cliente só descobre quando o
-           * link não abre. Fica à mostra porque é o endereço que ela manda no
-           * WhatsApp; só não se digita nele.
-           */}
-          <Field label="Endereço do produto no site">
-            <input
-              value={values.slug}
-              readOnly
-              tabIndex={-1}
-              aria-describedby="dica-do-slug"
-              className="w-full cursor-default rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-base text-neutral-500 md:text-sm"
-            />
-            <span id="dica-do-slug" className="mt-1 block text-xs text-neutral-500">
-              Criado sozinho a partir do nome do produto.
-            </span>
-          </Field>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Categoria">
+            {/* Categoria */}
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
+                Categoria
+              </label>
               <select
                 value={values.categoryId}
                 onChange={(e) => set("categoryId", e.target.value)}
                 required
-                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900"
               >
                 <option value="">Selecione...</option>
                 {categories.map((c) => (
@@ -296,9 +269,13 @@ export function ProductForm({
                   </option>
                 ))}
               </select>
-            </Field>
+            </div>
 
-            <Field label="Preço base">
+            {/* Preço base */}
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
+                Preço base
+              </label>
               <input
                 type="number"
                 step="0.01"
@@ -307,30 +284,93 @@ export function ProductForm({
                 value={values.basePrice}
                 onChange={(e) => set("basePrice", Number(e.target.value))}
                 required
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
               />
-            </Field>
+            </div>
+
+            {/* Descrição - full width */}
+            <div className="md:col-span-2 lg:col-span-3">
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
+                Descrição
+              </label>
+              <textarea
+                onFocus={() => setFoco("descricao-do-produto")}
+                value={values.description}
+                onChange={(e) => set("description", e.target.value)}
+                rows={2}
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+              />
+            </div>
+
+            {/* Selo */}
+            <div className="md:col-span-2 lg:col-span-3">
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-2">
+                Selo (opcional)
+              </label>
+              <input
+                onFocus={() => setFoco("etiqueta-do-produto")}
+                value={values.tag ?? ""}
+                onChange={(e) => set("tag", e.target.value || null)}
+                placeholder="Ex: Mais pedida, Novidade"
+                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400"
+              />
+            </div>
           </div>
+        </div>
+      </div>
 
-          <Field label="Descrição">
-            <textarea
-              onFocus={() => setFoco("descricao-do-produto")}
-              value={values.description}
-              onChange={(e) => set("description", e.target.value)}
-              rows={3}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
-            />
-          </Field>
+      {/* PREVIEW - Full width abaixo */}
+      {storeSlug && (
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6">
+        <p className="mb-4 text-sm font-semibold text-neutral-900">Preview do Produto</p>
+        <PreviaDaVitrine
+          storeSlug={storeSlug}
+          foco={foco}
+          aplicar={(payload) =>
+            aplicarRascunhoDeProduto(payload, {
+              id: productId,
+              name: values.name,
+              slug: values.slug,
+              description: values.description,
+              categoryId: values.categoryId,
+              basePrice: values.basePrice,
+              imageUrl: values.imageUrl,
+              tag: values.tag,
+              isActive: values.isActive,
+              allowHalfAndHalf: values.allowHalfAndHalf,
+              sortOrder: values.sortOrder,
+              sizes: values.sizes.map((t) => ({
+                ...t,
+                label: tamanhosDaCategoria.find((x) => x.id === t.categorySizeId)?.label ?? "",
+              })),
+            })
+          }
+          largura={1000}
+        >
+          <CardsDoCardapio categorySlug={slugDaCategoria} slugEmEdicao={values.slug} />
+        </PreviaDaVitrine>
+      </div>
+      )}
 
-          <Field label="Selo (opcional)">
-            <input
-              onFocus={() => setFoco("etiqueta-do-produto")}
-              value={values.tag ?? ""}
-              onChange={(e) => set("tag", e.target.value || null)}
-              placeholder="Ex: Mais pedida, Novidade"
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900 placeholder:text-neutral-400"
-            />
-          </Field>
+      {/* Endereço do produto no site - read-only */}
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+        <div>
+          <p className="text-sm font-semibold text-neutral-900 mb-2">Endereço do produto no site</p>
+          <input
+            value={values.slug}
+            readOnly
+            tabIndex={-1}
+            aria-describedby="dica-do-slug"
+            className="w-full cursor-default rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 font-mono text-sm text-neutral-500"
+          />
+          <span id="dica-do-slug" className="mt-1 block text-xs text-neutral-500">
+            Criado sozinho a partir do nome do produto.
+          </span>
+        </div>
+      </div>
+
+      {/* Outros campos - abaixo */}
+      <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
 
           <div>
             <p className="mb-2 text-sm font-medium text-neutral-900">Tamanhos disponíveis</p>
@@ -416,8 +456,9 @@ export function ProductForm({
           </div>
         </div>
 
-        <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-3">
-          <p className="text-sm font-semibold text-neutral-900">Opções</p>
+      {/* Opções - full width */}
+      <div className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-5">
+        <p className="text-sm font-semibold text-neutral-900">Opções</p>
 
           <Toggle
             label="Produto disponível"
@@ -469,7 +510,6 @@ export function ProductForm({
               className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-base md:text-sm text-neutral-900"
             />
           </Field>
-        </div>
       </div>
     </form>
   );
