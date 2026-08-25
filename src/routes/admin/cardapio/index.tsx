@@ -214,14 +214,14 @@ function ProductsPage() {
                     </div>
 
                     {/* Ações */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2 pt-2 border-t border-neutral-200">
                       <button
                         type="button"
                         onClick={() => setEditingProductId(p.id)}
-                        className="flex-1 flex items-center justify-center gap-1 p-1.5 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors text-xs font-medium"
+                        className="flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
                         title={`Editar ${p.name}`}
                       >
-                        <Pencil className="size-3.5" />
+                        <Pencil className="size-4" />
                         Editar
                       </button>
                       <button
@@ -231,10 +231,10 @@ function ProductsPage() {
                             remove.mutate(p.id);
                           }
                         }}
-                        className="p-1.5 rounded bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                        className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
                         title={`Excluir ${p.name}`}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 className="size-4" />
                       </button>
                     </div>
                   </div>
