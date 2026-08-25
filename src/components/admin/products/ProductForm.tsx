@@ -177,30 +177,9 @@ export function ProductForm({
         className="rounded-2xl border border-neutral-200 bg-white p-5"
         onFocusCapture={() => setFoco("foto-do-produto")}
       >
-          {/* Mobile: Foto e botão de voltar lado a lado, centrados */}
-          <div className="flex md:hidden gap-0 items-start mb-4">
-            <Link
-              to="/admin/cardapio"
-              className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:border-neutral-300 shrink-0"
-              title="Voltar para cardápio"
-            >
-              <ArrowLeft className="size-4" />
-            </Link>
-            <div className="flex-1 flex justify-center">
-              <div className="max-w-32">
-                <ImageUploadField
-                  kind="product"
-                  label="Foto"
-                  value={values.imageUrl}
-                  onChange={(url) => set("imageUrl", url)}
-                />
-              </div>
-            </div>
-          </div>
-
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Foto - Desktop */}
-            <div className="hidden md:block max-w-32 shrink-0">
+            {/* Foto */}
+            <div className="max-w-32 shrink-0">
               <ImageUploadField
                 kind="product"
                 label="Foto"
