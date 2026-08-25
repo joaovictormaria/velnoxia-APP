@@ -202,7 +202,7 @@ export function ProductForm({
             className="rounded-2xl border border-neutral-200 bg-white p-5"
             onFocusCapture={() => setFoco("foto-do-produto")}
           >
-            <div className="max-w-48">
+            <div className="max-w-32">
               <ImageUploadField
                 kind="product"
                 label="Foto do produto"
