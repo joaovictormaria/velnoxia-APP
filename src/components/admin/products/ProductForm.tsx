@@ -182,7 +182,7 @@ export function ProductForm({
             <div className="flex justify-center md:justify-start max-w-32 shrink-0 mx-auto md:mx-0">
               <ImageUploadField
                 kind="product"
-                label="Foto"
+                label=""
                 value={values.imageUrl}
                 onChange={(url) => set("imageUrl", url)}
               />
