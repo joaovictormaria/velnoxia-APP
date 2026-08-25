@@ -1,3 +1,5 @@
+// ⚠️ CARDÁPIO TRAVADO: Nenhuma alteração neste arquivo sem autorização prévia do João
+// Coordene comigo antes de mudar fluxo, lógica ou comportamento do cardápio
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { ICONES_DE_CATEGORIA as ICONS } from "@/lib/category-icons";
 import type { Category, Extra, OptionGroup, Product } from "./menu";

@@ -1,4 +1,6 @@
 ﻿// @ts-nocheck
+// ⚠️ CARDÁPIO TRAVADO: Nenhuma alteração neste arquivo sem autorização prévia do João
+// Qualquer mudança em fluxo, código ou lógica requer coordenação com João antes
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
