@@ -166,24 +166,15 @@ export function ProductForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/admin/cardapio"
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:border-neutral-300"
-            title="Voltar para cardápio"
-          >
-            <ArrowLeft className="size-4" />
-            <span className="hidden sm:inline">Voltar</span>
-          </Link>
-        </div>
-        <button
-          type="submit"
-          disabled={save.isPending}
-          className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] disabled:opacity-60 w-full sm:w-auto"
+      <header className="flex items-center gap-3">
+        <Link
+          to="/admin/cardapio"
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:border-neutral-300"
+          title="Voltar para cardápio"
         >
-          {save.isPending ? "Salvando..." : "Salvar alterações"}
-        </button>
+          <ArrowLeft className="size-4" />
+          <span className="hidden sm:inline">Voltar</span>
+        </Link>
       </header>
 
       {error && (
@@ -197,9 +188,30 @@ export function ProductForm({
         className="rounded-2xl border border-neutral-200 bg-white p-5"
         onFocusCapture={() => setFoco("foto-do-produto")}
       >
+          {/* Mobile: Foto e botão de voltar lado a lado, centrados */}
+          <div className="flex md:hidden gap-3 items-start mb-4">
+            <Link
+              to="/admin/cardapio"
+              className="flex items-center justify-center gap-1.5 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 hover:border-neutral-300 shrink-0"
+              title="Voltar para cardápio"
+            >
+              <ArrowLeft className="size-4" />
+            </Link>
+            <div className="flex-1 flex justify-center">
+              <div className="max-w-32">
+                <ImageUploadField
+                  kind="product"
+                  label="Foto"
+                  value={values.imageUrl}
+                  onChange={(url) => set("imageUrl", url)}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Foto */}
-            <div className="max-w-32 shrink-0">
+            {/* Foto - Desktop */}
+            <div className="hidden md:block max-w-32 shrink-0">
               <ImageUploadField
                 kind="product"
                 label="Foto"
@@ -444,6 +456,17 @@ export function ProductForm({
         </PreviaDaVitrine>
       </div>
       )}
+
+      {/* Botão de salvar no final */}
+      <div className="flex justify-end gap-3 pt-4 border-t border-neutral-200">
+        <button
+          type="submit"
+          disabled={save.isPending}
+          className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] disabled:opacity-60 w-full sm:w-auto"
+        >
+          {save.isPending ? "Salvando..." : "Salvar alterações"}
+        </button>
+      </div>
     </form>
   );
 }
