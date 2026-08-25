@@ -24,9 +24,27 @@ export async function orchestrateTableSession(
   // Step 1: Get or create session (returns PIN if newly created)
   const sessionResult = await getOrCreateOpenTableSession(storeId, tableId);
 
-  // Step 2: Check if this is the first device
-  const existingDevices = await checkExistingDevices(sessionResult.id);
-  const isFirstDevice = existingDevices === 0;
+  // Step 2: Verificar se sessão tem pedidos
+  const sessionOrders = await prisma.order.count({
+    where: {
+      tableId,
+      status: { not: "COMPLETED" }, // Ignorar pedidos já entregues
+    },
+  });
+
+  // Se sessão OPEN mas SEM PEDIDOS = tratar como primeira pessoa
+  const hasActiveOrders = sessionOrders > 0;
+
+  // Step 3: Check if this is the first device
+  let isFirstDevice = await checkExistingDevices(sessionResult.id) === 0;
+
+  // Se não há pedidos ativos, sempre é primeira pessoa (nova mesa)
+  if (!hasActiveOrders) {
+    isFirstDevice = true;
+    console.log(
+      `[TABLE SESSION] Mesa tem sessão OPEN mas SEM PEDIDOS - tratando como PRIMEIRA PESSOA`
+    );
+  }
 
   // Step 3: If first device, mark table as OCCUPIED
   if (isFirstDevice) {
