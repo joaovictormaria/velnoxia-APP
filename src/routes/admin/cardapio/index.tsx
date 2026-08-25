@@ -231,10 +231,10 @@ function ProductsPage() {
                             remove.mutate(p.id);
                           }
                         }}
-                        className="p-1.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        className="p-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
                         title={`Excluir ${p.name}`}
                       >
-                        <Trash2 className="size-3.5" />
+                        <Trash2 className="size-3" />
                       </button>
                     </div>
                   </div>
