@@ -1,34 +1,47 @@
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "../db/client";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import {
   convertOrderForClient,
   convertOrderItemsForClient,
   decimalToNumber,
 } from "../utils/decimal-converter";
 
+const SAO_PAULO_TZ = "America/Sao_Paulo";
+
 /**
- * Day window in São Paulo timezone (UTC-3/UTC-2 with DST).
- * Takes a YYYY-MM-DD string (from client) and returns a UTC range
- * that covers that entire day in São Paulo time.
+ * Day-range in São Paulo timezone, respecting DST (Daylight Saving Time).
  *
- * Example: dayRange("2026-08-24") covers 2026-08-24 00:00 to 23:59 in SP
- * Which is 2026-08-24 03:00 UTC to 2026-08-25 02:59:59 UTC
+ * Converts YYYY-MM-DD string to UTC range that covers that entire calendar day
+ * in São Paulo time, accounting for DST transitions (UTC-3 in winter, UTC-2 in summer).
+ *
+ * Example:
+ *   dayRange("2026-08-24") in August (winter, UTC-3):
+ *   → from: 2026-08-24T03:00:00Z
+ *   → to:   2026-08-25T02:59:59Z
+ *
+ *   dayRange("2026-01-24") in January (summer, UTC-2):
+ *   → from: 2026-01-24T02:00:00Z
+ *   → to:   2026-01-25T01:59:59Z
  */
 function dayRange(day?: string) {
   const dateStr = day || new Date().toISOString().split("T")[0];
   const [year, month, date] = dateStr.split("-").map(Number);
 
-  // Interpreter the date string as São Paulo midnight (UTC-3)
-  // Create local time: YYYY-MM-DD 00:00 in São Paulo
-  const localDate = new Date(year, month - 1, date, 0, 0, 0, 0);
-  // Convert to UTC by adding 3 hours (São Paulo is UTC-3)
-  const fromMs = localDate.getTime() + 3 * 60 * 60 * 1000;
+  // Create a date at midnight in São Paulo timezone
+  // fromZonedTime: converts local (SP) time to UTC
+  const startOfDayUtc = fromZonedTime(
+    new Date(year, month - 1, date, 0, 0, 0, 0),
+    SAO_PAULO_TZ
+  );
 
-  // End of day: YYYY-MM-DD 23:59:59 in São Paulo
-  const localEndDate = new Date(year, month - 1, date, 23, 59, 59, 999);
-  const toMs = localEndDate.getTime() + 3 * 60 * 60 * 1000;
+  // End of day: 23:59:59.999 in São Paulo timezone
+  const endOfDayUtc = fromZonedTime(
+    new Date(year, month - 1, date, 23, 59, 59, 999),
+    SAO_PAULO_TZ
+  );
 
-  return { from: new Date(fromMs), to: new Date(toMs) };
+  return { from: startOfDayUtc, to: endOfDayUtc };
 }
 
 const KANBAN_STATUSES: OrderStatus[] = [
