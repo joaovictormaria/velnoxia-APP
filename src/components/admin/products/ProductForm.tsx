@@ -195,7 +195,7 @@ export function ProductForm({
       )}
 
       {/* Layout: Perfil do Prato (esquerda) + Dados dos Inputs (direita em grid) */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.5fr]">
         {/* PERFIL DO PRATO - Esquerda */}
         <div className="space-y-4">
           <div
@@ -232,7 +232,7 @@ export function ProductForm({
         </div>
 
         {/* DADOS DOS INPUTS - Direita em grid 3x2 */}
-        <div className="lg:col-span-2">
+        <div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {/* Nome */}
             <div>
