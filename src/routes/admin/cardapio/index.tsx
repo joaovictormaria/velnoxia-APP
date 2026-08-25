@@ -214,7 +214,7 @@ function ProductsPage() {
                     </div>
 
                     {/* Ações */}
-                    <div className="flex items-center gap-1.5 pt-2 border-t border-neutral-200">
+                    <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-neutral-200">
                       <button
                         type="button"
                         onClick={() => setEditingProductId(p.id)}
