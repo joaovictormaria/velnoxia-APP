@@ -373,13 +373,21 @@ export class InventoryCostService {
       this.getProductProfitability(storeId, days),
     ]);
 
+    // Helper: converter para número com segurança
+    const toNum = (val: any): number => {
+      if (typeof val === "number") return val;
+      if (val && typeof val.toNumber === "function") return val.toNumber();
+      return 0;
+    };
+
     // Calcular KPIs
     let totalSalesValue = new Decimal(0);
     for (const item of profitability) {
       totalSalesValue = totalSalesValue.plus(item.totalSalesValue);
     }
 
-    const totalProfit = totalSalesValue.minus(costReport.summary.totalCost);
+    const totalCostNum = toNum(costReport.summary.totalCost);
+    const totalProfit = totalSalesValue.minus(new Decimal(totalCostNum));
     const profitMargin = totalSalesValue.isZero()
       ? 0
       : totalProfit.dividedBy(totalSalesValue).times(100).toNumber();
@@ -387,10 +395,10 @@ export class InventoryCostService {
     return {
       period: `Últimos ${days} dias`,
       totalSalesValue: totalSalesValue.toNumber(),
-      totalCost: costReport.summary.totalCost.toNumber(),
+      totalCost: totalCostNum,
       totalProfit: totalProfit.toNumber(),
-      profitMargin: typeof profitMargin === "number" ? profitMargin : profitMargin.toNumber(),
-      averageOrderValue: costReport.summary.averageCostPerOrder,
+      profitMargin,
+      averageOrderValue: toNum(costReport.summary.averageCostPerOrder),
       totalOrders: costReport.summary.totalOrders,
       mostProfitableProduct: profitability[0] || null,
       leastProfitableProduct:
