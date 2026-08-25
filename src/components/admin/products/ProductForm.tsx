@@ -191,8 +191,8 @@ export function ProductForm({
             {/* Campos */}
             <div className="flex-1 space-y-3">
               {/* Nome, Categoria, Preço, Selo, Ordem e Disponível - lado a lado */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-2">
+                <div className="col-span-2">
                   <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
                     Nome do produto
                   </label>
