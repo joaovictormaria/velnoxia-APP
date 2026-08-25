@@ -162,7 +162,7 @@ function PizzariaInicio() {
                     <h3 className="font-semibold text-charcoal text-xs line-clamp-2">{product.name}</h3>
                     <p className="text-xs text-charcoal/60 line-clamp-2 mt-1">{product.desc}</p>
                     <div className="flex items-center justify-between gap-2 mt-auto pt-3">
-                      <p className="text-base font-bold text-tomato">R$ {price.toFixed(2).replace(".", ",")}</p>
+                      <p className="text-sm font-bold text-tomato">R$ {price.toFixed(2).replace(".", ",")}</p>
                       <button
                         type="button"
                         onClick={handleAddProduct}
