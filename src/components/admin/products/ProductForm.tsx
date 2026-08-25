@@ -436,7 +436,7 @@ export function ProductForm({
         </button>
         <Link
           to="/admin/cardapio"
-          className="rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 w-full sm:w-auto"
+          className="flex items-center justify-center rounded-xl border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 w-full sm:w-auto"
           title="Cancelar"
         >
           Cancelar
