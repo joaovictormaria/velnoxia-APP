@@ -268,30 +268,29 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
     });
 
     // Se é um pedido de mesa, fechar a sessão e liberar a mesa
-    console.log(`[CONFIRM PAYMENT] Order ${data.orderId}: tableId=${order.tableId}`);
-    if (order.tableId) {
-      console.log(`[CONFIRM PAYMENT] Closing session for table ${order.tableId}`);
-      // Fechar a sessão da mesa
-      const sessionResult = await prisma.tableSession.updateMany({
-        where: {
-          tableId: order.tableId,
-          status: "OPEN",
-        },
+    console.log(`[CONFIRM PAYMENT] Order ${data.orderId}: tableId=${order.tableId}, sessionId=${order.sessionId}`);
+    if (order.sessionId) {
+      console.log(`[CONFIRM PAYMENT] Closing session ${order.sessionId} for order ${data.orderId}`);
+      // Fechar a sessão específica usando sessionId do order
+      await prisma.tableSession.update({
+        where: { id: order.sessionId },
         data: {
           status: "CLOSED",
           closedAt: new Date(),
         },
       });
-      console.log(`[CONFIRM PAYMENT] Closed ${sessionResult.count} sessions for table ${order.tableId}`);
+      console.log(`[CONFIRM PAYMENT] Session ${order.sessionId} marked as CLOSED`);
 
-      // Liberar a mesa (voltar ao status AVAILABLE)
-      await prisma.table.update({
-        where: { id: order.tableId },
-        data: { status: "AVAILABLE" },
-      });
-      console.log(`[CONFIRM PAYMENT] Table ${order.tableId} marked as AVAILABLE`);
+      // Liberar a mesa também (voltar ao status AVAILABLE)
+      if (order.tableId) {
+        await prisma.table.update({
+          where: { id: order.tableId },
+          data: { status: "AVAILABLE" },
+        });
+        console.log(`[CONFIRM PAYMENT] Table ${order.tableId} marked as AVAILABLE`);
+      }
     } else {
-      console.log(`[CONFIRM PAYMENT] No tableId for order ${data.orderId} - not a table order`);
+      console.log(`[CONFIRM PAYMENT] No sessionId for order ${data.orderId} - not a table order`);
     }
 
     return { ok: true as const };
