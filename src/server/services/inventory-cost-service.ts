@@ -307,7 +307,7 @@ export class InventoryCostService {
     > = {};
 
     for (const order of orders) {
-      for (const item of order.orderItems) {
+      for (const item of order.items) {
         const key = item.product.name;
         if (!profitByProduct[key]) {
           profitByProduct[key] = {
