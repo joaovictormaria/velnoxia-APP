@@ -352,8 +352,8 @@ export function ProductForm({
           </div>
 
           {/* OPÇÕES */}
-          <div className="space-y-4 rounded-2xl border border-neutral-200 bg-white p-5">
-            <p className="text-sm font-semibold text-neutral-900">Opções</p>
+          <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
+            <p className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">Opções</p>
 
             <Toggle
               label="Produto disponível"
