@@ -296,62 +296,61 @@ export function ProductForm({
                   className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
                 />
               </div>
+
+              {/* Tamanhos disponíveis - dentro do card de perfil */}
+              <div className="border-t border-neutral-200 pt-3">
+                <p className="mb-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">Tamanhos disponíveis</p>
+
+                {!values.categoryId ? (
+                  <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                    Escolha uma categoria. São os tamanhos dela que aparecem aqui.
+                  </p>
+                ) : tamanhosDaCategoria.length === 0 ? (
+                  <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                    A categoria não tem tamanhos. Produto vendido pelo preço base.
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {tamanhosDaCategoria.map(({ id, label }) => {
+                        const size = sizeFor(id);
+                        return (
+                          <div key={id} className="flex items-center gap-3">
+                            <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(size)}
+                                onChange={(e) => toggleSize(id, e.target.checked)}
+                                className="size-4 accent-[#E11D2E]"
+                              />
+                              {label}
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              disabled={!size}
+                              value={size?.price ?? ""}
+                              onChange={(e) => setSizePrice(id, Number(e.target.value))}
+                              placeholder="—"
+                              className="w-20 rounded-lg border border-neutral-200 px-2 py-1 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-xs text-neutral-500">
+                      Sem tamanhos marcados, o produto é vendido pelo preço base.
+                    </p>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* TAMANHOS E OPÇÕES - Direita, empilhados */}
-        <div className="space-y-4">
-          {/* TAMANHOS DISPONÍVEIS */}
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-            <p className="mb-3 text-sm font-medium text-neutral-900">Tamanhos disponíveis</p>
-
-            {!values.categoryId ? (
-              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
-                Escolha uma categoria. São os tamanhos dela que aparecem aqui.
-              </p>
-            ) : tamanhosDaCategoria.length === 0 ? (
-              <p className="rounded-lg bg-neutral-50 px-3 py-2.5 text-sm text-neutral-600">
-                A categoria não tem tamanhos. Produto vendido pelo preço base.
-              </p>
-            ) : (
-              <>
-                <div className="space-y-2">
-                  {tamanhosDaCategoria.map(({ id, label }) => {
-                    const size = sizeFor(id);
-                    return (
-                      <div key={id} className="flex items-center gap-3">
-                        <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(size)}
-                            onChange={(e) => toggleSize(id, e.target.checked)}
-                            className="size-4 accent-[#E11D2E]"
-                          />
-                          {label}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          disabled={!size}
-                          value={size?.price ?? ""}
-                          onChange={(e) => setSizePrice(id, Number(e.target.value))}
-                          placeholder="—"
-                          className="w-24 rounded-lg border border-neutral-200 px-2 py-1 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-2 text-xs text-neutral-500">
-                  Sem tamanhos marcados, o produto é vendido pelo preço base.
-                </p>
-              </>
-            )}
-          </div>
-
-          {/* OPÇÕES */}
+        {/* OPÇÕES - Direita */}
+        <div>
           <div className="space-y-3 rounded-2xl border border-neutral-200 bg-white p-4">
             <p className="text-xs font-semibold text-neutral-900 uppercase tracking-wide">Opções</p>
 
