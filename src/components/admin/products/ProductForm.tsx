@@ -177,9 +177,227 @@ export function ProductForm({
         className="rounded-2xl border border-neutral-200 bg-white p-5"
         onFocusCapture={() => setFoco("foto-do-produto")}
       >
-          <div className="flex flex-col md:flex-row gap-6">
-            {/* Foto */}
-            <div className="flex justify-center md:justify-start w-24 h-24 md:w-40 md:h-40 flex-shrink-0 mx-auto md:mx-0">
+          {/* Mobile Layout */}
+          <div className="flex md:hidden flex-col gap-4">
+            {/* Foto Mobile - Redonda */}
+            <div className="flex justify-center w-32 h-32 mx-auto">
+              <div className="rounded-full overflow-hidden w-full h-full">
+                <ImageUploadField
+                  kind="product"
+                  label=""
+                  value={values.imageUrl}
+                  onChange={(url) => set("imageUrl", url)}
+                />
+              </div>
+            </div>
+
+            {/* Campos Mobile */}
+            <div className="space-y-3">
+              {/* Nome, Categoria, Preço, Selo, Ordem e Disponível - lado a lado */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-2">
+                <div className="col-span-2">
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Nome do produto
+                  </label>
+                  <input
+                    onFocus={() => setFoco("nome-do-produto")}
+                    value={values.name}
+                    onChange={(e) => {
+                      set("name", e.target.value);
+                      if (enderecoSegueONome) set("slug", slugify(e.target.value));
+                    }}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Categoria
+                  </label>
+                  <select
+                    value={values.categoryId}
+                    onChange={(e) => set("categoryId", e.target.value)}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-sm text-neutral-900"
+                  >
+                    <option value="">Selecione...</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Preço base
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    onFocus={() => setFoco("preco-do-produto")}
+                    value={values.basePrice}
+                    onChange={(e) => set("basePrice", Number(e.target.value))}
+                    required
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Selo (opcional)
+                  </label>
+                  <input
+                    onFocus={() => setFoco("etiqueta-do-produto")}
+                    value={values.tag ?? ""}
+                    onChange={(e) => set("tag", e.target.value || null)}
+                    placeholder="Ex: Mais pedida"
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Ordem exibição
+                  </label>
+                  <input
+                    type="number"
+                    value={values.sortOrder}
+                    onChange={(e) => set("sortOrder", Number(e.target.value))}
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  />
+                </div>
+
+                <div className="flex flex-col justify-end">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">
+                    Disponível
+                  </label>
+                  <Toggle
+                    label=""
+                    checked={values.isActive}
+                    onChange={(v) => set("isActive", v)}
+                  />
+                </div>
+              </div>
+
+              {/* Descrição e Tamanhos disponíveis - lado a lado */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {/* Descrição */}
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Descrição
+                  </label>
+                  <textarea
+                    onFocus={() => setFoco("descricao-do-produto")}
+                    value={values.description}
+                    onChange={(e) => set("description", e.target.value)}
+                    rows={2}
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  />
+                </div>
+
+                {/* Tamanhos disponíveis */}
+                <div>
+                  <p className="mb-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">Tamanhos disponíveis</p>
+
+                {!values.categoryId ? (
+                  <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                    Escolha uma categoria. São os tamanhos dela que aparecem aqui.
+                  </p>
+                ) : tamanhosDaCategoria.length === 0 ? (
+                  <p className="rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                    A categoria não tem tamanhos. Produto vendido pelo preço base.
+                  </p>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {tamanhosDaCategoria.map(({ id, label }) => {
+                        const size = sizeFor(id);
+                        return (
+                          <div key={id} className="flex items-center gap-3">
+                            <label className="flex flex-1 items-center gap-2 text-sm text-neutral-700">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(size)}
+                                onChange={(e) => toggleSize(id, e.target.checked)}
+                                className="size-4 accent-[#E11D2E]"
+                              />
+                              {label}
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              disabled={!size}
+                              value={size?.price ?? ""}
+                              onChange={(e) => setSizePrice(id, Number(e.target.value))}
+                              placeholder="—"
+                              className="w-20 rounded-lg border border-neutral-200 px-2 py-1 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-xs text-neutral-500">
+                      Sem tamanhos marcados, o produto é vendido pelo preço base.
+                    </p>
+                  </>
+                )}
+                </div>
+              </div>
+
+              {/* Opções - dentro do card de perfil */}
+              {aceitaMeioAMeio && (
+              <div className="border-t border-neutral-200 pt-3">
+                <div className="space-y-3">
+                  {aceitaMeioAMeio && (
+                    <>
+                      <Toggle
+                        label="Permitir meia a meia (2 sabores)"
+                        checked={values.allowHalfAndHalf}
+                        onChange={(v) => set("allowHalfAndHalf", v)}
+                      />
+
+                      {values.allowHalfAndHalf && (
+                        <>
+                          <Field label="Regra de preço">
+                            <select
+                              value={values.halfPizzaPricingRule}
+                              onChange={(e) =>
+                                set(
+                                  "halfPizzaPricingRule",
+                                  e.target.value as ProductFormValues["halfPizzaPricingRule"],
+                                )
+                              }
+                              className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-base md:text-sm text-neutral-900"
+                            >
+                              <option value="HIGHEST_PRICE">Maior preço entre os sabores</option>
+                              <option value="AVERAGE_PRICE">Média entre os sabores</option>
+                            </select>
+                          </Field>
+
+                          <p className="text-xs text-neutral-500">
+                            {values.halfPizzaPricingRule === "HIGHEST_PRICE"
+                              ? "A pizza sai pelo preço do sabor mais caro dos dois."
+                              : "A pizza sai pela média dos preços dos dois sabores."}
+                          </p>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+              )}
+            </div>
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden md:flex md:flex-row gap-6">
+            {/* Foto Desktop - Quadrada */}
+            <div className="w-40 h-40 flex-shrink-0">
               <ImageUploadField
                 kind="product"
                 label=""
@@ -188,7 +406,7 @@ export function ProductForm({
               />
             </div>
 
-            {/* Campos */}
+            {/* Campos Desktop */}
             <div className="flex-1 min-w-0 space-y-3">
               {/* Nome, Categoria, Preço, Selo, Ordem e Disponível - lado a lado */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-2">
