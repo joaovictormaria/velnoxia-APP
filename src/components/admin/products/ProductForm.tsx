@@ -180,15 +180,13 @@ export function ProductForm({
           {/* Mobile Layout */}
           <div className="flex md:hidden flex-col gap-4 mt-6">
             {/* Foto Mobile - Redonda */}
-            <div className="flex justify-center w-32 h-32 mx-auto">
-              <div className="rounded-full overflow-hidden w-full h-full">
-                <ImageUploadField
-                  kind="product"
-                  label=""
-                  value={values.imageUrl}
-                  onChange={(url) => set("imageUrl", url)}
-                />
-              </div>
+            <div className="flex justify-center">
+              <ImageUploadField
+                kind="product"
+                label=""
+                value={values.imageUrl}
+                onChange={(url) => set("imageUrl", url)}
+              />
             </div>
 
             {/* Campos Mobile */}
