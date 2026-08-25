@@ -441,35 +441,6 @@ export function ProductForm({
         </PreviaDaVitrine>
       </div>
       )}
-
-      {/* Perguntas do produto - abaixo do preview */}
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-        <p className="text-sm font-semibold text-neutral-900">
-          Perguntas só deste produto
-        </p>
-        <p className="mt-1 text-xs text-neutral-500">
-          O que o cliente escolhe antes de adicionar ao carrinho — o sabor do suco, o
-          tipo de pão. Vale só para este produto.
-        </p>
-
-        {categoriaEscolhida && categoriaEscolhida.optionGroups.length > 0 && (
-          <p className="mt-2.5 rounded-lg bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
-            A categoria {categoriaEscolhida.name} já pergunta{" "}
-            <span className="font-semibold">
-              {categoriaEscolhida.optionGroups.map((g) => g.name).join(", ")}
-            </span>{" "}
-            em todos os produtos dela. Não precisa repetir aqui.
-          </p>
-        )}
-
-        <div className="mt-3">
-          <OptionGroupEditor
-            value={values.optionGroups}
-            onChange={(optionGroups) => set("optionGroups", optionGroups)}
-            businessType={businessType ?? ""}
-          />
-        </div>
-      </div>
     </form>
   );
 }
