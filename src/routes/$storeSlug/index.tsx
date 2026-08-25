@@ -120,7 +120,7 @@ function PizzariaInicio() {
             <h2 className="text-2xl font-bold text-charcoal">Mais Pedidos</h2>
           </Reveal>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-4">
             {products.slice(0, 3).map((product) => (
               <button
                 key={product.id}
