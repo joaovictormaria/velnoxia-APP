@@ -369,9 +369,8 @@ export function ProductForm({
               </div>
 
               {/* Opções - dentro do card de perfil */}
+              {aceitaMeioAMeio && (
               <div className="border-t border-neutral-200 pt-3">
-                <p className="mb-2 text-xs font-semibold text-neutral-700 uppercase tracking-wide">Opções</p>
-
                 <div className="space-y-3">
                   {aceitaMeioAMeio && (
                     <>
@@ -410,6 +409,7 @@ export function ProductForm({
                   )}
                 </div>
               </div>
+              )}
             </div>
           </div>
         </div>
