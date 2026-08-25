@@ -117,13 +117,13 @@ function PizzariaInicio() {
     <main>
       <HeroDaVitrine />
 
-      <section className="scroll-mt-20 px-4 pt-16 pb-16 sm:px-6 sm:pt-20 sm:pb-20 bg-neutral-50 -mx-4 sm:-mx-6">
+      <section className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20">
         <div className="mx-auto max-w-[1200px]">
           <Reveal variant="up" className="mb-6">
             <h2 className="text-xl font-bold text-charcoal">Mais Pedidos</h2>
           </Reveal>
 
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-4">
             {products.slice(0, 3).map((product) => {
               const Icon = product.icon;
               const price = sizePrice(product);
@@ -143,9 +143,8 @@ function PizzariaInicio() {
               }
 
               return (
-                <div
-                  key={product.id}
-                  className="flex flex-col rounded-lg overflow-hidden bg-white border-2 border-white hover:shadow-lg transition-shadow"
+                <div key={product.id} className="bg-white rounded-lg p-3 shadow-sm">
+                  <div className="flex flex-col rounded-lg overflow-hidden border-2 border-white hover:shadow-lg transition-shadow"
                 >
                   <div className="relative">
                     {product.image ? (
@@ -179,6 +178,7 @@ function PizzariaInicio() {
                         <Plus className="size-3" />
                       </button>
                     </div>
+                  </div>
                   </div>
                 </div>
               );
