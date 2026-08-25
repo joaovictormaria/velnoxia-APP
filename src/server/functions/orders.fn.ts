@@ -289,6 +289,19 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
           },
         });
         console.log(`[CONFIRM PAYMENT] ✓ Session ${order.sessionId} marked as CLOSED. Updated session: ${JSON.stringify({ id: sessionUpdate.id, status: sessionUpdate.status, closedAt: sessionUpdate.closedAt })}`);
+
+        // Revoke all devices for this session (clean up for new customer)
+        console.log(`[CONFIRM PAYMENT] Revoking all devices for session ${order.sessionId}`);
+        const devicesRevoked = await prisma.sessionDevice.updateMany({
+          where: {
+            sessionId: order.sessionId,
+            revokedAt: null,
+          },
+          data: {
+            revokedAt: new Date(),
+          },
+        });
+        console.log(`[CONFIRM PAYMENT] ✓ Revoked ${devicesRevoked.count} devices for session ${order.sessionId}`);
       } catch (err) {
         console.log(`[CONFIRM PAYMENT] ✗ Error closing session: ${err}`);
       }
