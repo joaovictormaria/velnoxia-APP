@@ -114,6 +114,41 @@ function PizzariaInicio() {
     <main>
       <HeroDaVitrine />
 
+      <section className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20">
+        <div className="mx-auto max-w-[1200px]">
+          <Reveal variant="up" className="mb-6">
+            <h2 className="text-2xl font-bold text-charcoal">Mais Pedidos</h2>
+          </Reveal>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {products.slice(0, 3).map((product) => (
+              <button
+                key={product.id}
+                onClick={goToCardapio}
+                className="rounded-lg overflow-hidden bg-white border border-charcoal/10 hover:shadow-lg transition-shadow text-left"
+              >
+                {product.imageUrl ? (
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="w-full h-40 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-40 bg-charcoal/5 flex items-center justify-center">
+                    <Pizza className="size-8 text-charcoal/30" />
+                  </div>
+                )}
+                <div className="p-4 space-y-2">
+                  <h3 className="font-semibold text-charcoal text-sm">{product.name}</h3>
+                  <p className="text-xs text-charcoal/60 line-clamp-2">{product.description}</p>
+                  <p className="text-base font-bold text-tomato">{formatCurrency(product.basePrice)}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section
         id="promocoes"
         className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20"
