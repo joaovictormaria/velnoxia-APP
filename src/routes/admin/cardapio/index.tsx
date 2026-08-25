@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ImageIcon, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowLeft, ImageIcon, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import {
   deleteProductFn,
   getProductFn,
