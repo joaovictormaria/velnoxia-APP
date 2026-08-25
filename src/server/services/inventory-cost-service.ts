@@ -375,22 +375,22 @@ export class InventoryCostService {
     ]);
 
     // Calcular KPIs
-    let totalSalesValue = (0 as Decimal);
+    let totalSalesValue = new Decimal(0);
     for (const item of profitability) {
-      totalSalesValue = totalSalesValue.add(item.totalSalesValue);
+      totalSalesValue = totalSalesValue.plus(item.totalSalesValue);
     }
 
     const totalProfit = totalSalesValue.minus(costReport.summary.totalCost);
     const profitMargin = totalSalesValue.isZero()
-      ? (0)
-      : totalProfit.dividedBy(totalSalesValue).times(100);
+      ? 0
+      : totalProfit.dividedBy(totalSalesValue).times(100).toNumber();
 
     return {
-      period: `Ãšltimos ${days} dias`,
-      totalSalesValue,
-      totalCost: costReport.summary.totalCost,
-      totalProfit,
-      profitMargin,
+      period: `Últimos ${days} dias`,
+      totalSalesValue: totalSalesValue.toNumber(),
+      totalCost: costReport.summary.totalCost.toNumber(),
+      totalProfit: totalProfit.toNumber(),
+      profitMargin: typeof profitMargin === "number" ? profitMargin : profitMargin.toNumber(),
       averageOrderValue: costReport.summary.averageCostPerOrder,
       totalOrders: costReport.summary.totalOrders,
       mostProfitableProduct: profitability[0] || null,
