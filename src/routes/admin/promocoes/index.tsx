@@ -154,105 +154,107 @@ function PromotionsPage() {
                 e.preventDefault();
                 save.mutate(draft);
               }}
-              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 space-y-5"
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
             >
-              {/* Campos principais */}
-              <div className="grid gap-4 grid-cols-1 lg:grid-cols-4">
-                {/* Foto - ImageUploadField (lado esquerdo em desktop, topo em mobile) */}
-                <div className="lg:col-span-1">
-                  <ImageUploadField
-                    kind="product"
-                    label="Foto"
-                    value={draft.imageUrl}
-                    onChange={(url) => setDraft({ ...draft, imageUrl: url })}
-                  />
-                </div>
-
-                {/* Campos de texto (lado direito em desktop, abaixo em mobile) */}
-                <div className="lg:col-span-3 grid gap-4 grid-cols-1 sm:grid-cols-3">
-                  <Field label="Chamada" hint="Linha pequena acima do título.">
-                    <Input
-                      onFocus={() => setFoco("chamada-da-promocao")}
-                      value={draft.eyebrow}
-                      onChange={(v) => setDraft({ ...draft, eyebrow: v })}
-                      required
-                    />
-                  </Field>
-                  <Field label="Título">
-                    <Input
-                      onFocus={() => setFoco("titulo-da-promocao")}
-                      value={draft.title}
-                      onChange={(v) => setDraft({ ...draft, title: v })}
-                      required
-                    />
-                  </Field>
-                  <Field label="Ordem">
-                    <input
-                      type="number"
-                      value={draft.sortOrder}
-                      onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-                      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                    />
-                  </Field>
-                </div>
+              {/* Foto - ImageUploadField (col 1-2 em desktop) */}
+              <div className="lg:col-span-2">
+                <ImageUploadField
+                  kind="product"
+                  label="Foto"
+                  value={draft.imageUrl}
+                  onChange={(url) => setDraft({ ...draft, imageUrl: url })}
+                />
               </div>
 
-              <Field label="Descrição">
-                <textarea
-                  onFocus={() => setFoco("descricao-da-promocao")}
-                  value={draft.description}
-                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+              {/* Chamada */}
+              <Field label="Chamada" hint="Linha pequena acima do título.">
+                <Input
+                  onFocus={() => setFoco("chamada-da-promocao")}
+                  value={draft.eyebrow}
+                  onChange={(v) => setDraft({ ...draft, eyebrow: v })}
                   required
-                  rows={3}
+                />
+              </Field>
+
+              {/* Título */}
+              <Field label="Título">
+                <Input
+                  onFocus={() => setFoco("titulo-da-promocao")}
+                  value={draft.title}
+                  onChange={(v) => setDraft({ ...draft, title: v })}
+                  required
+                />
+              </Field>
+
+              {/* Ordem */}
+              <Field label="Ordem">
+                <input
+                  type="number"
+                  value={draft.sortOrder}
+                  onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
                 />
               </Field>
 
-              <div className="grid gap-4 lg:grid-cols-3">
-                <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
-                  <Input
-                    onFocus={() => setFoco("selo-da-promocao")}
-                    value={draft.discount}
-                    onChange={(v) => setDraft({ ...draft, discount: v })}
-                  />
-                </Field>
-                <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
-                  <Input
-                    onFocus={() => setFoco("preco-da-promocao")}
-                    value={draft.price}
-                    onChange={(v) => setDraft({ ...draft, price: v })}
-                    type="number"
-                  />
-                </Field>
-                <Field label="Preço antigo (R$)" hint="Aparece riscado.">
-                  <Input
-                    onFocus={() => setFoco("preco-da-promocao")}
-                    value={draft.originalPrice}
-                    onChange={(v) => setDraft({ ...draft, originalPrice: v })}
-                    type="number"
+              {/* Descrição - full width */}
+              <div className="lg:col-span-5">
+                <Field label="Descrição">
+                  <textarea
+                    onFocus={() => setFoco("descricao-da-promocao")}
+                    value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                    required
+                    rows={3}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
                   />
                 </Field>
               </div>
 
-              <label className="inline-flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={draft.isActive}
-                  onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                  className="size-4 accent-[#E11D2E]"
+              {/* Selo */}
+              <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
+                <Input
+                  onFocus={() => setFoco("selo-da-promocao")}
+                  value={draft.discount}
+                  onChange={(v) => setDraft({ ...draft, discount: v })}
                 />
-                <span className="text-sm text-neutral-700">Ativa no site</span>
-              </label>
+              </Field>
 
-              {/* Prévia */}
+              {/* Preço */}
+              <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
+                <Input
+                  onFocus={() => setFoco("preco-da-promocao")}
+                  value={draft.price}
+                  onChange={(v) => setDraft({ ...draft, price: v })}
+                  type="number"
+                />
+              </Field>
+
+              {/* Preço antigo */}
+              <Field label="Preço antigo (R$)" hint="Aparece riscado.">
+                <Input
+                  onFocus={() => setFoco("preco-da-promocao")}
+                  value={draft.originalPrice}
+                  onChange={(v) => setDraft({ ...draft, originalPrice: v })}
+                  type="number"
+                />
+              </Field>
+
+              {/* Status - full width */}
+              <div className="lg:col-span-5">
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={draft.isActive}
+                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                    className="size-4 accent-[#E11D2E]"
+                  />
+                  <span className="text-sm text-neutral-700">Ativa no site</span>
+                </label>
+              </div>
+
+              {/* Prévia - full width */}
               {admin && (
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-neutral-900">Prévia do seu cardápio</h3>
-                    <button type="button" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
-                      Ampliar
-                    </button>
-                  </div>
+                <div className="lg:col-span-5">
                   <PreviaDaVitrine
                     storeSlug={admin.store.slug}
                     foco={foco}
@@ -264,8 +266,8 @@ function PromotionsPage() {
                 </div>
               )}
 
-              {/* Botões */}
-              <div className="flex items-center gap-2 pt-4">
+              {/* Botões - full width */}
+              <div className="lg:col-span-5 flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={save.isPending}
