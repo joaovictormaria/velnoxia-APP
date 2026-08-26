@@ -127,8 +127,8 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                         <SequentialTypingText
                           firstText={firstText}
                           secondText={secondText}
-                          firstClassName="font-display text-3xl font-extrabold text-[color:var(--on-primary)]"
-                          secondClassName="font-display text-lg font-extrabold text-[color:var(--on-primary)]"
+                          firstClassName="font-display text-3xl lg:text-4xl font-extrabold text-[color:var(--on-primary)]"
+                          secondClassName="font-display text-lg lg:text-2xl font-extrabold text-[color:var(--on-primary)]"
                           caretClassName="text-[color:var(--on-primary)]"
                           speed={50}
                           deleteSpeed={30}
