@@ -249,26 +249,26 @@ function PromotionsPage() {
                     />
                   </Field>
 
-                  {/* Preço antigo + Status */}
-                  <div className="space-y-1.5">
-                    <Field label="Preço antigo (R$)" hint="Aparece riscado.">
+                  {/* Preço antigo */}
+                  <Field label="Preço antigo (R$)" hint="Aparece riscado.">
+                    <div className="flex items-end gap-2">
                       <Input
                         onFocus={() => setFoco("preco-da-promocao")}
                         value={draft.originalPrice}
                         onChange={(v) => setDraft({ ...draft, originalPrice: v })}
                         type="number"
                       />
-                    </Field>
-                    <label className="inline-flex cursor-pointer items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={draft.isActive}
-                        onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                        className="size-4 accent-[#E11D2E]"
-                      />
-                      <span className="text-sm text-neutral-700">Ativa no site</span>
-                    </label>
-                  </div>
+                      <label className="inline-flex cursor-pointer items-center gap-2 shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={draft.isActive}
+                          onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                          className="size-4 accent-[#E11D2E]"
+                        />
+                        <span className="text-sm text-neutral-700">Ativa</span>
+                      </label>
+                    </div>
+                  </Field>
                 </div>
               </div>
 
