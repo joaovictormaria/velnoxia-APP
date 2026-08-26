@@ -101,7 +101,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
 
                 {/* Dashed placeholder only until the owner uploads a photo —
                     once there is one it fills the frame. */}
-                <div className="relative aspect-video w-full overflow-hidden border border-dashed border-[color:var(--on-primary)]/30">
+                <div className="relative aspect-video w-full overflow-hidden">
                   {/* Eyebrow overlay */}
                   <span
                     data-previa="chamada-da-promocao"
