@@ -158,41 +158,14 @@ function PromotionsPage() {
             >
               {/* Campos principais com foto ao lado */}
               <div className="flex gap-4">
-                {/* Foto pequena */}
-                <div className="shrink-0">
-                  {draft.imageUrl ? (
-                    <img
-                      src={draft.imageUrl}
-                      alt="Preview"
-                      className="size-20 rounded-lg object-cover border border-neutral-200"
-                    />
-                  ) : (
-                    <div className="flex size-20 items-center justify-center rounded-lg bg-neutral-100 border border-neutral-200">
-                      <svg className="size-8 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const input = document.createElement("input");
-                      input.type = "file";
-                      input.accept = "image/*";
-                      input.onchange = async (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (file) {
-                          const formData = new FormData();
-                          formData.append("file", file);
-                          // Aqui você precisaria fazer upload, mas por agora deixamos assim
-                        }
-                      };
-                      input.click();
-                    }}
-                    className="mt-2 text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Alterar
-                  </button>
+                {/* Foto - ImageUploadField */}
+                <div className="shrink-0 w-20">
+                  <ImageUploadField
+                    kind="product"
+                    label=""
+                    value={draft.imageUrl}
+                    onChange={(url) => setDraft({ ...draft, imageUrl: url })}
+                  />
                 </div>
 
                 {/* Campos de texto */}
@@ -234,15 +207,6 @@ function PromotionsPage() {
                   className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
                 />
               </Field>
-
-              <div>
-                <ImageUploadField
-                  kind="product"
-                  label="Foto da promoção (tamanho grande)"
-                  value={draft.imageUrl}
-                  onChange={(url) => setDraft({ ...draft, imageUrl: url })}
-                />
-              </div>
 
               <div className="grid gap-4 lg:grid-cols-3">
                 <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
