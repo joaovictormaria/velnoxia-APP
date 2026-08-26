@@ -101,7 +101,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
 
                 {/* Dashed placeholder only until the owner uploads a photo —
                     once there is one it fills the frame. */}
-                <div className="relative aspect-[2/1] w-full overflow-hidden rounded-2xl">
+                <div className="relative aspect-[3/1] w-full overflow-hidden rounded-2xl">
                   {/* Eyebrow overlay */}
                   <span
                     data-previa="chamada-da-promocao"
