@@ -151,7 +151,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     <button
                       type="button"
                       onClick={goToCardapio}
-                      className="inline-flex items-center gap-1 rounded-full bg-mozzarella px-3 py-1.5 text-xs font-semibold text-tomato transition-transform hover:scale-[1.03]"
+                      className="inline-flex items-center gap-1 rounded-full bg-mozzarella px-3 py-1.5 text-xs font-semibold text-tomato lg:px-6 lg:py-3 lg:text-sm transition-transform hover:scale-[1.03]"
                     >
                       Comprar →
                     </button>
