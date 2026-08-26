@@ -183,10 +183,6 @@ export function Footer() {
               A Velnox.IA
             </a>
             <span className="text-charcoal/20">·</span>
-            <a href="/" className="transition-colors hover:text-tomato">
-              Velnox.app
-            </a>
-            <span className="text-charcoal/20">·</span>
             <a href="/privacidade" className="transition-colors hover:text-tomato">
               Política de Privacidade
             </a>
