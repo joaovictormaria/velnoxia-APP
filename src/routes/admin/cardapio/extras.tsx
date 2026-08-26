@@ -153,9 +153,6 @@ function ExtrasPage() {
       <div className="h-1 bg-blue-500" />
       <div className="p-3">
         <div className="flex items-center gap-2">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded bg-neutral-200 text-neutral-400">
-            <Pencil className="size-4" />
-          </div>
           <div className="flex-1 min-w-0">
             <div
               className={`font-medium text-xs truncate ${
