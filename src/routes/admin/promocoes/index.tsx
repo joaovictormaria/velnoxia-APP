@@ -227,35 +227,38 @@ function PromotionsPage() {
                   </Field>
                 </div>
 
-                {/* Ordem */}
-                <Field label="Ordem">
-                  <input
-                    type="number"
-                    value={draft.sortOrder}
-                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                  />
-                </Field>
+                {/* Linha 2: Ordem | Preço | Preço antigo */}
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Ordem */}
+                  <Field label="Ordem">
+                    <input
+                      type="number"
+                      value={draft.sortOrder}
+                      onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+                      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+                    />
+                  </Field>
 
-                {/* Preço */}
-                <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
-                  <Input
-                    onFocus={() => setFoco("preco-da-promocao")}
-                    value={draft.price}
-                    onChange={(v) => setDraft({ ...draft, price: v })}
-                    type="number"
-                  />
-                </Field>
+                  {/* Preço */}
+                  <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
+                    <Input
+                      onFocus={() => setFoco("preco-da-promocao")}
+                      value={draft.price}
+                      onChange={(v) => setDraft({ ...draft, price: v })}
+                      type="number"
+                    />
+                  </Field>
 
-                {/* Preço antigo */}
-                <Field label="Preço antigo (R$)" hint="Aparece riscado.">
-                  <Input
-                    onFocus={() => setFoco("preco-da-promocao")}
-                    value={draft.originalPrice}
-                    onChange={(v) => setDraft({ ...draft, originalPrice: v })}
-                    type="number"
-                  />
-                </Field>
+                  {/* Preço antigo */}
+                  <Field label="Preço antigo (R$)" hint="Aparece riscado.">
+                    <Input
+                      onFocus={() => setFoco("preco-da-promocao")}
+                      value={draft.originalPrice}
+                      onChange={(v) => setDraft({ ...draft, originalPrice: v })}
+                      type="number"
+                    />
+                  </Field>
+                </div>
 
                 {/* Descrição */}
                 <Field label="Descrição">
