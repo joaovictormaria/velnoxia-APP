@@ -104,10 +104,10 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                 {/* Dashed placeholder only until the owner uploads a photo —
                     once there is one it fills the frame. */}
                 <div className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-dashed border-[color:var(--on-primary)]/30 bg-[color:var(--on-primary)]/10">
-                  {/* Eyebrow overlay on mobile */}
+                  {/* Eyebrow overlay */}
                   <span
                     data-previa="chamada-da-promocao"
-                    className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full bg-tomato/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--on-primary)] sm:hidden"
+                    className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full bg-tomato/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--on-primary)]"
                   >
                     <span className="h-1.5 w-1.5 rounded-full bg-mozzarella/80" />
                     {slide.eyebrow}
@@ -122,7 +122,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     return (
                       <div
                         data-previa="titulo-da-promocao"
-                        className="absolute bottom-4 left-4 z-10 max-w-xs sm:hidden leading-none"
+                        className="absolute bottom-4 left-4 z-10 max-w-xs leading-none"
                       >
                         <SequentialTypingText
                           firstText={firstText}
@@ -139,15 +139,15 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     );
                   })()}
 
-                  {/* Discount overlay on top-right mobile */}
+                  {/* Discount overlay on top-right */}
                   {slide.discount && (
-                    <span data-previa="selo-da-promocao" className="absolute top-4 right-4 z-10 inline-flex items-center rounded-full bg-mozzarella px-3 py-1 text-xs font-bold text-tomato sm:hidden">
+                    <span data-previa="selo-da-promocao" className="absolute top-4 right-4 z-10 inline-flex items-center rounded-full bg-mozzarella px-3 py-1 text-xs font-bold text-tomato">
                       {slide.discount}
                     </span>
                   )}
 
-                  {/* Button overlay on bottom-right mobile */}
-                  <div className="absolute bottom-4 right-4 z-10 sm:hidden">
+                  {/* Button overlay on bottom-right */}
+                  <div className="absolute bottom-4 right-4 z-10">
                     <button
                       type="button"
                       onClick={goToCardapio}
