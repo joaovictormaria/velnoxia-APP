@@ -134,7 +134,7 @@ function PromotionsPage() {
 
       {draft && (
         <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
-          <div className="flex w-full max-w-5xl flex-col">
+          <div className="flex w-full max-w-5xl flex-col max-h-[90vh] overflow-auto rounded-t-2xl sm:rounded-2xl">
             <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
               <h2 className="text-base font-semibold text-neutral-900">
                 {draft.id ? "Editar promoção" : "Nova promoção"}
@@ -156,9 +156,9 @@ function PromotionsPage() {
               }}
               className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 space-y-5"
             >
-              {/* Campos principais com foto ao lado */}
-              <div className="grid gap-4 lg:grid-cols-4">
-                {/* Foto - ImageUploadField */}
+              {/* Campos principais */}
+              <div className="grid gap-4 grid-cols-1 lg:grid-cols-4">
+                {/* Foto - ImageUploadField (lado esquerdo em desktop, topo em mobile) */}
                 <div className="lg:col-span-1">
                   <ImageUploadField
                     kind="product"
@@ -168,7 +168,7 @@ function PromotionsPage() {
                   />
                 </div>
 
-                {/* Campos de texto */}
+                {/* Campos de texto (lado direito em desktop, abaixo em mobile) */}
                 <div className="lg:col-span-3 grid gap-4 grid-cols-1 sm:grid-cols-3">
                   <Field label="Chamada" hint="Linha pequena acima do título.">
                     <Input
