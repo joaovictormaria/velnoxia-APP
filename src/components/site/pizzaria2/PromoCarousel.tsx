@@ -52,7 +52,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
             <div key={slide.title} className="min-w-0 shrink-0 grow-0 basis-full">
               <div className="relative grid grid-cols-1 items-center gap-0 px-0 pb-0 pt-0">
 
-                <div className="hidden px-0 sm:px-10">
+                <div className="px-0 sm:px-10">
                   <span
                     data-previa="chamada-da-promocao"
                     className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--on-primary-muted)]"
