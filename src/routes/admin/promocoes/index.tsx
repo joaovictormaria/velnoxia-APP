@@ -154,23 +154,10 @@ function PromotionsPage() {
                 e.preventDefault();
                 save.mutate(draft);
               }}
-              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-5 lg:grid-cols-5"
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 space-y-5"
             >
-              {admin && (
-                <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
-                  <PreviaDaVitrine
-                    storeSlug={admin.store.slug}
-                    foco={foco}
-                    largura={1200}
-                    aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
-                  >
-                    <PromoCarouselDaPrevia />
-                  </PreviaDaVitrine>
-                </div>
-              )}
-
-              <div className="lg:col-span-3 space-y-5">
-                <div className="grid gap-4 lg:grid-cols-2">
+              {/* Campos principais */}
+              <div className="grid gap-4 lg:grid-cols-3">
                 <Field label="Chamada" hint="Linha pequena acima do título.">
                   <Input
                     onFocus={() => setFoco("chamada-da-promocao")}
@@ -185,6 +172,14 @@ function PromotionsPage() {
                     value={draft.title}
                     onChange={(v) => setDraft({ ...draft, title: v })}
                     required
+                  />
+                </Field>
+                <Field label="Ordem">
+                  <input
+                    type="number"
+                    value={draft.sortOrder}
+                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
                   />
                 </Field>
               </div>
@@ -235,42 +230,52 @@ function PromotionsPage() {
                 </Field>
               </div>
 
-              <div className="flex flex-wrap items-center gap-6">
-                <label className="inline-flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={draft.isActive}
-                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                    className="size-4 accent-[#E11D2E]"
-                  />
-                  <span className="text-sm text-neutral-700">Ativa no site</span>
-                </label>
-                <Field label="Ordem">
-                  <input
-                    type="number"
-                    value={draft.sortOrder}
-                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-                    className="w-24 rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                  />
-                </Field>
-              </div>
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.isActive}
+                  onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                  className="size-4 accent-[#E11D2E]"
+                />
+                <span className="text-sm text-neutral-700">Ativa no site</span>
+              </label>
 
-                <div className="flex items-center gap-2 pt-4">
-                  <button
-                    type="submit"
-                    disabled={save.isPending}
-                    className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+              {/* Prévia */}
+              {admin && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-neutral-900">Prévia do seu cardápio</h3>
+                    <button type="button" className="text-xs text-blue-600 hover:text-blue-700 font-medium">
+                      Ampliar
+                    </button>
+                  </div>
+                  <PreviaDaVitrine
+                    storeSlug={admin.store.slug}
+                    foco={foco}
+                    largura={1200}
+                    aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
                   >
-                    {save.isPending ? "Salvando..." : "Salvar"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDraft(null)}
-                    className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
-                  >
-                    Cancelar
-                  </button>
+                    <PromoCarouselDaPrevia />
+                  </PreviaDaVitrine>
                 </div>
+              )}
+
+              {/* Botões */}
+              <div className="flex items-center gap-2 pt-4">
+                <button
+                  type="submit"
+                  disabled={save.isPending}
+                  className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+                >
+                  {save.isPending ? "Salvando..." : "Salvar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft(null)}
+                  className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
+                >
+                  Cancelar
+                </button>
               </div>
             </form>
           </div>
