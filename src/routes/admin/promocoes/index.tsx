@@ -157,7 +157,7 @@ function PromotionsPage() {
               className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
             >
               {/* Foto - Redonda em mobile, normal em desktop */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-1">
                 <style>{`
                   @media (max-width: 1024px) {
                     .promo-image-upload-mobile {
@@ -178,7 +178,7 @@ function PromotionsPage() {
                 <div className="promo-image-upload-mobile">
                   <ImageUploadField
                     kind="product"
-                    label="Foto"
+                    label=""
                     value={draft.imageUrl}
                     onChange={(url) => setDraft({ ...draft, imageUrl: url })}
                   />
@@ -215,6 +215,15 @@ function PromotionsPage() {
                 />
               </Field>
 
+              {/* Selo */}
+              <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
+                <Input
+                  onFocus={() => setFoco("selo-da-promocao")}
+                  value={draft.discount}
+                  onChange={(v) => setDraft({ ...draft, discount: v })}
+                />
+              </Field>
+
               {/* Descrição - full width */}
               <div className="lg:col-span-5">
                 <Field label="Descrição">
@@ -228,15 +237,6 @@ function PromotionsPage() {
                   />
                 </Field>
               </div>
-
-              {/* Selo */}
-              <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
-                <Input
-                  onFocus={() => setFoco("selo-da-promocao")}
-                  value={draft.discount}
-                  onChange={(v) => setDraft({ ...draft, discount: v })}
-                />
-              </Field>
 
               {/* Preço */}
               <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
