@@ -154,10 +154,10 @@ function PromotionsPage() {
                 e.preventDefault();
                 save.mutate(draft);
               }}
-              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 space-y-5"
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid lg:grid-cols-3 gap-4 lg:gap-6"
             >
-              {/* Foto - Redonda em mobile, normal em desktop */}
-              <div>
+              {/* Foto - Desktop: esquerda pequena, Mobile: topo grande */}
+              <div className="lg:col-span-1">
                 <style>{`
                   @media (max-width: 1024px) {
                     .promo-image-upload-mobile {
@@ -173,6 +173,14 @@ function PromotionsPage() {
                       border-radius: 9999px !important;
                       margin: 0 auto;
                     }
+                    .promo-image-upload-mobile {
+                      width: 100% !important;
+                    }
+                  }
+                  @media (min-width: 1025px) {
+                    .promo-image-upload-mobile {
+                      width: 160px !important;
+                    }
                   }
                 `}</style>
                 <div className="promo-image-upload-mobile">
@@ -185,116 +193,119 @@ function PromotionsPage() {
                 </div>
               </div>
 
-              {/* Chamada */}
-              <Field label="Chamada" hint="Linha pequena acima do título.">
-                <Input
-                  onFocus={() => setFoco("chamada-da-promocao")}
-                  value={draft.eyebrow}
-                  onChange={(v) => setDraft({ ...draft, eyebrow: v })}
-                  required
-                />
-              </Field>
+              {/* Campos - Desktop: direita, Mobile: abaixo da foto */}
+              <div className="lg:col-span-2 space-y-5">
+                {/* Chamada */}
+                <Field label="Chamada" hint="Linha pequena acima do título.">
+                  <Input
+                    onFocus={() => setFoco("chamada-da-promocao")}
+                    value={draft.eyebrow}
+                    onChange={(v) => setDraft({ ...draft, eyebrow: v })}
+                    required
+                  />
+                </Field>
 
-              {/* Ordem */}
-              <Field label="Ordem">
-                <input
-                  type="number"
-                  value={draft.sortOrder}
-                  onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                />
-              </Field>
+                {/* Ordem */}
+                <Field label="Ordem">
+                  <input
+                    type="number"
+                    value={draft.sortOrder}
+                    onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+                  />
+                </Field>
 
-              {/* Selo */}
-              <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
-                <Input
-                  onFocus={() => setFoco("selo-da-promocao")}
-                  value={draft.discount}
-                  onChange={(v) => setDraft({ ...draft, discount: v })}
-                />
-              </Field>
+                {/* Selo */}
+                <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
+                  <Input
+                    onFocus={() => setFoco("selo-da-promocao")}
+                    value={draft.discount}
+                    onChange={(v) => setDraft({ ...draft, discount: v })}
+                  />
+                </Field>
 
-              {/* Preço */}
-              <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
-                <Input
-                  onFocus={() => setFoco("preco-da-promocao")}
-                  value={draft.price}
-                  onChange={(v) => setDraft({ ...draft, price: v })}
-                  type="number"
-                />
-              </Field>
+                {/* Preço */}
+                <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
+                  <Input
+                    onFocus={() => setFoco("preco-da-promocao")}
+                    value={draft.price}
+                    onChange={(v) => setDraft({ ...draft, price: v })}
+                    type="number"
+                  />
+                </Field>
 
-              {/* Preço antigo */}
-              <Field label="Preço antigo (R$)" hint="Aparece riscado.">
-                <Input
-                  onFocus={() => setFoco("preco-da-promocao")}
-                  value={draft.originalPrice}
-                  onChange={(v) => setDraft({ ...draft, originalPrice: v })}
-                  type="number"
-                />
-              </Field>
+                {/* Preço antigo */}
+                <Field label="Preço antigo (R$)" hint="Aparece riscado.">
+                  <Input
+                    onFocus={() => setFoco("preco-da-promocao")}
+                    value={draft.originalPrice}
+                    onChange={(v) => setDraft({ ...draft, originalPrice: v })}
+                    type="number"
+                  />
+                </Field>
 
-              {/* Título */}
-              <Field label="Título">
-                <Input
-                  onFocus={() => setFoco("titulo-da-promocao")}
-                  value={draft.title}
-                  onChange={(v) => setDraft({ ...draft, title: v })}
-                  required
-                />
-              </Field>
+                {/* Título */}
+                <Field label="Título">
+                  <Input
+                    onFocus={() => setFoco("titulo-da-promocao")}
+                    value={draft.title}
+                    onChange={(v) => setDraft({ ...draft, title: v })}
+                    required
+                  />
+                </Field>
 
-              {/* Descrição */}
-              <Field label="Descrição">
-                <textarea
-                  onFocus={() => setFoco("descricao-da-promocao")}
-                  value={draft.description}
-                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                  required
-                  rows={3}
-                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                />
-              </Field>
+                {/* Descrição */}
+                <Field label="Descrição">
+                  <textarea
+                    onFocus={() => setFoco("descricao-da-promocao")}
+                    value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                    required
+                    rows={3}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+                  />
+                </Field>
 
-              {/* Status */}
-              <label className="inline-flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={draft.isActive}
-                  onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                  className="size-4 accent-[#E11D2E]"
-                />
-                <span className="text-sm text-neutral-700">Ativa no site</span>
-              </label>
+                {/* Status */}
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={draft.isActive}
+                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                    className="size-4 accent-[#E11D2E]"
+                  />
+                  <span className="text-sm text-neutral-700">Ativa no site</span>
+                </label>
 
-              {/* Prévia */}
-              {admin && (
-                <PreviaDaVitrine
-                  storeSlug={admin.store.slug}
-                  foco={foco}
-                  largura={1200}
-                  aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
-                >
-                  <PromoCarouselDaPrevia />
-                </PreviaDaVitrine>
-              )}
+                {/* Prévia */}
+                {admin && (
+                  <PreviaDaVitrine
+                    storeSlug={admin.store.slug}
+                    foco={foco}
+                    largura={1200}
+                    aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
+                  >
+                    <PromoCarouselDaPrevia />
+                  </PreviaDaVitrine>
+                )}
 
-              {/* Botões */}
-              <div className="flex items-center gap-2">
-                <button
-                  type="submit"
-                  disabled={save.isPending}
-                  className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
-                >
-                  {save.isPending ? "Salvando..." : "Salvar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDraft(null)}
-                  className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
-                >
-                  Cancelar
-                </button>
+                {/* Botões */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="submit"
+                    disabled={save.isPending}
+                    className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+                  >
+                    {save.isPending ? "Salvando..." : "Salvar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDraft(null)}
+                    className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             </form>
           </div>
