@@ -180,7 +180,7 @@ export function Footer() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-charcoal/45">
             <a href="https://www.velnoxia.com.br" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-tomato">
-              A Velnox.IA
+              Velnox.IA
             </a>
             <span className="text-charcoal/20">·</span>
             <a href="/privacidade" className="transition-colors hover:text-tomato">
