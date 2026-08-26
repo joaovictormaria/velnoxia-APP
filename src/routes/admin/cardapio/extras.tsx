@@ -35,12 +35,10 @@ const NOVO: Draft = {
 };
 
 /**
- * Os adicionais na hierarquia do cardápio: categoria, depois produto.
+ * Os adicionais na hierarquia do cardápio: produto, depois categoria.
  *
- * Um adicional aparece em todos os lugares onde vale — "Bacon extra" ligado a
- * duas categorias aparece nas duas. É repetição de propósito: a pergunta que
- * esta tela responde é "o que este produto oferece?", e não "onde está o
- * bacon?".
+ * Organiza por produto: um card por produto com seus extras.
+ * Um adicional apareça em categoria ou produto específico.
  */
 function agrupar({ extras, categories, products }: Dados, busca: string) {
   const termo = busca.trim().toLowerCase();
@@ -48,34 +46,23 @@ function agrupar({ extras, categories, products }: Dados, busca: string) {
   const semAcento = (v: string) => v.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
   const casa = (e: Extra) => !termo || semAcento(e.name).includes(semAcento(termo));
 
-  const porCategoria = categories
-    .map((categoria) => {
-      const daCategoria = extras.filter((e) => e.categoryIds.includes(categoria.id));
-      const dosProdutos = products
-        .filter((p) => p.categoryId === categoria.id)
-        .map((produto) => ({
-          produto,
-          todos: extras.filter((e) => e.productIds.includes(produto.id)),
-        }))
-        .filter((g) => g.todos.length > 0);
+  const porProduto = products
+    .map((produto) => {
+      // Extras que valem para este produto especificamente
+      const dosProduto = extras.filter((e) => e.productIds.includes(produto.id));
+      // Extras que valem para toda a categoria do produto
+      const daCategoria = extras.filter((e) => e.categoryIds.includes(produto.categoryId));
 
-      const naCategoria = daCategoria.filter(casa);
-      const porProduto = dosProdutos
-        .map((g) => ({ produto: g.produto, extras: g.todos.filter(casa) }))
-        .filter((g) => g.extras.length > 0);
+      // Combinar e filtrar por busca
+      const todos = [...daCategoria, ...dosProduto].filter(casa);
+      const unicos = [...new Map(todos.map((e) => [e.id, e])).values()];
 
       return {
-        categoria,
-        naCategoria,
-        porProduto,
-        quantos: naCategoria.length + porProduto.reduce((s, g) => s + g.extras.length, 0),
-        /*
-         * Se a categoria tem adicionais quando não há busca. O cartão continua
-         * na tela enquanto se digita, mostrando "nenhum encontrado" em vez de
-         * sumir: cartões que aparecem e somem a cada tecla fazem a grade
-         * saltar, e o que a pessoa mirava muda de lugar debaixo do cursor.
-         */
-        temAlgum: daCategoria.length > 0 || dosProdutos.length > 0,
+        produto,
+        categoria: categories.find((c) => c.id === produto.categoryId),
+        extras: unicos,
+        quantos: unicos.length,
+        temAlgum: [...daCategoria, ...dosProduto].length > 0,
       };
     })
     .filter((g) => g.temAlgum);
@@ -89,7 +76,7 @@ function agrupar({ extras, categories, products }: Dados, busca: string) {
     (e) => e.categoryIds.length === 0 && e.productIds.length === 0,
   );
 
-  return { porCategoria, semAlcance };
+  return { porProduto, semAlcance };
 }
 
 function ExtrasPage() {
@@ -210,9 +197,9 @@ function ExtrasPage() {
         <div>
           <h1 className="text-3xl font-bold text-neutral-900">Extras / Adicionais</h1>
           <p className="mt-1 max-w-2xl text-sm text-neutral-600">
-            Cada adicional aparece onde você mandar: numa categoria inteira ou em produtos
-            escolhidos. Ele só é oferecido na tela desses produtos — e o pedido recusa o que não
-            estiver na lista.
+            Cada produto tem seus extras organizados em um card. Um adicional pode valer numa
+            categoria inteira ou em produtos escolhidos. Ele só é oferecido na tela desses
+            produtos — e o pedido recusa o que não estiver na lista.
           </p>
         </div>
         <button
@@ -234,10 +221,8 @@ function ExtrasPage() {
         </button>
       </header>
 
-      {/* Uma busca só, e não uma por cartão: o mesmo adicional costuma estar em
-          várias categorias, e procurar "bacon" é procurar na loja inteira. Sete
-          caixinhas fariam a pessoa escolher onde digitar antes de procurar. */}
-      {data && grupos && grupos.porCategoria.length > 0 && (
+      {/* Uma busca só, e não uma por cartão: procurar "bacon" é procurar na loja inteira. */}
+      {data && grupos && grupos.porProduto.length > 0 && (
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-neutral-400" />
           <input
@@ -495,46 +480,38 @@ function ExtrasPage() {
         </section>
       ) : null}
 
-      {grupos && grupos.porCategoria.length === 0 && grupos.semAlcance.length === 0 && !isPending && (
+      {grupos && grupos.porProduto.length === 0 && grupos.semAlcance.length === 0 && !isPending && (
         <p className="rounded-2xl border border-neutral-200 bg-white p-8 text-center text-sm text-neutral-500">
           Nenhum adicional cadastrado ainda.
         </p>
       )}
 
-      {/* Cartões lado a lado, um por categoria. `auto-fill` com largura mínima
-          em vez de um número fixo de colunas: quem tem três categorias não fica
-          com dois buracos na linha, e quem tem doze aproveita a tela inteira. */}
+      {/* Cartões lado a lado, um por produto. `auto-fill` com largura mínima
+          em vez de um número fixo de colunas: quem tem três produtos não fica
+          com dois buracos na linha, e quem tem vinte aproveita a tela inteira. */}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
-        {grupos?.porCategoria.map(({ categoria, naCategoria, porProduto, quantos }) => (
+        {grupos?.porProduto.map(({ produto, categoria, extras, quantos }) => (
           <section
-            key={categoria.id}
+            key={produto.id}
             className="flex flex-col rounded-2xl border border-neutral-200 bg-white"
           >
             <header className="border-b border-neutral-200 px-4 py-3">
-              <h2 className="truncate font-bold text-neutral-900" title={categoria.name}>
-                {categoria.name}
+              <h2 className="truncate font-bold text-neutral-900" title={produto.name}>
+                {produto.name}
               </h2>
-              <p className="text-xs text-neutral-500">
+              <p className="truncate text-xs text-neutral-500" title={categoria?.name}>
+                {categoria?.name}
+              </p>
+              <p className="text-xs text-neutral-500 mt-1">
                 {quantos} {quantos === 1 ? "adicional" : "adicionais"}
               </p>
             </header>
 
-            {/* A rolagem é do miolo, não do cartão: o título da categoria fica
-                parado enquanto a lista corre, senão numa grade de doze cartões
-                ninguém saberia mais de qual categoria está lendo. */}
+            {/* A rolagem é do miolo, não do cartão */}
             <div className="max-h-80 overflow-y-auto px-4 py-1">
-              {naCategoria.length > 0 && (
-                <ul className="divide-y divide-neutral-100">{naCategoria.map(linhaDoExtra)}</ul>
+              {extras.length > 0 && (
+                <ul className="divide-y divide-neutral-100">{extras.map(linhaDoExtra)}</ul>
               )}
-
-              {porProduto.map(({ produto, extras }) => (
-                <div key={produto.id} className="mt-2 border-t border-neutral-200 pt-2">
-                  <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-neutral-400">
-                    só em {produto.name}
-                  </p>
-                  <ul className="divide-y divide-neutral-100">{extras.map(linhaDoExtra)}</ul>
-                </div>
-              ))}
 
               {quantos === 0 && (
                 <p className="py-6 text-center text-sm text-neutral-400">
