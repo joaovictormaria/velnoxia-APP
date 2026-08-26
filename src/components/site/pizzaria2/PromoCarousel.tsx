@@ -191,7 +191,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
         <ChevronRight className="h-4.5 w-4.5" />
       </button>
 
-      <div className="relative hidden md:flex items-center justify-center gap-2 pb-6">
+      <div className="relative hidden md:flex items-center justify-center gap-2">
         {slides.map((slide, i) => (
           <button
             key={slide.title}
