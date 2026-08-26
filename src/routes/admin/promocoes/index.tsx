@@ -154,10 +154,10 @@ function PromotionsPage() {
                 e.preventDefault();
                 save.mutate(draft);
               }}
-              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 flex flex-col lg:flex-row gap-4 lg:gap-6"
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-6"
             >
               {/* Foto - Desktop: esquerda pequena, Mobile: topo grande */}
-              <div className="lg:flex-shrink-0">
+              <div className="lg:col-span-1">
                 <style>{`
                   @media (max-width: 1024px) {
                     .promo-image-upload-mobile {
@@ -193,8 +193,8 @@ function PromotionsPage() {
                 </div>
               </div>
 
-              {/* Campos - Desktop: direita e crescem, Mobile: abaixo da foto */}
-              <div className="flex-1 space-y-5">
+              {/* Campos - Desktop: direita e ocupam todo espaço, Mobile: abaixo da foto */}
+              <div className="lg:col-span-1 space-y-5">
                 {/* Linha 1: Título | Chamada | Selo */}
                 <div className="grid grid-cols-3 gap-3">
                   {/* Título */}
