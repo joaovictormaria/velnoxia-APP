@@ -184,7 +184,7 @@ function Termos() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm font-semibold text-tomato hover:underline"
           >
-            A Velnox.IA →
+            Velnox.IA →
           </a>
         </div>
       </div>
