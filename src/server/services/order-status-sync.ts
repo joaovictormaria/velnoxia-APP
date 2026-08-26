@@ -21,8 +21,57 @@ export const orderStatusSync = {
    * Sincroniza estoque quando status muda
    * Mapeia cada transição de status para ação no estoque
    */
+  /**
+   * Sincroniza estoque quando o status muda, com retentativa.
+   *
+   * O chamador dispara isto sem esperar (`fire-and-forget`), porque a criação do
+   * pedido não pode ficar refém do estoque. O preço disso é que uma falha aqui
+   * passava despercebida: ia para um `console.error` e o estoque ficava
+   * divergente sem ninguém saber.
+   *
+   * As tentativas são seguras porque toda operação abaixo é idempotente — a
+   * chave determinística mais o índice único fazem a segunda tentativa
+   * reconhecer o que a primeira já gravou, em vez de descontar de novo.
+   *
+   * Esgotadas as tentativas, o pedido recebe uma marca legível. Não é o mesmo
+   * que resolver, mas transforma uma falha silenciosa numa lista de pedidos que
+   * precisam de olho humano.
+   */
   async onStatusChange(orderId: string, newStatus: OrderStatus) {
-    await OrderInventoryHandler.syncOrderStatus(orderId, newStatus);
+    const esperas = [0, 1_000, 5_000];
+    let ultimoErro: unknown = null;
+
+    for (const espera of esperas) {
+      if (espera > 0) await new Promise((r) => setTimeout(r, espera));
+      try {
+        await OrderInventoryHandler.syncOrderStatus(orderId, newStatus);
+        return;
+      } catch (erro) {
+        ultimoErro = erro;
+      }
+    }
+
+    const motivo =
+      ultimoErro instanceof Error ? ultimoErro.message : "erro desconhecido";
+    console.error(
+      `[estoque] sincronizacao falhou apos ${esperas.length} tentativas`,
+      { orderId, newStatus },
+    );
+
+    try {
+      const { prisma } = await import("@/server/db/client");
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          inventoryInconsistentAt: new Date(),
+          inventoryInconsistency:
+            `A baixa de estoque nao pode ser concluida (status ${newStatus}): ${motivo}. ` +
+            `O saldo deste pedido nao foi aplicado e precisa de conferencia manual.`,
+        },
+      });
+    } catch {
+      // Se nem a marca consegue ser gravada, o log acima e o que resta.
+    }
   },
 
   /**

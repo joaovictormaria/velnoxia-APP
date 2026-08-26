@@ -8,7 +8,9 @@ export class ProductionService {
     storeId: string,
     compositionId: string,
     quantity: number,
-    unitId: string
+    unitId: string,
+    /** Identifica esta producao, para a chave de idempotencia ser estavel. */
+    referencia: string = "AVULSO",
   ) {
     const composition = await prisma.productComposition.findUnique({
       where: { id: compositionId },
@@ -74,7 +76,8 @@ export class ProductionService {
           unitId: item.unitId,
           reference: compositionId,
           referenceType: "COMPOSITION",
-          idempotencyKey: randomUUID(),
+          // Deterministica: randomUUID() anulava o indice unico.
+          idempotencyKey: `${storeId}#PRODUCTION#${referencia}#${item.inventoryItemId}`,
         },
       });
 

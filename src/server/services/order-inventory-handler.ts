@@ -1,241 +1,213 @@
 import { prisma } from "@/server/db/client";
 import { InventoryService } from "@/server/services/inventory-service";
-import { CompositionService } from "@/server/services/composition-service";
+import { insumosDoPedido, resolverComposicao } from "@/server/services/composicao-do-pedido";
 
 /**
- * Sincroniza mudanças de status de pedido com estoque
- * Chamado quando Order.status muda
+ * A ponte entre o andar do pedido e o saldo do estoque.
+ *
+ * Reserva e consumo resolvem os insumos pela MESMA função. Antes cada um tinha
+ * a sua: o consumo expandia a ficha técnica, a reserva olhava só o vínculo
+ * direto `Product.inventoryItemId`. Um prato feito por receita não reservava
+ * nada — restavam três porções, chegavam oito pedidos, e o sistema aceitava os
+ * oito. A cozinha descobria ao montar o sétimo.
  */
 export class OrderInventoryHandler {
   /**
-   * Pedido recebido: RESERVAR itens (marca quantityReserved)
-   * Chamado quando Order.status = RECEIVED
+   * Pedido recebido: reservar, e congelar a ficha usada.
+   *
+   * Reserva não tira nada da prateleira — marca que aquele insumo deixou de
+   * estar livre para o próximo cliente.
+   *
+   * Falta de saldo aqui recusa o pedido INTEIRO. É o único momento em que
+   * recusar faz sentido: ninguém foi cobrado ainda, e aceitar seria prometer o
+   * que não existe.
    */
   static async onOrderReceived(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: { include: { product: true } } },
+      include: { items: true },
     });
+    if (!order?.storeId) return;
 
-    if (!order) {
-      throw new Error("Order not found");
-    }
-
-    if (!order.storeId) {
-      throw new Error("Order missing storeId");
-    }
-
-    // Para cada item do pedido, reservar quantidade
-    for (const orderItem of order.items) {
-      // Encontrar inventory item correspondente
-      // Busca por linkagem product ↔ inventory (Fase 5)
-      // Por enquanto, assume que product.id == inventoryItem.id (simplificação)
-
-      const inventoryItem = await prisma.inventoryItem.findFirst({
-        where: {
-          storeId: order.storeId,
-          // TODO: procurar por product.trackInventory = true quando implementar
-        },
-      });
-
-      if (!inventoryItem) {
-        // Item não tem controle de estoque, skip
-        continue;
+    /*
+     * Congela a versão da ficha em cada item, antes de qualquer reserva. Do
+     * ponto seguinte em diante — consumo, reversão — todo mundo lê daqui, nunca
+     * "a ativa agora".
+     */
+    for (const item of order.items) {
+      if (item.compositionVersionId) continue;
+      const composicao = await resolverComposicao(item.productId, null);
+      if (composicao) {
+        await prisma.orderItem.update({
+          where: { id: item.id },
+          data: { compositionVersionId: composicao.id },
+        });
+        item.compositionVersionId = composicao.id;
       }
+    }
 
-      // Reservar quantidade
-      try {
+    const { insumos } = await insumosDoPedido(order.items);
+    if (insumos.length === 0) return;
+
+    /*
+     * Ou reserva tudo, ou nada. Reservar parcialmente deixaria metade do pedido
+     * comprometendo estoque para um prato que não vai sair — e ninguém liberaria
+     * essa metade depois.
+     */
+    try {
+      for (const insumo of insumos) {
         await InventoryService.reserveForOrder(
           order.storeId,
-          inventoryItem.id,
-          Number(orderItem.quantity),
-          orderId
-        );
-      } catch (error) {
-        // Log, mas não falha o pedido (estoque pode ser negativo por enquanto)
-        console.error(
-          `Failed to reserve inventory for order ${orderId}:`,
-          error
+          insumo.inventoryItemId,
+          insumo.quantidade,
+          orderId,
         );
       }
+    } catch (erro) {
+      await this.desfazerReservas(order.storeId, orderId);
+      throw erro;
     }
   }
 
   /**
-   * Pedido em preparação: CONSUMIR itens (reduz quantityOnHand)
-   * Chamado quando Order.status = PREPARING
+   * Pedido em preparo: consumir de verdade.
+   *
+   * Aqui falta de saldo NÃO recusa. O prato já foi vendido e a cozinha vai
+   * montá-lo de qualquer jeito; recusar só faria o sistema perder o registro do
+   * que aconteceu. A baixa é gravada, o saldo pode ficar negativo, e o pedido
+   * recebe uma marca legível para a contagem física resolver depois.
    */
   static async onOrderPreparing(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: { items: { include: { product: true } } },
+      include: { items: true },
     });
+    if (!order?.storeId) return;
 
-    if (!order) {
-      throw new Error("Order not found");
-    }
+    const { insumos } = await insumosDoPedido(order.items);
+    if (insumos.length === 0) return;
 
-    if (!order.storeId) {
-      throw new Error("Order missing storeId");
-    }
+    const insuficientes: string[] = [];
 
-    // Para cada item do pedido, consumir quantidade
-    for (const orderItem of order.items) {
-      try {
-        // Verificar se produto tem composição (receita)
-        const composition = await prisma.productComposition.findFirst({
-          where: {
-            productId: orderItem.productId || "",
-            isActive: true,
-          },
-          include: {
-            items: {
-              include: { inventoryItem: true, unit: true }
-            }
-          }
-        });
-
-        if (composition && (composition as any).items?.length > 0) {
-          // Desconta ingredientes da receita
-          await CompositionService.consumeComposition(
-            order.storeId,
-            composition.id,
-            Number(orderItem.quantity),
-            {
-              authorType: "SYSTEM",
-              authorId: "ORDER",
-              authorName: `Pedido #${order.number}`,
-            }
-          );
-        } else {
-          // Se não tem receita, desconta direto (produto simples)
-          const product = await prisma.product.findUnique({
-            where: { id: orderItem.productId || "" },
-            select: { inventoryItemId: true }
-          });
-
-          if (product?.inventoryItemId) {
-            await InventoryService.consumeForOrder(
-              order.storeId,
-              product.inventoryItemId,
-              Number(orderItem.quantity),
-              orderId
-            );
-          }
-        }
-      } catch (error) {
-        console.error(
-          `Failed to consume inventory for order ${orderId}:`,
-          error
+    for (const insumo of insumos) {
+      const item = await prisma.inventoryItem.findUnique({
+        where: { id: insumo.inventoryItemId },
+        select: { name: true, quantityOnHand: true },
+      });
+      if (item && Number(item.quantityOnHand) < insumo.quantidade) {
+        insuficientes.push(
+          `${item.name} (tinha ${Number(item.quantityOnHand)}, precisou de ${insumo.quantidade.toFixed(4)})`,
         );
       }
+
+      // Libera a reserva e baixa o físico, na mesma passada.
+      await this.reverterMovimentos(order.storeId, orderId, ["RESERVATION"], insumo.inventoryItemId);
+
+      await InventoryService.recordMovement(order.storeId, {
+        idempotencyKey: `${order.storeId}#ORDER#${orderId}#CONSUMPTION#${insumo.inventoryItemId}`,
+        itemId: insumo.inventoryItemId,
+        type: "CONSUMPTION",
+        quantity: -insumo.quantidade,
+        unitId: insumo.unitId,
+        reference: orderId,
+        referenceType: "ORDER",
+        authorType: "SYSTEM",
+        authorId: "ORDER",
+        authorName: `Pedido #${order.number}`,
+      } as any);
+    }
+
+    if (insuficientes.length > 0) {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          inventoryInconsistentAt: new Date(),
+          inventoryInconsistency:
+            `Baixa feita com saldo insuficiente: ${insuficientes.join("; ")}. ` +
+            `O estoque ficou negativo e precisa de contagem física.`,
+        },
+      });
     }
   }
 
-  /**
-   * Pedido completo e pago: NENHUMA AÇÃO (já consumiu em PREPARING)
-   * Chamado quando Order.status = COMPLETED
-   */
-  static async onOrderCompleted(orderId: string) {
-    // Estoque foi consumido quando transitou para PREPARING
-    // Aqui apenas marca como finalizado se necessário (futuro)
-  }
+  /** Estoque já saiu no preparo. Concluir não move nada. */
+  static async onOrderCompleted(_orderId: string) {}
 
   /**
-   * Pedido cancelado: REVERTER movimentações
-   * Chamado quando Order.status = CANCELLED
+   * Pedido cancelado: devolver o que foi tirado.
+   *
+   * Reverte em ordem inversa à criação, e a reversão agora repõe o saldo de
+   * verdade — antes ela gravava o movimento na trilha e não devolvia nada,
+   * porque o cálculo do delta não tinha caso para REVERSAL.
    */
   static async onOrderCancelled(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      select: { storeId: true },
     });
+    if (!order?.storeId) return;
+    await this.reverterMovimentos(order.storeId, orderId, ["RESERVATION", "CONSUMPTION"]);
+  }
 
-    if (!order || !order.storeId) {
-      return;
-    }
-
-    // Encontrar todos movimentos linked a este pedido
-    const movements = await prisma.inventoryMovement.findMany({
-      where: {
-        storeId: order.storeId,
-        reference: orderId,
-        referenceType: "ORDER",
-        type: { in: ["RESERVATION", "CONSUMPTION"] },
-      },
-      orderBy: { createdAt: "desc" }, // Reverter em ordem inversa
-    });
-
-    // Reverter cada movimento
-    for (const movement of movements) {
-      try {
-        // Verifica se já foi revertido
-        const existingReversal =
-          await prisma.inventoryMovement.findFirst({
-            where: {
-              originalMovementId: movement.id,
-              type: "REVERSAL",
-            },
-          });
-
-        if (!existingReversal) {
-          // Criar reversal
-          const reversalKey = `${order.storeId}#REVERSAL#${movement.id}`;
-
-          await InventoryService.recordMovement(order.storeId, {
-            idempotencyKey: reversalKey,
-            item: { connect: { id: movement.itemId } },
-            type: "REVERSAL",
-            quantity: (movement as any).quantity * -1,
-            unit: { connect: { id: movement.unitId } },
-            originalMovement: { connect: { id: movement.id } },
-            reference: orderId,
-            referenceType: "ORDER_CANCELLATION",
-            authorType: "SYSTEM",
-            authorName: "Order Cancellation Handler",
-          } as any);
-        }
-      } catch (error) {
-        console.error(
-          `Failed to reverse movement ${movement.id} for cancelled order:`,
-          error
-        );
-      }
-    }
+  /** Desfaz só as reservas — usado quando a reserva falha no meio. */
+  private static async desfazerReservas(storeId: string, orderId: string) {
+    await this.reverterMovimentos(storeId, orderId, ["RESERVATION"]);
   }
 
   /**
-   * Hook chamado quando Order status muda
-   * Orquestra todos os handlers
+   * Reverte os movimentos de um pedido que ainda não foram revertidos.
+   *
+   * O `originalMovementId @unique` do banco é quem garante que nada seja
+   * revertido duas vezes; a consulta por `reversedBy` só evita o erro.
    */
+  private static async reverterMovimentos(
+    storeId: string,
+    orderId: string,
+    tipos: string[],
+    itemId?: string,
+  ) {
+    const movimentos = await prisma.inventoryMovement.findMany({
+      where: {
+        storeId,
+        reference: orderId,
+        referenceType: "ORDER",
+        type: { in: tipos as any },
+        ...(itemId ? { itemId } : {}),
+        reversedBy: { is: null },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    for (const movimento of movimentos) {
+      await InventoryService.recordMovement(storeId, {
+        idempotencyKey: `${storeId}#REVERSAL#${movimento.id}`,
+        itemId: movimento.itemId,
+        type: "REVERSAL",
+        quantity: Number(movimento.quantity) * -1,
+        unitId: movimento.unitId,
+        originalMovementId: movimento.id,
+        reference: orderId,
+        referenceType: "ORDER",
+        authorType: "SYSTEM",
+        authorId: "ORDER",
+        authorName: "Reversão automática",
+      } as any);
+    }
+  }
+
+  /** Traduz o status do pedido no efeito correspondente sobre o estoque. */
   static async syncOrderStatus(orderId: string, newStatus: string) {
-    try {
-      switch (newStatus) {
-        case "RECEIVED":
-          await this.onOrderReceived(orderId);
-          break;
-
-        case "PREPARING":
-          await this.onOrderPreparing(orderId);
-          break;
-
-        case "COMPLETED":
-          await this.onOrderCompleted(orderId);
-          break;
-
-        case "CANCELLED":
-          await this.onOrderCancelled(orderId);
-          break;
-
-        default:
-          // Outros estados não afetam estoque
-          break;
-      }
-    } catch (error) {
-      console.error(
-        `Error syncing inventory for order ${orderId} (status ${newStatus}):`,
-        error
-      );
-      // Não throws — log mas continua (pedido não deve falhar)
+    switch (newStatus) {
+      case "RECEIVED":
+        return this.onOrderReceived(orderId);
+      case "PREPARING":
+        return this.onOrderPreparing(orderId);
+      case "COMPLETED":
+        return this.onOrderCompleted(orderId);
+      case "CANCELLED":
+        return this.onOrderCancelled(orderId);
+      default:
+        return;
     }
   }
 }

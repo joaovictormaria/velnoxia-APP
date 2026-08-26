@@ -872,6 +872,14 @@ model Order {
   customerNote String?
   internalNote String?
 
+  /// Preenchido quando a baixa de estoque saiu com saldo insuficiente.
+  /// O pedido segue — quem esta no balcao ja vendeu o prato —, mas fica uma
+  /// marca legivel para a contagem fisica resolver depois. Recusar aqui so
+  /// produziria divergencia silenciosa: a cozinha monta o prato de qualquer
+  /// jeito, e o sistema perderia o registro.
+  inventoryInconsistentAt DateTime?
+  inventoryInconsistency  String?
+
   /// Mesa onde o pedido foi feito (dine-in). Null para delivery/pickup.
   tableId String?
   table   Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
@@ -942,9 +950,21 @@ model OrderItem {
   /// como beneficiada ou não.
   benefitQuantity  Int   @default(0)
 
+  /// A versao da ficha tecnica usada por ESTE item, congelada quando o pedido
+  /// entrou. Reserva, consumo e reversao leem daqui — nunca da composicao
+  /// ativa no momento. Sem isto, publicar uma receita nova entre o pedido e o
+  /// preparo faria a baixa sair por uma quantidade diferente da reservada, e a
+  /// diferenca ficaria reservada para sempre.
+  ///
+  /// Nulo quando o produto nao tem ficha e o consumo cai no vinculo direto
+  /// Product.inventoryItemId.
+  compositionVersionId String?
+  compositionVersion   ProductComposition? @relation(fields: [compositionVersionId], references: [id], onDelete: SetNull)
+
   extras OrderItemExtra[]
 
   @@index([orderId])
+  @@index([compositionVersionId])
 }
 
 model OrderItemExtra {
@@ -1320,6 +1340,7 @@ model ProductComposition {
 
   items     CompositionItem[]
   movements InventoryMovement[]
+  orderItems OrderItem[]
 
   @@unique([productId, version])
   @@index([productId, isActive])

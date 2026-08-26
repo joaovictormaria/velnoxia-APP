@@ -275,7 +275,13 @@ export class CompositionService {
     storeId: string,
     compositionId: string,
     quantityToProduce: number = 1,
-    authorData?: { authorType?: string; authorId?: string; authorName?: string }
+    authorData?: { authorType?: string; authorId?: string; authorName?: string },
+    /**
+     * Identifica esta execucao. E o que torna a chave de idempotencia estavel:
+     * duas chamadas para o mesmo pedido geram a mesma chave, e a segunda e
+     * reconhecida como repeticao em vez de descontar de novo.
+     */
+    referencia: string = "AVULSO",
   ) {
     const composition = await productCompositionRepository.findById(
       storeId,
@@ -318,7 +324,9 @@ export class CompositionService {
         }
 
         // Record CONSUMPTION movement
-        const idempotencyKey = `${storeId}#COMPOSITION#${compositionId}#${compItem.inventoryItemId}#${Date.now()}`;
+        // Deterministica: Date.now() aqui anulava o indice unico — cada chamada
+        // gerava chave nova, e uma retentativa descontava duas vezes.
+        const idempotencyKey = `${storeId}#COMPOSITION#${compositionId}#${referencia}#${compItem.inventoryItemId}`;
 
         await InventoryService.recordMovement(storeId, {
           ...(compItem.inventoryItemId ? { item: { connect: { id: compItem.inventoryItemId } } } : {}),

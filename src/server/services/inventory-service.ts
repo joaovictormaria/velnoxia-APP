@@ -93,106 +93,240 @@ export class InventoryService {
 
   /**
    * Record a movement (INSERT ONLY)
-   * Handles idempotency, updates quantities, maintains atomicity
+  /**
+   * Grava uma movimentação e atualiza o saldo, atomicamente.
+   *
+   * Três garantias, da mais externa à mais interna:
+   *
+   * 1. A chave de idempotência é determinística — mesma operação, mesma chave.
+   * 2. O índice único em `idempotencyKey` é quem realmente decide. A consulta
+   *    prévia é atalho; duas chamadas simultâneas passam as duas por ela, e é o
+   *    banco que recusa a segunda. O P2002 vira "já processado", não erro.
+   * 3. A linha do item é travada com FOR UPDATE antes de qualquer cálculo, e o
+   *    saldo é escrito por incremento.
+   *
+   * O ponto 3 conserta o bug mais caro daqui: a versão anterior lia o saldo
+   * fora de transação e gravava um valor absoluto calculado em memória. Dois
+   * pedidos liam 10, ambos gravavam 7, e o resultado final era 7 em vez de 4 —
+   * a baixa de um sumia sem deixar rastro.
    */
   static async recordMovement(
     storeId: string,
     data: CreateInventoryMovementInput & { idempotencyKey: string }
   ) {
-    // 1. Check idempotency: if key exists, return existing
+    const itemId = (data as any).itemId as string;
+    const unitId = (data as any).unitId as string;
+    const originalMovementId = (data as any).originalMovementId as string | undefined;
+
+    // Atalho: se já existe, devolve sem abrir transação. Não é a garantia.
     const existing = await inventoryMovementRepository.findByIdempotencyKey(
       data.idempotencyKey
     );
-    if (existing) {
-      return existing;
+    if (existing) return existing;
+
+    if (data.type === "REVERSAL" && !originalMovementId) {
+      throw new Error("REVERSAL requires originalMovementId");
     }
 
-    // 2. Validate item exists
-    const item = await inventoryItemRepository.findById(storeId, (data as any).itemId);
-    if (!item) {
-      throw new Error("Item not found");
-    }
+    try {
+      return await prisma.$transaction(async (tx) => {
+        /*
+         * Trava a linha antes de ler o saldo. Sem isto, dois pedidos disputando
+         * o mesmo insumo leem o mesmo número e um sobrescreve o outro.
+         */
+        const travados = await tx.$queryRaw<
+          Array<{ quantityOnHand: string; quantityReserved: string; cost: string | null }>
+        >`SELECT "quantityOnHand"::text, "quantityReserved"::text, "cost"::text
+            FROM "InventoryItem"
+           WHERE "id" = ${itemId} AND "storeId" = ${storeId}
+           FOR UPDATE`;
 
-    // 3. Validate unit exists
-    const unit = await inventoryUnitRepository.findById((data as any).unitId);
-    if (!unit) {
-      throw new Error("Unit not found");
-    }
+        const travado = travados[0];
+        if (!travado) throw new Error("Item not found");
 
-    // 4. Validate REVERSAL constraints
-    if (data.type === "REVERSAL") {
-      if (!(data as any).originalMovementId) {
-        throw new Error("REVERSAL requires originalMovementId");
-      }
+        const unit = await tx.inventoryUnit.findUnique({ where: { id: unitId } });
+        if (!unit) throw new Error("Unit not found");
 
-      const original = await inventoryMovementRepository.findById(
-        storeId,
-        (data as any).originalMovementId
-      );
-      if (!original) {
-        throw new Error("Original movement not found");
-      }
+        /*
+         * O que a reversão desfaz é lido DENTRO da transação: entre a decisão de
+         * reverter e este ponto, outra reversão pode ter passado.
+         */
+        let original: { type: string; quantity: unknown } | null = null;
+        if (data.type === "REVERSAL") {
+          original = await tx.inventoryMovement.findFirst({
+            where: { id: originalMovementId, storeId },
+            select: { type: true, quantity: true },
+          });
+          if (!original) throw new Error("Original movement not found");
+          if (original.type === "REVERSAL") {
+            throw new Error("Cannot reverse a REVERSAL movement");
+          }
+        }
 
-      // Cannot reverse a REVERSAL
-      if (original.type === "REVERSAL") {
-        throw new Error("Cannot reverse a REVERSAL movement");
-      }
-
-      // Check if already reversed
-      const existingReversal = await inventoryMovementRepository.findReversal(
-        storeId,
-        (data as any).originalMovementId
-      );
-      if (existingReversal) {
-        throw new Error("Movement has already been reversed");
-      }
-    }
-
-    // 5. Create movement and update quantities (ATOMIC)
-    return prisma.$transaction(async (tx) => {
-        // Create the movement
         const movement = await tx.inventoryMovement.create({
-        data: {
-          storeId,
-          idempotencyKey: data.idempotencyKey,
-          itemId: (data as any).itemId,
-          type: data.type,
-          quantity: data.quantity,
-          unitId: (data as any).unitId,
-          reference: data.reference,
-          referenceType: data.referenceType,
-          originalMovementId: (data as any).originalMovementId,
-          compositionId: (data as any).compositionId,
-          costAtTime: item.cost, // Congelar custo no momento da movimentação
-          note: data.note,
-          authorType: data.authorType,
-          authorId: data.authorId,
-          authorName: data.authorName,
-        },
-        include: { item: true, unit: true },
-      });
-
-      // Update item quantities based on movement type
-      const updates = this.calculateQuantityUpdates(
-        item,
-        data.type,
-        Number(data.quantity)
-      );
-
-      if (Object.keys(updates).length > 0) {
-        await tx.inventoryItem.update({
-          where: { id: item.id },
-          data: updates,
+          data: {
+            storeId,
+            idempotencyKey: data.idempotencyKey,
+            itemId,
+            type: data.type,
+            quantity: data.quantity,
+            unitId,
+            reference: data.reference,
+            referenceType: data.referenceType,
+            originalMovementId,
+            compositionId: (data as any).compositionId,
+            // Congela o custo do momento: sem isto, mudar o preço do insumo
+            // reescreveria o custo de tudo que já foi vendido.
+            costAtTime: travado.cost === null ? null : travado.cost,
+            note: data.note,
+            authorType: data.authorType,
+            authorId: data.authorId,
+            authorName: data.authorName,
+          },
+          include: { item: true, unit: true },
         });
-      }
 
-      return movement;
-    });
+        const delta = this.calcularDelta(
+          data.type,
+          Number(data.quantity),
+          original ? { type: original.type, quantity: Number(original.quantity) } : null
+        );
+
+        /*
+         * `quantityReserved` nunca pode ficar negativo — reserva negativa não
+         * significa nada, e só aparece quando uma reversão roda duas vezes. O
+         * CHECK do banco também barra, mas errar aqui dá mensagem melhor.
+         */
+        if (delta.reserved) {
+          const reservadoDepois = Number(travado.quantityReserved) + delta.reserved;
+          if (reservadoDepois < 0) {
+            throw new Error(
+              `Reserva não pode ficar negativa. Atual: ${travado.quantityReserved}, movimento: ${delta.reserved}`
+            );
+          }
+
+          /*
+           * O teto da reserva. Só se pode prometer o que existe na prateleira:
+           * `quantityOnHand − quantityReserved` é o que ainda está livre.
+           *
+           * Esta checagem TEM que ficar aqui dentro, sobre a linha travada.
+           * Havia uma igual em `reserveForOrder`, antes da transação, e ela não
+           * servia para nada: dez pedidos simultâneos liam "há 3 disponíveis" ao
+           * mesmo tempo e os dez passavam. Um teste de concorrência pegou —
+           * saldo para três, dez reservas, dez aceitas.
+           */
+          if (delta.reserved > 0) {
+            const disponivel =
+              Number(travado.quantityOnHand) - Number(travado.quantityReserved);
+            if (delta.reserved > disponivel) {
+              throw new Error(
+                `Não há estoque suficiente. Disponível: ${disponivel}, solicitado: ${delta.reserved}`
+              );
+            }
+          }
+        }
+
+        /*
+         * `quantityOnHand` PODE ficar negativo, e de propósito — mas só no
+         * consumo, que é o caso em que a cozinha já usou o que o sistema achava
+         * que não tinha. Toda outra saída (perda, ajuste, devolução) continua
+         * barrada: ali o negativo seria erro de digitação, não fato consumado.
+         */
+        const saldoDepois = Number(travado.quantityOnHand) + (delta.onHand ?? 0);
+        const podeFicarNegativo =
+          data.type === "CONSUMPTION" ||
+          (data.type === "REVERSAL" && original?.type === "CONSUMPTION");
+        if (delta.onHand && saldoDepois < 0 && !podeFicarNegativo) {
+          throw new Error(
+            `Não há estoque suficiente. Disponível: ${travado.quantityOnHand}, solicitado: ${Math.abs(delta.onHand)}`
+          );
+        }
+
+        if (delta.onHand || delta.reserved) {
+          await tx.inventoryItem.update({
+            where: { id: itemId },
+            data: {
+              // Incremento, não valor absoluto: quem soma é o banco, sobre a
+              // linha travada.
+              ...(delta.onHand ? { quantityOnHand: { increment: delta.onHand } } : {}),
+              ...(delta.reserved ? { quantityReserved: { increment: delta.reserved } } : {}),
+            },
+          });
+        }
+
+        return movement;
+      });
+    } catch (erro) {
+      /*
+       * Corrida de idempotência: outra chamada gravou a mesma chave entre o
+       * atalho lá em cima e este INSERT. O índice único fez o seu trabalho —
+       * devolvemos o que ela gravou, porque o efeito pedido já aconteceu.
+       */
+      if (violouChaveDeIdempotencia(erro)) {
+        const gravado = await inventoryMovementRepository.findByIdempotencyKey(
+          data.idempotencyKey
+        );
+        if (gravado) return gravado;
+      }
+      throw erro;
+    }
   }
 
   /**
-   * Create a REVERSAL for a movement
-   * Automatically calculates inverse quantities
+   * Quanto cada saldo muda, por tipo de movimento.
+   *
+   * Devolve deltas, nunca valores absolutos: quem soma é o banco.
+   *
+   * A reversão não tem regra própria — aplica o inverso exato do que o
+   * movimento original aplicou. Era isto que faltava: o `case "REVERSAL"`
+   * antigo caía num `break` sem preencher nada, o `if (Object.keys(updates))`
+   * seguinte pulava a atualização, e o saldo nunca voltava. Na prática,
+   * cancelar um pedido gravava a reversão na trilha e não devolvia estoque.
+   */
+  private static calcularDelta(
+    type: string,
+    quantity: number,
+    original: { type: string; quantity: number } | null
+  ): { onHand?: number; reserved?: number } {
+    switch (type) {
+      case "PURCHASE":
+      case "RETURN":
+      case "PRODUCTION":
+        return { onHand: quantity };
+
+      case "CONSUMPTION":
+        // O chamador passa quantidade negativa para consumo.
+        return { onHand: quantity };
+
+      case "LOSS":
+        return { onHand: -Math.abs(quantity) };
+
+      case "ADJUSTMENT":
+        return { onHand: quantity };
+
+      case "RESERVATION":
+        return { reserved: quantity };
+
+      case "REVERSAL": {
+        if (!original) return {};
+        const inverso = this.calcularDelta(original.type, original.quantity, null);
+        return {
+          ...(inverso.onHand ? { onHand: -inverso.onHand } : {}),
+          ...(inverso.reserved ? { reserved: -inverso.reserved } : {}),
+        };
+      }
+
+      default:
+        return {};
+    }
+  }
+
+  /**
+   * Cria a REVERSAL de um movimento.
+   *
+   * A quantidade vai invertida porque o `calcularDelta` do REVERSAL le o
+   * movimento original e aplica o inverso do efeito dele. Reverter duas vezes e
+   * recusado pelo indice unico em `originalMovementId`.
    */
   static async reverseMovement(
     storeId: string,
@@ -321,75 +455,29 @@ export class InventoryService {
     } as any);
   }
 
-  /**
-   * Calculate how quantities should change based on movement type
-   * Returns { quantityOnHand?, quantityReserved? }
-   * Throws error if quantities would go negative
-   */
-  private static calculateQuantityUpdates(
-    item: { quantityOnHand: any; quantityReserved: any },
-    type: string,
-    quantity: number
-  ): Record<string, any> {
-    const updates: Record<string, any> = {};
+}
 
-    // Convert Decimals to Numbers for arithmetic operations
-    const currentQuantity = Number(item.quantityOnHand ?? 0);
-    const currentReserved = Number(item.quantityReserved ?? 0);
+/**
+ * Reconhece a violacao do indice unico de `idempotencyKey`.
+ *
+ * Procura em mais de um lugar porque o nome do campo muda de posicao conforme o
+ * driver: `meta.target` no Prisma classico, `meta.driverAdapterError` no adapter
+ * pg do Prisma 7. Este mesmo formato ja tinha enganado o cadastro de CPF/CNPJ,
+ * onde a mensagem amigavel de documento duplicado nunca aparecia.
+ */
+function violouChaveDeIdempotencia(erro: unknown): boolean {
+  const e = erro as any;
+  if (e?.code !== "P2002") return false;
 
-    switch (type) {
-      case "PURCHASE":
-      case "RETURN":
-      case "PRODUCTION":
-        // Increase quantityOnHand
-        updates.quantityOnHand = currentQuantity + quantity;
-        break;
-
-      case "CONSUMPTION":
-        // Decrease only quantityOnHand (for recipe consumption)
-        const newOnHand = currentQuantity + quantity; // quantity is negative
-
-        if (newOnHand < 0) {
-          throw new Error(`Não há estoque suficiente. Disponível: ${currentQuantity}, Solicitado: ${Math.abs(quantity)}`);
-        }
-
-        updates.quantityOnHand = newOnHand;
-        // quantityReserved é apenas para reservas de pedidos, não afeta consumo de receitas
-        break;
-
-      case "LOSS":
-        // Decrease quantityOnHand for losses
-        const newLossOnHand = currentQuantity - quantity;
-        if (newLossOnHand < 0) {
-          throw new Error(`Não há estoque suficiente para perda. Disponível: ${currentQuantity}, Solicitado: ${quantity}`);
-        }
-        updates.quantityOnHand = newLossOnHand;
-        break;
-
-      case "ADJUSTMENT":
-        // Direct change to quantityOnHand (quantity can be positive or negative)
-        const newAdjustment = currentQuantity + quantity;
-        if (newAdjustment < 0) {
-          throw new Error(`Ajuste resultaria em quantidade negativa. Atual: ${currentQuantity}, Ajuste: ${quantity}`);
-        }
-        updates.quantityOnHand = newAdjustment;
-        break;
-
-      case "RESERVATION":
-        // Increase quantityReserved only (no physical change)
-        const newReservation = currentReserved + quantity;
-        if (newReservation < 0) {
-          throw new Error(`Quantidade reservada não pode ser negativa. Atual: ${currentReserved}, Movimento: ${quantity}`);
-        }
-        updates.quantityReserved = newReservation;
-        break;
-
-      case "REVERSAL":
-        // Reverse uses calculateQuantityUpdates with inverse quantity
-        // This is a recursive case but handled by caller
-        break;
-    }
-
-    return updates;
-  }
+  const candidatos: unknown[] = [
+    e.meta?.target,
+    e.meta?.driverAdapterError?.cause?.constraint?.fields,
+    e.meta?.driverAdapterError?.cause?.originalMessage,
+    e.message,
+  ];
+  return candidatos.some((c) => {
+    if (c == null) return false;
+    const texto = Array.isArray(c) ? c.join(",") : String(c);
+    return texto.includes("idempotencyKey");
+  });
 }
