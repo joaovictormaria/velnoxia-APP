@@ -151,6 +151,18 @@ enum StoreStatus {
   SUSPENDED
 }
 
+/**
+ * Qual documento identifica o estabelecimento.
+ *
+ * Deriva do tamanho de `Store.document` (11 digitos = CPF, 14 = CNPJ), mas
+ * fica gravado para que uma consulta possa filtrar por tipo sem contar
+ * caractere. Um CHECK no banco impede que os dois se contradigam.
+ */
+enum DocumentType {
+  CPF
+  CNPJ
+}
+
 /// Tenant root. Every customer-facing and admin-facing record hangs off a
 /// Store, and every query must be scoped by storeId — there is no global view.
 model Store {
@@ -161,6 +173,15 @@ model Store {
   /// signup so a store can never shadow a real route (/admin, /criar-site...).
   slug         String      @unique
   name         String
+  /// CPF ou CNPJ do estabelecimento, somente digitos: sem ponto, barra ou
+  /// traco. A mascara existe so na interface — guardar formatado quebraria a
+  /// unicidade, porque o mesmo documento com e sem mascara viraria dois
+  /// registros diferentes.
+  ///
+  /// Nulo apenas nas lojas criadas antes desta regra existir: o cadastro novo
+  /// exige o documento, e a migration seguinte fecha a coluna como NOT NULL.
+  document     String?       @unique @db.VarChar(14)
+  documentType DocumentType?
   status       StoreStatus @default(TRIAL)
   trialEndsAt  DateTime?
 

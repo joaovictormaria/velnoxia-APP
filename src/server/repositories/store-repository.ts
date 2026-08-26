@@ -103,6 +103,23 @@ export function isSlugTaken(slug: string) {
   return prisma.store.findUnique({ where: { slug }, select: { id: true } }).then(Boolean);
 }
 
+/**
+ * Se o documento ja pertence a outro estabelecimento.
+ *
+ * Espelha o isEmailTaken abaixo, e existe pela mesma razao: melhorar a
+ * mensagem, nao garantir a regra. Quem garante e o indice unico do banco —
+ * duas requisicoes simultaneas com o mesmo CPF passam as duas por aqui antes
+ * de qualquer uma gravar.
+ *
+ * Recebe o documento ja normalizado. Comparar com mascara nao acharia nada:
+ * o banco so guarda digitos.
+ */
+export function isDocumentTaken(document: string) {
+  return prisma.store
+    .findUnique({ where: { document }, select: { id: true } })
+    .then(Boolean);
+}
+
 export function isEmailTaken(email: string) {
   return prisma.adminUser
     .findUnique({ where: { email }, select: { id: true } })

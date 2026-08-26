@@ -1,0 +1,26 @@
+# Postgres exclusivo para testes automatizados.
+#
+# Existe para que os testes de integração nunca toquem o banco do Railway.
+# Sobe numa porta diferente da padrão (5433) de propósito: se alguém tiver um
+# Postgres local na 5432, os dois convivem sem disputa — e uma DATABASE_URL
+# apontada para a 5432 por engano falha na conexão em vez de escrever no lugar
+# errado em silêncio.
+services:
+  velnoxia-test-db:
+    image: postgres:16-alpine
+    container_name: velnoxia-test-db
+    environment:
+      POSTGRES_USER: velnoxia_test
+      POSTGRES_PASSWORD: velnoxia_test_local
+      POSTGRES_DB: velnoxia_test
+    ports:
+      - "5433:5432"
+    # tmpfs: o banco vive na memória e morre com o container. Teste que depende
+    # de estado deixado pela rodada anterior é teste que mente.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U velnoxia_test -d velnoxia_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

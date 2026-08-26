@@ -30,3 +30,20 @@ ROTACAO-FINAL.txt
 # Tauri desktop (compilar localmente apenas)
 src-tauri/
 target/
+
+# Ambiente de teste: o .env.test aponta para o Postgres local do Docker e nunca
+# deve ser versionado. O template sem segredos e o .env.test.example.
+.env.test
+.env.test.backup-*
+
+# Ambiente de desenvolvimento: aponta para o Postgres local. Nunca versionar —
+# o template sem segredos e o .env.development.example.
+.env.development
+
+# Relatorio HTML do vitest: artefato regerado a cada `npm test`. Ficava
+# versionado e sujava o diff a cada rodada.
+test-results/
+
+# Backup operacional do baseline de producao (dumps de _prisma_migrations e
+# Store, para rollback). Material local, nao pertence ao repositorio.
+_baseline-backup/

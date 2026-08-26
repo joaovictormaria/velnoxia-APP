@@ -1,200 +1,104 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { prisma } from "../db/client";
-import { hashPassword } from "../auth/password";
-import { startSessionFor } from "../auth/session";
-import { generateUniqueSlug, isEmailTaken } from "../repositories/store-repository";
-import { WEEKDAYS } from "../repositories/store-settings-repository";
-import { getStarterCatalog, STARTER_CATALOGS } from "../catalog/starter-catalogs";
+import { STARTER_CATALOGS } from "../catalog/starter-catalogs";
 import { permitido } from "../security/rate-limit";
 
-/** How long a new store can use the system before it needs to be paid. */
-const TRIAL_DAYS = 14;
-
-const signupSchema = z.object({
+/**
+ * Exportado para os testes: a server function nao roda fora do runtime do
+ * servidor, entao esta e a unica forma de exercitar as regras do zod.
+ */
+export const signupSchema = z.object({
   storeName: z.string().trim().min(2, "Informe o nome da lanchonete."),
   adminName: z.string().trim().min(2, "Informe seu nome."),
   email: z.string().trim().toLowerCase().email("Informe um e-mail válido."),
   password: z.string().min(8, "A senha precisa ter ao menos 8 caracteres."),
   whatsappNumber: z.string().trim().min(8, "Informe o WhatsApp da loja."),
   businessType: z.enum(Object.keys(STARTER_CATALOGS) as [string, ...string[]]),
+  /**
+   * CPF ou CNPJ, como a pessoa digitou — com máscara ou sem.
+   *
+   * O zod só confere que veio alguma coisa; quem decide se é um documento de
+   * verdade é o `validateDocument`, dentro do serviço. Duas razões: a mensagem
+   * de recusa precisa distinguir "faltam dígitos" de "verificador errado", e o
+   * tipo (CPF ou CNPJ) é deduzido no servidor, nunca recebido do cliente — um
+   * formulário que mandasse `documentType` junto não teria como ser acreditado.
+   */
+  document: z
+    .string()
+    .trim()
+    .min(1, "Informe o CPF ou CNPJ.")
+    /*
+     * Teto acima do maior documento possivel (CNPJ formatado tem 18). Serve
+     * para o campo nao aceitar uma carga de megabytes que so seria recusada
+     * depois de passar por regex e normalizacao.
+     */
+    .max(20, "Informe um CPF ou CNPJ válido."),
 });
 
 /**
- * Creates the tenant and its first admin in one transaction: a store with no
- * owner, or an owner with no store, would both be unusable states.
+ * A casca HTTP do cadastro: só o que precisa da requisição.
+ *
+ * O limite por origem e o cookie de sessão vivem aqui porque os dois leem o
+ * contexto da chamada. Todo o resto — validação do documento, duplicidade,
+ * transação — está em `signup-service.ts`.
+ *
+ * Aquele módulo é importado DENTRO do handler, e não no topo do arquivo. Não é
+ * estilo: o plugin do TanStack Start remove do bundle do navegador o corpo do
+ * handler, mas mantém o que o arquivo importa no topo. Com o import lá em cima,
+ * `prisma` e `bcrypt` iam parar no cliente — o chunk desta rota chegou a 167 KB
+ * e a página morria na hidratação com "Buffer is not defined".
  */
 export const createStoreAccountFn = createServerFn({ method: "POST" })
   .validator(signupSchema)
   .handler(async ({ data }) => {
-    console.log("📥 [SIGNUP] Dados recebidos:", {
-      storeName: data.storeName,
-      adminName: data.adminName,
-      email: data.email,
-      businessType: data.businessType,
-    });
-
-    const emailTaken = await isEmailTaken(data.email);
-    console.log(`📧 [SIGNUP] Email ${data.email} já existe?`, emailTaken);
-
-    if (emailTaken) {
-      return { ok: false as const, error: "Já existe uma conta com este e-mail." };
-    }
-
-    // Derived from the store name plus a verifier code, so the owner never has
-    // to pick an address and two lanchonetes with the same name never clash.
-    const slug = await generateUniqueSlug(data.storeName);
-    console.log(`🔖 [SIGNUP] Slug gerado:`, slug);
-
-    const catalog = getStarterCatalog(data.businessType);
-    const trialEndsAt = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
-    const passwordHash = await hashPassword(data.password);
-
-    let adminUserId: string;
-    console.log(`🏪 [SIGNUP] Iniciando transação para criar store...`);
-    try {
-      const admin = await prisma.$transaction(
-        async (tx) => {
-          console.log(`🏢 [SIGNUP] Criando store: ${data.storeName} (${slug})`);
-          const store = await tx.store.create({
-          data: {
-            slug,
-            name: data.storeName,
-            businessType: data.businessType,
-            status: "TRIAL",
-            trialEndsAt,
-            settings: {
-              create: {
-                storeName: data.storeName,
-                tagline: catalog.tagline,
-                description: catalog.description,
-                whatsappNumber: data.whatsappNumber,
-                openingHours: { create: WEEKDAYS.map((weekday) => ({ weekday })) },
-              },
-            },
-          },
-        });
-
-
-        // Starter menu, in the same transaction: a store whose catalog failed
-        // halfway would show a broken cardápio on its very first visit.
-        for (const [i, category] of catalog.categories.entries()) {
-          /**
-           * A categoria e seus tamanhos nascem primeiro: o preço de cada
-           * produto aponta para um tamanho da categoria, então eles precisam
-           * existir antes — e é isso que garante que dois sabores de pizza
-           * compartilhem exatamente o mesmo "Grande".
-           */
-          const created = await tx.category.create({
-            data: {
-              storeId: store.id,
-              name: category.name,
-              slug: category.slug,
-              badge: category.badge ?? null,
-              headline: category.headline ?? null,
-              subhead: category.subhead ?? null,
-              icon: category.icon,
-              kind: category.kind,
-              sortOrder: i + 1,
-              sizes: category.sizes
-                ? {
-                    create: category.sizes.map((label, k) => ({ label, sortOrder: k + 1 })),
-                  }
-                : undefined,
-            },
-            include: { sizes: true },
-          });
-
-          const sizeIdByLabel = new Map(created.sizes.map((s) => [s.label, s.id]));
-
-          for (const [j, product] of category.products.entries()) {
-            await tx.product.create({
-              data: {
-                storeId: store.id,
-                categoryId: created.id,
-                name: product.name,
-                slug: slugifyProduct(product.name),
-                description: product.description,
-                basePrice: product.basePrice,
-                tag: product.tag ?? null,
-                allowHalfAndHalf: product.allowHalfAndHalf ?? false,
-                sortOrder: j + 1,
-                sizes: product.sizes
-                  ? {
-                      create: product.sizes.flatMap((s) => {
-                        const categorySizeId = sizeIdByLabel.get(s.label);
-                        // Preço de um tamanho que a categoria não oferece é
-                        // erro de catálogo; ignorar é melhor que gravar órfão.
-                        return categorySizeId ? [{ categorySizeId, price: s.price }] : [];
-                      }),
-                    }
-                  : undefined,
-              },
-            });
-          }
-        }
-
-        if (catalog.promotions.length) {
-          await tx.promotion.createMany({
-            data: catalog.promotions.map((p, i) => ({
-              storeId: store.id,
-              eyebrow: p.eyebrow,
-              title: p.title,
-              description: p.description,
-              discount: p.discount ?? null,
-              sortOrder: i + 1,
-            })),
-          });
-        }
-
-        if (catalog.extras.length) {
-          await tx.extra.createMany({
-            data: catalog.extras.map((e) => ({ storeId: store.id, ...e })),
-          });
-        }
-
-        console.log(`👤 [SIGNUP] Criando admin user para store ${store.id}`);
-        return tx.adminUser.create({
-          data: {
-            storeId: store.id,
-            name: data.adminName,
-            email: data.email,
-            passwordHash,
-            role: "OWNER",
-          },
-          select: { id: true },
-        });
-        },
-        { timeout: 30000 }  // 30 segundos para a transação
-      );
-      adminUserId = admin.id;
-      console.log(`✅ [SIGNUP] Transação concluída, adminUserId: ${adminUserId}`);
-    } catch (error) {
-      console.error(`💥 [SIGNUP] Erro na transação:`, error);
-      console.error(`📋 [SIGNUP] Message:`, (error as Error).message);
-      console.error(`📋 [SIGNUP] Stack:`, (error as Error).stack);
-
+    /*
+     * O limite vem antes de tudo, e não por perfeccionismo: abaixo desta linha
+     * abre-se uma transação que cria loja, configurações, sete horários, um
+     * catálogo inteiro e um usuário — o endpoint mais caro do sistema. Sem
+     * trava, um laço de requisições enche o banco e prende as conexões.
+     *
+     * Cinco por minuto por origem é o mesmo do login. Ninguém abre cinco
+     * lanchonetes em um minuto.
+     */
+    if (!permitido("signup", { max: 5, janelaMs: 60_000 })) {
       return {
         ok: false as const,
-        error: "Não foi possível criar a conta. O endereço ou e-mail pode ter sido tomado agora há pouco.",
+        error: "Muitas tentativas seguidas. Espere um minuto e tente de novo.",
       };
     }
 
-    // Signing in immediately: asking someone to log in right after choosing a
-    // password is friction with no security benefit.
-    console.log(`🔑 [SIGNUP] Iniciando sessão para adminUserId: ${adminUserId}`);
-    await startSessionFor(adminUserId);
+    const { criarContaDeLoja, respostaDeCadastro } = await import(
+      "../services/signup-service"
+    );
+    const { startSessionFor } = await import("../auth/session");
 
-    console.log(`🎉 [SIGNUP] Sucesso! Loja criada: ${slug}`);
-    return { ok: true as const, slug, trialEndsAt, trialDays: TRIAL_DAYS };
+    const resultado = await criarContaDeLoja(data);
+    if (!resultado.ok) return resultado;
+
+    /*
+     * A transacao ja commitou: a conta existe. Se o cookie falhar agora,
+     * responder "nao foi possivel criar a conta" seria mentira — e uma mentira
+     * cara, porque a pessoa tentaria de novo e bateria em "este CPF ja esta
+     * cadastrado", sem entender que a conta e dela.
+     *
+     * Signing in immediately: asking someone to log in right after choosing a
+     * password is friction with no security benefit.
+     */
+    let sessaoAberta = true;
+    try {
+      await startSessionFor(resultado.adminUserId);
+    } catch (error) {
+      sessaoAberta = false;
+      const e = error as { name?: string; code?: string };
+      console.error(
+        "[signup] conta criada, sessão falhou:",
+        e?.code ? `${e.name}(${e.code})` : (e?.name ?? "Error"),
+      );
+    }
+
+    /*
+     * O adminUserId não desce para o navegador: ele existia só para abrir a
+     * sessão.
+     */
+    return respostaDeCadastro(resultado, sessaoAberta);
   });
-
-/** Product slugs are unique per store, so the plain name is enough. */
-function slugifyProduct(name: string) {
-  return name
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
