@@ -96,7 +96,7 @@ export function ImageUploadField({
         }}
       />
 
-      <div className="flex gap-2">
+      <div className="flex justify-center gap-2">
         <button
           type="button"
           disabled={uploading}
