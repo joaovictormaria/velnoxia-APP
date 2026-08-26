@@ -114,7 +114,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     data-previa="titulo-da-promocao"
                     className="absolute bottom-20 left-4 z-10 max-w-[550px] leading-none bg-black/40 px-4 py-3 rounded-lg"
                   >
-                    <h3 className="font-display text-4xl lg:text-5xl font-extrabold text-[color:var(--on-primary)]">
+                    <h3 className="font-display text-4xl lg:text-5xl font-extrabold text-white">
                       {slide.title}
                     </h3>
                   </div>
@@ -131,7 +131,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     data-previa="descricao-da-promocao"
                     className="absolute top-20 left-4 z-10 max-w-xs bg-black/40 px-4 py-3 rounded-lg"
                   >
-                    <p className="text-sm leading-relaxed text-mozzarella">
+                    <p className="text-sm leading-relaxed text-white">
                       {slide.description}
                     </p>
                   </div>
