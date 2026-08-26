@@ -156,14 +156,33 @@ function PromotionsPage() {
               }}
               className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
             >
-              {/* Foto - ImageUploadField (col 1-2 em desktop) */}
+              {/* Foto - Redonda em mobile, normal em desktop */}
               <div className="lg:col-span-2">
-                <ImageUploadField
-                  kind="product"
-                  label="Foto"
-                  value={draft.imageUrl}
-                  onChange={(url) => setDraft({ ...draft, imageUrl: url })}
-                />
+                <style>{`
+                  @media (max-width: 1024px) {
+                    .promo-image-upload-mobile {
+                      display: flex;
+                      flex-direction: column;
+                      align-items: center;
+                      justify-content: center;
+                      gap: 1rem;
+                    }
+                    .promo-image-upload-mobile .overflow-hidden {
+                      width: 96px !important;
+                      height: 96px !important;
+                      border-radius: 9999px !important;
+                      margin: 0 auto;
+                    }
+                  }
+                `}</style>
+                <div className="promo-image-upload-mobile">
+                  <ImageUploadField
+                    kind="product"
+                    label="Foto"
+                    value={draft.imageUrl}
+                    onChange={(url) => setDraft({ ...draft, imageUrl: url })}
+                  />
+                </div>
               </div>
 
               {/* Chamada */}
