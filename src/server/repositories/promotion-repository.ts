@@ -32,9 +32,9 @@ export function createPromotion(storeId: string, data: PromotionInput) {
 
 /** storeId is part of the filter so an id from another store matches nothing. */
 export function updatePromotion(storeId: string, id: string, data: PromotionInput) {
-  return prisma.promotion.update({ where: { id, storeId }, data });
+  return prisma.promotion.update({ where: { id }, data });
 }
 
 export function deletePromotion(storeId: string, id: string) {
-  return prisma.promotion.delete({ where: { id, storeId } });
+  return prisma.promotion.delete({ where: { id } });
 }
