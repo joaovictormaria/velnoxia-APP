@@ -274,7 +274,7 @@ function PizzariaInicio() {
 
         <section
           id="contato"
-          className="scroll-mt-20 pb-16 px-4 sm:px-6"
+          className="scroll-mt-20 pb-16 px-4 sm:px-0"
         >
           <Reveal
             variant="up"
