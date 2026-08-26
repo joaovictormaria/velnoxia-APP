@@ -157,19 +157,19 @@ function PromotionsPage() {
               className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 space-y-5"
             >
               {/* Campos principais com foto ao lado */}
-              <div className="flex gap-4">
+              <div className="grid gap-4 lg:grid-cols-4">
                 {/* Foto - ImageUploadField */}
-                <div className="shrink-0 w-20">
+                <div className="lg:col-span-1">
                   <ImageUploadField
                     kind="product"
-                    label=""
+                    label="Foto"
                     value={draft.imageUrl}
                     onChange={(url) => setDraft({ ...draft, imageUrl: url })}
                   />
                 </div>
 
                 {/* Campos de texto */}
-                <div className="flex-1 grid gap-4 grid-cols-1 sm:grid-cols-3">
+                <div className="lg:col-span-3 grid gap-4 grid-cols-1 sm:grid-cols-3">
                   <Field label="Chamada" hint="Linha pequena acima do título.">
                     <Input
                       onFocus={() => setFoco("chamada-da-promocao")}
