@@ -179,6 +179,10 @@ export function Footer() {
             © {new Date().getFullYear()} {storeName} · Todos os direitos reservados
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-charcoal/45">
+            <a href="https://www.velnoxia.com.br" target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-tomato">
+              A Velnox.IA
+            </a>
+            <span className="text-charcoal/20">·</span>
             <a href="/" className="transition-colors hover:text-tomato">
               Velnox.app
             </a>
