@@ -44,7 +44,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
   }, [emblaApi, onSelect]);
 
   return (
-    <div className="relative overflow-hidden rounded-[32px] bg-tomato shadow-[0_25px_60px_-30px_rgba(233,75,44,0.55)]">
+    <div className="relative overflow-hidden rounded-[32px] shadow-[0_25px_60px_-30px_rgba(233,75,44,0.55)]">
       <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-[color:var(--on-primary)]/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-20 -right-10 h-64 w-64 rounded-full bg-charcoal/10 blur-3xl" />
 
