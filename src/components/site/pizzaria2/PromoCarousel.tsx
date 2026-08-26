@@ -120,7 +120,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     return (
                       <div
                         data-previa="titulo-da-promocao"
-                        className="absolute bottom-20 left-4 z-10 max-w-[550px] leading-none"
+                        className="absolute bottom-20 left-4 z-10 max-w-[550px] leading-none bg-black/40 px-4 py-3 rounded-lg"
                       >
                         <SequentialTypingText
                           firstText={firstText}
