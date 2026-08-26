@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentType, type ReactNode } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Beef,
   Beer,
@@ -123,7 +123,7 @@ function PizzariaInicio() {
             <h2 className="text-xl font-bold text-charcoal">Mais Pedidos</h2>
           </Reveal>
 
-          <div className="grid grid-cols-3 gap-0">
+          <div className="grid grid-cols-3 gap-2">
             {products.slice(0, 3).map((product) => {
               const Icon = product.icon;
               const price = sizePrice(product);
@@ -143,7 +143,13 @@ function PizzariaInicio() {
               }
 
               return (
-                <div key={product.id} className="bg-white rounded-lg p-1">
+                <Link
+                  key={product.id}
+                  to="/$storeSlug/produto/$slug"
+                  params={{ storeSlug, slug: product.slug }}
+                  search={{}}
+                  className="block bg-white rounded-lg p-1"
+                >
                   <div className="flex flex-col rounded-lg overflow-hidden border-2 border-white hover:shadow-lg transition-shadow"
                 >
                   <div className="relative">
@@ -151,10 +157,10 @@ function PizzariaInicio() {
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-full h-40 object-cover"
+                        className="w-full h-28 object-cover"
                       />
                     ) : (
-                      <div className="w-full h-40 bg-charcoal/5 flex items-center justify-center">
+                      <div className="w-full h-28 bg-charcoal/5 flex items-center justify-center">
                         {Icon ? <Icon className="size-8 text-charcoal/30" /> : <Pizza className="size-8 text-charcoal/30" />}
                       </div>
                     )}
@@ -165,14 +171,18 @@ function PizzariaInicio() {
                       </span>
                     )}
                   </div>
-                  <div className="flex flex-col flex-1 p-3">
+                  <div className="flex flex-col flex-1 p-1.5">
                     <h3 className="font-semibold text-charcoal text-xs line-clamp-2">{product.name}</h3>
                     <p className="text-xs text-charcoal/60 line-clamp-2 mt-1">{product.desc}</p>
-                    <div className="flex items-center justify-between gap-2 mt-auto pt-3">
+                    <div className="flex items-center justify-between gap-2 mt-auto pt-1.5">
                       <p className="text-sm font-bold text-tomato">R$ {price.toFixed(2).replace(".", ",")}</p>
                       <button
                         type="button"
-                        onClick={handleAddProduct}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleAddProduct();
+                        }}
                         className="inline-flex shrink-0 items-center justify-center rounded-full bg-tomato p-1.5 text-xs font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
                       >
                         <Plus className="size-3" />
@@ -180,46 +190,12 @@ function PizzariaInicio() {
                     </div>
                   </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
         </div>
       </section>
-
-      <section
-        id="promocoes"
-        className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20"
-      >
-        <Reveal variant="up" className="mx-auto max-w-[1200px]">
-          <PromoCarousel slides={promotions} />
-        </Reveal>
-      </section>
-
-      <SecaoDoCardapio>
-        <CategorySaboresSection />
-      </SecaoDoCardapio>
-
-      <ReviewsProvider storeSlug={storeSlug}>
-        <section
-          id="restaurante"
-          className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10"
-        >
-          <div className="mx-auto max-w-[1800px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)] sm:p-10 xl:px-14">
-            <div className="grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
-              <div>
-                <SobreORestaurante />
-              </div>
-
-              <ReviewsSection storeSlug={storeSlug} />
-            </div>
-          </div>
-        </section>
-
-        <ReviewsMarquee />
-      </ReviewsProvider>
-
-      <StoreBlog posts={posts} />
 
       <section className="relative overflow-hidden py-16 sm:py-24">
         <div className="pointer-events-none absolute -left-16 top-1/2 h-56 w-56 -translate-y-1/2 rounded-full bg-tomato/10 blur-3xl" />
@@ -236,7 +212,7 @@ function PizzariaInicio() {
             </h2>
           </Reveal>
 
-          <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-4">
+          <div className="mt-10 grid grid-cols-4 gap-6">
             {careItems.map((item, i) => (
               <Reveal
                 key={item.label}
@@ -260,40 +236,86 @@ function PizzariaInicio() {
       </section>
 
       <section
-        id="contato"
-        className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24"
+        id="promocoes"
+        className="scroll-mt-20 px-4 pt-16 sm:px-6 sm:pt-20"
       >
-        <Reveal
-          variant="up"
-          className="relative mx-auto max-w-[1200px] overflow-hidden rounded-[28px] bg-tomato px-6 py-8 shadow-[0_20px_50px_-30px_rgba(233,75,44,0.55)] sm:px-10 sm:py-9"
-        >
-          <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-[color:var(--on-primary)]/10 blur-2xl" />
-          {/* Faint mark behind the call-to-action, matching the trade. */}
-          <MarkIcon
-            strokeWidth={1}
-            className="pointer-events-none absolute -bottom-8 right-4 h-28 w-28 rotate-12 text-[color:var(--on-primary)]/10 sm:right-8 sm:h-32 sm:w-32"
-          />
-
-          <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-display text-xl font-extrabold text-[color:var(--on-primary)] sm:text-2xl">
-                {ctaTitle}
-              </h2>
-              <p className="mt-1.5 text-sm text-[color:var(--on-primary-muted)] sm:text-base">
-                {ctaBlurb}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={goToCardapio}
-              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-mozzarella px-6 py-3 text-sm font-semibold text-charcoal shadow-sm transition-transform hover:scale-[1.03] sm:text-base"
-            >
-              Faça um pedido →
-            </button>
-          </div>
+        <Reveal variant="up" className="mx-auto max-w-[1200px]">
+          <PromoCarousel slides={promotions} />
         </Reveal>
       </section>
+
+      <SecaoDoCardapio>
+        <CategorySaboresSection />
+      </SecaoDoCardapio>
+
+      <ReviewsProvider storeSlug={storeSlug}>
+        <section
+          id="restaurante"
+          className="scroll-mt-20 px-4 pb-16 sm:px-6 sm:pb-24 xl:px-10"
+        >
+          <div className="mx-auto max-w-[1800px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)] sm:p-10 xl:px-14">
+            <div className="grid grid-cols-1 items-start gap-10 sm:grid-cols-1 lg:grid-cols-2 lg:gap-14">
+              <div>
+                <SobreORestaurante />
+              </div>
+
+              <div className="hidden sm:block">
+                <ReviewsSection storeSlug={storeSlug} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div className="sm:hidden px-4 pb-16 sm:px-6">
+          <div className="mx-auto max-w-[1800px] overflow-hidden rounded-[32px] border border-charcoal/8 bg-mozzarella p-6 shadow-[0_20px_50px_-35px_rgba(23,23,23,0.35)]">
+            <ReviewsSection storeSlug={storeSlug} />
+          </div>
+        </div>
+
+        <section
+          id="contato"
+          className="sm:hidden scroll-mt-20 pb-16"
+        >
+          <Reveal
+            variant="up"
+            className="relative overflow-hidden bg-tomato px-6 py-8 shadow-[0_20px_50px_-30px_rgba(233,75,44,0.55)]"
+          >
+            <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-[color:var(--on-primary)]/10 blur-2xl" />
+            <MarkIcon
+              strokeWidth={1}
+              className="pointer-events-none absolute -bottom-8 right-4 h-28 w-28 rotate-12 text-[color:var(--on-primary)]/10"
+            />
+
+            <div className="relative flex flex-col items-center justify-center gap-6">
+              <div className="text-center">
+                <h2 className="font-display text-xl font-extrabold text-[color:var(--on-primary)]">
+                  {ctaTitle}
+                </h2>
+                <p className="mt-1.5 text-sm text-[color:var(--on-primary-muted)]">
+                  {ctaBlurb}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={goToCardapio}
+                className="group inline-flex shrink-0 items-center gap-2 rounded-xl bg-mozzarella px-6 py-3 text-sm font-semibold text-charcoal shadow-sm transition-transform hover:scale-[1.03]"
+              >
+                Faça um pedido
+                <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">
+                  →
+                </span>
+              </button>
+            </div>
+          </Reveal>
+        </section>
+      </ReviewsProvider>
+
+      <ReviewsProvider storeSlug={storeSlug}>
+        <ReviewsMarquee />
+      </ReviewsProvider>
+
+      <StoreBlog posts={posts} />
     </main>
   );
 }

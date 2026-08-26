@@ -16,6 +16,8 @@ import { Route as AnaliseRouteImport } from './routes/analise'
 import { Route as CriarSiteRouteImport } from './routes/criar-site'
 import { Route as EntregadorRouteRouteImport } from './routes/entregador/route'
 import { Route as PreviewRouteImport } from './routes/preview'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as StoreSlugIndexRouteImport } from './routes/$storeSlug/index'
 import { Route as StoreSlugCarrinhoRouteImport } from './routes/$storeSlug/carrinho'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
@@ -91,6 +93,16 @@ const EntregadorRouteRoute = EntregadorRouteRouteImport.update({
 const PreviewRoute = PreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StoreSlugIndexRoute = StoreSlugIndexRouteImport.update({
@@ -312,6 +324,8 @@ export interface FileRoutesByFullPath {
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/cadastro': typeof AdminCadastroRoute
@@ -359,6 +373,8 @@ export interface FileRoutesByTo {
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/cadastro': typeof AdminCadastroRoute
@@ -410,6 +426,8 @@ export interface FileRoutesById {
   '/analise': typeof AnaliseRoute
   '/criar-site': typeof CriarSiteRoute
   '/preview': typeof PreviewRoute
+  '/privacidade': typeof PrivacidadeRoute
+  '/termos': typeof TermosRoute
   '/$storeSlug/carrinho': typeof StoreSlugCarrinhoRoute
   '/admin/assinatura': typeof AdminAssinaturaRoute
   '/admin/cadastro': typeof AdminCadastroRoute
@@ -462,6 +480,8 @@ export interface FileRouteTypes {
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/privacidade'
+    | '/termos'
     | '/$storeSlug/carrinho'
     | '/admin/assinatura'
     | '/admin/cadastro'
@@ -509,6 +529,8 @@ export interface FileRouteTypes {
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/privacidade'
+    | '/termos'
     | '/$storeSlug/carrinho'
     | '/admin/assinatura'
     | '/admin/cadastro'
@@ -559,6 +581,8 @@ export interface FileRouteTypes {
     | '/analise'
     | '/criar-site'
     | '/preview'
+    | '/privacidade'
+    | '/termos'
     | '/$storeSlug/carrinho'
     | '/admin/assinatura'
     | '/admin/cadastro'
@@ -610,6 +634,8 @@ export interface RootRouteChildren {
   AnaliseRoute: typeof AnaliseRoute
   CriarSiteRoute: typeof CriarSiteRoute
   PreviewRoute: typeof PreviewRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
+  TermosRoute: typeof TermosRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiUploadRoute: typeof ApiUploadRoute
@@ -667,6 +693,20 @@ declare module '@tanstack/react-router' {
       path: '/preview'
       fullPath: '/preview'
       preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$storeSlug/': {
@@ -1067,6 +1107,8 @@ const rootRouteChildren: RootRouteChildren = {
   AnaliseRoute: AnaliseRoute,
   CriarSiteRoute: CriarSiteRoute,
   PreviewRoute: PreviewRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
+  TermosRoute: TermosRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiUploadRoute: ApiUploadRoute,

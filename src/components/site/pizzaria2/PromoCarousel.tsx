@@ -4,6 +4,7 @@ import { Camera, ChevronLeft, ChevronRight } from "lucide-react";
 import { useGoToCardapio } from "@/lib/pizzaria2/go-to-cardapio";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { cn } from "@/lib/utils";
+import { SequentialTypingText } from "@/components/site/SequentialTypingText";
 
 type PromoSlide = {
   id: string;
@@ -51,8 +52,9 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
         <div className="flex">
           {slides.map((slide) => (
             <div key={slide.title} className="min-w-0 shrink-0 grow-0 basis-full">
-              <div className="relative grid grid-cols-1 items-center gap-8 px-6 pb-14 pt-10 sm:px-10 sm:pb-16 sm:pt-12 md:grid-cols-2 md:gap-12 lg:px-14">
-                <div>
+              <div className="relative grid grid-cols-1 items-center gap-8 px-0 pb-0 pt-0 sm:px-10 sm:pb-16 sm:pt-12 md:grid-cols-2 md:gap-12 lg:px-14">
+
+                <div className="hidden md:block px-0 sm:px-10">
                   <span
                     data-previa="chamada-da-promocao"
                     className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--on-primary-muted)]"
@@ -102,6 +104,59 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                 {/* Dashed placeholder only until the owner uploads a photo —
                     once there is one it fills the frame. */}
                 <div className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-dashed border-[color:var(--on-primary)]/30 bg-[color:var(--on-primary)]/10 md:aspect-4/3">
+                  {/* Eyebrow overlay on mobile */}
+                  <span
+                    data-previa="chamada-da-promocao"
+                    className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full bg-tomato/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--on-primary)] sm:hidden"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-mozzarella/80" />
+                    {slide.eyebrow}
+                  </span>
+
+                  {/* Title overlay on mobile with sequential typing effect */}
+                  {(() => {
+                    const parts = slide.title.split(" + ");
+                    const firstText = parts[0] + (parts[1] ? " +" : "");
+                    const secondText = parts[1] || "";
+
+                    return (
+                      <div
+                        data-previa="titulo-da-promocao"
+                        className="absolute bottom-4 left-4 z-10 max-w-xs sm:hidden leading-none"
+                      >
+                        <SequentialTypingText
+                          firstText={firstText}
+                          secondText={secondText}
+                          firstClassName="font-display text-3xl font-extrabold text-[color:var(--on-primary)]"
+                          secondClassName="font-display text-lg font-extrabold text-[color:var(--on-primary)]"
+                          caretClassName="text-[color:var(--on-primary)]"
+                          speed={50}
+                          deleteSpeed={30}
+                          pauseBetween={300}
+                          pauseAfterBoth={2000}
+                        />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Discount overlay on top-right mobile */}
+                  {slide.discount && (
+                    <span data-previa="selo-da-promocao" className="absolute top-4 right-4 z-10 inline-flex items-center rounded-full bg-mozzarella px-3 py-1 text-xs font-bold text-tomato sm:hidden">
+                      {slide.discount}
+                    </span>
+                  )}
+
+                  {/* Button overlay on bottom-right mobile */}
+                  <div className="absolute bottom-4 right-4 z-10 sm:hidden">
+                    <button
+                      type="button"
+                      onClick={goToCardapio}
+                      className="inline-flex items-center gap-1 rounded-full bg-mozzarella px-3 py-1.5 text-xs font-semibold text-tomato transition-transform hover:scale-[1.03]"
+                    >
+                      Comprar →
+                    </button>
+                  </div>
+
                   {slide.imageUrl ? (
                     <img
                       src={slide.imageUrl}
@@ -138,7 +193,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
         <ChevronRight className="h-4.5 w-4.5" />
       </button>
 
-      <div className="relative flex items-center justify-center gap-2 pb-6">
+      <div className="relative hidden md:flex items-center justify-center gap-2 pb-6">
         {slides.map((slide, i) => (
           <button
             key={slide.title}

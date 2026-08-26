@@ -53,7 +53,7 @@ export function ReviewCard({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="font-display text-sm font-bold text-charcoal">
+          <p className="font-display text-[11px] font-bold text-charcoal">
             {review.customerNameSnapshot}
           </p>
           <p className="text-xs text-charcoal/45">

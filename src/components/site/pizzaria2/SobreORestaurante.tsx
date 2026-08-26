@@ -1,5 +1,6 @@
 import { Camera, Clock, MapPin } from 'lucide-react';
 import { Reveal } from '@/components/site/Reveal';
+import { TypingText } from '@/components/site/TypingText';
 import { WhatsAppIcon } from '@/components/site/WhatsAppIcon';
 import { useStore } from '@/lib/pizzaria2/store-provider';
 import { heroFor } from '@/lib/pizzaria2/hero-by-type';
@@ -31,7 +32,50 @@ export function SobreORestaurante() {
 
   return (
     <>
-    <Reveal variant="left">
+    <Reveal variant="up" className="sm:hidden">
+      <span data-previa="chamada-do-sobre" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
+        <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
+        {aboutEyebrow || "Nosso restaurante"}
+      </span>
+      <h2 data-previa="titulo-do-sobre" className="mt-3 font-display text-xl font-extrabold leading-tight text-charcoal">
+        <TypingText
+          texts={[aboutTitle || tradeAboutTitle]}
+          speed={50}
+          pauseAfterEachWord={0}
+          deleteDelay={999999}
+        />
+      </h2>
+    </Reveal>
+
+    <Reveal variant="left" className="sm:hidden">
+      {/* Dashed frame only while there is nothing to show; once the
+      owner uploads a photo it fills it and the dashes go away. */}
+      <div data-previa="foto-do-sobre"
+        className={cn(
+          "relative mx-auto mt-4 aspect-4/3 w-full max-w-[240px] overflow-hidden rounded-[24px]",
+          aboutImageUrl
+            ? "border border-charcoal/10"
+            : "border border-dashed border-charcoal/15 bg-charcoal/[0.03]",
+        )}
+      >
+        {aboutImageUrl ? (
+          <img
+            src={aboutImageUrl}
+            alt={businessName}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-charcoal/25">
+            <Camera className="h-9 w-9" strokeWidth={1.5} />
+            <span className="text-xs font-medium">
+              Foto do restaurante em breve
+            </span>
+          </div>
+        )}
+      </div>
+    </Reveal>
+
+    <Reveal variant="left" className="hidden sm:block">
       {/* Dashed frame only while there is nothing to show; once the
       owner uploads a photo it fills it and the dashes go away. */}
       <div data-previa="foto-do-sobre"
@@ -59,13 +103,68 @@ export function SobreORestaurante() {
       </div>
     </Reveal>
 
-    <Reveal variant="up" className="mt-8">
+    <Reveal variant="up" className="sm:hidden mt-8">
+      <p data-previa="texto-do-sobre" className="text-sm leading-relaxed text-charcoal/60">
+        {aboutBody || "Na " + businessName + ", " + tradeAboutBody}
+      </p>
+
+      <div className="mt-8 grid grid-cols-2 gap-6">
+        <div className="flex gap-3">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-tomato/10 text-tomato">
+            <Clock className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="font-display text-sm font-bold text-charcoal">
+              Horário de funcionamento
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
+              Seg a Dom
+              <br />
+              18h às 23h30
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-olive/10 text-olive">
+            <MapPin className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="font-display text-sm font-bold text-charcoal">
+              Localização
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-charcoal/55">
+              {hasAddress
+                ? addressLines.join(" — ")
+                : "Endereço ainda não informado."}
+            </p>
+            {mapsHref && (
+              <a
+                href={mapsHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center text-sm font-semibold text-tomato hover:underline"
+              >
+                Ver no mapa →
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </Reveal>
+
+    <Reveal variant="up" className="hidden sm:block mt-8">
       <span data-previa="chamada-do-sobre" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-tomato">
         <span className="h-1.5 w-1.5 rounded-full bg-tomato" />
         {aboutEyebrow || "Nosso restaurante"}
       </span>
-      <h2 data-previa="titulo-do-sobre" className="mt-3 font-display text-3xl font-extrabold leading-tight text-charcoal sm:text-4xl">
-        {aboutTitle || tradeAboutTitle}
+      <h2 data-previa="titulo-do-sobre" className="mt-3 font-display text-2xl font-extrabold leading-tight text-charcoal sm:text-3xl">
+        <TypingText
+          texts={[aboutTitle || tradeAboutTitle]}
+          speed={50}
+          pauseAfterEachWord={0}
+          deleteDelay={999999}
+        />
       </h2>
       <p data-previa="texto-do-sobre" className="mt-4 text-base leading-relaxed text-charcoal/60">
         {aboutBody || "Na " + businessName + ", " + tradeAboutBody}

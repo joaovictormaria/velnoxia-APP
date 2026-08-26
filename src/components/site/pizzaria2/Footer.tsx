@@ -27,9 +27,9 @@ export function Footer() {
   return (
     <footer className="border-t border-charcoal/8 bg-cream">
       <div className="mx-auto max-w-[1200px] px-4 py-12 sm:px-6 sm:py-14">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.3fr_0.8fr_1fr_1fr]">
-          <div>
-            <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-10 lg:grid-cols-[1.3fr_0.8fr_1fr_1fr]">
+          <div className="col-span-2 flex flex-col items-center text-center sm:col-span-1 sm:items-start sm:text-left">
+            <div className="flex flex-col items-center gap-2 sm:flex-row">
               {logoUrl ? (
                 <img
                   src={logoUrl}
@@ -113,20 +113,17 @@ export function Footer() {
             <p className="font-display text-sm font-bold text-charcoal">Atendimento</p>
             <ul className="mt-4 space-y-2.5 text-sm text-charcoal/60">
               {whatsappNumber && (
-                <>
-                  <li>
-                    <a
-                      href={whatsappHref()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 transition-colors hover:text-tomato"
-                    >
-                      <WhatsAppIcon className="h-3.5 w-3.5" />
-                      WhatsApp
-                    </a>
-                  </li>
-                  <li>{whatsappNumber}</li>
-                </>
+                <li>
+                  <a
+                    href={whatsappHref()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 transition-colors hover:text-tomato"
+                  >
+                    <WhatsAppIcon className="h-3.5 w-3.5" />
+                    WhatsApp
+                  </a>
+                </li>
               )}
               {email && (
                 <li>
@@ -139,11 +136,16 @@ export function Footer() {
                   </a>
                 </li>
               )}
-              {openingHoursSummary.map((line) => (
-                <li key={line} className="text-charcoal/50">
-                  {line}
-                </li>
-              ))}
+              {openingHoursSummary.map((line) => {
+                const parts = line.split(/:\s+(?=\d)/);
+                return (
+                  <li key={line} className="text-charcoal/50">
+                    {parts.map((part, i) => (
+                      <div key={i}>{i === 0 ? part + ':' : part}</div>
+                    ))}
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
@@ -172,16 +174,20 @@ export function Footer() {
           )}
         </div>
 
-        <div className="mt-10 flex flex-col gap-3 border-t border-charcoal/8 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-charcoal/45">
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 border-t border-charcoal/8 pt-6 sm:flex-row sm:justify-between">
+          <p className="text-xs text-center text-charcoal/45">
             © {new Date().getFullYear()} {storeName} · Todos os direitos reservados
           </p>
-          <div className="flex items-center gap-4 text-xs text-charcoal/45">
-            <a href="#" className="transition-colors hover:text-tomato">
+          <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-charcoal/45">
+            <a href="/" className="transition-colors hover:text-tomato">
+              Velnox.app
+            </a>
+            <span className="text-charcoal/20">·</span>
+            <a href="/privacidade" className="transition-colors hover:text-tomato">
               Política de Privacidade
             </a>
             <span className="text-charcoal/20">·</span>
-            <a href="#" className="transition-colors hover:text-tomato">
+            <a href="/termos" className="transition-colors hover:text-tomato">
               Termos de Uso
             </a>
           </div>

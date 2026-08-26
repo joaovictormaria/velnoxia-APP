@@ -197,7 +197,7 @@ export function CategorySaboresSection({
             to="/$storeSlug/produto/$slug"
             params={{ storeSlug, slug: ctaProductSlug }}
             search={{ view: "cardapio" }}
-            className="group mt-7 flex items-center gap-4 rounded-4xl bg-linear-to-br from-tomato to-[color:var(--primary-deep)] p-6 text-[color:var(--on-primary)] shadow-[0_20px_40px_-24px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
+            className="group hidden lg:flex mt-7 items-center gap-4 rounded-4xl bg-linear-to-br from-tomato to-[color:var(--primary-deep)] p-6 text-[color:var(--on-primary)] shadow-[0_20px_40px_-24px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
           >
             <span className="grid h-13 w-13 shrink-0 place-items-center rounded-full bg-[color:var(--on-primary)]/15">
               <BookOpen className="h-6 w-6" />
@@ -205,9 +205,6 @@ export function CategorySaboresSection({
             <span className="min-w-0 flex-1">
               <span className="block text-base font-bold leading-tight">
                 Veja o cardápio completo
-              </span>
-              <span className="mt-1 block text-sm leading-tight text-[color:var(--on-primary-muted)]">
-                {fullMenuTeaser}
               </span>
             </span>
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[color:var(--on-primary)] text-[color:var(--primary)] transition-transform group-hover:translate-x-0.5">
@@ -218,7 +215,7 @@ export function CategorySaboresSection({
           {/* Alinhados ao centro da própria coluna, não à esquerda: o botão
               acima ocupa a largura toda, e selos encostados à esquerda com
               texto de tamanhos diferentes deixavam a fileira torta. */}
-          <div className="mt-7 grid grid-cols-3 gap-4">
+          <div className="hidden lg:grid mt-7 grid-cols-3 gap-4">
             {trustLabels.map((label, i) => (
               <div key={label} className="flex flex-col items-center gap-2.5 text-center">
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-olive/10 text-olive">
@@ -235,7 +232,7 @@ export function CategorySaboresSection({
         <div>
           <CategoryTabs activeSlug={category.slug} onSelect={setActiveSlug} />
 
-          <div className="mt-6 space-y-2.5 md:hidden">
+          <div className="mt-6 grid grid-cols-3 gap-2 md:hidden">
             {items.map((product) => (
               <ProductRow
                 key={product.slug}
@@ -276,12 +273,43 @@ export function CategorySaboresSection({
             ))}
           </div>
         </div>
+
+        {/* Mobile CTA button and trust icons - appears below products on mobile only */}
+        <div className="lg:hidden space-y-0 -mt-6">
+          <Link
+            to="/$storeSlug/produto/$slug"
+            params={{ storeSlug, slug: ctaProductSlug }}
+            search={{ view: "cardapio" }}
+            className="group flex items-center gap-4 rounded-4xl bg-linear-to-br from-tomato to-[color:var(--primary-deep)] p-6 text-[color:var(--on-primary)] shadow-[0_20px_40px_-24px_rgba(233,75,44,0.6)] transition-transform hover:-translate-y-0.5"
+          >
+            <span className="grid h-13 w-13 shrink-0 place-items-center rounded-full bg-[color:var(--on-primary)]/15">
+              <BookOpen className="h-6 w-6" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-base font-bold leading-tight">
+                Veja o cardápio completo
+              </span>
+            </span>
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[color:var(--on-primary)] text-[color:var(--primary)] transition-transform group-hover:translate-x-0.5">
+              <ArrowRight className="h-5 w-5" />
+            </span>
+          </Link>
+
+          <div className="grid grid-cols-3 gap-4 mt-6">
+            {trustLabels.map((label, i) => (
+              <div key={label} className="flex flex-col items-center gap-2.5 text-center">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-olive/10 text-olive">
+                  {trustIcons[i]?.()}
+                </span>
+                <span className="text-xs leading-tight text-charcoal/60">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="mt-14 flex items-center justify-center gap-2.5 text-base font-medium text-tomato">
-        <ChevronDown className="h-5 w-5 animate-bounce" />
-        {browseAllBlurb}
-      </div>
     </>
   );
 }

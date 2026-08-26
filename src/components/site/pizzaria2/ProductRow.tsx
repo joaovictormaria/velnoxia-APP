@@ -26,73 +26,66 @@ export function ProductRow({
   const Icon = product.icon;
 
   return (
-    <div className="flex items-center gap-3 overflow-hidden rounded-2xl border border-charcoal/8 bg-mozzarella p-2.5 transition-colors hover:border-tomato/25">
-      {/* The row opens the produto screen, where sizes, extras and the note
-          live. The "+" beside it is a sibling so it can add straight to the
-          cart without going through that screen.
-          search={{}} clears view=cardapio: this link is often clicked from the
-          full cardapio, which lives on this same route, and keeping the param
-          would reopen the list instead of showing the product. */}
-      <Link
-        to="/$storeSlug/produto/$slug"
-        params={{ storeSlug, slug: product.slug }}
-        search={{}}
-        className="flex min-w-0 flex-1 items-center gap-3 text-left"
-      >
-        <span className="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-tomato/8">
+    <Link
+      to="/$storeSlug/produto/$slug"
+      params={{ storeSlug, slug: product.slug }}
+      search={{}}
+      className="block bg-white rounded-lg p-1"
+    >
+      <div className="flex flex-col rounded-lg overflow-hidden border-2 border-white hover:shadow-lg transition-shadow">
+        <div className="relative">
           {product.image ? (
             <img
               src={product.image}
-              alt=""
+              alt={product.name}
               loading="lazy"
-              className="h-full w-full object-cover"
+              className="w-full h-28 object-cover"
             />
           ) : (
-            Icon && <Icon className="h-6 w-6 text-tomato" />
+            <div className="w-full h-28 bg-charcoal/5 flex items-center justify-center">
+              {Icon ? <Icon className="size-8 text-charcoal/30" /> : <Icon className="size-8 text-charcoal/30" />}
+            </div>
           )}
-        </span>
-
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center gap-1.5">
-            <span className="font-display text-base font-bold leading-tight text-charcoal">
-              {product.name}
+          {product.tag && (
+            <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-tomato px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[color:var(--on-primary)] shadow-[0_4px_12px_-4px_rgba(23,23,23,0.4)]">
+              {product.tag === "Mais pedida" && <Flame className="h-3 w-3" />}
+              {product.tag}
             </span>
-            {product.tag && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-tomato px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[color:var(--on-primary)]">
-                {product.tag === "Mais pedida" && <Flame className="h-3 w-3" />}
-                {product.tag}
-              </span>
+          )}
+        </div>
+        <div className="flex flex-col flex-1 p-1.5">
+          <h3 className="font-semibold text-charcoal text-xs line-clamp-2">{product.name}</h3>
+          <p className="text-xs text-charcoal/60 line-clamp-2 mt-1">{product.desc}</p>
+          <div className="flex items-center justify-between gap-2 mt-auto pt-1.5">
+            <p className="text-sm font-bold text-tomato">R$ {price.toFixed(2).replace(".", ",")}</p>
+            {exigeEscolha ? (
+              <Link
+                to="/$storeSlug/produto/$slug"
+                params={{ storeSlug, slug: product.slug }}
+                search={{}}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Escolher opções de ${product.name}`}
+                className="inline-flex shrink-0 items-center justify-center rounded-full bg-tomato p-1.5 text-xs font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+              >
+                <Plus className="size-3" />
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onQuickAdd();
+                }}
+                aria-label={`Adicionar ${product.name} ao carrinho`}
+                className="inline-flex shrink-0 items-center justify-center rounded-full bg-tomato p-1.5 text-xs font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
+              >
+                <Plus className="size-3" />
+              </button>
             )}
-          </span>
-          <span className="mt-0.5 block font-display text-sm font-bold text-tomato">
-            {formatCurrency(price)}
-          </span>
-        </span>
-      </Link>
-
-      {/* Sem pergunta obrigatória o "+" vai direto ao carrinho. Com ela, o
-          item não teria como ser montado aqui: abre a tela do produto, onde a
-          pergunta é feita. */}
-      {exigeEscolha ? (
-        <Link
-          to="/$storeSlug/produto/$slug"
-          params={{ storeSlug, slug: product.slug }}
-          search={{}}
-          aria-label={`Escolher opções de ${product.name}`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-all hover:bg-tomato/90 active:scale-90 active:bg-tomato/80"
-        >
-          <Plus className="h-4 w-4" />
-        </Link>
-      ) : (
-        <button
-          type="button"
-          onClick={onQuickAdd}
-          aria-label={`Adicionar ${product.name} ao carrinho`}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-tomato text-[color:var(--on-primary)] transition-all hover:bg-tomato/90 active:scale-90 active:bg-tomato/80"
-        >
-          <Plus className="h-4 w-4" />
-        </button>
-      )}
-    </div>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }

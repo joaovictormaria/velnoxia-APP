@@ -94,6 +94,8 @@ export function HeroDaVitrine() {
     badge?: string;
     action?: { label: string; href: string };
     renderIcon?: () => ReactNode;
+    isClickableIcon?: boolean;
+    iconHref?: string;
   }[] = [
     {
       icon: Circle,
@@ -102,7 +104,6 @@ export function HeroDaVitrine() {
       // First line of the store's own schedule, instead of a fixed time that
       // contradicts whatever the owner set in the panel.
       detail: openingHoursSummary.slice(0, 1),
-      badge: isOpen ? "Aberto" : "Fechado",
       renderIcon: () => (
         <span className="relative flex h-3 w-3">
           <span
@@ -168,8 +169,9 @@ export function HeroDaVitrine() {
        * dois lugares para olhar, e o site virava o menos confiável dos dois.
        */
       title: "Dúvidas?",
-      detail: [whatsappNumber, "Pedidos só pelo site"].filter(Boolean) as string[],
-      action: { label: "Chamar no WhatsApp →", href: whatsappHref },
+      detail: ["Pedidos só pelo site"],
+      isClickableIcon: true,
+      iconHref: whatsappHref,
     },
   ];
   return (
@@ -271,40 +273,63 @@ export function HeroDaVitrine() {
 
       {/* Info card — always follows the row above in normal flow, so it can never overlap
           the headline or the button, no matter the viewport height or text length. */}
-      <div className="relative z-20 bg-mozzarella px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8">
+      <div className="relative z-20 bg-mozzarella px-4 pb-0 pt-6 sm:px-6 sm:pb-0 sm:pt-8">
         <Reveal
           variant="up"
-          className="mx-auto grid max-w-[1200px] grid-cols-1 divide-y divide-charcoal/8 overflow-hidden rounded-[28px] border border-charcoal/8 bg-mozzarella shadow-[0_20px_50px_-35px_rgba(23,23,23,0.4)] sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4"
+          className="mx-auto grid max-w-[1200px] grid-cols-4 divide-y divide-charcoal/8 overflow-hidden rounded-[28px] border border-charcoal/8 bg-mozzarella shadow-[0_20px_50px_-35px_rgba(23,23,23,0.4)] sm:divide-x sm:divide-y-0"
         >
           {infoBlocks.map((block) => (
-            <div key={block.title} className="flex flex-col gap-3 p-6 sm:p-7">
-              <div className="flex items-center gap-3">
-                <span
-                  className={cn(
-                    "grid h-11 w-11 shrink-0 place-items-center rounded-full",
-                    block.tone === "olive"
-                      ? "bg-olive/10 text-olive"
-                      : "bg-tomato/10 text-tomato",
-                  )}
-                >
-                  {block.renderIcon ? (
-                    block.renderIcon()
-                  ) : (
-                    <block.icon
-                      className={cn("h-5 w-5", block.iconClassName)}
-                    />
-                  )}
-                </span>
-                <span className="font-display text-sm font-bold text-charcoal">
-                  {block.title}
-                </span>
+            <div key={block.title} className="flex flex-col gap-2 p-3 sm:p-4">
+              <span className="font-display text-xs font-bold text-charcoal text-center">
+                {block.title}
+              </span>
+
+              <div className="flex justify-center">
+                {block.isClickableIcon && block.iconHref ? (
+                  <a
+                    href={block.iconHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "grid h-8 w-8 shrink-0 place-items-center rounded-full transition-opacity hover:opacity-80",
+                      block.tone === "olive"
+                        ? "bg-olive/10 text-olive"
+                        : "bg-tomato/10 text-tomato",
+                    )}
+                  >
+                    {block.renderIcon ? (
+                      block.renderIcon()
+                    ) : (
+                      <block.icon
+                        className={cn("h-3.5 w-3.5", block.iconClassName)}
+                      />
+                    )}
+                  </a>
+                ) : (
+                  <span
+                    className={cn(
+                      "grid h-8 w-8 shrink-0 place-items-center rounded-full",
+                      block.tone === "olive"
+                        ? "bg-olive/10 text-olive"
+                        : "bg-tomato/10 text-tomato",
+                    )}
+                  >
+                    {block.renderIcon ? (
+                      block.renderIcon()
+                    ) : (
+                      <block.icon
+                        className={cn("h-3.5 w-3.5", block.iconClassName)}
+                      />
+                    )}
+                  </span>
+                )}
               </div>
 
-              <div className="flex-1">
+              <div className="flex-1 text-center">
                 {block.detail.map((line) => (
                   <p
                     key={line}
-                    className="text-sm font-semibold leading-relaxed text-charcoal/80"
+                    className="text-xs font-semibold leading-relaxed text-charcoal/80"
                   >
                     {line}
                   </p>
@@ -312,16 +337,18 @@ export function HeroDaVitrine() {
               </div>
 
               {block.badge && (
-                <span
-                  className={cn(
-                    "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                    block.tone === "olive"
-                      ? "bg-olive/10 text-olive"
-                      : "bg-tomato/10 text-tomato",
-                  )}
-                >
-                  {block.badge}
-                </span>
+                <div className="flex justify-center">
+                  <span
+                    className={cn(
+                      "inline-flex w-fit items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                      block.tone === "olive"
+                        ? "bg-olive/10 text-olive"
+                        : "bg-tomato/10 text-tomato",
+                    )}
+                  >
+                    {block.badge}
+                  </span>
+                </div>
               )}
 
               {block.action && (
