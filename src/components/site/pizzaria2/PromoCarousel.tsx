@@ -191,27 +191,6 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
         <ChevronRight className="h-4.5 w-4.5" />
       </button>
 
-      <div className="relative hidden md:flex items-center justify-center gap-2">
-        {slides.map((slide, i) => (
-          <button
-            key={slide.title}
-            type="button"
-            aria-label={`Ir para promoção ${i + 1}`}
-            onClick={() => emblaApi?.scrollTo(i)}
-            className="group flex h-11 items-center px-1"
-          >
-            <span
-              aria-hidden
-              className={cn(
-                "block h-1.5 rounded-full transition-all",
-                i === selectedIndex
-                  ? "w-6 bg-mozzarella"
-                  : "w-1.5 bg-mozzarella/40 group-hover:bg-mozzarella/60",
-              )}
-            />
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
