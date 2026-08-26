@@ -157,10 +157,10 @@ function PizzariaInicio() {
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-full h-28 object-cover"
+                        className="w-full h-28 lg:h-40 object-cover"
                       />
                     ) : (
-                      <div className="w-full h-28 bg-charcoal/5 flex items-center justify-center">
+                      <div className="w-full h-28 lg:h-40 bg-charcoal/5 flex items-center justify-center">
                         {Icon ? <Icon className="size-8 text-charcoal/30" /> : <Pizza className="size-8 text-charcoal/30" />}
                       </div>
                     )}
