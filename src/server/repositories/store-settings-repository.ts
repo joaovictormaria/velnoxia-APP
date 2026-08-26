@@ -73,9 +73,9 @@ export async function getStoreSettings(storeId: string) {
       restaurantPhotos: { orderBy: { sortOrder: "asc" } },
     },
   });
-  if (existing) return existing;
+  if (existing) return serializeStoreSettings(existing);
 
-  return prisma.storeSettings.create({
+  const created = await prisma.storeSettings.create({
     data: {
       storeId,
       whatsappNumber: "",
@@ -86,6 +86,16 @@ export async function getStoreSettings(storeId: string) {
       restaurantPhotos: { orderBy: { sortOrder: "asc" } },
     },
   });
+  return serializeStoreSettings(created);
+}
+
+function serializeStoreSettings(settings: any) {
+  return {
+    ...settings,
+    deliveryFee: Number(settings.deliveryFee),
+    freeDeliveryMinOrder: settings.freeDeliveryMinOrder ? Number(settings.freeDeliveryMinOrder) : null,
+    minOrderValue: Number(settings.minOrderValue),
+  };
 }
 
 /**
@@ -160,12 +170,14 @@ export async function getPublicStoreSettings(storeId: string) {
  * pagava a conta era a legenda do QR Code impresso, que sai de Store.name.
  */
 export async function updateStoreSettings(storeId: string, data: StoreSettingsInput) {
-  const settings = await getStoreSettings(storeId);
+  const existing = await prisma.storeSettings.findUniqueOrThrow({
+    where: { storeId },
+  });
   const [atualizado] = await prisma.$transaction([
-    prisma.storeSettings.update({ where: { id: settings.id }, data }),
+    prisma.storeSettings.update({ where: { id: existing.id }, data }),
     prisma.store.update({ where: { id: storeId }, data: { name: data.storeName } }),
   ]);
-  return atualizado;
+  return serializeStoreSettings(atualizado);
 }
 
 /** Upserts one row per weekday so the unique (store, weekday) pair is preserved. */
