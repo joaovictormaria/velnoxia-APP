@@ -33,7 +33,7 @@ function Privacidade() {
               1. Introdução
             </h2>
             <p className="text-sm leading-relaxed">
-              A Velnox.app opera a plataforma de cardápio digital e entrega de alimentos. Esta página é responsável por informar você sobre nossas políticas referentes à coleta, uso e divulgação de dados pessoais se você decidir usar nosso serviço.
+              Velnox.app opera a plataforma de cardápio digital e entrega de alimentos. Esta página é responsável por informar você sobre nossas políticas referentes à coleta, uso e divulgação de dados pessoais se você decidir usar nosso serviço.
             </p>
           </section>
 

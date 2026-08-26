@@ -42,7 +42,7 @@ function Termos() {
               2. Descrição do Serviço
             </h2>
             <p className="text-sm leading-relaxed">
-              A Velnox.app é uma plataforma de cardápio digital que conecta clientes a restaurantes parceiros para realizar pedidos online e agendar entregas. Somos um intermediário entre você e os restaurantes.
+              Velnox.app é uma plataforma de cardápio digital que conecta clientes a restaurantes parceiros para realizar pedidos online e agendar entregas. Somos um intermediário entre você e os restaurantes.
             </p>
           </section>
 
