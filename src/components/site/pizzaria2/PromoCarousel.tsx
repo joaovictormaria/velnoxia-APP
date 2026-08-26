@@ -126,6 +126,30 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     </span>
                   )}
 
+                  {/* Description overlay */}
+                  <div
+                    data-previa="descricao-da-promocao"
+                    className="absolute top-20 left-4 z-10 max-w-xs bg-black/40 px-4 py-3 rounded-lg"
+                  >
+                    <p className="text-sm leading-relaxed text-mozzarella">
+                      {slide.description}
+                    </p>
+                  </div>
+
+                  {/* Price overlay on bottom-left */}
+                  {slide.price && (
+                    <div data-previa="preco-da-promocao" className="absolute bottom-4 left-4 z-10 flex items-baseline gap-2 bg-black/40 px-3 py-2 rounded-lg">
+                      {slide.originalPrice && (
+                        <span className="text-sm text-mozzarella line-through">
+                          {formatCurrency(slide.originalPrice)}
+                        </span>
+                      )}
+                      <span className="font-display text-xl font-bold text-mozzarella">
+                        {formatCurrency(slide.price)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Button overlay on bottom-right */}
                   <div className="absolute bottom-4 right-4 z-10">
                     <button
