@@ -157,7 +157,7 @@ function PromotionsPage() {
               className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid lg:grid-cols-3 gap-4 lg:gap-6"
             >
               {/* Foto - Desktop: esquerda pequena, Mobile: topo grande */}
-              <div className="lg:col-span-1">
+              <div className="lg:col-span-1 lg:max-h-80 lg:sticky lg:top-5">
                 <style>{`
                   @media (max-width: 1024px) {
                     .promo-image-upload-mobile {
