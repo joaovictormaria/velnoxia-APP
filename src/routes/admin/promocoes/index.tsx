@@ -154,7 +154,7 @@ function PromotionsPage() {
                 e.preventDefault();
                 save.mutate(draft);
               }}
-              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 gap-4 lg:grid-cols-5"
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-5 gap-4"
             >
               {/* Foto - Redonda em mobile, normal em desktop */}
               <div className="lg:col-span-1">
