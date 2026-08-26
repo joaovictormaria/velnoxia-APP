@@ -50,7 +50,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
         <div className="flex">
           {slides.map((slide) => (
             <div key={slide.title} className="min-w-0 shrink-0 grow-0 basis-full">
-              <div className="relative grid grid-cols-1 items-center gap-6 px-0 pb-0 pt-0 sm:px-6 sm:pb-8 sm:pt-6 lg:px-8">
+              <div className="relative grid grid-cols-1 items-center gap-0 px-0 pb-0 pt-0">
 
                 <div className="hidden px-0 sm:px-10">
                   <span
