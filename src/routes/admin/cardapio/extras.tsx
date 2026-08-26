@@ -167,24 +167,24 @@ function ExtrasPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             <button
               type="button"
               onClick={() => editar(x)}
               aria-label={`Editar ${x.name}`}
-              className="flex items-center justify-center gap-1 px-2 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
+              className="flex items-center justify-center p-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+              title="Editar"
             >
               <Pencil className="size-3" />
-              Editar
             </button>
             <button
               type="button"
               onClick={() => excluir(x)}
               aria-label={`Excluir ${x.name}`}
-              className="px-1 py-1.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
+              className="p-1 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
               title={`Excluir ${x.name}`}
             >
-              <Trash2 className="size-3.5" />
+              <Trash2 className="size-3" />
             </button>
           </div>
         </div>
