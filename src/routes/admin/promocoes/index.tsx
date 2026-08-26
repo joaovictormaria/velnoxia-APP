@@ -284,55 +284,97 @@ function PromotionsPage() {
           Nenhuma promoção cadastrada. Sem elas, o carrossel não aparece no cardápio.
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4">
           {data.map((p) => (
             <div
               key={p.id}
-              className="flex flex-wrap items-center gap-4 rounded-xl border border-neutral-200 bg-white px-4 py-3"
+              className="flex flex-col rounded-2xl border border-neutral-200 bg-white overflow-hidden hover:shadow-md transition-shadow"
             >
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-neutral-500">{p.eyebrow}</p>
-                <p className="font-semibold text-neutral-900">{p.title}</p>
-                <p className="text-sm text-neutral-600">{p.description}</p>
+              {/* Imagem */}
+              {p.imageUrl && (
+                <div className="relative w-full pt-[66.67%] bg-neutral-100 overflow-hidden">
+                  <img
+                    src={p.imageUrl}
+                    alt={p.title}
+                    className="absolute inset-0 size-full object-cover"
+                  />
+                  {p.discount && (
+                    <div className="absolute top-2 right-2 bg-[#E11D2E] text-white px-2 py-1 rounded-lg text-xs font-bold">
+                      {p.discount}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Conteúdo */}
+              <div className="flex flex-col flex-1 p-3">
+                <p className="text-[10px] text-neutral-500 uppercase tracking-wide font-medium">
+                  {p.eyebrow}
+                </p>
+                <h3 className="font-bold text-neutral-900 text-sm mt-1 line-clamp-2">
+                  {p.title}
+                </h3>
+                <p className="text-xs text-neutral-600 mt-1 line-clamp-2 flex-1">
+                  {p.description}
+                </p>
+
+                {/* Preço */}
+                {(p.price || p.originalPrice) && (
+                  <div className="mt-2 flex items-baseline gap-1">
+                    {p.originalPrice && (
+                      <span className="text-xs text-neutral-500 line-through">
+                        R$ {Number(p.originalPrice).toFixed(2).replace(".", ",")}
+                      </span>
+                    )}
+                    {p.price && (
+                      <span className="text-sm font-bold text-[#E11D2E]">
+                        R$ {Number(p.price).toFixed(2).replace(".", ",")}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Status */}
+                <div className="mt-2 flex gap-1 flex-wrap">
+                  {!p.isActive && (
+                    <span className="rounded-full bg-neutral-100 px-2 py-1 text-[10px] text-neutral-500 uppercase font-medium">
+                      Inativa
+                    </span>
+                  )}
+                </div>
               </div>
-              {p.discount && (
-                <span className="rounded-full bg-[#E11D2E]/10 px-3 py-1 text-xs font-bold text-[#E11D2E]">
-                  {p.discount}
-                </span>
-              )}
-              {!p.isActive && (
-                <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-500">
-                  Inativa
-                </span>
-              )}
-              <button
-                type="button"
-                onClick={() =>
-                  setDraft({
-                    id: p.id,
-                    eyebrow: p.eyebrow,
-                    title: p.title,
-                    description: p.description,
-                    discount: p.discount ?? "",
-                    price: p.price?.toString() ?? "",
-                    originalPrice: p.originalPrice?.toString() ?? "",
-                    imageUrl: p.imageUrl,
-                    sortOrder: p.sortOrder,
-                    isActive: p.isActive,
-                  })
-                }
-                className="rounded-lg border border-neutral-200 px-3 py-1.5 text-xs text-neutral-700 hover:bg-neutral-100"
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                onClick={() => remove.mutate(p.id)}
-                className="rounded-lg border border-neutral-200 flex min-h-11 min-w-11 items-center justify-center text-neutral-400 hover:bg-red-50 hover:text-[#E11D2E]"
-                aria-label="Excluir"
-              >
-                <Trash2 className="size-4" />
-              </button>
+
+              {/* Ações */}
+              <div className="border-t border-neutral-200 p-2 flex gap-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraft({
+                      id: p.id,
+                      eyebrow: p.eyebrow,
+                      title: p.title,
+                      description: p.description,
+                      discount: p.discount ?? "",
+                      price: p.price?.toString() ?? "",
+                      originalPrice: p.originalPrice?.toString() ?? "",
+                      imageUrl: p.imageUrl,
+                      sortOrder: p.sortOrder,
+                      isActive: p.isActive,
+                    })
+                  }
+                  className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => remove.mutate(p.id)}
+                  className="p-1.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  aria-label="Excluir"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
