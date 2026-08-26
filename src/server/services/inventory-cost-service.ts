@@ -1,12 +1,43 @@
-﻿// @ts-nocheck
-import { prisma } from "@/server/db/client";
+﻿import { prisma } from "@/server/db/client";
 import { Decimal } from "@prisma/client/runtime/client";
 
 /**
- * ServiÃ§o de AnÃ¡lise de Custos de ProduÃ§Ã£o
- * Calcula COGS (Cost of Goods Sold), margem e lucratividade
+ * Custo de mercadoria vendida, margem e rentabilidade.
+ *
+ * DUAS CORREÇÕES ESTRUTURAIS
+ *
+ * 1. Custo histórico vem de `movement.costAtTime`, não de `item.cost`.
+ *
+ *    O motor da Fase 1 congela em cada movimento o custo do insumo no
+ *    instante da baixa, justamente para que o passado pare quieto. Este
+ *    serviço ignorava isso e multiplicava pelo custo ATUAL do item: subir o
+ *    preço do tomate reescrevia o custo de tudo que já tinha sido vendido, e
+ *    o relatório de março mudava em abril sem nada ter acontecido em março.
+ *
+ *    `costAtTime` é opcional — movimentos anteriores ao campo não o têm.
+ *    Nesses, cai-se em `item.cost`, que é a melhor aproximação disponível.
+ *
+ * 2. `new Decimal(0)`, não `(0 as Decimal)`.
+ *
+ *    O acumulador nascia como o número 0 disfarçado de Decimal por uma
+ *    asserção de tipo. Números não têm `.add`, então a primeira linha com
+ *    custo derrubava a função inteira com TypeError. Sob `@ts-nocheck` o
+ *    compilador não tinha como avisar. O `@ts-nocheck` saiu junto.
  */
 export class InventoryCostService {
+  /**
+   * Custo unitário que vale para um movimento: o congelado, se houver.
+   *
+   * Só existe uma função para isto porque os dois relatórios precisam
+   * responder à mesma pergunta, e antes cada um respondia do seu jeito.
+   */
+  private static custoDoMovimento(movimento: {
+    costAtTime: Decimal | null;
+    item: { cost: Decimal | null };
+  }): Decimal | null {
+    return movimento.costAtTime ?? movimento.item.cost ?? null;
+  }
+
   /**
    * Calcular custo total de um pedido baseado em consumos
    * (COGS - Cost of Goods Sold)
@@ -42,24 +73,22 @@ export class InventoryCostService {
       },
     });
 
-    const breakdown: typeof consumptions extends Array<infer T>
-      ? Array<{
-          itemName: string;
-          quantity: Decimal;
-          unitCost: Decimal;
-          totalCost: Decimal;
-        }>
-      : never = [];
+    const breakdown: Array<{
+      itemName: string;
+      quantity: Decimal;
+      unitCost: Decimal;
+      totalCost: Decimal;
+    }> = [];
 
-    let totalCost = (0 as Decimal);
+    let totalCost = new Decimal(0);
 
     for (const consumption of consumptions) {
-      if (!consumption.item.cost) {
-        continue; // Skip items without cost
+      const itemCost = this.custoDoMovimento(consumption);
+      if (!itemCost) {
+        continue; // Sem custo conhecido: fica fora, não entra como zero.
       }
 
-      const quantity = consumption.quantity.abs(); // CONSUMPTION Ã© negativo
-      const itemCost = (consumption.item.cost as Decimal);
+      const quantity = consumption.quantity.abs(); // CONSUMPTION é negativo
       const lineCost = quantity.mul(itemCost);
 
       breakdown.push({
@@ -142,16 +171,16 @@ export class InventoryCostService {
     >();
 
     for (const movement of movements) {
-      if (!movement.item.cost) continue;
+      const itemCost = this.custoDoMovimento(movement);
+      if (!itemCost) continue;
 
       const quantity = movement.quantity.abs();
-      const itemCost = (movement.item.cost);
       const lineCost = quantity.mul(itemCost);
 
       // Custo por pedido
       const orderId = movement.reference || "UNKNOWN";
       if (!costByOrder[orderId]) {
-        costByOrder[orderId] = (0 as Decimal);
+        costByOrder[orderId] = new Decimal(0);
       }
       costByOrder[orderId] = costByOrder[orderId].add(lineCost);
 
@@ -159,7 +188,7 @@ export class InventoryCostService {
       if (!costByItem[movement.item.name]) {
         costByItem[movement.item.name] = {
           count: 0,
-          total: (0),
+          total: new Decimal(0),
           usage: 0,
         };
       }
@@ -172,9 +201,9 @@ export class InventoryCostService {
       // Rastrear ordem
       if (!orders.has(orderId)) {
         orders.set(orderId, {
-          reference: movement.reference,
+          reference: movement.reference ?? undefined,
           createdAt: movement.createdAt,
-          cost: (0),
+          cost: new Decimal(0),
         });
       }
       const order = orders.get(orderId)!;
@@ -182,14 +211,14 @@ export class InventoryCostService {
     }
 
     // Calcular total
-    let totalCost = (0 as Decimal);
+    let totalCost = new Decimal(0);
     for (const cost of Object.values(costByOrder)) {
       totalCost = totalCost.add(cost);
     }
 
     const totalOrders = Object.keys(costByOrder).length;
     const averageCostPerOrder =
-      totalOrders > 0 ? totalCost.dividedBy((totalOrders)) : (0 as Decimal);
+      totalOrders > 0 ? totalCost.dividedBy(totalOrders) : new Decimal(0);
 
     // Items mais caros
     const topExpensive = Object.entries(costByItem)
@@ -197,7 +226,7 @@ export class InventoryCostService {
         itemName: name,
         totalCost: data.total,
         usageCount: data.usage,
-        averageCost: data.total.dividedBy((data.usage)),
+        averageCost: data.total.dividedBy(data.usage),
       }))
       .sort((a, b) => b.totalCost.toNumber() - a.totalCost.toNumber())
       .slice(0, 10);
@@ -205,15 +234,16 @@ export class InventoryCostService {
     // Custo por tipo de movimento (para anÃ¡lise)
     const costByType: Record<string, { count: number; total: Decimal }> = {};
     for (const movement of movements) {
-      if (!movement.item.cost) continue;
+      const itemCost = this.custoDoMovimento(movement);
+      if (!itemCost) continue;
 
       const key = movement.type;
       if (!costByType[key]) {
-        costByType[key] = { count: 0, total: (0) };
+        costByType[key] = { count: 0, total: new Decimal(0) };
       }
       costByType[key].count += 1;
       costByType[key].total = costByType[key].total.add(
-        movement.quantity.abs().mul((movement.item.cost))
+        movement.quantity.abs().mul(itemCost)
       );
     }
 
@@ -248,7 +278,7 @@ export class InventoryCostService {
   } {
     const profitAmount = sellingPrice.minus(costPrice);
     const marginPercent = sellingPrice.isZero()
-      ? (0)
+      ? new Decimal(0)
       : profitAmount.dividedBy(sellingPrice).times(100);
 
     return {
@@ -309,20 +339,28 @@ export class InventoryCostService {
 
     for (const order of orders) {
       for (const item of order.items) {
-        const key = item.product.name;
+        /*
+         * `productNameSnapshot` e não `product.name`: é o nome congelado no
+         * momento do pedido, que é o correto num relatório histórico —
+         * renomear um produto hoje não deve reescrever o passado dele.
+         *
+         * E `product` é opcional: o pedido sobrevive à exclusão do produto
+         * (`onDelete: SetNull`). Antes lia-se `item.product.name` direto, o
+         * que estourava no primeiro pedido com produto removido.
+         */
+        const key = item.productNameSnapshot || item.product?.name || "Produto removido";
         if (!profitByProduct[key]) {
           profitByProduct[key] = {
             productName: key,
             orders: 0,
-            totalSales: (0),
-            totalCost: (0),
+            totalSales: new Decimal(0),
+            totalCost: new Decimal(0),
           };
         }
 
-        // Valor de venda
-        const itemSalesValue = (item.price).mul(
-          (item.quantity)
-        );
+        // Valor de venda. O campo é `unitPrice`; `price` não existe em
+        // OrderItem e chegava aqui como undefined.
+        const itemSalesValue = new Decimal(item.unitPrice).mul(item.quantity);
         profitByProduct[key].totalSales =
           profitByProduct[key].totalSales.add(itemSalesValue);
 
@@ -339,7 +377,7 @@ export class InventoryCostService {
       .map((product) => {
         const profit = product.totalSales.minus(product.totalCost);
         const profitPercent = product.totalSales.isZero()
-          ? (0)
+          ? new Decimal(0)
           : profit.dividedBy(product.totalSales).times(100);
 
         return {

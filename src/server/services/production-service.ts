@@ -1,7 +1,4 @@
-﻿// @ts-nocheck
 import { prisma } from "@/server/db/client";
-import { unitConversionRepository } from "@/server/repositories/unit-conversion-repository";
-import { randomUUID } from "crypto";
 
 export class ProductionService {
   static async produceFromComposition(
@@ -96,14 +93,33 @@ export class ProductionService {
     return true;
   }
 
+  /**
+   * Itens abaixo do limite mínimo.
+   *
+   * O filtro comparava com `item.minimumStock`, campo que não existe no
+   * schema — o real é `minimumThreshold`. Sob `@ts-nocheck` isso compilava,
+   * e em execução `undefined || 0` fazia toda comparação virar
+   * `quantityOnHand < 0`. O alerta de estoque baixo nunca apontou um item
+   * sequer, e não havia como perceber: uma lista vazia é exatamente o que se
+   * espera quando está tudo bem.
+   *
+   * `minimumThreshold` é opcional. Item sem limite definido não é item em
+   * falta — é item sem alerta configurado, e fica fora da lista em vez de ser
+   * comparado contra um zero inventado.
+   */
   static async getLowStockItems(storeId: string) {
-    return prisma.inventoryItem.findMany({
+    const items = await prisma.inventoryItem.findMany({
       where: {
         storeId,
         isActive: true,
+        minimumThreshold: { not: null },
       },
-    }).then((items) =>
-      items.filter((item) => item.quantityOnHand < (item.minimumStock || 0))
+    });
+
+    return items.filter(
+      (item) =>
+        item.minimumThreshold !== null &&
+        Number(item.quantityOnHand) < Number(item.minimumThreshold),
     );
   }
 }
