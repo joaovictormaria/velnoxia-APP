@@ -260,7 +260,7 @@ function PromotionsPage() {
                   </Field>
                 </div>
 
-                {/* Descrição */}
+                {/* Descrição - Full width */}
                 <Field label="Descrição">
                   <textarea
                     onFocus={() => setFoco("descricao-da-promocao")}
@@ -283,16 +283,18 @@ function PromotionsPage() {
                   <span className="text-sm text-neutral-700">Ativa no site</span>
                 </label>
 
-                {/* Prévia */}
+                {/* Prévia - Full width */}
                 {admin && (
-                  <PreviaDaVitrine
-                    storeSlug={admin.store.slug}
-                    foco={foco}
-                    largura={1200}
-                    aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
-                  >
-                    <PromoCarouselDaPrevia />
-                  </PreviaDaVitrine>
+                  <div className="border border-neutral-200 rounded-lg p-4">
+                    <PreviaDaVitrine
+                      storeSlug={admin.store.slug}
+                      foco={foco}
+                      largura={1200}
+                      aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
+                    >
+                      <PromoCarouselDaPrevia />
+                    </PreviaDaVitrine>
+                  </div>
                 )}
 
                 {/* Botões */}
