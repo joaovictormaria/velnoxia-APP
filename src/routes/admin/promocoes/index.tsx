@@ -249,18 +249,31 @@ function PromotionsPage() {
                     />
                   </Field>
 
-                  {/* Preço antigo */}
-                  <Field label="Preço antigo (R$)" hint="Aparece riscado.">
-                    <Input
-                      onFocus={() => setFoco("preco-da-promocao")}
-                      value={draft.originalPrice}
-                      onChange={(v) => setDraft({ ...draft, originalPrice: v })}
-                      type="number"
-                    />
-                  </Field>
+                  {/* Preço antigo + Status */}
+                  <div className="space-y-1.5">
+                    <Field label="Preço antigo (R$)" hint="Aparece riscado.">
+                      <Input
+                        onFocus={() => setFoco("preco-da-promocao")}
+                        value={draft.originalPrice}
+                        onChange={(v) => setDraft({ ...draft, originalPrice: v })}
+                        type="number"
+                      />
+                    </Field>
+                    <label className="inline-flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={draft.isActive}
+                        onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                        className="size-4 accent-[#E11D2E]"
+                      />
+                      <span className="text-sm text-neutral-700">Ativa no site</span>
+                    </label>
+                  </div>
                 </div>
+              </div>
 
-                {/* Descrição - Full width */}
+              {/* Descrição - Full width, ocupa ambas colunas */}
+              <div className="lg:col-span-2">
                 <Field label="Descrição">
                   <textarea
                     onFocus={() => setFoco("descricao-da-promocao")}
@@ -271,17 +284,6 @@ function PromotionsPage() {
                     className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
                   />
                 </Field>
-
-                {/* Status */}
-                <label className="inline-flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={draft.isActive}
-                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                    className="size-4 accent-[#E11D2E]"
-                  />
-                  <span className="text-sm text-neutral-700">Ativa no site</span>
-                </label>
               </div>
 
               {/* Prévia - Full width, ocupa ambas colunas */}
