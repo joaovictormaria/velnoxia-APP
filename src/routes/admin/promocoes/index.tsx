@@ -195,15 +195,37 @@ function PromotionsPage() {
 
               {/* Campos - Desktop: direita, Mobile: abaixo da foto */}
               <div className="lg:col-span-2 space-y-5">
-                {/* Chamada */}
-                <Field label="Chamada" hint="Linha pequena acima do título.">
-                  <Input
-                    onFocus={() => setFoco("chamada-da-promocao")}
-                    value={draft.eyebrow}
-                    onChange={(v) => setDraft({ ...draft, eyebrow: v })}
-                    required
-                  />
-                </Field>
+                {/* Linha 1: Título | Chamada | Selo */}
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Título */}
+                  <Field label="Título">
+                    <Input
+                      onFocus={() => setFoco("titulo-da-promocao")}
+                      value={draft.title}
+                      onChange={(v) => setDraft({ ...draft, title: v })}
+                      required
+                    />
+                  </Field>
+
+                  {/* Chamada */}
+                  <Field label="Chamada" hint="Linha pequena acima do título.">
+                    <Input
+                      onFocus={() => setFoco("chamada-da-promocao")}
+                      value={draft.eyebrow}
+                      onChange={(v) => setDraft({ ...draft, eyebrow: v })}
+                      required
+                    />
+                  </Field>
+
+                  {/* Selo */}
+                  <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
+                    <Input
+                      onFocus={() => setFoco("selo-da-promocao")}
+                      value={draft.discount}
+                      onChange={(v) => setDraft({ ...draft, discount: v })}
+                    />
+                  </Field>
+                </div>
 
                 {/* Ordem */}
                 <Field label="Ordem">
@@ -212,15 +234,6 @@ function PromotionsPage() {
                     value={draft.sortOrder}
                     onChange={(e) => setDraft({ ...draft, sortOrder: Number(e.target.value) })}
                     className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                  />
-                </Field>
-
-                {/* Selo */}
-                <Field label="Selo" hint='Texto livre: "-20%", "Leve 3"'>
-                  <Input
-                    onFocus={() => setFoco("selo-da-promocao")}
-                    value={draft.discount}
-                    onChange={(v) => setDraft({ ...draft, discount: v })}
                   />
                 </Field>
 
@@ -241,16 +254,6 @@ function PromotionsPage() {
                     value={draft.originalPrice}
                     onChange={(v) => setDraft({ ...draft, originalPrice: v })}
                     type="number"
-                  />
-                </Field>
-
-                {/* Título */}
-                <Field label="Título">
-                  <Input
-                    onFocus={() => setFoco("titulo-da-promocao")}
-                    value={draft.title}
-                    onChange={(v) => setDraft({ ...draft, title: v })}
-                    required
                   />
                 </Field>
 
