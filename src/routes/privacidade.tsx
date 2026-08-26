@@ -141,6 +141,20 @@ function Privacidade() {
             </p>
           </section>
         </div>
+
+        <div className="mt-16 pt-8 border-t border-charcoal/12 text-center">
+          <p className="text-sm text-charcoal/60 mb-3">
+            Velnox.app é uma plataforma de
+          </p>
+          <a
+            href="https://www.velnoxia.com.br"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-tomato hover:underline"
+          >
+            A Velnox.IA →
+          </a>
+        </div>
       </div>
     </main>
   );
