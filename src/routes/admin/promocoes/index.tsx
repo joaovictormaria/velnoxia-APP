@@ -134,7 +134,7 @@ function PromotionsPage() {
 
       {draft && (
         <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
-          <div className="flex w-full flex-col max-h-[90vh] overflow-auto rounded-t-2xl sm:rounded-2xl">
+          <div className="flex w-full max-w-2xl flex-col max-h-[90vh] overflow-auto rounded-t-2xl sm:rounded-2xl">
             <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
               <h2 className="text-base font-semibold text-neutral-900">
                 {draft.id ? "Editar promoção" : "Nova promoção"}
