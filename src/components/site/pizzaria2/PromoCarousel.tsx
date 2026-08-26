@@ -111,31 +111,15 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     {slide.eyebrow}
                   </span>
 
-                  {/* Title overlay on mobile with sequential typing effect */}
-                  {(() => {
-                    const parts = slide.title.split(" + ");
-                    const firstText = parts[0] + (parts[1] ? " +" : "");
-                    const secondText = parts[1] || "";
-
-                    return (
-                      <div
-                        data-previa="titulo-da-promocao"
-                        className="absolute bottom-20 left-4 z-10 max-w-[550px] leading-none bg-black/40 px-4 py-3 rounded-lg"
-                      >
-                        <SequentialTypingText
-                          firstText={firstText}
-                          secondText={secondText}
-                          firstClassName="font-display text-4xl lg:text-5xl font-extrabold text-[color:var(--on-primary)]"
-                          secondClassName="font-display text-2xl lg:text-3xl font-extrabold text-[color:var(--on-primary)]"
-                          caretClassName="text-[color:var(--on-primary)]"
-                          speed={50}
-                          deleteSpeed={30}
-                          pauseBetween={300}
-                          pauseAfterBoth={2000}
-                        />
-                      </div>
-                    );
-                  })()}
+                  {/* Title overlay */}
+                  <div
+                    data-previa="titulo-da-promocao"
+                    className="absolute bottom-20 left-4 z-10 max-w-[550px] leading-none bg-black/40 px-4 py-3 rounded-lg"
+                  >
+                    <h3 className="font-display text-4xl lg:text-5xl font-extrabold text-[color:var(--on-primary)]">
+                      {slide.title}
+                    </h3>
+                  </div>
 
                   {/* Discount overlay on top-right */}
                   {slide.discount && (
