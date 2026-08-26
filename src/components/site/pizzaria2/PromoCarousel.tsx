@@ -45,8 +45,6 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
 
   return (
     <div className="relative overflow-hidden shadow-[0_25px_60px_-30px_rgba(233,75,44,0.55)]">
-      <div className="pointer-events-none absolute -left-16 -top-16 h-56 w-56 rounded-full bg-[color:var(--on-primary)]/10 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-20 -right-10 h-64 w-64 rounded-full bg-charcoal/10 blur-3xl" />
 
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
@@ -103,7 +101,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
 
                 {/* Dashed placeholder only until the owner uploads a photo —
                     once there is one it fills the frame. */}
-                <div className="relative aspect-video w-full overflow-hidden border border-dashed border-[color:var(--on-primary)]/30 bg-[color:var(--on-primary)]/10">
+                <div className="relative aspect-video w-full overflow-hidden border border-dashed border-[color:var(--on-primary)]/30">
                   {/* Eyebrow overlay */}
                   <span
                     data-previa="chamada-da-promocao"
