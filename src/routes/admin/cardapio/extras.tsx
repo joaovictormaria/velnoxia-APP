@@ -487,10 +487,8 @@ function ExtrasPage() {
         </p>
       )}
 
-      {/* Cartões lado a lado, um por produto. `auto-fill` com largura mínima
-          em vez de um número fixo de colunas: quem tem três produtos não fica
-          com dois buracos na linha, e quem tem vinte aproveita a tela inteira. */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-max">
+      {/* Cartões lado a lado com largura mínima. `auto-fill` adapta ao tamanho da tela. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-4 auto-rows-max">
         {grupos?.porProduto.map(({ produto, categoria, extras, quantos }) => (
           <div
             key={produto.id}
