@@ -1198,6 +1198,7 @@ model InventoryUnit {
   conversionsTo    InventoryUnitConversion[] @relation("to")
   movementUnits    InventoryMovement[]
   compositionUnits CompositionItem[]
+  yieldUnits       ProductComposition[] @relation("UnidadeDeRendimento")
 
   @@index([system])
 }
@@ -1262,6 +1263,11 @@ model InventoryItem {
   compositions CompositionItem[]
   products     Product[]          @relation("ProductInventory")
 
+  /// As fichas técnicas que produzem ESTE item — só existem quando ele é um
+  /// preparado (`itemType = "PREPARED"`). Um insumo comprado não tem receita,
+  /// e um preparado que a loja só compra pronto também não.
+  receitas ProductComposition[] @relation("ReceitasDePreparado")
+
   @@unique([storeId, sku])
   @@unique([storeId, barcode])
   @@index([storeId, itemType])
@@ -1321,14 +1327,31 @@ model InventoryMovement {
 /// Receita/Ficha Técnica (VERSIONADA E IMUTÁVEL APÓS USO)
 model ProductComposition {
   id      String @id @default(cuid())
-  storeId String
   store   Store  @relation("ProductCompositions", fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
 
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  /// DONO: um Product OU um InventoryItem preparado. Nunca os dois, nunca
+  /// nenhum. Quem garante isso é o CHECK `ProductComposition_dono_exclusivo`
+  /// no banco, escrito à mão na migration — o Prisma não expressa CHECK.
+  ///
+  /// Uma ficha de produto diz o que a Pizza consome. Uma ficha de preparado
+  /// diz o que o Molho consome, e quanto de molho ela rende.
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  inventoryItemId String?
+  inventoryItem   InventoryItem? @relation("ReceitasDePreparado", fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
   version  Int     @default(1)
   isActive Boolean @default(true)
+
+  /// RENDIMENTO — só faz sentido em ficha de preparado.
+  /// Quanto a receita produz: 4 (kg). É a EXPECTATIVA; o que saiu da balança
+  /// é informado pelo operador em cada produção, e a distância entre os dois
+  /// é o número que mede a cozinha.
+  yieldQuantity Decimal?       @db.Decimal(15, 4)
+  yieldUnitId   String?
+  yieldUnit     InventoryUnit? @relation("UnidadeDeRendimento", fields: [yieldUnitId], references: [id], onDelete: Restrict)
 
   /// FONTE DE VERDADE: quando foi usada primeira vez
   firstUsedAt DateTime?
@@ -1342,8 +1365,31 @@ model ProductComposition {
   movements InventoryMovement[]
   orderItems OrderItem[]
 
+  /*
+   * Dois uniques comuns, não parciais — e isso basta.
+   *
+   * A versão anterior do projeto pedia índices únicos PARCIAIS, com o
+   * argumento de que `UNIQUE(productId, version)` não restringe nada quando
+   * `productId` é nulo (em Postgres, NULLs são todos distintos entre si).
+   * O argumento está certo, mas a conclusão não: o que faltava era o SEGUNDO
+   * unique, não a parcialidade.
+   *
+   * Como o CHECK garante exatamente um dono não nulo por linha, cada linha é
+   * restringida por exatamente um dos dois uniques, e o lado nulo vira
+   * inofensivo:
+   *
+   *   ficha de produto   ('p1', NULL, 1)  → o 1º unique morde, o 2º ignora
+   *   ficha de preparado (NULL, 'i1', 1)  → o 2º unique morde, o 1º ignora
+   *
+   * A vantagem prática é grande: o Prisma expressa `@@unique`, mas não
+   * expressa índice parcial. Ficando dentro do que ele expressa, não se cria
+   * um índice invisível ao schema — que o `migrate dev` proporia derrubar na
+   * próxima vez que alguém rodasse.
+   */
   @@unique([productId, version])
+  @@unique([inventoryItemId, version])
   @@index([productId, isActive])
+  @@index([inventoryItemId, isActive])
   @@index([storeId, createdAt])
 }
 
