@@ -167,14 +167,14 @@ function ExtrasPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               onClick={() => editar(x)}
               aria-label={`Editar ${x.name}`}
-              className="flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
+              className="flex items-center justify-center gap-1 px-2 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
             >
-              <Pencil className="size-3.5" />
+              <Pencil className="size-3" />
               Editar
             </button>
             <button
