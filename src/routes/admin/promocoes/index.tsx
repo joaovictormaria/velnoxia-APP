@@ -154,10 +154,10 @@ function PromotionsPage() {
                 e.preventDefault();
                 save.mutate(draft);
               }}
-              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-5 gap-4"
+              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 space-y-5"
             >
-              {/* Foto - Redonda em mobile, normal em desktop - ocupa linha inteira */}
-              <div className="col-span-5 flex justify-center lg:justify-start">
+              {/* Foto - Redonda em mobile, normal em desktop */}
+              <div>
                 <style>{`
                   @media (max-width: 1024px) {
                     .promo-image-upload-mobile {
@@ -234,61 +234,53 @@ function PromotionsPage() {
                 />
               </Field>
 
-              {/* Título - col-span-2 */}
-              <div className="col-span-2">
-                <Field label="Título">
-                  <Input
-                    onFocus={() => setFoco("titulo-da-promocao")}
-                    value={draft.title}
-                    onChange={(v) => setDraft({ ...draft, title: v })}
-                    required
-                  />
-                </Field>
-              </div>
+              {/* Título */}
+              <Field label="Título">
+                <Input
+                  onFocus={() => setFoco("titulo-da-promocao")}
+                  value={draft.title}
+                  onChange={(v) => setDraft({ ...draft, title: v })}
+                  required
+                />
+              </Field>
 
-              {/* Descrição - col-span-3 */}
-              <div className="col-span-3">
-                <Field label="Descrição">
-                  <textarea
-                    onFocus={() => setFoco("descricao-da-promocao")}
-                    value={draft.description}
-                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                    required
-                    rows={3}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                  />
-                </Field>
-              </div>
+              {/* Descrição */}
+              <Field label="Descrição">
+                <textarea
+                  onFocus={() => setFoco("descricao-da-promocao")}
+                  value={draft.description}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  required
+                  rows={3}
+                  className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+                />
+              </Field>
 
-              {/* Status - full width */}
-              <div className="lg:col-span-5">
-                <label className="inline-flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={draft.isActive}
-                    onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
-                    className="size-4 accent-[#E11D2E]"
-                  />
-                  <span className="text-sm text-neutral-700">Ativa no site</span>
-                </label>
-              </div>
+              {/* Status */}
+              <label className="inline-flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.isActive}
+                  onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+                  className="size-4 accent-[#E11D2E]"
+                />
+                <span className="text-sm text-neutral-700">Ativa no site</span>
+              </label>
 
-              {/* Prévia - full width */}
+              {/* Prévia */}
               {admin && (
-                <div className="lg:col-span-5">
-                  <PreviaDaVitrine
-                    storeSlug={admin.store.slug}
-                    foco={foco}
-                    largura={1200}
-                    aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
-                  >
-                    <PromoCarouselDaPrevia />
-                  </PreviaDaVitrine>
-                </div>
+                <PreviaDaVitrine
+                  storeSlug={admin.store.slug}
+                  foco={foco}
+                  largura={1200}
+                  aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
+                >
+                  <PromoCarouselDaPrevia />
+                </PreviaDaVitrine>
               )}
 
-              {/* Botões - full width */}
-              <div className="lg:col-span-5 flex items-center gap-2">
+              {/* Botões */}
+              <div className="flex items-center gap-2">
                 <button
                   type="submit"
                   disabled={save.isPending}
