@@ -282,38 +282,38 @@ function PromotionsPage() {
                   />
                   <span className="text-sm text-neutral-700">Ativa no site</span>
                 </label>
+              </div>
 
-                {/* Prévia - Full width */}
-                {admin && (
-                  <div className="border border-neutral-200 rounded-lg p-4">
-                    <PreviaDaVitrine
-                      storeSlug={admin.store.slug}
-                      foco={foco}
-                      largura={1200}
-                      aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
-                    >
-                      <PromoCarouselDaPrevia />
-                    </PreviaDaVitrine>
-                  </div>
-                )}
-
-                {/* Botões */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="submit"
-                    disabled={save.isPending}
-                    className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+              {/* Prévia - Full width, ocupa ambas colunas */}
+              {admin && (
+                <div className="lg:col-span-2">
+                  <PreviaDaVitrine
+                    storeSlug={admin.store.slug}
+                    foco={foco}
+                    largura={1200}
+                    aplicar={(payload) => aplicarRascunhoDePromocao(payload, draft)}
                   >
-                    {save.isPending ? "Salvando..." : "Salvar"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDraft(null)}
-                    className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
-                  >
-                    Cancelar
-                  </button>
+                    <PromoCarouselDaPrevia />
+                  </PreviaDaVitrine>
                 </div>
+              )}
+
+              {/* Botões - Full width, ocupa ambas colunas */}
+              <div className="lg:col-span-2 flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={save.isPending}
+                  className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+                >
+                  {save.isPending ? "Salvando..." : "Salvar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDraft(null)}
+                  className="rounded-xl border border-neutral-300 px-5 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50"
+                >
+                  Cancelar
+                </button>
               </div>
             </form>
           </div>
