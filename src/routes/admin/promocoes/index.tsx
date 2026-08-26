@@ -154,7 +154,7 @@ function PromotionsPage() {
                 e.preventDefault();
                 save.mutate(draft);
               }}
-              className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-6"
+              className="rounded-b-2xl border border-neutral-200 bg-white p-5 grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-6"
             >
               {/* Foto - Desktop: esquerda pequena, Mobile: topo grande */}
               <div className="lg:col-span-1">
