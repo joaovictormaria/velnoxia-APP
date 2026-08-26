@@ -508,8 +508,8 @@ function ExtrasPage() {
               </div>
             </div>
 
-            {/* Lista scrollável de extras */}
-            <div className="overflow-y-auto flex-1 p-3 space-y-2">
+            {/* Lista scrollável de extras — altura limitada para 3 extras */}
+            <div className="overflow-y-auto max-h-48 p-3 space-y-2">
               {extras.length > 0 && extras.map(cardDoExtra)}
 
               {quantos === 0 && (
