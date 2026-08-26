@@ -52,9 +52,9 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
         <div className="flex">
           {slides.map((slide) => (
             <div key={slide.title} className="min-w-0 shrink-0 grow-0 basis-full">
-              <div className="relative grid grid-cols-1 items-center gap-8 px-0 pb-0 pt-0 sm:px-10 sm:pb-16 sm:pt-12 md:grid-cols-2 md:gap-12 lg:px-14">
+              <div className="relative grid grid-cols-1 items-center gap-8 px-0 pb-0 pt-0 sm:px-10 sm:pb-16 sm:pt-12 lg:px-14">
 
-                <div className="hidden md:block px-0 sm:px-10">
+                <div className="hidden px-0 sm:px-10">
                   <span
                     data-previa="chamada-da-promocao"
                     className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-[color:var(--on-primary-muted)]"
@@ -103,7 +103,7 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
 
                 {/* Dashed placeholder only until the owner uploads a photo —
                     once there is one it fills the frame. */}
-                <div className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-dashed border-[color:var(--on-primary)]/30 bg-[color:var(--on-primary)]/10 md:aspect-4/3">
+                <div className="relative aspect-video w-full overflow-hidden rounded-[22px] border border-dashed border-[color:var(--on-primary)]/30 bg-[color:var(--on-primary)]/10">
                   {/* Eyebrow overlay on mobile */}
                   <span
                     data-previa="chamada-da-promocao"
