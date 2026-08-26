@@ -145,50 +145,54 @@ function ExtrasPage() {
     }
   }
 
-  /**
-   * Uma linha dentro do cartão.
-   *
-   * Compacta porque o cartão é estreito: nome e preço na primeira linha, e as
-   * ações só aparecem ao passar o mouse ou ao focar pelo teclado. Botões
-   * sempre visíveis em cada linha transformavam um cartão de dez adicionais
-   * numa parede de vinte botões.
-   */
-  const linhaDoExtra = (x: Extra) => (
-    <li key={x.id} className="group flex items-center gap-2 py-2">
-      <span className="min-w-0 flex-1">
-        <span
-          className={`block truncate text-sm font-medium ${
-            x.isActive ? "text-neutral-900" : "text-neutral-400 line-through"
-          }`}
-          title={x.name}
-        >
-          {x.name}
-        </span>
-        <span className="text-xs text-neutral-500 tabular-nums">
-          {currency.format(Number(x.price) || 0)}
-          {!x.isActive && " · inativo"}
-        </span>
-      </span>
+  const cardDoExtra = (x: Extra) => (
+    <div
+      key={x.id}
+      className="relative bg-neutral-50 rounded-lg overflow-hidden hover:bg-neutral-100 transition-colors border border-neutral-200"
+    >
+      <div className="h-1 bg-blue-500" />
+      <div className="p-3">
+        <div className="flex items-center gap-2">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded bg-neutral-200 text-neutral-400">
+            <Pencil className="size-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div
+              className={`font-medium text-xs truncate ${
+                x.isActive ? "text-neutral-900" : "text-neutral-400 line-through"
+              }`}
+              title={x.name}
+            >
+              {x.name}
+            </div>
+            <div className="text-sm font-bold text-[#E11D2E]">
+              {currency.format(Number(x.price) || 0)}
+            </div>
+          </div>
 
-      <span className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-        <button
-          type="button"
-          onClick={() => editar(x)}
-          aria-label={`Editar ${x.name}`}
-          className="flex size-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 hover:bg-neutral-100"
-        >
-          <Pencil className="size-3.5" />
-        </button>
-        <button
-          type="button"
-          onClick={() => excluir(x)}
-          aria-label={`Excluir ${x.name}`}
-          className="flex size-8 items-center justify-center rounded-lg border border-neutral-200 text-neutral-600 hover:bg-red-50 hover:text-[#E11D2E]"
-        >
-          <Trash2 className="size-3.5" />
-        </button>
-      </span>
-    </li>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => editar(x)}
+              aria-label={`Editar ${x.name}`}
+              className="flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors text-xs font-semibold"
+            >
+              <Pencil className="size-3.5" />
+              Editar
+            </button>
+            <button
+              type="button"
+              onClick={() => excluir(x)}
+              aria-label={`Excluir ${x.name}`}
+              className="px-1 py-1.5 rounded bg-red-500 text-white hover:bg-red-600 transition-colors"
+              title={`Excluir ${x.name}`}
+            >
+              <Trash2 className="size-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 
   return (
@@ -474,9 +478,9 @@ function ExtrasPage() {
             Estes adicionais existem, mas a categoria ou o produto onde valiam foi apagado. Edite
             cada um e escolha onde ele deve ser oferecido.
           </p>
-          <ul className="mt-2 divide-y divide-amber-200">
-            {grupos.semAlcance.map(linhaDoExtra)}
-          </ul>
+          <div className="mt-4 space-y-2">
+            {grupos.semAlcance.map(cardDoExtra)}
+          </div>
         </section>
       ) : null}
 
@@ -489,29 +493,29 @@ function ExtrasPage() {
       {/* Cartões lado a lado, um por produto. `auto-fill` com largura mínima
           em vez de um número fixo de colunas: quem tem três produtos não fica
           com dois buracos na linha, e quem tem vinte aproveita a tela inteira. */}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(17rem,1fr))] gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-max">
         {grupos?.porProduto.map(({ produto, categoria, extras, quantos }) => (
-          <section
+          <div
             key={produto.id}
-            className="flex flex-col rounded-2xl border border-neutral-200 bg-white"
+            className="flex flex-col rounded-2xl border border-neutral-200 bg-white overflow-hidden"
+            style={{ maxHeight: "600px" }}
           >
-            <header className="border-b border-neutral-200 px-4 py-3">
-              <h2 className="truncate font-bold text-neutral-900" title={produto.name}>
+            {/* Header do produto */}
+            <div className="border-b border-neutral-200 bg-gradient-to-r from-neutral-50 to-neutral-100 px-4 py-3 sticky top-0 z-10">
+              <div className="text-sm font-bold text-neutral-900 truncate" title={produto.name}>
                 {produto.name}
-              </h2>
-              <p className="truncate text-xs text-neutral-500" title={categoria?.name}>
+              </div>
+              <div className="text-xs text-neutral-500 mt-0.5 truncate" title={categoria?.name}>
                 {categoria?.name}
-              </p>
-              <p className="text-xs text-neutral-500 mt-1">
+              </div>
+              <div className="text-xs text-neutral-500 mt-1">
                 {quantos} {quantos === 1 ? "adicional" : "adicionais"}
-              </p>
-            </header>
+              </div>
+            </div>
 
-            {/* A rolagem é do miolo, não do cartão */}
-            <div className="max-h-80 overflow-y-auto px-4 py-1">
-              {extras.length > 0 && (
-                <ul className="divide-y divide-neutral-100">{extras.map(linhaDoExtra)}</ul>
-              )}
+            {/* Lista scrollável de extras */}
+            <div className="overflow-y-auto flex-1 p-3 space-y-2">
+              {extras.length > 0 && extras.map(cardDoExtra)}
 
               {quantos === 0 && (
                 <p className="py-6 text-center text-sm text-neutral-400">
@@ -519,7 +523,7 @@ function ExtrasPage() {
                 </p>
               )}
             </div>
-          </section>
+          </div>
         ))}
       </div>
     </div>
