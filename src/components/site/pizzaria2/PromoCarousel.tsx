@@ -109,14 +109,14 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     {slide.eyebrow}
                   </span>
 
-                  {/* Title overlay */}
-                  <div
-                    data-previa="titulo-da-promocao"
-                    className="absolute bottom-20 left-4 z-10 max-w-[550px] leading-none bg-black/40 px-4 py-3 rounded-lg"
-                  >
-                    <h3 className="font-display text-4xl lg:text-5xl font-extrabold text-white">
+                  {/* Title and Description overlay */}
+                  <div className="absolute bottom-20 left-4 z-10 max-w-[550px] bg-black/40 px-4 py-3 rounded-lg space-y-2">
+                    <h3 data-previa="titulo-da-promocao" className="font-display text-4xl lg:text-5xl font-extrabold text-white leading-none">
                       {slide.title}
                     </h3>
+                    <p data-previa="descricao-da-promocao" className="text-sm leading-relaxed text-white">
+                      {slide.description}
+                    </p>
                   </div>
 
                   {/* Discount overlay on top-right */}
@@ -125,16 +125,6 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                       {slide.discount}
                     </span>
                   )}
-
-                  {/* Description overlay */}
-                  <div
-                    data-previa="descricao-da-promocao"
-                    className="absolute top-20 left-4 z-10 max-w-xs bg-black/40 px-4 py-3 rounded-lg"
-                  >
-                    <p className="text-sm leading-relaxed text-white">
-                      {slide.description}
-                    </p>
-                  </div>
 
                   {/* Price overlay on bottom-left */}
                   {slide.price && (
