@@ -185,22 +185,38 @@ function PromotionsPage() {
                 </div>
               </div>
 
+              {/* Título - col-span-2 */}
+              <div className="col-span-2">
+                <Field label="Título">
+                  <Input
+                    onFocus={() => setFoco("titulo-da-promocao")}
+                    value={draft.title}
+                    onChange={(v) => setDraft({ ...draft, title: v })}
+                    required
+                  />
+                </Field>
+              </div>
+
+              {/* Descrição - col-span-3 */}
+              <div className="col-span-3">
+                <Field label="Descrição">
+                  <textarea
+                    onFocus={() => setFoco("descricao-da-promocao")}
+                    value={draft.description}
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                    required
+                    rows={3}
+                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+                  />
+                </Field>
+              </div>
+
               {/* Chamada */}
               <Field label="Chamada" hint="Linha pequena acima do título.">
                 <Input
                   onFocus={() => setFoco("chamada-da-promocao")}
                   value={draft.eyebrow}
                   onChange={(v) => setDraft({ ...draft, eyebrow: v })}
-                  required
-                />
-              </Field>
-
-              {/* Título */}
-              <Field label="Título">
-                <Input
-                  onFocus={() => setFoco("titulo-da-promocao")}
-                  value={draft.title}
-                  onChange={(v) => setDraft({ ...draft, title: v })}
                   required
                 />
               </Field>
@@ -223,20 +239,6 @@ function PromotionsPage() {
                   onChange={(v) => setDraft({ ...draft, discount: v })}
                 />
               </Field>
-
-              {/* Descrição - full width */}
-              <div className="lg:col-span-5">
-                <Field label="Descrição">
-                  <textarea
-                    onFocus={() => setFoco("descricao-da-promocao")}
-                    value={draft.description}
-                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                    required
-                    rows={3}
-                    className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-                  />
-                </Field>
-              </div>
 
               {/* Preço */}
               <Field label="Preço (R$)" hint="Deixe vazio para não mostrar.">
