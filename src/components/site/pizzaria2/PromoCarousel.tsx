@@ -120,13 +120,13 @@ export function PromoCarousel({ slides }: { slides: PromoSlide[] }) {
                     return (
                       <div
                         data-previa="titulo-da-promocao"
-                        className="absolute bottom-20 left-4 z-10 max-w-[200px] leading-none"
+                        className="absolute bottom-20 left-4 z-10 max-w-[400px] leading-none"
                       >
                         <SequentialTypingText
                           firstText={firstText}
                           secondText={secondText}
-                          firstClassName="font-display text-3xl lg:text-4xl font-extrabold text-[color:var(--on-primary)]"
-                          secondClassName="font-display text-lg lg:text-2xl font-extrabold text-[color:var(--on-primary)]"
+                          firstClassName="font-display text-4xl lg:text-5xl font-extrabold text-[color:var(--on-primary)]"
+                          secondClassName="font-display text-2xl lg:text-3xl font-extrabold text-[color:var(--on-primary)]"
                           caretClassName="text-[color:var(--on-primary)]"
                           speed={50}
                           deleteSpeed={30}
