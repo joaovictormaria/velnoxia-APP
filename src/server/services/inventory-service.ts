@@ -62,6 +62,9 @@ export class InventoryService {
       // Embalagem de compra: lembrada para as próximas compras deste item.
       purchasePackSize: data.purchasePackSize ?? null,
       purchasePackLabel: data.purchasePackLabel ?? null,
+      // Conteudo da embalagem: o que permite a ficha pedir em gramas.
+      contentSize: data.contentSize ?? null,
+      contentUnit: data.contentUnit ?? null,
     } as any);
 
     return this.serializeItem(item);

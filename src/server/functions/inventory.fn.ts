@@ -51,6 +51,8 @@ function serializeInventoryItem(item: any) {
     contentSize: item.contentSize ? Number(item.contentSize) : null,
     purchasePackSize: item.purchasePackSize ? Number(item.purchasePackSize) : null,
     purchasePackLabel: item.purchasePackLabel ?? null,
+    contentSize: item.contentSize ? Number(item.contentSize) : null,
+    contentUnit: item.contentUnit ?? null,
   };
 }
 
@@ -116,6 +118,10 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
         ? parseFloat(String(itemData.purchasePackSize))
         : null,
       purchasePackLabel: itemData?.purchasePackLabel || null,
+      contentSize: itemData?.contentSize
+        ? parseFloat(String(itemData.contentSize))
+        : null,
+      contentUnit: itemData?.contentUnit || null,
     });
 
     /*
@@ -163,6 +169,8 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
     purchasePackSize: z.string().optional(),
     purchasePackLabel: z.string().optional(),
     precoDaEmbalagem: z.string().optional(),
+    contentSize: z.string().optional(),
+    contentUnit: z.string().optional(),
   }))
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
@@ -185,6 +193,14 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
       precoDaEmbalagem: data.precoDaEmbalagem
         ? parseFloat(data.precoDaEmbalagem)
         : undefined,
+      // "" apaga o conteudo; ausente nao mexe.
+      contentSize: data.contentSize
+        ? parseFloat(data.contentSize)
+        : data.contentSize === ""
+          ? null
+          : undefined,
+      contentUnit:
+        data.contentUnit === "" ? null : data.contentUnit || undefined,
     });
 
     const result = await InventoryService.updateItem(admin.storeId, data.itemId, validated);

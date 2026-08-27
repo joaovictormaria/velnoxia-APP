@@ -52,6 +52,10 @@ export const adminListarPreparados = createServerFn({ method: "POST" }).handler(
           sku: item.sku,
           unidade: item.baseUnit.code,
           baseUnitId: item.baseUnitId,
+          // A tela precisa do conteudo da embalagem para converter g -> un,
+          // igual ao servidor. Sem isto o insumo cai em "nao sei converter".
+          contentSize: item.contentSize ? Number(item.contentSize) : null,
+          contentUnit: item.contentUnit ?? null,
           emEstoque: item.quantityOnHand,
           reservado: item.quantityReserved,
           // O que ainda pode ser prometido a um pedido novo.
@@ -107,6 +111,10 @@ export const adminOpcoesDePreparado = createServerFn({ method: "POST" }).handler
         tipo: i.itemType,
         unidade: i.baseUnit.code,
         baseUnitId: i.baseUnitId,
+        // A tela precisa do conteudo da embalagem para converter g -> un,
+        // igual ao servidor. Sem isto o insumo cai em "nao sei converter".
+        contentSize: i.contentSize ? Number(i.contentSize) : null,
+        contentUnit: i.contentUnit ?? null,
         custo: i.cost,
       })),
       unidades: unidades.map((u) => ({ id: u.id, code: u.code, name: u.name })),

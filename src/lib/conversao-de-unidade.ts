@@ -32,7 +32,18 @@ export function montarMapaDeConversoes(
 
 export type ItemParaConverter = {
   baseUnitId: string;
+  /** Quanto de `contentUnit` cabe em UMA unidade de estoque. 1 un = 1000 g. */
   contentSize?: unknown | null;
+  /**
+   * Em que unidade o `contentSize` está expresso. Guarda o ID da unidade,
+   * igual a `baseUnitId` — é o que permite convertê-lo contra o mapa.
+   *
+   * SEM ELE O `contentSize` É AMBÍGUO, e essa ambiguidade já era um bug: a
+   * conta dividia pelo número sem olhar a unidade da ficha, então "600 g" e
+   * "600 kg" davam os mesmos 0,6 pacotes. Mesmo número, significado errado,
+   * nenhum erro — a mesma família do custo de R$ 300,00.
+   */
+  contentUnit?: string | null;
 };
 
 export function converterParaUnidadeBase(
@@ -55,10 +66,20 @@ export function converterParaUnidadeBase(
   if (fator && fator > 0) return quantidade * fator;
 
   /*
-   * `contentSize` diz quantas unidades base cabem em uma unidade do item —
-   * 1 pote = 500 g. Sem ele, e sem conversão cadastrada, não há como converter:
-   * devolver a quantidade crua faria o sistema consumir 45 potes onde a receita
-   * pedia 45 g, silenciosamente.
+   * O CONTEÚDO DA EMBALAGEM, em DUAS ETAPAS.
+   *
+   * O estoque conta pacotes; a receita pede gramas. `contentSize` diz quanto
+   * cabe num pacote — 1 un = 1000 g — e `contentUnit` diz em que unidade esse
+   * número está.
+   *
+   * Dividir direto pelo número, como se fazia antes, só acerta quando a ficha
+   * usa exatamente a unidade do conteúdo. "0,6 kg" dava 0,0006 pacotes em vez
+   * de 0,6, e "600 kg" dava 0,6 em vez de 600. Por isso a quantidade é primeiro
+   * trazida para a unidade do CONTEÚDO, e só então dividida:
+   *
+   *     600 g   → 600 g      ÷ 1000 = 0,6 pacotes
+   *     0,6 kg  → 600 g      ÷ 1000 = 0,6 pacotes
+   *     600 kg  → 600.000 g  ÷ 1000 = 600 pacotes
    */
   const conteudo = item.contentSize == null ? null : Number(item.contentSize);
   if (!conteudo || conteudo <= 0) {
@@ -68,5 +89,41 @@ export function converterParaUnidadeBase(
         "contentSize definido.",
     );
   }
-  return quantidade / conteudo;
+
+  /*
+   * Conteúdo sem unidade é recusado, e não chutado.
+   *
+   * Adivinhar que o número está na unidade da ficha faria "1 un = 1000" valer
+   * 1000 g para uma receita em gramas e 1000 ml para uma em mililitros, no
+   * mesmo item. Recusar obriga a informar, uma vez, o que o pacote contém.
+   */
+  if (!item.contentUnit) {
+    throw new Error(
+      "Não é possível converter a unidade da receita para a do estoque: o " +
+        "insumo tem contentSize, mas não diz em que unidade esse conteúdo " +
+        "está (contentUnit).",
+    );
+  }
+
+  const naUnidadeDoConteudo =
+    unitIdDaFicha === item.contentUnit
+      ? quantidade
+      : (() => {
+          const f = conversoes?.get(
+            chaveDeConversao(unitIdDaFicha, item.contentUnit as string),
+          );
+          if (f && f > 0) return quantidade * f;
+          /*
+           * Grandezas diferentes: o pacote contém gramas e a receita pede
+           * mililitros. Não existe fator sem densidade, e inventar um daria um
+           * número plausível e errado.
+           */
+          throw new Error(
+            "Não é possível converter a unidade da receita para a do estoque: " +
+              "a unidade da receita não é compatível com a unidade do conteúdo " +
+              "da embalagem.",
+          );
+        })();
+
+  return naUnidadeDoConteudo / conteudo;
 }

@@ -27,6 +27,9 @@ interface InventoryItem {
   /** Embalagem de compra, para poder editá-la depois do cadastro. */
   purchasePackSize?: number | null;
   purchasePackLabel?: string | null;
+  /** Conteúdo de UMA unidade de estoque: 1 un = 1000 g. */
+  contentSize?: number | null;
+  contentUnit?: string | null;
 }
 
 interface SortConfig {
@@ -54,6 +57,8 @@ export function InventoryGrid(props: InventoryGridProps) {
     initialQuantity: "",
     purchasePackLabel: "",
     purchasePackSize: "",
+    contentSize: "",
+    contentUnit: "",
   });
   /*
    * As unidades vêm do BANCO, e o select guarda o ID.
@@ -62,7 +67,8 @@ export function InventoryGrid(props: InventoryGridProps) {
    * delas, "m" e "cm", nem existem no banco. O servidor tentava adivinhar se
    * recebeu código ou id por uma heurística de hífen, e errava nos dois casos.
    */
-  const [unidades, setUnidades] = useState<Array<{ id: string; code: string; name: string }>>([]);
+  const [unidades, setUnidades] = useState<
+Array<{ id: string; code: string; name: string }>>([]);
   const [generatedSku, setGeneratedSku] = useState<string>("");
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
   /*
@@ -78,6 +84,15 @@ export function InventoryGrid(props: InventoryGridProps) {
   const rotuloDaEmbalagem = newItem.purchasePackLabel.trim() || "embalagem";
   const conteudo = conteudoDaEmbalagem(parseFloat(newItem.purchasePackSize));
   const temEmbalagem = conteudo > 1;
+
+  /* O conteúdo de uma unidade de estoque, para a tela repetir de volta o que
+     foi digitado: "1 un = 1000 g". */
+  const codigoDoConteudo =
+    unidades.find((u) => u.id === newItem.contentUnit)?.code ?? "";
+  const conteudoDaFicha =
+    newItem.contentSize.trim() && codigoDoConteudo
+      ? `${newItem.contentSize.trim()} ${codigoDoConteudo}`
+      : "";
 
 
   const compra = calcularCompra({
@@ -258,6 +273,8 @@ export function InventoryGrid(props: InventoryGridProps) {
       purchasePackLabel: item.purchasePackLabel ?? "",
       purchasePackSize:
         item.purchasePackSize != null ? String(item.purchasePackSize) : "",
+      contentSize: item.contentSize != null ? String(item.contentSize) : "",
+      contentUnit: item.contentUnit ?? "",
     });
     setShowCreateModal(true);
   };
@@ -313,6 +330,8 @@ export function InventoryGrid(props: InventoryGridProps) {
               newItem.cost && newItem.cost.trim() ? newItem.cost : undefined,
             purchasePackSize: newItem.purchasePackSize?.trim() ?? "",
             purchasePackLabel: newItem.purchasePackLabel?.trim() ?? "",
+            contentSize: newItem.contentSize?.trim() ?? "",
+            contentUnit: newItem.contentUnit?.trim() ?? "",
           }
         } as any);
         showToast(`✅ Item "${newItem.name}" atualizado com sucesso!`);
@@ -329,6 +348,8 @@ export function InventoryGrid(props: InventoryGridProps) {
             initialQuantity: newItem.initialQuantity?.trim() || undefined,
             purchasePackSize: newItem.purchasePackSize?.trim() || undefined,
             purchasePackLabel: newItem.purchasePackLabel?.trim() || undefined,
+            contentSize: newItem.contentSize?.trim() || undefined,
+            contentUnit: newItem.contentUnit?.trim() || undefined,
           }
         };
 
@@ -350,6 +371,8 @@ export function InventoryGrid(props: InventoryGridProps) {
         initialQuantity: "",
         purchasePackLabel: "",
         purchasePackSize: "",
+        contentSize: "",
+        contentUnit: "",
       });
       setGeneratedSku("");
       fetchItems();
@@ -493,6 +516,65 @@ export function InventoryGrid(props: InventoryGridProps) {
               </div>
             )}
 
+            {/*
+              CONTEÚDO DA EMBALAGEM — o oposto do campo acima.
+
+              Ali se diz "compro em caixa de 30 ovos" e o número MULTIPLICA a
+              entrada. Aqui se diz "cada pacote que eu conto tem 1000 g" e o
+              número DIVIDE o que a receita pede. É o que deixa o estoque
+              continuar em pacotes — como se compra e como se vê na
+              prateleira — enquanto a ficha fala em gramas.
+            */}
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                O que vem dentro de 1 {codigoDaUnidade || "unidade"}?
+                (Opcional)
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="number"
+                  value={newItem.contentSize}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, contentSize: e.target.value })
+                  }
+                  placeholder="1000"
+                  step="0.0001"
+                  min="0"
+                  className="px-3 py-2 border rounded bg-background text-foreground text-right"
+                />
+                <select
+                  value={newItem.contentUnit}
+                  onChange={(e) =>
+                    setNewItem({ ...newItem, contentUnit: e.target.value })
+                  }
+                  className="px-3 py-2 border rounded bg-background text-foreground"
+                >
+                  <option value="">unidade do conteúdo…</option>
+                  {unidades.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.code} ({u.name.toLowerCase()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {conteudoDaFicha ? (
+                <p className="text-xs text-neutral-700 mt-1">
+                  <strong>
+                    1 {codigoDaUnidade || "unidade"} = {conteudoDaFicha}
+                  </strong>
+                  . Uma receita que pedir esse insumo em{" "}
+                  {codigoDoConteudo} passa a ser convertida sozinha.
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-600 mt-1">
+                  Preencha só se a receita usar uma unidade diferente da do
+                  estoque. Ex.: estoque em <strong>un</strong> (pacotes) e
+                  receita em <strong>g</strong> — informe{" "}
+                  <strong>1000</strong> e <strong>g</strong>.
+                </p>
+              )}
+              </div>
+
             <div>
               <label className="block text-sm font-medium mb-1">
                 {temEmbalagem
@@ -621,6 +703,8 @@ export function InventoryGrid(props: InventoryGridProps) {
                     initialQuantity: "",
                     purchasePackLabel: "",
                     purchasePackSize: "",
+                    contentSize: "",
+                    contentUnit: "",
                   });
                 }}
                 className="px-4 py-2 border rounded hover:bg-neutral-50"

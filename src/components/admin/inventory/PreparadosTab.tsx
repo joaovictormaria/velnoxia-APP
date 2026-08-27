@@ -26,7 +26,17 @@ import {
  * A única lógica local é o `runToken`, e ela precisa ser local — ver abaixo.
  */
 
-type Insumo = { id: string; nome: string; tipo: string; unidade: string; baseUnitId: string; custo: number | null };
+type Insumo = {
+  id: string;
+  nome: string;
+  tipo: string;
+  unidade: string;
+  baseUnitId: string;
+  custo: number | null;
+  /** Conteúdo de UMA unidade de estoque: 1 un = 1000 g. */
+  contentSize: number | null;
+  contentUnit: string | null;
+};
 type Unidade = { id: string; code: string; name: string };
 type LinhaDeFicha = { inventoryItemId: string; quantidade: string; unitId: string };
 
@@ -414,7 +424,14 @@ function FichaDePreparado(props: {
       const naBase = converterParaUnidadeBase(
         q,
         l.unitId,
-        { baseUnitId: insumo.baseUnitId, contentSize: null },
+        {
+          baseUnitId: insumo.baseUnitId,
+          // Antes ia `null` fixo aqui, e a tela nunca via o conteúdo da
+          // embalagem: o insumo caía em "não sei converter" e ficava fora do
+          // custo estimado, que aparecia menor do que é.
+          contentSize: insumo.contentSize,
+          contentUnit: insumo.contentUnit,
+        },
         props.conversoes,
       );
       return soma + insumo.custo * naBase;

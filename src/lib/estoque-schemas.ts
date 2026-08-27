@@ -51,6 +51,21 @@ export const createInventoryItemSchema = z.object({
   purchasePackSize: z.number().positive().nullish(),
   /** Como o fornecedor chama a embalagem: caixa, fardo, bandeja. */
   purchasePackLabel: z.string().max(50).nullish(),
+  /**
+   * CONTEÚDO DA EMBALAGEM: quanto cabe em UMA unidade de estoque.
+   *
+   * O açúcar é contado em `un` — pacotes, que é como se compra e como se vê na
+   * prateleira — e a ficha pede 300 g. Aqui vai 1000, com `contentUnit` = g:
+   * 1 pacote = 1000 g. A receita passa a poder falar em gramas sem que o item
+   * precise ser recadastrado em kg.
+   *
+   * NÃO confundir com `purchasePackSize`, que é a orientação contrária: lá o
+   * estoque conta ovos e a compra vem em caixas, e o número MULTIPLICA. Aqui o
+   * estoque conta pacotes e a receita pede o conteúdo, e o número DIVIDE.
+   */
+  contentSize: z.number().positive().nullish(),
+  /** Id da unidade em que `contentSize` está — sem ela o número é ambíguo. */
+  contentUnit: z.string().min(1).nullish(),
 });
 
 export type CreateInventoryItemInput = z.infer<
@@ -91,6 +106,21 @@ export const updateInventoryItemSchema = z.object({
    * NÃO é coluna do banco: o serviço consome e remove antes de gravar.
    */
   precoDaEmbalagem: z.number().positive().nullish(),
+  /**
+   * CONTEÚDO DA EMBALAGEM: quanto cabe em UMA unidade de estoque.
+   *
+   * O açúcar é contado em `un` — pacotes, que é como se compra e como se vê na
+   * prateleira — e a ficha pede 300 g. Aqui vai 1000, com `contentUnit` = g:
+   * 1 pacote = 1000 g. A receita passa a poder falar em gramas sem que o item
+   * precise ser recadastrado em kg.
+   *
+   * NÃO confundir com `purchasePackSize`, que é a orientação contrária: lá o
+   * estoque conta ovos e a compra vem em caixas, e o número MULTIPLICA. Aqui o
+   * estoque conta pacotes e a receita pede o conteúdo, e o número DIVIDE.
+   */
+  contentSize: z.number().positive().nullish(),
+  /** Id da unidade em que `contentSize` está — sem ela o número é ambíguo. */
+  contentUnit: z.string().min(1).nullish(),
 });
 
 export type UpdateInventoryItemInput = z.infer<

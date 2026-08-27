@@ -188,7 +188,9 @@ describe("custo da ficha", () => {
       data: {
         storeId, name: "Creme", itemType: "INGREDIENT", baseUnitId: unitKg,
         quantityOnHand: 10, cost: 10.4,
-        contentSize: 500, contentUnit: "g",
+        // `contentUnit` guarda o ID da unidade, igual a `baseUnitId`: e por
+        // ele que a conversao encontra o fator no mapa.
+        contentSize: 500, contentUnit: unitG,
       },
     });
     const ficha = await prisma.productComposition.create({

@@ -13,6 +13,7 @@ import { OrderInventoryHandler } from "@/server/services/order-inventory-handler
 
 let storeId = "";
 let unitKg = "";
+let unitG = "";
 let unitUn = "";
 
 async function limparBanco() {
@@ -36,6 +37,15 @@ async function semear() {
   const un = await prisma.inventoryUnit.create({
     data: { code: "un", name: "Unidade", system: "COUNT", isBuiltIn: true },
   });
+  const g = await prisma.inventoryUnit.create({
+    data: { code: "g", name: "Grama", system: "WEIGHT", isBuiltIn: true },
+  });
+  // A conversao g -> kg precisa existir: a ficha pede gramas e o pote
+  // tem seu conteudo declarado em gramas.
+  await prisma.inventoryUnitConversion.create({
+    data: { fromUnitId: g.id, toUnitId: kg.id, conversionFactor: 0.001 },
+  });
+  unitG = g.id;
   unitKg = kg.id;
   unitUn = un.id;
 }
@@ -265,7 +275,7 @@ describe("reserva", () => {
     const iogurte = await prisma.inventoryItem.create({
       data: {
         storeId, name: "Iogurte", itemType: "INGREDIENT", baseUnitId: unitUn,
-        quantityOnHand: 10, contentSize: 500, contentUnit: "g", cost: 6,
+        quantityOnHand: 10, contentSize: 500, contentUnit: unitG, cost: 6,
       },
     });
     const categoria = await prisma.category.create({
@@ -281,7 +291,7 @@ describe("reserva", () => {
     await prisma.productComposition.create({
       data: {
         storeId, productId: produto.id, version: 1, isActive: true,
-        items: { create: [{ inventoryItemId: iogurte.id, quantity: 250, unitId: unitKg, sortOrder: 0 }] },
+        items: { create: [{ inventoryItemId: iogurte.id, quantity: 250, unitId: unitG, sortOrder: 0 }] },
       },
     });
     const pedido = await criarPedido([{ productId: produto.id, quantity: 1 }]);
