@@ -22,7 +22,7 @@ export const createInventoryItemSchema = z.object({
   baseUnitId: z.string().cuid(),
   cost: z.number().nonnegative().optional(),
   itemType: z
-    .enum(["INGREDIENT", "RESALE", "PRODUCED", "PACKAGING"])
+    .enum(["INGREDIENT", "RESALE", "PREPARED", "PACKAGING"])
     .default("INGREDIENT"),
   minimumThreshold: z.number().nonnegative().optional(),
   idealQuantity: z.number().nonnegative().optional(),
@@ -39,7 +39,7 @@ export const updateInventoryItemSchema = z.object({
   barcode: z.string().max(50).nullable().optional(),
   cost: z.number().nonnegative().optional(),
   itemType: z
-    .enum(["INGREDIENT", "RESALE", "PRODUCED", "PACKAGING"])
+    .enum(["INGREDIENT", "RESALE", "PREPARED", "PACKAGING"])
     .optional(),
   minimumThreshold: z.number().nonnegative().optional(),
   idealQuantity: z.number().nonnegative().optional(),
@@ -190,4 +190,38 @@ export const updateProductCompositionSchema = z.object({
 
 export type UpdateProductCompositionInput = z.infer<
   typeof updateProductCompositionSchema
+>;
+
+/**
+ * Receita de PREPARADO.
+ *
+ * Schema próprio, e não um campo a mais no de produto, porque as duas fichas
+ * respondem a perguntas diferentes. A de produto diz o que a Pizza consome; a
+ * de preparado diz o que o Molho consome E QUANTO DE MOLHO ELA RENDE.
+ *
+ * O rendimento é obrigatório aqui e inexistente lá: sem ele não há fator de
+ * escala, e produzir 8 kg de uma receita que ninguém sabe quanto rende é uma
+ * conta sem denominador.
+ */
+export const criarReceitaDePreparadoSchema = z.object({
+  items: z.array(compositionItemSchema).min(1),
+  /** Quanto a receita rende. É a EXPECTATIVA; o real vem da balança. */
+  yieldQuantity: z.number().positive(),
+  yieldUnitId: z.string().min(1),
+  isActive: z.boolean().default(true),
+});
+
+export type CriarReceitaDePreparadoInput = z.infer<
+  typeof criarReceitaDePreparadoSchema
+>;
+
+export const atualizarReceitaDePreparadoSchema = z.object({
+  items: z.array(compositionItemSchema).min(1).optional(),
+  yieldQuantity: z.number().positive().optional(),
+  yieldUnitId: z.string().min(1).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export type AtualizarReceitaDePreparadoInput = z.infer<
+  typeof atualizarReceitaDePreparadoSchema
 >;
