@@ -1271,7 +1271,12 @@ model InventoryItem {
 
   /// Custo unitário: o do evento de aquisição não revertido mais recente,
   /// seja ele uma corrida de produção ou uma compra.
-  cost Decimal? @db.Decimal(10, 2)
+  ///
+  /// SEIS CASAS, e não duas. Duas bastam para preço de VENDA, que sempre tem
+  /// centavo redondo. Não bastam para CUSTO, que é resultado de uma divisão —
+  /// R$ 8,00 a garrafa ÷ 900 ml = R$ 0,008889 o ml, e arredondar isso para
+  /// R$ 0,01 punha 12% de erro em toda receita que usasse o item.
+  cost Decimal? @db.Decimal(15, 6)
 
   /// RESERVADO, nulo e sem uso. Existe para que a evolução de "custo da última
   /// aquisição" para "média ponderada" não exija migration destrutiva depois,
@@ -1335,7 +1340,10 @@ model InventoryMovement {
   compositionId String?
   composition   ProductComposition? @relation(fields: [compositionId], references: [id], onDelete: SetNull)
 
-  costAtTime Decimal? @db.Decimal(10, 2)
+  /// SEIS CASAS, iguais a `InventoryItem.cost`: e o mesmo conceito de custo
+  /// unitario de estoque, congelado. Precisao diferente entre os dois faria o
+  /// sistema concordar consigo mesmo no presente e discordar no passado.
+  costAtTime Decimal? @db.Decimal(15, 6)
   note       String?
 
   authorType String?

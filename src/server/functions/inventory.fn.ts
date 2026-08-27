@@ -71,7 +71,14 @@ export const adminListarUnidades = createServerFn({ method: "POST" }).handler(
   async () => {
     await requireAdminSession();
     const unidades = await inventoryUnitRepository.findAll();
-    return unidades.map((u: any) => ({ id: u.id, code: u.code, name: u.name }));
+    // `system` (WEIGHT/VOLUME/COUNT) e o que deixa a tela decidir se o campo de
+    // conteudo faz sentido para a unidade escolhida.
+    return unidades.map((u: any) => ({
+      id: u.id,
+      code: u.code,
+      name: u.name,
+      system: u.system,
+    }));
   },
 );
 

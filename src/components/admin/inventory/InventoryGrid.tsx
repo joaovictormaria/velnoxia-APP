@@ -68,7 +68,8 @@ export function InventoryGrid(props: InventoryGridProps) {
    * recebeu código ou id por uma heurística de hífen, e errava nos dois casos.
    */
   const [unidades, setUnidades] = useState<
-Array<{ id: string; code: string; name: string }>>([]);
+    Array<{ id: string; code: string; name: string; system: string }>
+  >([]);
   const [generatedSku, setGeneratedSku] = useState<string>("");
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
   /*
@@ -94,6 +95,27 @@ Array<{ id: string; code: string; name: string }>>([]);
       ? `${newItem.contentSize.trim()} ${codigoDoConteudo}`
       : "";
 
+  /*
+   * O CAMPO DE CONTEÚDO SÓ FAZ SENTIDO SOBRE ALGO CONTADO INTEIRO.
+   *
+   * "1 ml contém 900 ml" não é uma frase com significado — e foi exatamente ela
+   * que produziu o óleo a R$ 8,00 o mililitro, e um bolo de R$ 1.046,47. Quem
+   * conta o estoque em ml, g, kg ou L já está contando o conteúdo; o que vem na
+   * embalagem é COMPRA.
+   */
+  const unidadeDeEstoque = unidades.find((u) => u.id === newItem.baseUnitId);
+  const contaPorUnidades = unidadeDeEstoque?.system === "COUNT";
+
+  /*
+   * Cadastro herdado com a combinação errada.
+   *
+   * NÃO se apaga sozinho. O campo aparece — com o aviso — para que a pessoa
+   * veja o que está gravado e decida. Esconder e limpar em silêncio destruiria
+   * dado que talvez esteja certo em algum caso que eu não previ.
+   */
+  const conteudoHerdadoInvalido =
+    !contaPorUnidades && newItem.contentSize.trim() !== "";
+  const mostrarConteudo = contaPorUnidades || conteudoHerdadoInvalido;
 
   const compra = calcularCompra({
     embalagens: parseFloat(newItem.initialQuantity),
@@ -330,8 +352,17 @@ Array<{ id: string; code: string; name: string }>>([]);
               newItem.cost && newItem.cost.trim() ? newItem.cost : undefined,
             purchasePackSize: newItem.purchasePackSize?.trim() ?? "",
             purchasePackLabel: newItem.purchasePackLabel?.trim() ?? "",
-            contentSize: newItem.contentSize?.trim() ?? "",
-            contentUnit: newItem.contentUnit?.trim() ?? "",
+            /*
+             * Só vai quando o campo está VISÍVEL. Oculto, o payload omite, e
+             * omitido significa "não mexa" no servidor — um campo que sumiu da
+             * tela não pode apagar dado que ninguém pediu para apagar.
+             */
+            ...(mostrarConteudo
+              ? {
+                  contentSize: newItem.contentSize?.trim() ?? "",
+                  contentUnit: newItem.contentUnit?.trim() ?? "",
+                }
+              : {}),
           }
         } as any);
         showToast(`✅ Item "${newItem.name}" atualizado com sucesso!`);
@@ -348,8 +379,12 @@ Array<{ id: string; code: string; name: string }>>([]);
             initialQuantity: newItem.initialQuantity?.trim() || undefined,
             purchasePackSize: newItem.purchasePackSize?.trim() || undefined,
             purchasePackLabel: newItem.purchasePackLabel?.trim() || undefined,
-            contentSize: newItem.contentSize?.trim() || undefined,
-            contentUnit: newItem.contentUnit?.trim() || undefined,
+            ...(mostrarConteudo
+              ? {
+                  contentSize: newItem.contentSize?.trim() || undefined,
+                  contentUnit: newItem.contentUnit?.trim() || undefined,
+                }
+              : {}),
           }
         };
 
@@ -525,11 +560,23 @@ Array<{ id: string; code: string; name: string }>>([]);
               continuar em pacotes — como se compra e como se vê na
               prateleira — enquanto a ficha fala em gramas.
             */}
-            <div>
+            {mostrarConteudo && (
+              <div>
               <label className="block text-sm font-medium mb-1">
                 O que vem dentro de 1 {codigoDaUnidade || "unidade"}?
                 (Opcional)
               </label>
+              {conteudoHerdadoInvalido && (
+                <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded px-2 py-1.5 mb-2">
+                  <strong>Este cadastro precisa ser corrigido.</strong> Este item
+                  é contado em <strong>{codigoDaUnidade}</strong>, que é uma
+                  medida — então ele não tem “conteúdo dentro de uma unidade”. O
+                  que está aqui provavelmente descreve a embalagem que você
+                  compra: apague este campo e informe o valor em{" "}
+                  <strong>“Compra em embalagem”</strong>, acima. Nada foi
+                  alterado sozinho.
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <input
                   type="number"
@@ -574,6 +621,7 @@ Array<{ id: string; code: string; name: string }>>([]);
                 </p>
               )}
               </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium mb-1">

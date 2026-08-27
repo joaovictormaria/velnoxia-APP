@@ -13,8 +13,46 @@ import {
   calcularCompra,
   conteudoDaEmbalagem,
 } from "@/lib/embalagem-de-compra";
+import { validarConteudo } from "@/lib/embalagem-vs-conteudo";
 
 export class InventoryService {
+  /**
+   * O conteúdo declarado faz sentido para esta unidade de estoque?
+   *
+   * MORA NO SERVIÇO, e não só no zod da server function, porque quem chama o
+   * serviço direto — script, teste, código futuro — passaria reto. A regra que
+   * só existe no caminho HTTP não é regra, é sugestão. Foi assim que
+   * `baseUnitId` continuou mutável muito depois de a gente decidir que não era.
+   */
+  private static async conferirConteudo(
+    baseUnitId: string,
+    contentSize?: number | null,
+    contentUnit?: string | null,
+  ) {
+    if (contentSize == null && contentUnit == null) return;
+
+    const [base, conteudo] = await Promise.all([
+      inventoryUnitRepository.findById(baseUnitId),
+      contentUnit ? inventoryUnitRepository.findById(contentUnit) : null,
+    ]);
+    if (!base) throw new Error("Invalid baseUnitId");
+    if (contentUnit && !conteudo) {
+      throw new Error(
+        "A unidade do conteúdo não existe. Escolha uma das unidades " +
+          "cadastradas.",
+      );
+    }
+
+    const veredito = validarConteudo({
+      unidadeDeEstoque: { id: base.id, system: (base as any).system },
+      contentSize,
+      contentUnit: conteudo
+        ? { id: conteudo.id, system: (conteudo as any).system }
+        : null,
+    });
+    if (!veredito.ok) throw new Error(veredito.mensagem);
+  }
+
   private static serializeItem(item: any) {
     return {
       ...item,
@@ -48,6 +86,12 @@ export class InventoryService {
     ) {
       throw new Error("SKU or barcode already exists in this store");
     }
+
+    await this.conferirConteudo(
+      data.baseUnitId,
+      data.contentSize ?? null,
+      data.contentUnit ?? null,
+    );
 
     const item = await inventoryItemRepository.create(storeId, {
       name: data.name,
@@ -236,6 +280,26 @@ export class InventoryService {
       });
       if (compra.custoPorUnidade != null) campos.cost = compra.custoPorUnidade;
     }
+
+    /*
+     * A validação olha o estado RESULTANTE, não só o que veio na requisição.
+     *
+     * Editar só o nome de um item cujo conteúdo já está incoerente tem que
+     * falhar, porque a alternativa seria deixá-lo incoerente para sempre desde
+     * que ninguém toque nesse campo. E NADA é apagado por conta própria: o
+     * cadastro errado é apontado, e quem corrige é a pessoa.
+     */
+    await this.conferirConteudo(
+      (item as any).baseUnitId,
+      campos.contentSize !== undefined
+        ? campos.contentSize
+        : ((item as any).contentSize == null
+            ? null
+            : Number((item as any).contentSize)),
+      campos.contentUnit !== undefined
+        ? campos.contentUnit
+        : ((item as any).contentUnit ?? null),
+    );
 
     /*
      * O que já foi gravado NÃO se mexe. Cada movimento tem seu `costAtTime`
