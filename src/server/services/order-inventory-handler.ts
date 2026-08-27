@@ -111,6 +111,17 @@ export class OrderInventoryHandler {
         unitId: insumo.unitId,
         reference: orderId,
         referenceType: "ORDER",
+        /*
+         * O pedido PODE deixar o saldo negativo, e diz isso de propósito.
+         *
+         * Antes a permissão vinha do tipo do movimento — todo `CONSUMPTION`
+         * podia. Aí a produção passou a gravar `CONSUMPTION` também, e herdava
+         * uma permissão que não é dela: produzir é ato planejado, com um
+         * humano na frente da tela, e recusar ainda é possível. Aqui não: o
+         * prato foi vendido e a cozinha já usou. Recusar não devolveria o
+         * ingrediente, só apagaria o registro de que ele saiu.
+         */
+        permitirSaldoNegativo: true,
         authorType: "SYSTEM",
         authorId: "ORDER",
         authorName: `Pedido #${order.number}`,
@@ -188,6 +199,14 @@ export class OrderInventoryHandler {
         originalMovementId: movimento.id,
         reference: orderId,
         referenceType: "ORDER",
+        /*
+         * Explícito pelo mesmo motivo do consumo, e não por simetria vazia:
+         * desfazer um consumo REPÕE saldo, mas se o item já estava negativo o
+         * saldo continua negativo depois da reposição. Sem esta permissão, um
+         * cancelamento sobre estoque negativo seria recusado — e o pedido
+         * ficaria cancelado com o consumo dele ainda de pé.
+         */
+        permitirSaldoNegativo: true,
         authorType: "SYSTEM",
         authorId: "ORDER",
         authorName: "Reversão automática",

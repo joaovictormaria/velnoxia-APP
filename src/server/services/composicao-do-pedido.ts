@@ -94,6 +94,25 @@ export async function insumosDoPedido(
     porItem.set(item.productId ?? "", composicao?.id ?? null);
 
     if (composicao && composicao.items.length > 0) {
+      /*
+       * UM NÍVEL, E PARA AQUI. Não é omissão — é a regra.
+       *
+       * A ficha do produto para no primeiro item ESTOCADO. Se ela aponta para
+       * "Molho de tomate", o pedido consome molho e não desce até o tomate,
+       * mesmo que o molho tenha receita própria.
+       *
+       * Quem descer daqui vai contar o insumo duas vezes. O tomate já saiu do
+       * estoque quando o molho foi produzido — é isso que a corrida de
+       * produção grava. Consumi-lo de novo no pedido tiraria da prateleira um
+       * tomate que não está mais lá.
+       *
+       * A explosão da receita acontece na PRODUÇÃO, nunca no pedido. Duas
+       * consequências boas caem daí: o teto de reserva volta a significar algo
+       * (você só promete o molho que de fato fez, não o que poderia fazer se
+       * alguém parasse tudo para cozinhar), e este laço fica O(1) na
+       * profundidade da receita — sem recursão dentro de uma transação que
+       * segura travas de estoque.
+       */
       for (const ingrediente of composicao.items) {
         const bruta = Number(ingrediente.quantity) * Number(item.quantity);
         const naBase = converterParaUnidadeBase(
