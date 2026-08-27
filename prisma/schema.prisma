@@ -221,6 +221,7 @@ model Store {
   inventoryItems       InventoryItem[]       @relation("InventoryItems")
   inventoryMovements   InventoryMovement[]   @relation("InventoryMovements")
   productCompositions  ProductComposition[]  @relation("ProductCompositions")
+  productionRuns       ProductionRun[]       @relation("ProductionRuns")
   tables               Table[]
   tableSessions        TableSession[]
   auditLogs            AuditLog[]
@@ -1199,6 +1200,7 @@ model InventoryUnit {
   movementUnits    InventoryMovement[]
   compositionUnits CompositionItem[]
   yieldUnits       ProductComposition[] @relation("UnidadeDeRendimento")
+  productionUnits  ProductionRun[]      @relation("UnidadeDeProducao")
 
   @@index([system])
 }
@@ -1248,7 +1250,14 @@ model InventoryItem {
   /// Máximo de estoque (para alertas de estoque baixo: alerta em 30%)
   maximumQuantity  Decimal @default(0) @db.Decimal(15, 4)
 
+  /// Custo unitário: o do evento de aquisição não revertido mais recente,
+  /// seja ele uma corrida de produção ou uma compra.
   cost Decimal? @db.Decimal(10, 2)
+
+  /// RESERVADO, nulo e sem uso. Existe para que a evolução de "custo da última
+  /// aquisição" para "média ponderada" não exija migration destrutiva depois,
+  /// quando já houver saldo e histórico para preservar. Nada escreve aqui.
+  averageCost Decimal? @db.Decimal(12, 4)
 
   minimumThreshold Decimal? @db.Decimal(15, 4)
   idealQuantity    Decimal? @db.Decimal(15, 4)
@@ -1316,12 +1325,24 @@ model InventoryMovement {
 
   createdAt DateTime @default(now())
 
+  /// A corrida de produção que gerou este movimento, quando houver.
+  ///
+  /// É o que separa as duas origens do saldo de um preparado sem campo novo
+  /// em lugar nenhum: `PRODUCTION` com `productionRunId` veio da cozinha;
+  /// `PURCHASE` com `productionRunId` nulo veio comprado pronto.
+  ///
+  /// SetNull, e não Cascade: apagar a corrida não pode apagar o movimento.
+  /// O razão é imutável — é dele que o saldo é derivado.
+  productionRunId String?
+  productionRun   ProductionRun? @relation(fields: [productionRunId], references: [id], onDelete: SetNull)
+
   @@index([storeId, createdAt])
   @@index([storeId, itemId])
   @@index([storeId, type])
   @@index([reference])
   @@index([compositionId])
   @@index([originalMovementId])
+  @@index([productionRunId])
 }
 
 /// Receita/Ficha Técnica (VERSIONADA E IMUTÁVEL APÓS USO)
@@ -1364,6 +1385,9 @@ model ProductComposition {
   items     CompositionItem[]
   movements InventoryMovement[]
   orderItems OrderItem[]
+
+  /// As corridas de produção feitas com ESTA versão da receita.
+  productionRuns ProductionRun[]
 
   /*
    * Dois uniques comuns, não parciais — e isso basta.
@@ -1413,6 +1437,92 @@ model CompositionItem {
 
   @@index([compositionId])
   @@index([inventoryItemId])
+}
+
+/// Uma corrida de produção: uma panela, uma fornada, um lote.
+///
+/// Existe uma tabela para isto, e não apenas movimentos amarrados por uma
+/// string de referência, porque **a corrida é a unidade auditável**. "Produzi
+/// 3,8 kg de molho às 14h, gastei 5,2 kg de tomate, custou R$ 41,60, deu
+/// R$ 10,95/kg" é UM fato. Reconstruí-lo a partir de sete movimentos soltos é
+/// possível e frágil; a reversão precisa de uma alça única; o histórico
+/// precisa de algo para listar; e o custo precisa de um lugar para ser
+/// congelado.
+///
+/// ESTA ETAPA CRIA SÓ A TABELA. Nada a escreve ainda — o motor de produção é
+/// a Etapa 5. Enquanto isso ela fica vazia, e é por isso que esta migration é
+/// reversível sem perda.
+model ProductionRun {
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation("ProductionRuns", fields: [storeId], references: [id], onDelete: Cascade)
+
+  /// A versão CONGELADA da receita, fixada quando a corrida começa. Mesma
+  /// disciplina que `OrderItem.compositionVersionId` aplica ao pedido:
+  /// publicar a v4 no meio da produção não muda o que esta corrida gastou.
+  ///
+  /// Restrict, e não SetNull: a corrida sempre sabe qual receita usou. Isso
+  /// impede apagar uma versão de receita que já produziu — o que é correto —
+  /// e não cria bloqueio novo, porque um preparado que já produziu tem
+  /// movimentos, e `InventoryMovement.itemId` já é Restrict.
+  compositionId String
+  composition   ProductComposition @relation(fields: [compositionId], references: [id], onDelete: Restrict)
+
+  /// O que se pretendia produzir, segundo o rendimento da receita.
+  plannedQuantity Decimal @db.Decimal(15, 4)
+
+  /// O que de fato saiu da balança, informado pelo operador. A distância entre
+  /// os dois é o número mais valioso do módulo: é ele que mede a cozinha.
+  producedQuantity Decimal @db.Decimal(15, 4)
+
+  /// Perda DECLARADA pelo operador. A merma não declarada não vem para cá —
+  /// ela aparece sozinha na diferença entre entrada e saída, e é absorvida
+  /// pelo custo unitário. Quem paga a casca do tomate é o molho.
+  lossQuantity Decimal? @db.Decimal(15, 4)
+
+  unitId String
+  unit   InventoryUnit @relation("UnidadeDeProducao", fields: [unitId], references: [id], onDelete: Restrict)
+
+  /// Custo congelado da corrida. Σ(|consumido| × costAtTime) e o unitário que
+  /// dele decorre. Nulos até a Etapa 5 preenchê-los.
+  totalInputCost Decimal? @db.Decimal(12, 4)
+  unitCost       Decimal? @db.Decimal(12, 4)
+
+  /// COMPLETED | REVERSED. String livre por ora, como `itemType` — a promoção
+  /// a enum é a Etapa 10, e vale para os dois juntos.
+  status String @default("COMPLETED")
+
+  /// A garantia real contra produção dupla. Deriva de um token que o navegador
+  /// gera UMA vez por clique em "Produzir": reenviar o mesmo token é a mesma
+  /// corrida repetida; um token novo é uma segunda panela, de propósito.
+  /// Nenhum default derivável do servidor separa esses dois casos.
+  idempotencyKey String @unique
+
+  /// Reverter uma corrida cujo produto já foi vendido leva o saldo a negativo.
+  /// Em vez de recusar, registra-se — mesmo padrão que a Fase 1 usa em `Order`.
+  /// Os campos de lá não serviam aqui: uma reversão de produção não tem pedido.
+  inventoryInconsistentAt DateTime?
+  inventoryInconsistency  String?
+
+  note       String?
+  authorType String?
+  authorId   String?
+  authorName String?
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  /// Quem reverteu, como texto — mesmo padrão de `authorId`. Não é FK para
+  /// outra corrida porque reverter NÃO cria uma corrida nova: a reversão
+  /// grava movimentos `REVERSAL`, como no resto do motor.
+  reversedAt   DateTime?
+  reversedById String?
+
+  movements InventoryMovement[]
+
+  @@index([storeId, createdAt])
+  @@index([storeId, status])
+  @@index([compositionId])
 }
 
 // ---------- Mesas (Dine-in) ----------
