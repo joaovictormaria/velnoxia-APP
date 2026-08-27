@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { guardaDoPrisma } from "./scripts/guarda-do-prisma.mjs";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
@@ -46,6 +47,8 @@ export default defineConfig({
     },
   },
   plugins: [
+    // Só no servidor de dev: avisa quando o schema mudou depois do generate.
+    guardaDoPrisma(),
     tsConfigPaths({ projects: ["./tsconfig.json"] }),
     tailwindcss(),
     tanstackStart(),

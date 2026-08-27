@@ -11,6 +11,7 @@
  */
 import { config } from "dotenv";
 import { spawn } from "node:child_process";
+import { conferirAgora } from "./guarda-do-prisma.mjs";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -117,6 +118,17 @@ async function conferirCliente() {
   }
 
   console.log(`[dev] cliente Prisma confere com o schema (${doSchema.length} modelos)`);
+
+  /*
+   * A checagem acima ve MODELOS. Um CAMPO novo passa por ela — foi assim que
+   * `Unknown argument purchasePackSize` chegou ao navegador. Esta compara o
+   * schema com a copia que o generate deixou, entao enxerga qualquer diferenca.
+   */
+  const veredito = conferirAgora(raiz);
+  if (!veredito.ok) {
+    console.error("\n" + veredito.mensagem + "\n");
+    process.exit(1);
+  }
 }
 
 await conferirCliente();
