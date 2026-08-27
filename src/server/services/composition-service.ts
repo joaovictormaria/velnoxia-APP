@@ -432,6 +432,66 @@ export class CompositionService {
     });
   }
 
+  /**
+   * Cria o item preparado E a receita dele, num fluxo só.
+   *
+   * Existe porque a tela pergunta as duas coisas juntas — nome, unidade,
+   * insumos, rendimento — e separar em duas chamadas deixaria uma janela em que
+   * o item existe sem receita. Um preparado sem receita é legítimo (a loja pode
+   * só comprar pronto), mas não é o que quem preencheu este formulário pediu.
+   *
+   * A regra fica aqui, e não na server function, para poder ser testada: server
+   * function do TanStack precisa de AsyncLocalStorage e não é chamável do
+   * vitest.
+   */
+  static async criarPreparadoComReceita(
+    storeId: string,
+    dados: {
+      nome: string;
+      baseUnitId: string;
+      sku?: string | null;
+      receita: CriarReceitaDePreparadoInput;
+    },
+  ) {
+    const unidade = await prisma.inventoryUnit.findUnique({
+      where: { id: dados.baseUnitId },
+      select: { id: true },
+    });
+    if (!unidade) throw new Error("Unidade de estoque não encontrada.");
+
+    /*
+     * Os insumos são conferidos ANTES de criar o item. Criar primeiro e
+     * descobrir depois que um insumo não existe deixaria um preparado órfão na
+     * lista, e o operador refazendo o cadastro por cima de um nome já ocupado.
+     */
+    await this.validarInsumos(storeId, dados.receita.items);
+    await this.validarRendimento(dados.receita.yieldUnitId);
+
+    const item = await prisma.inventoryItem.create({
+      data: {
+        storeId,
+        name: dados.nome,
+        sku: dados.sku || null,
+        itemType: "PREPARED",
+        baseUnitId: dados.baseUnitId,
+        quantityOnHand: 0,
+      },
+    });
+
+    try {
+      const receita = await this.criarReceitaDePreparado(storeId, item.id, dados.receita);
+      return { item, receita };
+    } catch (erro) {
+      /*
+       * O item acabou de nascer: não tem movimento, não tem saldo, não tem
+       * nada apontando para ele. Apagá-lo é seguro e é melhor do que deixar um
+       * preparado sem receita que ninguém pediu.
+       */
+      await prisma.inventoryItem.delete({ where: { id: item.id } }).catch(() => {});
+      throw erro;
+    }
+  }
+
   /** A receita que vale para um preparado agora. */
   static async receitaAtivaDoPreparado(storeId: string, inventoryItemId: string) {
     return prisma.productComposition.findFirst({

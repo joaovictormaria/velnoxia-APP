@@ -249,6 +249,58 @@ export class ProducaoService {
     return revertida;
   }
 
+  /**
+   * As corridas de produção da loja, da mais recente para a mais antiga.
+   *
+   * Cada linha já traz a eficiência calculada, porque a tela precisa dela em
+   * todas e refazer a conta no navegador seria a segunda implementação da mesma
+   * regra — o tipo de duplicação que faz os dois números divergirem meses
+   * depois, sem ninguém saber qual está certo.
+   */
+  static async historico(
+    storeId: string,
+    opcoes?: { inventoryItemId?: string; limite?: number },
+  ) {
+    const corridas = await prisma.productionRun.findMany({
+      where: {
+        storeId,
+        ...(opcoes?.inventoryItemId
+          ? { composition: { inventoryItemId: opcoes.inventoryItemId } }
+          : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      take: opcoes?.limite ?? 50,
+      include: {
+        composition: { include: { inventoryItem: true } },
+        unit: true,
+      },
+    });
+
+    return corridas.map((c) => {
+      const planejado = Number(c.plannedQuantity);
+      const produzido = Number(c.producedQuantity);
+      return {
+        id: c.id,
+        preparadoId: c.composition.inventoryItemId,
+        preparado: c.composition.inventoryItem?.name ?? "(preparado removido)",
+        versaoDaReceita: c.composition.version,
+        unidade: c.unit.code,
+        planejado,
+        produzido,
+        perda: c.lossQuantity == null ? null : Number(c.lossQuantity),
+        // Denominador é o PLANEJADO: uma panela dupla não é 200% de eficiência.
+        eficiencia: planejado > 0 ? (produzido / planejado) * 100 : null,
+        custoTotal: c.totalInputCost == null ? null : Number(c.totalInputCost),
+        custoUnitario: c.unitCost == null ? null : Number(c.unitCost),
+        status: c.status,
+        inconsistencia: c.inventoryInconsistency,
+        autor: c.authorName,
+        criadaEm: c.createdAt,
+        revertidaEm: c.reversedAt,
+      };
+    });
+  }
+
   // ------------------------------------------------------------------
 
   private static async receitaValidada(storeId: string, compositionId: string) {

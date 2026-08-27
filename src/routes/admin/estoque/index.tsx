@@ -9,6 +9,7 @@ import {
   ReportsDashboard,
 } from "@/components/admin/inventory";
 import { EstoqueProvider } from "@/lib/estoque-store";
+import { PreparadosTab } from "@/components/admin/inventory/PreparadosTab";
 import { adminGetAllProducts, adminGetProductVersions, adminDeleteCompositionVersion } from "@/server/functions/composition.fn";
 import { getProductFormOptionsFn, adminCreateCategoryFn, adminDeleteCategoryFn } from "@/server/functions/products.fn";
 
@@ -16,7 +17,7 @@ export const Route = createFileRoute("/admin/estoque/")({
   component: EstoquePage,
 });
 
-type TabId = "dashboard" | "items" | "movements" | "compositions" | "audit" | "charts";
+type TabId = "dashboard" | "items" | "movements" | "preparados" | "compositions" | "audit" | "charts";
 
 function EstoquePage() {
   const { admin } = Route.useRouteContext();
@@ -88,6 +89,7 @@ function EstoquePage() {
     { id: "dashboard", label: "Dashboard", icon: "📊" },
     { id: "items", label: "Itens", icon: "📦" },
     { id: "movements", label: "Movimentações", icon: "↔️" },
+    { id: "preparados", label: "Preparados", icon: "🍲" },
     { id: "compositions", label: "Receitas", icon: "🧪" },
     { id: "audit", label: "Auditoria", icon: "📋" },
     { id: "charts", label: "Gráficos", icon: "📈" },
@@ -159,6 +161,8 @@ function EstoquePage() {
               </div>
             </div>
           )}
+
+          {activeTab === "preparados" && <PreparadosTab />}
 
           {activeTab === "compositions" && (
             <div className="space-y-6">
