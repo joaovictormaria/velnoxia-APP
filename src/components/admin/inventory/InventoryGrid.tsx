@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { adminCreateInventoryItem, adminUpdateInventoryItem, adminRecordMovement } from "@/server/functions/inventory.fn";
+import { adminCreateInventoryItem, adminUpdateInventoryItem, adminListarUnidades } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
 import { useEstoque } from "@/lib/estoque-store";
 
@@ -13,6 +13,8 @@ interface InventoryItem {
   sku: string;
   barcode: string | null;
   itemType: string;
+  /** O ID da unidade — e o codigo, so para exibir. */
+  baseUnitId: string;
   baseUnit: { code: string };
   quantityOnHand: number;
   quantityReserved: number;
@@ -39,11 +41,19 @@ export function InventoryGrid(props: InventoryGridProps) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [newItem, setNewItem] = useState({
     name: "",
-    baseUnitId: "kg",
+    baseUnitId: "",
     cost: "",
     itemType: "INGREDIENT",
     initialQuantity: "",
   });
+  /*
+   * As unidades vêm do BANCO, e o select guarda o ID.
+   *
+   * Antes eram sete opções fixas no código guardando o CÓDIGO ("kg") — e duas
+   * delas, "m" e "cm", nem existem no banco. O servidor tentava adivinhar se
+   * recebeu código ou id por uma heurística de hífen, e errava nos dois casos.
+   */
+  const [unidades, setUnidades] = useState<Array<{ id: string; code: string; name: string }>>([]);
   const [generatedSku, setGeneratedSku] = useState<string>("");
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
   const inactiveItems = items.filter((item) => !item.isActive);
@@ -53,6 +63,19 @@ export function InventoryGrid(props: InventoryGridProps) {
     setToast({ message, show: true });
     setTimeout(() => setToast({ message: "", show: false }), 3000);
   };
+
+  const fetchUnidades = async () => {
+    try {
+      const lista = await adminListarUnidades({} as any);
+      if (Array.isArray(lista)) setUnidades(lista as any);
+    } catch (error) {
+      console.error("Falha ao carregar unidades:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnidades();
+  }, []);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -129,7 +152,7 @@ export function InventoryGrid(props: InventoryGridProps) {
     setEditingItemId(item.id);
     setNewItem({
       name: item.name,
-      baseUnitId: item.baseUnit.code,
+      baseUnitId: item.baseUnitId,
       cost: item.cost?.toString() || "",
       itemType: item.itemType,
       initialQuantity: "",
@@ -188,38 +211,20 @@ export function InventoryGrid(props: InventoryGridProps) {
         const payload = {
           data: {
             name: newItem.name || "",
-            baseUnitId: newItem.baseUnitId || "kg",
+            baseUnitId: newItem.baseUnitId,
             itemType: newItem.itemType || "INGREDIENT",
             cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+            // Vai junto: o servidor cria item e entrada numa operação só, e
+            // desfaz o item se a entrada falhar.
+            initialQuantity: newItem.initialQuantity?.trim() || undefined,
           }
         };
 
         const createdItem = await adminCreateInventoryItem(payload as any);
-        const itemId = (createdItem as any)?.id;
         const sku = (createdItem as any)?.sku || "gerado";
 
-        // Se houver quantidade inicial, registrar movimento
-        const initialQty = newItem.initialQuantity?.trim();
-        if (initialQty && parseFloat(initialQty) > 0 && itemId) {
-          try {
-            const unitId = (createdItem as any)?.baseUnitId || newItem.baseUnitId;
-            await adminRecordMovement({
-              data: {
-                itemId,
-                type: "PURCHASE",
-                quantity: parseFloat(initialQty),
-                unitId,
-                reference: undefined,
-                referenceType: undefined,
-                note: "Quantidade inicial registrada na criação do item",
-              }
-            } as any);
-          } catch (movError) {
-            console.error("Failed to record initial movement:", movError);
-          }
-        }
-
-        const qtyMsg = initialQty ? ` (${initialQty}un)` : "";
+        const inicial = newItem.initialQuantity?.trim();
+        const qtyMsg = inicial ? ` (${inicial})` : "";
         showToast(`✅ Item "${newItem.name}" criado com sucesso! SKU: ${sku}${qtyMsg}`);
       }
 
@@ -227,7 +232,7 @@ export function InventoryGrid(props: InventoryGridProps) {
       setEditingItemId(null);
       setNewItem({
         name: "",
-        baseUnitId: "kg",
+        baseUnitId: "",
         cost: "",
         itemType: "INGREDIENT",
         initialQuantity: "",
@@ -298,21 +303,23 @@ export function InventoryGrid(props: InventoryGridProps) {
                 <select
                   value={newItem.baseUnitId}
                   onChange={(e) => setNewItem({ ...newItem, baseUnitId: e.target.value })}
+                  required
                   className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 >
-                  <option value="kg">kg (quilograma)</option>
-                  <option value="g">g (grama)</option>
-                  <option value="L">L (litro)</option>
-                  <option value="ml">ml (mililitro)</option>
-                  <option value="un">un (unidade)</option>
-                  <option value="m">m (metro)</option>
-                  <option value="cm">cm (centímetro)</option>
+                  <option value="">Selecione…</option>
+                  {unidades.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.code} ({u.name.toLowerCase()})
+                    </option>
+                  ))}
                 </select>
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium mb-1">Custo (R$) (Opcional)</label>
+              <label className="block text-sm font-medium mb-1">
+                  Preço por unidade (Opcional)
+              </label>
               <input
                 type="number"
                 value={newItem.cost}
@@ -325,7 +332,9 @@ export function InventoryGrid(props: InventoryGridProps) {
 
             {!editingItemId && (
               <div>
-                <label className="block text-sm font-medium mb-1">Quantidade Inicial (Opcional)</label>
+                <label className="block text-sm font-medium mb-1">
+                    Quantidade Inicial (Opcional)
+                </label>
                 <input
                   type="number"
                   value={newItem.initialQuantity}
@@ -335,7 +344,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 />
                 <p className="text-xs text-neutral-600 mt-1">
-                  Será registrada como compra (PURCHASE) automaticamente
+                  Entra no estoque como uma compra.
                 </p>
               </div>
             )}
@@ -395,7 +404,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   setEditingItemId(null);
                   setNewItem({
                     name: "",
-                    baseUnitId: "kg",
+                    baseUnitId: "",
                     cost: "",
                     itemType: "INGREDIENT",
                     initialQuantity: "",

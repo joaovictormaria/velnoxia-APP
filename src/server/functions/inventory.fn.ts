@@ -54,23 +54,46 @@ function serializeInventoryItem(item: any) {
 /**
  * Admin only: Create a new inventory item
  */
+
+/**
+ * As unidades de medida disponíveis.
+ *
+ * A tela precisa delas para oferecer o id certo. Antes as opções eram fixas no
+ * componente — inclusive "m" e "cm", que não existem no banco — e o que ia para
+ * o servidor era o código, não o id.
+ */
+export const adminListarUnidades = createServerFn({ method: "POST" }).handler(
+  async () => {
+    await requireAdminSession();
+    const unidades = await inventoryUnitRepository.findAll();
+    return unidades.map((u: any) => ({ id: u.id, code: u.code, name: u.name }));
+  },
+);
+
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
     const itemData = data?.data || data;
 
-    // Gerar valores padrÃ£o se nÃ£o fornecidos
-    const baseUnitId = itemData?.baseUnitId || "kg";
     const itemType = itemData?.itemType || "INGREDIENT";
 
-    // Converter cÃ³digo da unidade para ID
-    let unitId = baseUnitId;
-    if (!baseUnitId.includes('-')) {
-      const unit = await inventoryUnitRepository.findByCode(baseUnitId);
-      if (!unit) {
-        throw new Error(`Unit "${baseUnitId}" not found`);
-      }
-      unitId = unit.id;
+    /*
+     * A tela manda o ID da unidade, não o código.
+     *
+     * Aqui existia uma tradução código → id com a heurística
+     * `if (!baseUnitId.includes('-'))` — "sem hífen, deve ser código" —
+     * desenhada para UUID, formato que este projeto não usa. Ela quebrava dos
+     * dois lados: `"kg"` só funcionava por acidente, e o id real `unit_kg`
+     * também não tem hífen, então era tratado como código e morria em
+     * `Unit "unit_kg" not found`.
+     *
+     * Adivinhar o que o cliente mandou é o problema. A tela agora carrega as
+     * unidades do banco e manda o id; quem não existir é recusado pelo
+     * `findById` do serviço, com mensagem clara.
+     */
+    const unitId = itemData?.baseUnitId;
+    if (!unitId) {
+      throw new Error("Escolha a unidade em que este item é contado.");
     }
 
     // Gerar SKU automaticamente

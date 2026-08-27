@@ -19,7 +19,21 @@ export const createInventoryItemSchema = z.object({
   name: z.string().min(1).max(255),
   sku: z.string().max(50).nullable().optional(),
   barcode: z.string().max(50).nullable().optional(),
-  baseUnitId: z.string().cuid(),
+  /**
+   * Id da unidade, e não o código.
+   *
+   * NÃO é `.cuid()`, e a razão importa. O `.cuid()` era um proxy para "isto é
+   * um id de unidade de verdade" — e proxy errado: as unidades semeadas por
+   * migration têm ids fixos e legíveis (`unit_kg`), escolhidos para que a mesma
+   * unidade tenha o mesmo id em local, teste e produção. `unit_kg` não é um
+   * cuid, então o formato recusava justamente os ids reais do sistema.
+   *
+   * Quem valida de verdade é `InventoryService.createItem`, que faz
+   * `findById` e recusa o que não existir. Isso é mais forte que qualquer
+   * padrão: `"kg"` continua barrado — não é id de nada — e um cuid bem formado
+   * de outra tabela também.
+   */
+  baseUnitId: z.string().min(1),
   cost: z.number().nonnegative().optional(),
   itemType: z
     .enum(["INGREDIENT", "RESALE", "PREPARED", "PACKAGING"])
@@ -68,7 +82,16 @@ export const createInventoryMovementSchema = z
       "REVERSAL",
     ]),
     quantity: z.number(), // Pode ser negativo ou positivo
-    unitId: z.string().cuid(),
+    /**
+     * Id da unidade, pelo mesmo motivo de `baseUnitId`: as unidades semeadas
+     * por migration tem ids fixos e legiveis (`unit_kg`), que nao sao cuid. O
+     * formato recusava os ids REAIS do sistema.
+     *
+     * Quem valida e o `recordMovement`, que faz `findUnique` na unidade dentro
+     * da transacao travada e recusa o que nao existir. Mais forte que padrao:
+     * `"kg"` continua barrado, e um cuid de outra tabela tambem.
+     */
+    unitId: z.string().min(1),
     reference: z.string().optional(),
     referenceType: z.string().optional(),
     originalMovementId: z.string().cuid().optional(), // Só se type=REVERSAL
@@ -128,7 +151,7 @@ export type CreateReversalInput = z.infer<typeof createReversalSchema>;
 export const createReservationSchema = z.object({
   itemId: z.string().cuid(),
   quantity: z.number().positive(), // Reserva é sempre positiva
-  unitId: z.string().cuid(),
+  unitId: z.string().min(1),
   reference: z.string().cuid(), // Order ID
   referenceType: z.literal("ORDER"),
   authorType: z.enum(["SYSTEM", "CUSTOMER"]).default("SYSTEM"),
@@ -143,7 +166,7 @@ export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 export const createConsumptionSchema = z.object({
   itemId: z.string().cuid(),
   quantity: z.number().positive(), // Consumo é sempre positivo
-  unitId: z.string().cuid(),
+  unitId: z.string().min(1),
   reference: z.string().cuid(), // Order ID
   referenceType: z.literal("ORDER"),
   compositionId: z.string().cuid().optional(), // Qual receita?
@@ -159,7 +182,7 @@ export type CreateConsumptionInput = z.infer<typeof createConsumptionSchema>;
 export const createAdjustmentSchema = z.object({
   itemId: z.string().cuid(),
   quantity: z.number(), // Pode ser positivo ou negativo (correção)
-  unitId: z.string().cuid(),
+  unitId: z.string().min(1),
   note: z.string().max(500),
   authorType: z.enum(["ADMIN"]).default("ADMIN"),
   authorId: z.string(),
