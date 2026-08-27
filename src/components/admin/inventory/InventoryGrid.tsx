@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { adminCreateInventoryItem, adminUpdateInventoryItem, adminListarUnidades } from "@/server/functions/inventory.fn";
+import {
+  calcularCompra,
+  conteudoDaEmbalagem,
+} from "@/lib/embalagem-de-compra";
 import { adminGetStockReport } from "@/server/functions/report.fn";
 import { useEstoque } from "@/lib/estoque-store";
 
@@ -45,6 +49,8 @@ export function InventoryGrid(props: InventoryGridProps) {
     cost: "",
     itemType: "INGREDIENT",
     initialQuantity: "",
+    purchasePackLabel: "",
+    purchasePackSize: "",
   });
   /*
    * As unidades vêm do BANCO, e o select guarda o ID.
@@ -56,6 +62,81 @@ export function InventoryGrid(props: InventoryGridProps) {
   const [unidades, setUnidades] = useState<Array<{ id: string; code: string; name: string }>>([]);
   const [generatedSku, setGeneratedSku] = useState<string>("");
   const [toast, setToast] = useState<{ message: string; show: boolean }>({ message: "", show: false });
+  /*
+   * EMBALAGEM DE COMPRA × UNIDADE DE CONTROLE.
+   *
+   * O fornecedor vende CAIXA; a receita pede OVO. Sem separar os dois, o
+   * cadastro "Ovos, custo 15, quantidade 1" gravava UM ovo custando QUINZE
+   * REAIS. A conta mora no servidor; aqui só se mostra o resultado, com a
+   * MESMA função — duas fórmulas divergem, uma só não.
+   */
+  const codigoDaUnidade =
+    unidades.find((u) => u.id === newItem.baseUnitId)?.code ?? "";
+  const rotuloDaEmbalagem = newItem.purchasePackLabel.trim() || "embalagem";
+  const conteudo = conteudoDaEmbalagem(parseFloat(newItem.purchasePackSize));
+  const temEmbalagem = conteudo > 1;
+
+  const compra = calcularCompra({
+    embalagens: parseFloat(newItem.initialQuantity),
+    conteudoPorEmbalagem: conteudo,
+    precoDaEmbalagem: parseFloat(newItem.cost),
+  });
+
+  const resumoDaCompra =
+    compra.quantidadeEmEstoque > 0 || compra.custoPorUnidade != null ? (
+      <>
+        {compra.quantidadeEmEstoque > 0 && (
+          <div>
+            {temEmbalagem ? (
+              <>
+                <strong>
+                  {newItem.initialQuantity} {rotuloDaEmbalagem}
+                  {parseFloat(newItem.initialQuantity) > 1 ? "s" : ""}
+                </strong>{" "}
+                ={" "}
+                <strong>
+                  {compra.quantidadeEmEstoque.toLocaleString("pt-BR")}{" "}
+                  {codigoDaUnidade}
+                </strong>{" "}
+                no estoque
+              </>
+            ) : (
+              <>
+                Entra <strong>
+                  {compra.quantidadeEmEstoque.toLocaleString("pt-BR")}{" "}
+                  {codigoDaUnidade}
+                </strong> no estoque
+              </>
+            )}
+          </div>
+        )}
+        {compra.custoTotal != null && compra.quantidadeEmEstoque > 0 && (
+          <div className="text-neutral-700">
+            Custo total:{" "}
+            <strong>
+              {compra.custoTotal.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </strong>
+          </div>
+        )}
+        {compra.custoPorUnidade != null && (
+          <div className="text-neutral-700">
+            Custo por {codigoDaUnidade || "unidade"}:{" "}
+            <strong>
+              {compra.custoPorUnidade.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 4,
+              })}
+            </strong>
+          </div>
+        )}
+      </>
+    ) : null;
+
   const inactiveItems = items.filter((item) => !item.isActive);
   const activeItems = items.filter((item) => item.isActive);
 
@@ -156,6 +237,8 @@ export function InventoryGrid(props: InventoryGridProps) {
       cost: item.cost?.toString() || "",
       itemType: item.itemType,
       initialQuantity: "",
+      purchasePackLabel: "",
+      purchasePackSize: "",
     });
     setShowCreateModal(true);
   };
@@ -217,6 +300,8 @@ export function InventoryGrid(props: InventoryGridProps) {
             // Vai junto: o servidor cria item e entrada numa operação só, e
             // desfaz o item se a entrada falhar.
             initialQuantity: newItem.initialQuantity?.trim() || undefined,
+            purchasePackSize: newItem.purchasePackSize?.trim() || undefined,
+            purchasePackLabel: newItem.purchasePackLabel?.trim() || undefined,
           }
         };
 
@@ -236,6 +321,8 @@ export function InventoryGrid(props: InventoryGridProps) {
         cost: "",
         itemType: "INGREDIENT",
         initialQuantity: "",
+        purchasePackLabel: "",
+        purchasePackSize: "",
       });
       setGeneratedSku("");
       fetchItems();
@@ -316,9 +403,50 @@ export function InventoryGrid(props: InventoryGridProps) {
               </div>
             )}
 
+            {!editingItemId && (
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Compra em embalagem? (Opcional)
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    value={newItem.purchasePackLabel}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, purchasePackLabel: e.target.value })
+                    }
+                    placeholder="caixa"
+                    className="px-3 py-2 border rounded bg-background text-foreground"
+                  />
+                  <input
+                    type="number"
+                    value={newItem.purchasePackSize}
+                    onChange={(e) =>
+                      setNewItem({ ...newItem, purchasePackSize: e.target.value })
+                    }
+                    placeholder="30"
+                    step="0.0001"
+                    min="0"
+                    className="px-3 py-2 border rounded bg-background text-foreground text-right"
+                  />
+                </div>
+                {/*
+                  Este par separa "o que o fornecedor vende" de "como eu conto no
+                  estoque". Sem ele, "Ovos, custo 15, quantidade 1" virava UM ovo
+                  custando QUINZE REAIS.
+                */}
+                <p className="text-xs text-neutral-600 mt-1">
+                  Nome da embalagem e quantas {codigoDaUnidade || "unidades"} vêm
+                  dentro. Ex.: <strong>caixa</strong> com <strong>30</strong>. Em
+                  branco, você compra direto em {codigoDaUnidade || "unidade"}.
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium mb-1">
-                  Preço por unidade (Opcional)
+                {temEmbalagem
+                  ? `Preço de 1 ${rotuloDaEmbalagem} (Opcional)`
+                  : "Preço por unidade (Opcional)"}
               </label>
               <input
                 type="number"
@@ -333,7 +461,9 @@ export function InventoryGrid(props: InventoryGridProps) {
             {!editingItemId && (
               <div>
                 <label className="block text-sm font-medium mb-1">
-                    Quantidade Inicial (Opcional)
+                  {temEmbalagem
+                    ? `Quantas ${rotuloDaEmbalagem}s você tem hoje? (Opcional)`
+                    : "Quantidade Inicial (Opcional)"}
                 </label>
                 <input
                   type="number"
@@ -346,6 +476,11 @@ export function InventoryGrid(props: InventoryGridProps) {
                 <p className="text-xs text-neutral-600 mt-1">
                   Entra no estoque como uma compra.
                 </p>
+                {resumoDaCompra && (
+                  <div className="mt-2 p-2 rounded border border-neutral-300 bg-white text-sm space-y-0.5">
+                    {resumoDaCompra}
+                  </div>
+                )}
               </div>
             )}
 
@@ -408,6 +543,8 @@ export function InventoryGrid(props: InventoryGridProps) {
                     cost: "",
                     itemType: "INGREDIENT",
                     initialQuantity: "",
+                    purchasePackLabel: "",
+                    purchasePackSize: "",
                   });
                 }}
                 className="px-4 py-2 border rounded hover:bg-neutral-50"

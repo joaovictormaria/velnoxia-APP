@@ -41,6 +41,16 @@ export const createInventoryItemSchema = z.object({
   minimumThreshold: z.number().nonnegative().optional(),
   idealQuantity: z.number().nonnegative().optional(),
   maximumCapacity: z.number().nonnegative().optional(),
+  /**
+   * EMBALAGEM DE COMPRA — quantas unidades de ESTOQUE vêm em uma.
+   *
+   * Uma caixa com 30 ovos: aqui vai 30. Nulo significa compra direta na
+   * unidade de estoque, que é o comportamento de todo item anterior a este
+   * campo.
+   */
+  purchasePackSize: z.number().positive().nullish(),
+  /** Como o fornecedor chama a embalagem: caixa, fardo, bandeja. */
+  purchasePackLabel: z.string().max(50).nullish(),
 });
 
 export type CreateInventoryItemInput = z.infer<
@@ -59,6 +69,16 @@ export const updateInventoryItemSchema = z.object({
   idealQuantity: z.number().nonnegative().optional(),
   maximumCapacity: z.number().nonnegative().optional(),
   isActive: z.boolean().optional(),
+  /**
+   * EMBALAGEM DE COMPRA — quantas unidades de ESTOQUE vêm em uma.
+   *
+   * Uma caixa com 30 ovos: aqui vai 30. Nulo significa compra direta na
+   * unidade de estoque, que é o comportamento de todo item anterior a este
+   * campo.
+   */
+  purchasePackSize: z.number().positive().nullish(),
+  /** Como o fornecedor chama a embalagem: caixa, fardo, bandeja. */
+  purchasePackLabel: z.string().max(50).nullish(),
 });
 
 export type UpdateInventoryItemInput = z.infer<

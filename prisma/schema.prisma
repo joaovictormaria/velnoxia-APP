@@ -1238,6 +1238,25 @@ model InventoryItem {
   baseUnitId String
   baseUnit   InventoryUnit @relation(fields: [baseUnitId], references: [id], onDelete: Restrict)
 
+  /// EMBALAGEM DE COMPRA — quantas unidades de ESTOQUE vêm em uma.
+  ///
+  /// Uma caixa com 30 ovos, num item contado em `un`: aqui vai 30. Comprar
+  /// 5 caixas entra 150 no saldo, e uma caixa de R$ 15,00 faz o ovo custar
+  /// R$ 0,50 — nunca R$ 15,00.
+  ///
+  /// NÃO confundir com `contentSize` abaixo, que é a orientação CONTRÁRIA:
+  /// lá o estoque é contado na embalagem (potes) e a receita pede o conteúdo
+  /// (gramas), e o número é usado como divisor. Aqui o estoque é contado no
+  /// conteúdo e a compra vem em embalagens, e o número multiplica.
+  ///
+  /// Nulo significa compra direta na unidade de estoque — 5 kg de farinha são
+  /// 5 kg. É o comportamento de todo item cadastrado antes deste campo.
+  purchasePackSize Decimal? @db.Decimal(15, 4)
+
+  /// Como o fornecedor chama a embalagem: caixa, fardo, pacote, bandeja.
+  /// Só rótulo, para a tela dizer "5 caixas" em vez de "5 embalagens".
+  purchasePackLabel String?
+
   /// Tamanho do conteúdo (ex: 500g em cada pote)
   contentSize Decimal?    @db.Decimal(15, 4)
   /// Unidade do conteúdo (ex: "g", "ml")

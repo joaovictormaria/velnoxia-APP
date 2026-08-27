@@ -9,6 +9,10 @@ import type {
   UpdateInventoryItemInput,
 } from "@/lib/estoque-schemas";
 import type { CreateInventoryMovementInput } from "@/server/repositories";
+import {
+  calcularCompra,
+  conteudoDaEmbalagem,
+} from "@/lib/embalagem-de-compra";
 
 export class InventoryService {
   private static serializeItem(item: any) {
@@ -55,6 +59,9 @@ export class InventoryService {
       minimumThreshold: data.minimumThreshold,
       idealQuantity: data.idealQuantity,
       maximumCapacity: data.maximumCapacity,
+      // Embalagem de compra: lembrada para as próximas compras deste item.
+      purchasePackSize: data.purchasePackSize ?? null,
+      purchasePackLabel: data.purchasePackLabel ?? null,
     } as any);
 
     return this.serializeItem(item);
@@ -80,14 +87,43 @@ export class InventoryService {
     storeId: string,
     data: CreateInventoryItemInput,
     saldoInicial?: {
+      /** Quantas EMBALAGENS, ou quantas unidades quando não há embalagem. */
       quantidade: number;
       unitId?: string;
       nota?: string;
+      /** Preço de UMA embalagem. R$ 15,00 a caixa. */
+      precoDaEmbalagem?: number | null;
     },
   ) {
-    const item = await this.createItem(storeId, data);
+    /*
+     * A EMBALAGEM ENTRA AQUI, e não na tela.
+     *
+     * "Ovos, un, custo 15, quantidade 1" era gravado como UM ovo custando
+     * QUINZE REAIS — o operador queria dizer "uma caixa de 30 por R$ 15,00".
+     * A conta é `embalagens × conteúdo` para o saldo e `preço ÷ conteúdo` para
+     * o custo, e mora no serviço porque a tela não pode ser a única a saber.
+     */
+    const conteudo = conteudoDaEmbalagem(data.purchasePackSize);
 
-    if (!saldoInicial || !(saldoInicial.quantidade > 0)) return item;
+    const compra = saldoInicial
+      ? calcularCompra({
+          embalagens: saldoInicial.quantidade,
+          conteudoPorEmbalagem: conteudo,
+          precoDaEmbalagem: saldoInicial.precoDaEmbalagem,
+        })
+      : null;
+
+    /*
+     * `cost` é R$ POR UNIDADE DE ESTOQUE, sempre. É o que `costAtTime`, o custo
+     * da ficha e o custo do preparado consomem. O preço da embalagem é entrada
+     * de formulário, e vira unitário aqui — nunca é gravado cru.
+     */
+    const item = await this.createItem(storeId, {
+      ...data,
+      ...(compra?.custoPorUnidade != null ? { cost: compra.custoPorUnidade } : {}),
+    });
+
+    if (!compra || !(compra.quantidadeEmEstoque > 0)) return item;
 
     try {
       await this.recordMovement(storeId, {
@@ -98,10 +134,14 @@ export class InventoryService {
         idempotencyKey: `${storeId}#ITEM_INICIAL#${item.id}`,
         itemId: item.id,
         type: "PURCHASE",
-        quantity: saldoInicial.quantidade,
+        // Já na unidade de ESTOQUE: 5 caixas de 30 entram como 150 ovos.
+        quantity: compra.quantidadeEmEstoque,
         // A unidade do movimento é a do item: entrada inicial não converte nada.
-        unitId: saldoInicial.unitId ?? data.baseUnitId,
-        note: saldoInicial.nota ?? "Quantidade inicial registrada na criação do item",
+        unitId: saldoInicial!.unitId ?? data.baseUnitId,
+        ...(compra.custoPorUnidade != null
+          ? { costAtTime: compra.custoPorUnidade }
+          : {}),
+        note: saldoInicial!.nota ?? "Quantidade inicial registrada na criação do item",
         authorType: "ADMIN",
       } as any);
     } catch (erro) {
@@ -118,7 +158,6 @@ export class InventoryService {
     const comSaldo = await inventoryItemRepository.findById(storeId, item.id);
     return this.serializeItem(comSaldo);
   }
-
 
   /**
    * Update an existing item

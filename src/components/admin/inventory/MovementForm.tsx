@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { adminRecordMovement } from "@/server/functions/inventory.fn";
 import { adminGetStockReport } from "@/server/functions/report.fn";
 import { useEstoque } from "@/lib/estoque-store";
+import {
+  calcularMovimentoDeCompra,
+  conteudoDaEmbalagem,
+} from "@/lib/embalagem-de-compra";
 
 export interface MovementFormProps {
   storeId: string;
@@ -18,6 +22,14 @@ interface InventoryItem {
   quantityReserved: number;
   /** Custo unitário atual, para mostrar o que a compra vai substituir. */
   cost?: number | null;
+  /**
+   * EMBALAGEM DE COMPRA: quantas unidades de estoque vêm em uma.
+   *
+   * Vem do CADASTRO do item, não deste formulário. "30 por caixa" se informa
+   * uma vez; redigitar a cada compra é convite a errar em uma delas.
+   */
+  purchasePackSize?: number | null;
+  purchasePackLabel?: string | null;
 }
 
 type MovementType = "PURCHASE" | "LOSS" | "ADJUSTMENT";
@@ -35,6 +47,7 @@ export function MovementForm(props: MovementFormProps) {
     reference: "",
     note: "",
     totalPaid: "",
+    emEmbalagens: true,
   });
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
@@ -91,6 +104,7 @@ export function MovementForm(props: MovementFormProps) {
           referenceType: undefined,
           note: formData.note || undefined,
           totalPaid: formData.totalPaid || undefined,
+          emEmbalagens: emEmbalagens,
         }
       };
 
@@ -107,6 +121,7 @@ export function MovementForm(props: MovementFormProps) {
         reference: "",
         note: "",
         totalPaid: "",
+        emEmbalagens: true,
       });
       setSelectedItem(null);
     } catch (error) {
@@ -132,14 +147,43 @@ export function MovementForm(props: MovementFormProps) {
    * operador digita o que está na nota e vê na hora se o resultado faz sentido;
    * um "R$ 800,00 por kg" na tela pega o zero a mais antes de virar dado.
    */
-  const custoUnitario = (() => {
-    if (formData.type !== "PURCHASE") return null;
-    const total = parseFloat(formData.totalPaid);
-    const qtd = parseFloat(formData.quantity);
-    if (!Number.isFinite(total) || !Number.isFinite(qtd)) return null;
-    if (total <= 0 || qtd <= 0) return null;
-    return total / qtd;
-  })();
+  /*
+   * EMBALAGEM DE COMPRA × UNIDADE DE CONTROLE.
+   *
+   * O item traz "caixa com 30". Com a caixa marcada, o número digitado conta
+   * CAIXAS: 5 viram 150 ovos no saldo. O servidor refaz esta mesma conversão —
+   * aqui ela existe para o operador VER o que vai entrar antes de confirmar.
+   */
+  const conteudo = conteudoDaEmbalagem(selectedItem?.purchasePackSize);
+  const rotuloDaEmbalagem =
+    selectedItem?.purchasePackLabel?.trim() || "embalagem";
+  const podeComprarEmEmbalagens =
+    formData.type === "PURCHASE" && conteudo > 1;
+  const emEmbalagens = podeComprarEmEmbalagens && formData.emEmbalagens;
+
+  const digitado = parseFloat(formData.quantity);
+  const previa = calcularMovimentoDeCompra({
+    digitado,
+    conteudoDoItem: selectedItem?.purchasePackSize,
+    emEmbalagens,
+    totalPago:
+      formData.type === "PURCHASE" ? parseFloat(formData.totalPaid) : null,
+  });
+  /** O que realmente entra no saldo, na unidade de controle. */
+  const quantidadeEmEstoque = previa.quantity;
+
+  /*
+   * O unitário que a compra vai gravar, mostrado ao vivo.
+   *
+   * A conta é refeita no servidor — este número é conferência, não fonte. O
+   * operador digita o que está na nota e vê na hora se o resultado faz sentido;
+   * um "R$ 800,00 por kg" na tela pega o zero a mais antes de virar dado.
+   *
+   * O divisor é a quantidade em UNIDADE DE ESTOQUE — 150, e não 5. Dividir
+   * pelas caixas daria R$ 15,00 "por ovo": o erro que este campo existe para
+   * não cometer.
+   */
+  const custoUnitario = previa.custoUnitario;
 
   return (
     <div className="movement-form space-y-4 p-4 border rounded bg-white">
@@ -218,7 +262,11 @@ export function MovementForm(props: MovementFormProps) {
 
         {/* Quantity */}
         <div>
-          <label className="block text-sm font-medium mb-2">Quantidade *</label>
+          <label className="block text-sm font-medium mb-2">
+            {emEmbalagens
+              ? `Quantidade (em ${rotuloDaEmbalagem}s) *`
+              : "Quantidade *"}
+          </label>
           <input
             type="number"
             step="0.01"
@@ -231,9 +279,50 @@ export function MovementForm(props: MovementFormProps) {
             required
             className="w-full px-3 py-2 border rounded bg-white text-foreground"
           />
+          {/*
+            O item diz que vem em caixa de 30. A escolha aqui é só se ESTA
+            compra veio em caixa fechada ou avulsa — comprar 12 ovos soltos
+            acontece, e travar em múltiplos de 30 obrigaria a mentir no número.
+          */}
+          {podeComprarEmEmbalagens && (
+            <label className="flex items-center gap-2 mt-2 text-sm">
+              <input
+                type="checkbox"
+                checked={formData.emEmbalagens}
+                onChange={(e) =>
+                  setFormData({ ...formData, emEmbalagens: e.target.checked })
+                }
+                disabled={submitting}
+              />
+              <span>
+                Comprei em {rotuloDaEmbalagem} de{" "}
+                <strong>
+                  {conteudo.toLocaleString("pt-BR")}{" "}
+                  {selectedItem?.baseUnit.code}
+                </strong>
+              </span>
+            </label>
+          )}
           {selectedItem && (
             <p className="text-xs text-neutral-600 mt-1">
-              Unidade: {selectedItem.baseUnit.code}
+              {emEmbalagens &&
+              Number.isFinite(quantidadeEmEstoque) &&
+              quantidadeEmEstoque > 0 ? (
+                <>
+                  <strong>
+                    {digitado.toLocaleString("pt-BR")} {rotuloDaEmbalagem}
+                    {digitado > 1 ? "s" : ""}
+                  </strong>{" "}
+                  ={" "}
+                  <strong>
+                    {quantidadeEmEstoque.toLocaleString("pt-BR")}{" "}
+                    {selectedItem.baseUnit.code}
+                  </strong>{" "}
+                  no estoque
+                </>
+              ) : (
+                <>Unidade: {selectedItem.baseUnit.code}</>
+              )}
             </p>
           )}
         </div>

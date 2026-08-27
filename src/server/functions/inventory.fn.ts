@@ -14,6 +14,7 @@ import {
   createAdjustmentSchema,
 } from "@/lib/estoque-schemas";
 import { inventoryItemRepository, inventoryUnitRepository } from "@/server/repositories";
+import { calcularMovimentoDeCompra } from "@/lib/embalagem-de-compra";
 
 /**
  * Generate unique SKU automatically
@@ -48,6 +49,8 @@ function serializeInventoryItem(item: any) {
     idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
     maximumQuantity: item.maximumQuantity ? Number(item.maximumQuantity) : null,
     contentSize: item.contentSize ? Number(item.contentSize) : null,
+    purchasePackSize: item.purchasePackSize ? Number(item.purchasePackSize) : null,
+    purchasePackLabel: item.purchasePackLabel ?? null,
   };
 }
 
@@ -109,6 +112,10 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       baseUnitId: unitId,
       cost: itemData?.cost ? parseFloat(itemData.cost) : undefined,
       itemType: itemType,
+      purchasePackSize: itemData?.purchasePackSize
+        ? parseFloat(String(itemData.purchasePackSize))
+        : null,
+      purchasePackLabel: itemData?.purchasePackLabel || null,
     });
 
     /*
@@ -117,14 +124,24 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
      * engolindo o erro da segunda num `console.error`. O item ficava com saldo
      * zero e o operador via "criado com sucesso".
      */
+    /*
+     * `initialQuantity` conta EMBALAGENS quando o item tem uma, e unidades
+     * de estoque quando não tem. Quem faz a conta é o serviço: a tela mostra
+     * o resultado, mas não é ela quem decide.
+     */
     const inicial = itemData?.initialQuantity
       ? parseFloat(String(itemData.initialQuantity))
       : 0;
+    const precoDaEmbalagem = itemData?.cost
+      ? parseFloat(String(itemData.cost))
+      : null;
 
     const result = await InventoryService.criarItemComSaldoInicial(
       admin.storeId,
       createData,
-      inicial > 0 ? { quantidade: inicial, unitId } : undefined,
+      inicial > 0
+        ? { quantidade: inicial, unitId, precoDaEmbalagem }
+        : undefined,
     );
     return serializeInventoryItem(result);
   });
@@ -164,21 +181,51 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    const quantity = data?.quantity ? parseFloat(data.quantity) : 0;
+    const digitado = data?.quantity ? parseFloat(data.quantity) : 0;
+
+    /*
+     * COMPRA EM EMBALAGENS.
+     *
+     * Quando a tela manda `emEmbalagens`, o número digitado conta CAIXAS, não
+     * unidades de estoque: 5 caixas de 30 entram como 150 ovos. O conteúdo vem
+     * do item, cadastrado uma vez, e não do formulário — assim ninguém redigita
+     * "30 por caixa" a cada compra, nem erra o número numa delas.
+     *
+     * Sem `emEmbalagens`, ou em item sem embalagem, `conteudo` é 1 e a conta é
+     * a de sempre. É o caminho de todo item anterior a este conceito.
+     */
+    const item = data?.itemId
+      ? await inventoryItemRepository.findById(admin.storeId, data.itemId)
+      : null;
+    const emEmbalagens =
+      data?.emEmbalagens === true || data?.emEmbalagens === "true";
 
     /*
      * O formulário pergunta o valor TOTAL pago, porque é o que está na nota:
      * "5,2 kg — R$ 41,60". A divisão acontece aqui, não na cabeça do operador,
      * que é onde nasce erro de digitação.
      *
+     * Dividido pela quantidade em UNIDADE DE ESTOQUE — 150, não 5 — para que o
+     * unitário saia R$ 0,50 por ovo, e não R$ 15,00 por caixa disfarçado de
+     * preço do ovo.
+     *
      * Só vale para compra. Perda e ajuste não têm valor pago, e um total
      * enviado por engano num desses tipos é ignorado em vez de virar custo.
      */
     const totalPago = data?.totalPaid ? parseFloat(data.totalPaid) : null;
-    const custoUnitario =
-      data?.type === "PURCHASE" && totalPago != null && totalPago > 0 && quantity > 0
-        ? totalPago / quantity
-        : undefined;
+
+    const movimento = calcularMovimentoDeCompra({
+      digitado,
+      conteudoDoItem: item?.purchasePackSize
+        ? Number(item.purchasePackSize)
+        : null,
+      emEmbalagens,
+      // Só a compra tem valor pago. Perda e ajuste não, e um total enviado por
+      // engano num desses é ignorado em vez de virar custo.
+      totalPago: data?.type === "PURCHASE" ? totalPago : null,
+    });
+    const quantity = movimento.quantity;
+    const custoUnitario = movimento.custoUnitario ?? undefined;
 
     const validated = createInventoryMovementSchema.parse({
       itemId: data?.itemId,

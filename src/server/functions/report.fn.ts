@@ -13,6 +13,7 @@ function serializeItem(item: any) {
     quantityUsedInRecipes: Number(item.quantityUsedInRecipes ?? 0),
     maximumQuantity: Number(item.maximumQuantity ?? 0),
     contentSize: item.contentSize ? Number(item.contentSize) : null,
+    purchasePackSize: item.purchasePackSize ? Number(item.purchasePackSize) : null,
     cost: item.cost ? Number(item.cost) : null,
     minimumThreshold: item.minimumThreshold ? Number(item.minimumThreshold) : null,
     idealQuantity: item.idealQuantity ? Number(item.idealQuantity) : null,
