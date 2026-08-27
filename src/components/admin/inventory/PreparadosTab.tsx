@@ -62,10 +62,20 @@ type Corrida = {
   criadaEm: string | Date;
 };
 
+/** R$ 7.200,00 — e não "R$ 7200.00", que ninguém lê como dinheiro daqui. */
 const brl = (v: number | null | undefined) =>
-  v == null ? "—" : `R$ ${Number(v).toFixed(2)}`;
+  v == null
+    ? "—"
+    : Number(v).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+
+/** 5,2 — vírgula decimal, e sem zeros que só poluem: 4 em vez de 4,000. */
 const num = (v: number | null | undefined, casas = 3) =>
-  v == null ? "—" : Number(v).toFixed(casas).replace(/\.?0+$/, "");
+  v == null
+    ? "—"
+    : Number(v).toLocaleString("pt-BR", { maximumFractionDigits: casas });
 
 export function PreparadosTab() {
   const [preparados, setPreparados] = useState<Preparado[]>([]);
@@ -386,6 +396,32 @@ function FichaDePreparado(props: {
       ? custoEstimado / rendimentoNum
       : null;
 
+  const codigoDaUnidade = (id: string) =>
+    props.unidades.find((u) => u.id === id)?.code ?? "";
+
+  const nomeExibido = editando
+    ? props.existente!.nome
+    : nome.trim() || "este preparado";
+  const unidadeDoRendimento = codigoDaUnidade(yieldUnitId);
+
+  /*
+   * A frase que liga os campos.
+   *
+   * Sem ela a tela mostra "Quantidade: 5,2 kg" e "Rendimento: 4 kg" em caixas
+   * separadas, e cabe ao usuário descobrir sozinho que um vira o outro. É
+   * justamente aí que "rendimento" era lido como "quanto de ingrediente eu
+   * uso" — o contrário do que o campo significa.
+   */
+  const insumosPreenchidos = linhas
+    .map((l) => ({
+      nome: props.insumos.find((i) => i.id === l.inventoryItemId)?.nome,
+      quantidade: parseFloat(l.quantidade),
+      unidade: codigoDaUnidade(l.unitId),
+    }))
+    .filter((l) => l.nome && Number.isFinite(l.quantidade) && l.quantidade > 0);
+
+  const temResumo = insumosPreenchidos.length > 0 && rendimentoNum > 0;
+
   const salvar = () => {
     const items = linhas
       .filter((l) => l.inventoryItemId && parseFloat(l.quantidade) > 0)
@@ -414,33 +450,71 @@ function FichaDePreparado(props: {
     <Modal titulo={props.titulo} onFechar={props.onCancelar}>
       <div className="space-y-4">
         {!editando && (
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1">Nome *</label>
+          <>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Nome do preparado *
+              </label>
               <input
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Molho de tomate"
                 className="w-full px-3 py-2 border rounded"
               />
+              <p className="text-xs text-neutral-600 mt-1">
+                Como você chama o que está sendo produzido. Ex.: Molho de
+                tomate, Massa de pizza, Recheio de frango.
+              </p>
             </div>
+
             <div>
-              <label className="block text-sm font-medium mb-1">Contado em *</label>
+              <label className="block text-sm font-medium mb-1">
+                Unidade do preparado *
+              </label>
               <select
                 value={baseUnitId}
                 onChange={(e) => setBaseUnitId(e.target.value)}
                 className="w-full px-3 py-2 border rounded"
               >
                 {props.unidades.map((u) => (
-                  <option key={u.id} value={u.id}>{u.code}</option>
+                  <option key={u.id} value={u.id}>
+                    {u.code} — {u.name.toLowerCase()}
+                  </option>
                 ))}
               </select>
+              <p className="text-xs text-neutral-600 mt-1">
+                Escolha como você controla o estoque desse preparado.
+              </p>
+              <ul className="text-xs text-neutral-600 mt-1 space-y-0.5">
+                <li>
+                  <strong>kg</strong> — se você controla por peso
+                </li>
+                <li>
+                  <strong>L</strong> — se controla por volume
+                </li>
+                <li>
+                  <strong>un</strong> — se cada produção gera unidades
+                </li>
+              </ul>
             </div>
-          </div>
+          </>
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-2">Insumos *</label>
+          <label className="block text-sm font-medium mb-1">
+            O que é usado para fazer este preparado? *
+          </label>
+          <p className="text-xs text-neutral-600 mb-2">
+            Adicione os ingredientes ou insumos usados na receita e informe
+            quanto é utilizado.
+          </p>
+          {linhas.length > 0 && (
+            <div className="grid grid-cols-12 gap-2 text-xs text-neutral-500 mb-1 px-1">
+              <span className="col-span-6">Ingrediente</span>
+              <span className="col-span-3 text-right">Quanto usa</span>
+              <span className="col-span-2">Unidade</span>
+            </div>
+          )}
           <div className="space-y-2">
             {linhas.map((l, idx) => (
               <div key={idx} className="grid grid-cols-12 gap-2 items-center">
@@ -495,7 +569,13 @@ function FichaDePreparado(props: {
         </div>
 
         <div className="p-3 bg-neutral-50 rounded">
-          <label className="block text-sm font-medium mb-1">Rendimento *</label>
+          <label className="block text-sm font-medium mb-1">
+            Quanto esta receita produz? *
+          </label>
+          <p className="text-xs text-neutral-600 mb-2">
+            Informe quanto de preparado <strong>pronto</strong> você espera
+            obter usando os insumos acima.
+          </p>
           <div className="flex gap-2 items-center">
             <input
               type="number"
@@ -511,23 +591,66 @@ function FichaDePreparado(props: {
               className="px-3 py-2 border rounded"
             >
               {props.unidades.map((u) => (
-                <option key={u.id} value={u.id}>{u.code}</option>
+                <option key={u.id} value={u.id}>
+                  {u.code} — {u.name.toLowerCase()}
+                </option>
               ))}
             </select>
           </div>
-          <p className="text-xs text-neutral-600 mt-2">
-            Quanto esta receita produz. É a expectativa — o que sai da balança é
-            informado a cada produção, e a diferença entre os dois é o que mede a
-            cozinha.
+
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5 mt-2">
+            <strong>Não</strong> é a quantidade de ingrediente usada — é quanto
+            de produto pronto sai da produção. Ex.: 5,2 kg de tomate rendem 4 kg
+            de molho.
           </p>
-          {custoPorUnidade != null && (
-            <p className="text-xs text-neutral-800 mt-2">
-              Custo estimado: <strong>{brl(custoEstimado)}</strong> ÷{" "}
-              {num(rendimentoNum)} = <strong>{brl(custoPorUnidade)}</strong> por
-              unidade. O custo real vem da produção.
-            </p>
-          )}
         </div>
+
+        {/*
+          O resumo que liga os campos.
+
+          Sem ele a tela mostra "Quantidade: 5,2 kg" e "Rendimento: 4 kg" em
+          caixas separadas, e cabe ao usuário descobrir sozinho que um vira o
+          outro. Era aí que "rendimento" virava "quanto de ingrediente eu uso".
+        */}
+        {temResumo && (
+          <div className="p-3 rounded border border-neutral-300 bg-white">
+            <p className="text-sm text-neutral-800">
+              {insumosPreenchidos.map((i, idx) => (
+                <span key={idx}>
+                  {idx > 0 && <span className="text-neutral-500"> + </span>}
+                  <strong>
+                    {num(i.quantidade)} {i.unidade}
+                  </strong>{" "}
+                  de {i.nome!.toLowerCase()}
+                </span>
+              ))}
+              <span className="text-neutral-500"> → produz aproximadamente </span>
+              <strong>
+                {num(rendimentoNum)} {unidadeDoRendimento}
+              </strong>{" "}
+              de {nomeExibido.toLowerCase()}
+            </p>
+
+            {custoPorUnidade != null && (
+              <div className="mt-3 pt-3 border-t">
+                <p className="text-sm text-neutral-800">
+                  Custo estimado do preparado
+                </p>
+                <p className="text-xl font-semibold text-neutral-900 mt-0.5">
+                  {brl(custoEstimado)}
+                </p>
+                <p className="text-sm text-neutral-800 mt-1">
+                  Custo estimado por {unidadeDoRendimento}:{" "}
+                  <strong>{brl(custoPorUnidade)}</strong>
+                </p>
+                <p className="text-xs text-neutral-600 mt-2">
+                  Esse é o custo esperado com base nos insumos da receita. O
+                  custo real será calculado quando você produzir.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={props.onCancelar} className="px-4 py-2 border rounded text-sm">
