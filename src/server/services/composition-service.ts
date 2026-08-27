@@ -10,7 +10,6 @@ import type {
   CreateProductCompositionInput,
   UpdateProductCompositionInput,
 } from "@/lib/estoque-schemas";
-import { InventoryService } from "./inventory-service";
 
 export class CompositionService {
   /**
@@ -264,90 +263,5 @@ export class CompositionService {
    */
   static async markAsUsed(compositionId: string) {
     return productCompositionRepository.markAsUsed(compositionId);
-  }
-
-  /**
-   * Consume ingredients from a composition (recipe)
-   * Decreases inventory items based on recipe quantities
-   * Handles unit conversion (e.g., grams to potes)
-   */
-  static async consumeComposition(
-    storeId: string,
-    compositionId: string,
-    quantityToProduce: number = 1,
-    authorData?: { authorType?: string; authorId?: string; authorName?: string },
-    /**
-     * Identifica esta execucao. E o que torna a chave de idempotencia estavel:
-     * duas chamadas para o mesmo pedido geram a mesma chave, e a segunda e
-     * reconhecida como repeticao em vez de descontar de novo.
-     */
-    referencia: string = "AVULSO",
-  ) {
-    const composition = await productCompositionRepository.findById(
-      storeId,
-      compositionId
-    );
-    if (!composition) {
-      throw new Error("Composition not found");
-    }
-
-    if (!composition.items || composition.items.length === 0) {
-      throw new Error("Composition has no items");
-    }
-
-    return prisma.$transaction(async (tx) => {
-      // For each item in the composition, create a CONSUMPTION movement
-      for (const compItem of composition.items) {
-        const inventoryItem = await inventoryItemRepository.findById(
-          storeId,
-          compItem.inventoryItemId
-        );
-        if (!inventoryItem) continue;
-
-        // Calculate quantity to consume
-        // compItem.quantity is in the unit specified by compItem.unit
-        // We need to convert to the inventory item's base unit if they differ
-        let quantityToConsume = Number(compItem.quantity) * quantityToProduce;
-
-        // If units are different, convert using contentSize
-        if (compItem.unit.id !== inventoryItem.baseUnit.id) {
-          // The composition specifies quantity in compItem.unit
-          // But inventory is tracked in baseUnit
-          // If contentSize exists, use it for conversion
-          if (inventoryItem.contentSize) {
-            // contentSize = how many base units are in 1 unit of the product
-            // e.g., 1 pote = 500g, so contentSize = 500
-            // If recipe uses 45g and product is in potes (500g/pote):
-            // quantityToConsume in potes = 45 / 500 = 0.09 potes
-            quantityToConsume = quantityToConsume / Number(inventoryItem.contentSize);
-          }
-        }
-
-        // Record CONSUMPTION movement
-        // Deterministica: Date.now() aqui anulava o indice unico — cada chamada
-        // gerava chave nova, e uma retentativa descontava duas vezes.
-        const idempotencyKey = `${storeId}#COMPOSITION#${compositionId}#${referencia}#${compItem.inventoryItemId}`;
-
-        await InventoryService.recordMovement(storeId, {
-          ...(compItem.inventoryItemId ? { item: { connect: { id: compItem.inventoryItemId } } } : {}),
-          type: "CONSUMPTION",
-          quantity: -quantityToConsume, // Negative for consumption
-          unit: { connect: { id: inventoryItem.baseUnit.id } },
-          reference: compositionId,
-          referenceType: "COMPOSITION",
-          note: `Consumido por receita (${quantityToProduce}x)`,
-          authorType: authorData?.authorType || "SYSTEM",
-          authorId: authorData?.authorId,
-          authorName: authorData?.authorName,
-          idempotencyKey,
-          composition: { connect: { id: compositionId } },
-        } as any);
-      }
-
-      // Nota: Não marcamos como usada aqui. A receita pode continuar sendo editada.
-      // A marcação de "usada" apenas congela para edições, o que não queremos.
-
-      return composition;
-    });
   }
 }

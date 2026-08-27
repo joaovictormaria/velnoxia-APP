@@ -112,11 +112,41 @@ export class InventoryService {
    */
   static async recordMovement(
     storeId: string,
-    data: CreateInventoryMovementInput & { idempotencyKey: string }
+    data: CreateInventoryMovementInput & {
+      idempotencyKey: string;
+      /**
+       * Custo unitário a congelar neste movimento.
+       *
+       * Sem isto, `costAtTime` sai sempre do custo que o item JÁ TINHA. Para
+       * um consumo é o certo. Para uma entrada é o contrário: a compra e a
+       * produção ESTABELECEM um custo, não o herdam — a compra pelo preço
+       * pago, a produção pelo que a corrida apurou.
+       *
+       * Quando não vem, o comportamento é exatamente o de antes. Nenhum
+       * chamador existente passa este campo.
+       */
+      costAtTime?: number | string | null;
+      /**
+       * Se este movimento pode deixar `quantityOnHand` negativo.
+       *
+       * Quando não vem, vale a regra da Fase 1: consumo pode, o resto não.
+       * Existe para que a produção diga NÃO explicitamente — ela também grava
+       * `CONSUMPTION`, e sem isto herdaria a permissão do pedido.
+       *
+       * A distinção é de fato, não de tipo. No pedido a comida já foi vendida
+       * e a cozinha já usou: recusar apagaria o registro do que aconteceu. Na
+       * produção há um humano na frente da tela e ainda dá para não começar.
+       */
+      permitirSaldoNegativo?: boolean;
+    }
   ) {
     const itemId = (data as any).itemId as string;
     const unitId = (data as any).unitId as string;
     const originalMovementId = (data as any).originalMovementId as string | undefined;
+    const custoExplicito = (data as any).costAtTime as number | string | null | undefined;
+    const permitirNegativoExplicito = (data as any).permitirSaldoNegativo as
+      | boolean
+      | undefined;
 
     // Atalho: se já existe, devolve sem abrir transação. Não é a garantia.
     const existing = await inventoryMovementRepository.findByIdempotencyKey(
@@ -175,9 +205,22 @@ export class InventoryService {
             referenceType: data.referenceType,
             originalMovementId,
             compositionId: (data as any).compositionId,
-            // Congela o custo do momento: sem isto, mudar o preço do insumo
-            // reescreveria o custo de tudo que já foi vendido.
-            costAtTime: travado.cost === null ? null : travado.cost,
+            // A corrida que gerou este movimento, quando houver. É o que
+            // distingue o preparado produzido do preparado comprado pronto.
+            productionRunId: (data as any).productionRunId,
+            /*
+             * Congela o custo do momento: sem isto, mudar o preço do insumo
+             * reescreveria o custo de tudo que já foi vendido.
+             *
+             * O custo explícito ganha quando vem, porque entradas estabelecem
+             * custo em vez de herdá-lo. Sem ele, vale a linha travada.
+             */
+            costAtTime:
+              custoExplicito !== undefined
+                ? custoExplicito
+                : travado.cost === null
+                  ? null
+                  : travado.cost,
             note: data.note,
             authorType: data.authorType,
             authorId: data.authorId,
@@ -233,9 +276,22 @@ export class InventoryService {
          * barrada: ali o negativo seria erro de digitação, não fato consumado.
          */
         const saldoDepois = Number(travado.quantityOnHand) + (delta.onHand ?? 0);
+
+        /*
+         * Quem decide é o chamador, quando ele diz. Só quando não diz é que
+         * vale a regra herdada da Fase 1.
+         *
+         * O default continua sendo a derivação antiga, e não `false`, por uma
+         * razão prática: o caminho do pedido não passa o campo, e mudá-lo para
+         * `false` faria pedidos com estoque curto passarem a ser RECUSADOS —
+         * o oposto do que a Fase 1 decidiu, e uma regressão que só apareceria
+         * na cozinha. Assim a produção diz `false` de propósito, a reversão de
+         * produção diz `true` de propósito, e o pedido segue como está.
+         */
         const podeFicarNegativo =
-          data.type === "CONSUMPTION" ||
-          (data.type === "REVERSAL" && original?.type === "CONSUMPTION");
+          permitirNegativoExplicito ??
+          (data.type === "CONSUMPTION" ||
+            (data.type === "REVERSAL" && original?.type === "CONSUMPTION"));
         if (delta.onHand && saldoDepois < 0 && !podeFicarNegativo) {
           throw new Error(
             `Não há estoque suficiente. Disponível: ${travado.quantityOnHand}, solicitado: ${Math.abs(delta.onHand)}`
