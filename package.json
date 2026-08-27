@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "prisma generate && node scripts/dev.mjs",
     "build": "prisma generate && vite build",
     "start": "prisma migrate deploy && node .output/server/index.mjs",
     "postinstall": "prisma generate",

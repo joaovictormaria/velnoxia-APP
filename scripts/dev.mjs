@@ -11,7 +11,7 @@
  */
 import { config } from "dotenv";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,6 +59,68 @@ console.log(`[dev] banco: ${host}:${new URL(url).port} — local, nao e producao
  * conferencia final vive dentro da app, em src/server/db/client.ts, que roda
  * com o valor que realmente vale na hora de abrir a conexao.
  */
+/*
+ * O cliente Prisma bate com o schema?
+ *
+ * ISTO NASCEU DE UMA CACADA DE UMA HORA. A aba Preparados abriu com
+ * "Cannot read properties of undefined (reading 'findMany')" e nao havia
+ * defeito nenhum no codigo: o servidor tinha sido iniciado as 23h32, o schema
+ * mudou as 23h35 e o `prisma generate` so rodou as 01h38. O processo segurava
+ * um cliente gerado antes de `ProductionRun` existir, e `prisma.productionRun`
+ * era `undefined`.
+ *
+ * O `prisma generate` no script do npm impede que aconteca de novo. Esta
+ * conferencia existe para o caso em que ele falha em silencio — e porque a
+ * mensagem "undefined.findMany" nao diz qual modelo faltou nem por que, o que
+ * transforma cinco segundos de conserto em uma hora de investigacao.
+ */
+async function conferirCliente() {
+  const schema = readFileSync(resolve(raiz, "prisma/schema.prisma"), "utf8");
+  const doSchema = [...schema.matchAll(/^model\s+(\w+)\s*\{/gm)]
+    .map((m) => m[1])
+    .map((n) => n[0].toLowerCase() + n.slice(1));
+
+  let cliente;
+  try {
+    cliente = await import("@prisma/client");
+  } catch {
+    console.error("\nNao consegui carregar @prisma/client. Rode: npx prisma generate\n");
+    process.exit(1);
+  }
+
+  /*
+   * `Prisma.ModelName` e o mapa de modelos que o generate escreve. Ler dali nao
+   * abre conexao nenhuma — instanciar o PrismaClient exigiria um adapter, e a
+   * pergunta aqui e sobre o CLIENTE, nao sobre o banco.
+   */
+  const doCliente = new Set(
+    Object.keys(cliente.Prisma?.ModelName ?? {}).map(
+      (n) => n[0].toLowerCase() + n.slice(1),
+    ),
+  );
+
+  if (doCliente.size === 0) {
+    console.error("\nO cliente Prisma nao expoe modelo nenhum. Rode: npx prisma generate\n");
+    process.exit(1);
+  }
+
+  const faltando = doSchema.filter((m) => !doCliente.has(m));
+
+  if (faltando.length > 0) {
+    console.error(
+      `\nO cliente Prisma esta desatualizado em relacao ao schema.\n\n` +
+        `  modelos ausentes: ${faltando.join(", ")}\n\n` +
+        `Rode "npx prisma generate" e suba o servidor de novo. Um processo ja em\n` +
+        `execucao NAO recarrega o cliente: e preciso reinicia-lo.\n`,
+    );
+    process.exit(1);
+  }
+
+  console.log(`[dev] cliente Prisma confere com o schema (${doSchema.length} modelos)`);
+}
+
+await conferirCliente();
+
 const filho = spawn("npx", ["vite", "dev"], {
   stdio: "inherit",
   shell: true,

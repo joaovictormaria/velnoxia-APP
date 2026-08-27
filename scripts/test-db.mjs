@@ -43,4 +43,34 @@ if (acao === 'down') {
 
 run('docker', ['compose', '-f', 'docker-compose.test.yml', 'up', '-d', '--wait']);
 run('npx', ['prisma', 'migrate', 'deploy']);
-console.log(`\nBanco de teste pronto em ${host}. Rode: npm test`);
+
+/*
+ * A marca que autoriza a suíte a destruir este banco.
+ *
+ * A suíte faz `TRUNCATE ... CASCADE` em todas as tabelas, e se recusa a rodar
+ * sem encontrar esta tabela. Ela é criada AQUI, e só aqui: se o próprio
+ * `vitest.setup.ts` a criasse, a trava se abriria sozinha no primeiro banco em
+ * que fosse apontada — que é exatamente o acidente que ela existe para impedir.
+ *
+ * Durante a Fase 2, desenvolvimento e teste dividiam o mesmo banco e cada
+ * `npm test` apagava o ambiente de trabalho de alguém. Esta linha é o que
+ * torna aquilo impossível de repetir por engano.
+ */
+const marcador = `
+  CREATE TABLE IF NOT EXISTS "_banco_descartavel" (
+    id        int PRIMARY KEY DEFAULT 1,
+    criado_em timestamptz NOT NULL DEFAULT now(),
+    aviso     text NOT NULL DEFAULT 'Este banco e descartavel: a suite de testes apaga todas as tabelas dele. NUNCA aponte desenvolvimento ou producao para ca.',
+    CONSTRAINT "_banco_descartavel_uma_linha" CHECK (id = 1)
+  );
+  INSERT INTO "_banco_descartavel" (id) VALUES (1) ON CONFLICT DO NOTHING;
+`;
+
+const { Client } = await import('pg');
+const conexao = new Client({ connectionString: url });
+await conexao.connect();
+await conexao.query(marcador);
+await conexao.end();
+
+console.log(`\nBanco de teste pronto em ${host}, marcado como descartável.`);
+console.log(`Rode: npm test`);
