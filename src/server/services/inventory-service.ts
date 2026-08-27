@@ -186,7 +186,60 @@ export class InventoryService {
       throw new Error("SKU or barcode already exists in this store");
     }
 
-    await inventoryItemRepository.update(storeId, itemId, data);
+    /*
+     * A EMBALAGEM TAMBÉM SE EDITA.
+     *
+     * O item já existe e só agora se soube que vem em caixa de 30. Informar
+     * "preço da caixa = R$ 15,00" tem que gravar R$ 0,50 no `cost`, porque
+     * `cost` é R$ por unidade de ESTOQUE em todo o sistema — nunca R$ 15,00,
+     * que é o preço da CAIXA, e nunca R$ 15,00 × quantidade.
+     *
+     * O conteúdo usado é o que o item VAI ter depois deste update: mudar de
+     * caixa de 30 para caixa de 12 na mesma gravação recalcula por 12.
+     *
+     * `precoDaEmbalagem` não é coluna: sai daqui antes de chegar ao Prisma.
+     */
+    const {
+      precoDaEmbalagem,
+      /*
+       * A UNIDADE DE ESTOQUE É IMUTÁVEL, e a garantia mora aqui.
+       *
+       * Trocá-la reinterpretaria em silêncio três coisas já gravadas: o saldo
+       * (30 un virariam 30 kg), o `cost` (R$/un viraria R$/kg) e todo
+       * movimento passado, que guarda a própria unidade. Nada daria erro — o
+       * número mudaria de significado e ninguém perceberia.
+       *
+       * O zod da server function já não expõe o campo, mas isso é o caminho
+       * HTTP. Quem chama o serviço direto — teste, script, código futuro —
+       * passava reto. Descartar aqui é o que torna a regra uma regra.
+       */
+      baseUnitId: _unidadeImutavel,
+      ...campos
+    } = data as UpdateInventoryItemInput & {
+      precoDaEmbalagem?: number | null;
+      baseUnitId?: string;
+    };
+
+    if (precoDaEmbalagem != null) {
+      const conteudo = conteudoDaEmbalagem(
+        campos.purchasePackSize !== undefined
+          ? campos.purchasePackSize
+          : (item as any).purchasePackSize,
+      );
+      const compra = calcularCompra({
+        embalagens: 1,
+        conteudoPorEmbalagem: conteudo,
+        precoDaEmbalagem,
+      });
+      if (compra.custoPorUnidade != null) campos.cost = compra.custoPorUnidade;
+    }
+
+    /*
+     * O que já foi gravado NÃO se mexe. Cada movimento tem seu `costAtTime`
+     * congelado, e mudar a embalagem hoje não pode reescrever o que a compra
+     * de ontem custou — senão o histórico deixa de ser histórico.
+     */
+    await inventoryItemRepository.update(storeId, itemId, campos);
     return inventoryItemRepository.findById(storeId, itemId);
   }
 

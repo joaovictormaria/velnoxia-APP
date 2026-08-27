@@ -24,6 +24,9 @@ interface InventoryItem {
   quantityReserved: number;
   cost: number;
   isActive: boolean;
+  /** Embalagem de compra, para poder editá-la depois do cadastro. */
+  purchasePackSize?: number | null;
+  purchasePackLabel?: string | null;
 }
 
 interface SortConfig {
@@ -75,6 +78,7 @@ export function InventoryGrid(props: InventoryGridProps) {
   const rotuloDaEmbalagem = newItem.purchasePackLabel.trim() || "embalagem";
   const conteudo = conteudoDaEmbalagem(parseFloat(newItem.purchasePackSize));
   const temEmbalagem = conteudo > 1;
+
 
   const compra = calcularCompra({
     embalagens: parseFloat(newItem.initialQuantity),
@@ -129,7 +133,11 @@ export function InventoryGrid(props: InventoryGridProps) {
                 style: "currency",
                 currency: "BRL",
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 4,
+                // Duas casas, como toda moeda na tela. O valor GRAVADO tem mais
+                // casas que isto — R$ 17,00 / 30 = 0,566667 — entao o custo por
+                // unidade mostrado x quantidade nao fecha exatamente com o
+                // total. Quem manda no calculo e o gravado, nao este texto.
+                maximumFractionDigits: 2,
               })}
             </strong>
           </div>
@@ -234,11 +242,22 @@ export function InventoryGrid(props: InventoryGridProps) {
     setNewItem({
       name: item.name,
       baseUnitId: item.baseUnitId,
-      cost: item.cost?.toString() || "",
+      /*
+       * O campo de preço pergunta o preço da EMBALAGEM, igual ao cadastro. O
+       * que está gravado é o unitário, então multiplica de volta: R$ 0,50 o ovo
+       * em caixa de 30 aparece como R$ 15,00 a caixa. Assim reabrir e salvar
+       * sem mexer devolve exatamente o mesmo custo — sem isso, cada abertura
+       * dividiria o custo por 30 de novo.
+       */
+      cost:
+        item.cost != null
+          ? String(item.cost * conteudoDaEmbalagem(item.purchasePackSize))
+          : "",
       itemType: item.itemType,
       initialQuantity: "",
-      purchasePackLabel: "",
-      purchasePackSize: "",
+      purchasePackLabel: item.purchasePackLabel ?? "",
+      purchasePackSize:
+        item.purchasePackSize != null ? String(item.purchasePackSize) : "",
     });
     setShowCreateModal(true);
   };
@@ -285,7 +304,15 @@ export function InventoryGrid(props: InventoryGridProps) {
           data: {
             itemId: editingItemId,
             name: newItem.name || "",
-            cost: newItem.cost && newItem.cost.trim() ? newItem.cost : "",
+            /*
+             * `precoDaEmbalagem`, e não `cost`: quem divide pelo conteúdo é o
+             * serviço. Mandar isto como `cost` gravaria R$ 15,00 como preço do
+             * OVO — o erro que a embalagem existe para não cometer.
+             */
+            precoDaEmbalagem:
+              newItem.cost && newItem.cost.trim() ? newItem.cost : undefined,
+            purchasePackSize: newItem.purchasePackSize?.trim() ?? "",
+            purchasePackLabel: newItem.purchasePackLabel?.trim() ?? "",
           }
         } as any);
         showToast(`✅ Item "${newItem.name}" atualizado com sucesso!`);
@@ -384,6 +411,28 @@ export function InventoryGrid(props: InventoryGridProps) {
               </div>
             )}
 
+            {editingItemId && (
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Unidade de estoque
+                </label>
+                {/*
+                  Só leitura, e não por preguiça: trocar a unidade
+                  reinterpretaria em silêncio o saldo, o custo e todo movimento
+                  já gravado. O servidor descarta o campo mesmo se ele vier.
+                */}
+                <input
+                  value={codigoDaUnidade}
+                  disabled
+                  className="w-full px-3 py-2 border rounded bg-neutral-100 text-neutral-700"
+                />
+                <p className="text-xs text-neutral-600 mt-1">
+                  A unidade não muda depois do cadastro — o saldo e o histórico
+                  estão contados nela.
+                </p>
+              </div>
+            )}
+
             {!editingItemId && (
               <div>
                 <label className="block text-sm font-medium mb-1">Unidade *</label>
@@ -403,7 +452,9 @@ export function InventoryGrid(props: InventoryGridProps) {
               </div>
             )}
 
-            {!editingItemId && (
+            {/* Também na edição: o item já existe e só agora se soube que vem
+                em caixa de 30. */}
+            {(
               <div>
                 <label className="block text-sm font-medium mb-1">
                   Compra em embalagem? (Opcional)
@@ -456,6 +507,31 @@ export function InventoryGrid(props: InventoryGridProps) {
                 step="0.01"
                 className="w-full px-3 py-2 border rounded bg-background text-foreground"
               />
+              {/*
+                Na edição não há quantidade inicial, então o resumo da compra
+                não aparece — mas o número que importa é este, e ele precisa
+                estar à vista na hora de digitar: R$ 15,00 a caixa de 30 tem
+                que virar R$ 0,50 o ovo, e nunca R$ 15,00 o ovo.
+              */}
+              {editingItemId && compra.custoPorUnidade != null && (
+                <p className="text-sm text-neutral-800 mt-1">
+                  Custo por {codigoDaUnidade || "unidade"}:{" "}
+                  <strong>
+                    {compra.custoPorUnidade.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </strong>
+                  {temEmbalagem && (
+                    <span className="text-neutral-600">
+                      {" "}({rotuloDaEmbalagem} de{" "}
+                      {conteudo.toLocaleString("pt-BR")})
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
 
             {!editingItemId && (

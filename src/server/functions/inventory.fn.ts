@@ -157,6 +157,12 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
     barcode: z.string().optional(),
     cost: z.string().optional(),
     isActive: z.string().optional(),
+    // A embalagem tambem se edita: o item ja existe e so agora se soube que
+    // vem em caixa de 30. Sem estes tres, o .validator descartava tudo em
+    // silencio antes de o handler ver.
+    purchasePackSize: z.string().optional(),
+    purchasePackLabel: z.string().optional(),
+    precoDaEmbalagem: z.string().optional(),
   }))
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
@@ -167,6 +173,18 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
       barcode: data.barcode ? data.barcode : undefined,
       cost: data.cost ? parseFloat(data.cost) : undefined,
       isActive: data.isActive !== undefined ? data.isActive === "true" : undefined,
+      purchasePackSize: data.purchasePackSize
+        ? parseFloat(data.purchasePackSize)
+        : data.purchasePackSize === ""
+          ? null
+          : undefined,
+      purchasePackLabel:
+        data.purchasePackLabel === ""
+          ? null
+          : data.purchasePackLabel || undefined,
+      precoDaEmbalagem: data.precoDaEmbalagem
+        ? parseFloat(data.precoDaEmbalagem)
+        : undefined,
     });
 
     const result = await InventoryService.updateItem(admin.storeId, data.itemId, validated);

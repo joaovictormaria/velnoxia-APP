@@ -79,6 +79,18 @@ export const updateInventoryItemSchema = z.object({
   purchasePackSize: z.number().positive().nullish(),
   /** Como o fornecedor chama a embalagem: caixa, fardo, bandeja. */
   purchasePackLabel: z.string().max(50).nullish(),
+  /**
+   * Preço de UMA embalagem, para recalcular o custo unitário.
+   *
+   * CAMPO SEPARADO DE `cost` DE PROPÓSITO. `cost` é, e continua sendo, R$ por
+   * unidade de ESTOQUE — é o que costAtTime, o custo da ficha e o custo do
+   * preparado consomem. Se o mesmo campo às vezes significasse "preço da caixa",
+   * bastaria um caminho esquecer de dividir para gravar R$ 15,00 como preço do
+   * ovo. Aqui a intenção é explícita e a divisão acontece no serviço.
+   *
+   * NÃO é coluna do banco: o serviço consome e remove antes de gravar.
+   */
+  precoDaEmbalagem: z.number().positive().nullish(),
 });
 
 export type UpdateInventoryItemInput = z.infer<
