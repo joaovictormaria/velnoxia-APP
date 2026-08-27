@@ -338,6 +338,31 @@ export class InventoryCostService {
     > = {};
 
     for (const order of orders) {
+      /*
+       * O custo do pedido é apurado UMA VEZ, aqui fora.
+       *
+       * Antes esta chamada ficava dentro do laço de itens, somando o custo do
+       * pedido inteiro a cada linha: um pedido com três produtos contava o
+       * custo três vezes, e a margem saía negativa sem que nada estivesse
+       * errado na cozinha.
+       */
+      const custoDoPedido = await this.calculateOrderCost(storeId, order.id);
+
+      /*
+       * Rateio proporcional ao valor de venda de cada linha.
+       *
+       * É uma APROXIMAÇÃO, e vale dizer por quê: o custo real por produto
+       * exigiria rastrear cada movimento de consumo até o item de pedido que o
+       * originou, e o razão guarda o vínculo com o PEDIDO, não com a linha.
+       * Ratear pelo preço assume que produtos mais caros consomem mais — falso
+       * no detalhe, razoável no agregado, e infinitamente melhor do que contar
+       * o mesmo custo N vezes.
+       */
+      const vendaDoPedido = order.items.reduce(
+        (soma, i) => soma.add(new Decimal(i.unitPrice).mul(i.quantity)),
+        new Decimal(0),
+      );
+
       for (const item of order.items) {
         /*
          * `productNameSnapshot` e não `product.name`: é o nome congelado no
@@ -364,10 +389,11 @@ export class InventoryCostService {
         profitByProduct[key].totalSales =
           profitByProduct[key].totalSales.add(itemSalesValue);
 
-        // Custo (via composiÃ§Ã£o)
-        const cost = await this.calculateOrderCost(storeId, order.id);
+        const fatia = vendaDoPedido.isZero()
+          ? new Decimal(0)
+          : itemSalesValue.dividedBy(vendaDoPedido);
         profitByProduct[key].totalCost = profitByProduct[key].totalCost.add(
-          cost.totalCost
+          custoDoPedido.totalCost.mul(fatia),
         );
         profitByProduct[key].orders += 1;
       }

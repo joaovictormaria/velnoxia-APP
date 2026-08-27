@@ -298,7 +298,25 @@ export class InventoryService {
           );
         }
 
-        if (delta.onHand || delta.reserved) {
+        /*
+         * A COMPRA ESTABELECE O CUSTO DO ITEM.
+         *
+         * É a metade de compra da regra "custo = o da aquisição não revertida
+         * mais recente"; a metade de produção é escrita pela corrida, que só
+         * conhece o unitário depois de somar todos os insumos.
+         *
+         * Aqui dentro, e não numa segunda escrita depois, porque a linha já
+         * está travada: separar as duas abriria uma janela em que duas compras
+         * simultâneas gravam movimentos em ordem e custos em ordem inversa.
+         *
+         * Só quando o custo vem explícito. Sem ele, uma compra não mexe no
+         * custo — que é o comportamento de hoje, e o que vale enquanto o
+         * formulário de movimento não tiver campo de preço.
+         */
+        const ehAquisicaoComPreco =
+          data.type === "PURCHASE" && custoExplicito !== undefined && custoExplicito !== null;
+
+        if (delta.onHand || delta.reserved || ehAquisicaoComPreco) {
           await tx.inventoryItem.update({
             where: { id: itemId },
             data: {
@@ -306,6 +324,7 @@ export class InventoryService {
               // linha travada.
               ...(delta.onHand ? { quantityOnHand: { increment: delta.onHand } } : {}),
               ...(delta.reserved ? { quantityReserved: { increment: delta.reserved } } : {}),
+              ...(ehAquisicaoComPreco ? { cost: custoExplicito } : {}),
             },
           });
         }

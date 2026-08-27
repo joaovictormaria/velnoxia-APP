@@ -13,6 +13,7 @@ import type {
   AtualizarReceitaDePreparadoInput,
 } from "@/lib/estoque-schemas";
 import { CicloDeReceita } from "./ciclo-de-receita";
+import { CustoDoPreparado } from "./custo-do-preparado";
 
 export class CompositionService {
   /**
@@ -253,7 +254,16 @@ export class CompositionService {
       throw new Error("Composition not found");
     }
 
-    return compositionItemRepository.calculateTotalCost(compositionId);
+    /*
+     * Delegado ao serviço de custo. A versão do repositório somava
+     * `quantidade × custo` em `Number` e sem converter unidade — 45 g de um
+     * item contado em potes de 500 g viravam R$ 468,00 em vez de R$ 0,94.
+     */
+    const { total, linhasSemCusto } = await CustoDoPreparado.custoDaFicha(
+      storeId,
+      compositionId,
+    );
+    return { total: Number(total), linhasSemCusto };
   }
 
   /**

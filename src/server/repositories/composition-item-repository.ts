@@ -161,25 +161,5 @@ export const compositionItemRepository = {
     });
   },
 
-  /**
-   * Get total cost of composition
-   * Sums (quantity * inventoryItem.cost) for all items
-   */
-  async calculateTotalCost(compositionId: string) {
-    const items = await prisma.compositionItem.findMany({
-      where: { compositionId },
-      include: { inventoryItem: true },
-    });
-
-    let totalCost = 0;
-    for (const item of items) {
-      if (item.inventoryItem.cost) {
-        totalCost +=
-          Number(item.quantity) * Number(item.inventoryItem.cost);
-      }
-    }
-
-    return totalCost;
-  },
 };
 

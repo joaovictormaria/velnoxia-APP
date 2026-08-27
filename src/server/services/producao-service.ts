@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db/client";
 import { InventoryService } from "@/server/services/inventory-service";
 import { converterParaUnidadeBase } from "@/server/services/composicao-do-pedido";
+import { CustoDoPreparado } from "@/server/services/custo-do-preparado";
 
 /**
  * O motor de produção: transformar insumos em preparado.
@@ -211,15 +212,13 @@ export class ProducaoService {
     await this.desfazerMovimentos(storeId, runId);
 
     /*
-     * O custo volta a ser o da produção anterior que ainda vale. Sem isto o
-     * preparado ficaria precificado por uma corrida que deixou de existir.
+     * A marca de REVERSED vem ANTES do recálculo do custo, e a ordem importa:
+     * `custoDeAquisicaoMaisRecente` decide olhando o estado do banco, e uma
+     * corrida ainda marcada COMPLETED se elegeria a si mesma como a aquisição
+     * mais recente. Marcando primeiro, não é preciso passar "ignore este id" —
+     * o helper simplesmente não a vê mais.
      */
-    await prisma.inventoryItem.update({
-      where: { id: saidaId },
-      data: { cost: await this.custoDaUltimaProducao(storeId, saidaId, runId) },
-    });
-
-    return prisma.productionRun.update({
+    const revertida = await prisma.productionRun.update({
       where: { id: runId },
       data: {
         status: "REVERSED",
@@ -236,6 +235,18 @@ export class ProducaoService {
           : {}),
       },
     });
+
+    /*
+     * O custo volta a ser o da aquisição anterior que ainda vale — e ela pode
+     * ser uma COMPRA, não só outra corrida. Deixar o valor de uma corrida
+     * revertida seria precificar por um fato que deixou de existir.
+     */
+    await prisma.inventoryItem.update({
+      where: { id: saidaId },
+      data: { cost: await CustoDoPreparado.custoDeAquisicaoMaisRecente(storeId, saidaId) },
+    });
+
+    return revertida;
   }
 
   // ------------------------------------------------------------------
@@ -440,24 +451,5 @@ export class ProducaoService {
         authorName: "Reversão de produção",
       } as any);
     }
-  }
-
-  /** O custo da produção anterior que ainda vale, ou nulo se não houver. */
-  private static async custoDaUltimaProducao(
-    storeId: string,
-    itemId: string,
-    ignorarRunId: string,
-  ) {
-    const anterior = await prisma.productionRun.findFirst({
-      where: {
-        storeId,
-        status: "COMPLETED",
-        id: { not: ignorarRunId },
-        composition: { inventoryItemId: itemId },
-      },
-      orderBy: { createdAt: "desc" },
-      select: { unitCost: true },
-    });
-    return anterior?.unitCost ?? null;
   }
 }
