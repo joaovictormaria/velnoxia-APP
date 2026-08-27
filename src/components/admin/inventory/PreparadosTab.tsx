@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import {
+  converterParaUnidadeBase,
+  montarMapaDeConversoes,
+  type MapaDeConversoes,
+} from "@/lib/conversao-de-unidade";
+import {
   adminListarPreparados,
   adminOpcoesDePreparado,
   adminCriarPreparado,
@@ -81,6 +86,7 @@ export function PreparadosTab() {
   const [preparados, setPreparados] = useState<Preparado[]>([]);
   const [insumos, setInsumos] = useState<Insumo[]>([]);
   const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [conversoes, setConversoes] = useState<MapaDeConversoes>(new Map());
   const [historico, setHistorico] = useState<Corrida[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -101,6 +107,7 @@ export function PreparadosTab() {
       setPreparados(lista as any);
       setInsumos((opcoes as any).insumos);
       setUnidades((opcoes as any).unidades);
+      setConversoes(montarMapaDeConversoes((opcoes as any).conversoes ?? []));
       setHistorico(corridas as any);
       setErro(null);
     } catch (e) {
@@ -259,6 +266,7 @@ export function PreparadosTab() {
           titulo="Novo preparado"
           insumos={insumos}
           unidades={unidades}
+          conversoes={conversoes}
           ocupado={ocupado}
           onCancelar={() => setCriando(false)}
           onSalvar={async (dados) => {
@@ -275,6 +283,7 @@ export function PreparadosTab() {
           titulo={`Ficha de ${editandoFicha.nome}`}
           insumos={insumos}
           unidades={unidades}
+          conversoes={conversoes}
           ocupado={ocupado}
           existente={editandoFicha}
           onCancelar={() => setEditandoFicha(null)}
@@ -340,6 +349,7 @@ function FichaDePreparado(props: {
   titulo: string;
   insumos: Insumo[];
   unidades: Unidade[];
+  conversoes: MapaDeConversoes;
   ocupado: boolean;
   existente?: Preparado;
   onCancelar: () => void;
@@ -384,11 +394,34 @@ function FichaDePreparado(props: {
     setLinhas(novas);
   };
 
+  /*
+   * O custo estimado usa A MESMA função de conversão do servidor.
+   *
+   * Aqui existia uma fórmula própria — `insumo.custo * quantidade` — que
+   * ignorava a unidade. 60 g de farinha a R$ 5,00/kg apareciam como R$ 300,00
+   * em vez de R$ 0,30, porque os 60 g eram tratados como 60 kg. Duas fórmulas
+   * para a mesma conta divergem; uma só, não.
+   *
+   * Insumo cuja unidade não dá para converter fica FORA da soma e é contado em
+   * `semConversao`: a tela avisa em vez de mostrar um número inventado.
+   */
+  let semConversao = 0;
   const custoEstimado = linhas.reduce((soma, l) => {
     const insumo = props.insumos.find((i) => i.id === l.inventoryItemId);
     const q = parseFloat(l.quantidade);
-    if (!insumo?.custo || !Number.isFinite(q)) return soma;
-    return soma + insumo.custo * q;
+    if (!insumo?.custo || !Number.isFinite(q) || q <= 0) return soma;
+    try {
+      const naBase = converterParaUnidadeBase(
+        q,
+        l.unitId,
+        { baseUnitId: insumo.baseUnitId, contentSize: null },
+        props.conversoes,
+      );
+      return soma + insumo.custo * naBase;
+    } catch {
+      semConversao++;
+      return soma;
+    }
   }, 0);
   const rendimentoNum = parseFloat(rendimento);
   const custoPorUnidade =
@@ -612,6 +645,15 @@ function FichaDePreparado(props: {
           caixas separadas, e cabe ao usuário descobrir sozinho que um vira o
           outro. Era aí que "rendimento" virava "quanto de ingrediente eu uso".
         */}
+        {semConversao > 0 && (
+          <p className="text-xs text-red-800 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+            Não sei converter a unidade de {semConversao}{" "}
+            {semConversao === 1 ? "insumo" : "insumos"} para a unidade em que
+            ele é contado no estoque. Use a mesma unidade do item, ou uma que
+            tenha conversão — como g e kg.
+          </p>
+        )}
+
         {temResumo && (
           <div className="p-3 rounded border border-neutral-300 bg-white">
             <p className="text-sm text-neutral-800">

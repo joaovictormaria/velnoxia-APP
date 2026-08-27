@@ -1,4 +1,9 @@
 import { prisma } from "@/server/db/client";
+import {
+  converterParaUnidadeBase as converter,
+  montarMapaDeConversoes,
+  type MapaDeConversoes,
+} from "@/lib/conversao-de-unidade";
 
 /** Um insumo e quanto dele um item do pedido consome, já na unidade base. */
 export type InsumoNecessario = {
@@ -48,27 +53,25 @@ export async function resolverComposicao(
   });
 }
 
-/**
- * Converte a quantidade da ficha para a unidade em que o estoque é contado.
- *
- * A receita pensa em gramas; o estoque conta potes. `contentSize` diz quantas
- * unidades base cabem em uma unidade do item — 1 pote = 500 g. Sem ele, e com
- * unidades diferentes, não há como converter: devolver a quantidade crua faria
- * o sistema consumir 45 potes onde a receita pedia 45 g.
+/*
+ * A conversão em si mora em `@/lib/conversao-de-unidade`, função pura e sem
+ * Prisma, porque o formulário de ficha técnica precisa da MESMA conta para
+ * mostrar o custo enquanto a pessoa digita. Reexportada aqui para quem já a
+ * importava deste módulo.
  */
-export function converterParaUnidadeBase(
-  quantidade: number,
-  unitIdDaFicha: string,
-  item: { baseUnitId: string; contentSize: unknown | null },
-): number {
-  if (unitIdDaFicha === item.baseUnitId) return quantidade;
-  const conteudo = item.contentSize == null ? null : Number(item.contentSize);
-  if (!conteudo || conteudo <= 0) {
-    throw new Error(
-      "Não é possível converter a unidade da receita para a do estoque: o insumo não tem contentSize definido.",
-    );
-  }
-  return quantidade / conteudo;
+export { converterParaUnidadeBase } from "@/lib/conversao-de-unidade";
+
+/**
+ * As conversões cadastradas entre unidades, prontas para consulta.
+ *
+ * Uma consulta por operação, não uma por insumo: a tabela é minúscula e não
+ * muda, e ler dentro do laço faria N consultas para uma receita de N linhas.
+ */
+export async function carregarConversoes(): Promise<MapaDeConversoes> {
+  const linhas = await prisma.inventoryUnitConversion.findMany({
+    select: { fromUnitId: true, toUnitId: true, conversionFactor: true },
+  });
+  return montarMapaDeConversoes(linhas);
 }
 
 /**
@@ -88,6 +91,7 @@ export async function insumosDoPedido(
 ): Promise<{ insumos: InsumoNecessario[]; porItem: Map<string, string | null> }> {
   const acumulado = new Map<string, InsumoNecessario>();
   const porItem = new Map<string, string | null>();
+  const conversoes = await carregarConversoes();
 
   for (const item of itens) {
     const composicao = await resolverComposicao(item.productId, item.compositionVersionId);
@@ -115,10 +119,11 @@ export async function insumosDoPedido(
        */
       for (const ingrediente of composicao.items) {
         const bruta = Number(ingrediente.quantity) * Number(item.quantity);
-        const naBase = converterParaUnidadeBase(
+        const naBase = converter(
           bruta,
           ingrediente.unitId,
           ingrediente.inventoryItem,
+          conversoes,
         );
         somar(acumulado, {
           inventoryItemId: ingrediente.inventoryItemId,

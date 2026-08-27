@@ -1,6 +1,10 @@
 import { prisma } from "@/server/db/client";
 import { InventoryService } from "@/server/services/inventory-service";
-import { converterParaUnidadeBase } from "@/server/services/composicao-do-pedido";
+import { carregarConversoes } from "@/server/services/composicao-do-pedido";
+import {
+  converterParaUnidadeBase,
+  type MapaDeConversoes,
+} from "@/lib/conversao-de-unidade";
 import { CustoDoPreparado } from "@/server/services/custo-do-preparado";
 
 /**
@@ -83,7 +87,8 @@ export class ProducaoService {
       throw new Error("A perda declarada não pode ser negativa.");
     }
 
-    const insumos = this.insumosDaCorrida(receita, entrada.plannedQuantity);
+    const conversoes = await carregarConversoes();
+    const insumos = this.insumosDaCorrida(receita, entrada.plannedQuantity, conversoes);
     if (insumos.length === 0) {
       throw new Error("A receita não tem insumos: não há o que produzir.");
     }
@@ -336,6 +341,7 @@ export class ProducaoService {
   private static insumosDaCorrida(
     receita: Awaited<ReturnType<typeof ProducaoService.receitaValidada>>,
     plannedQuantity: number,
+  conversoes: MapaDeConversoes,
   ): InsumoDaCorrida[] {
     const fator = plannedQuantity / Number(receita.yieldQuantity);
     const acumulado = new Map<string, InsumoDaCorrida>();
@@ -346,6 +352,7 @@ export class ProducaoService {
         bruta,
         ingrediente.unitId,
         ingrediente.inventoryItem,
+        conversoes,
       );
 
       // Somado por insumo: a mesma receita pode listar farinha duas vezes, e

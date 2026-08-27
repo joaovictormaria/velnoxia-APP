@@ -86,13 +86,18 @@ export const adminOpcoesDePreparado = createServerFn({ method: "POST" }).handler
     const admin = await requireAdminSession();
     const { prisma } = await import("@/server/db/client");
 
-    const [itens, unidades] = await Promise.all([
+    const [itens, unidades, conversoes] = await Promise.all([
       prisma.inventoryItem.findMany({
         where: { storeId: admin.storeId, isActive: true },
         orderBy: { name: "asc" },
         include: { baseUnit: true },
       }),
       prisma.inventoryUnit.findMany({ orderBy: { code: "asc" } }),
+      // A tela precisa das MESMAS conversões que o servidor usa, para o custo
+      // estimado bater com o custo real. Duas fórmulas divergem; uma só, não.
+      prisma.inventoryUnitConversion.findMany({
+        select: { fromUnitId: true, toUnitId: true, conversionFactor: true },
+      }),
     ]);
 
     return numeros({
@@ -105,6 +110,11 @@ export const adminOpcoesDePreparado = createServerFn({ method: "POST" }).handler
         custo: i.cost,
       })),
       unidades: unidades.map((u) => ({ id: u.id, code: u.code, name: u.name })),
+      conversoes: conversoes.map((c) => ({
+        fromUnitId: c.fromUnitId,
+        toUnitId: c.toUnitId,
+        conversionFactor: c.conversionFactor,
+      })),
     });
   },
 );

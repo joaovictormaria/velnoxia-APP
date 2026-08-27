@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db/client";
 import { Decimal } from "@prisma/client/runtime/client";
-import { converterParaUnidadeBase } from "@/server/services/composicao-do-pedido";
+import { carregarConversoes } from "@/server/services/composicao-do-pedido";
+import { converterParaUnidadeBase } from "@/lib/conversao-de-unidade";
 
 /**
  * O que as coisas custam.
@@ -84,6 +85,8 @@ export class CustoDoPreparado {
     });
     if (!ficha) throw new Error("Ficha técnica não encontrada.");
 
+    const conversoes = await carregarConversoes();
+
     let total = new Decimal(0);
     const linhas: Array<{
       inventoryItemId: string;
@@ -98,6 +101,7 @@ export class CustoDoPreparado {
         Number(item.quantity),
         item.unitId,
         item.inventoryItem,
+        conversoes,
       );
 
       /*
