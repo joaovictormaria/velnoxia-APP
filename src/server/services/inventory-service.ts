@@ -61,6 +61,66 @@ export class InventoryService {
   }
 
   /**
+   * Cria o item e, se houver quantidade inicial, o movimento que a registra.
+   *
+   * ISTO NASCEU DE UM ESTADO PARCIAL REAL. A tela fazia duas chamadas — criar o
+   * item, depois registrar a entrada — e o erro da segunda ia para um
+   * `console.error` que ninguém lê. O item ficava gravado com saldo zero, o
+   * operador via "criado com sucesso", e a quantidade que ele digitou
+   * simplesmente não existia.
+   *
+   * Duas chamadas do navegador não podem ser atômicas: entre uma e outra pode
+   * cair a rede, o processo, ou a aba. Por isso a orquestração desce para cá.
+   *
+   * E fica no SERVIÇO, não na server function, porque server function do
+   * TanStack precisa de AsyncLocalStorage e não é chamável do vitest — regra
+   * que mora lá não tem como ser testada.
+   */
+  static async criarItemComSaldoInicial(
+    storeId: string,
+    data: CreateInventoryItemInput,
+    saldoInicial?: {
+      quantidade: number;
+      unitId?: string;
+      nota?: string;
+    },
+  ) {
+    const item = await this.createItem(storeId, data);
+
+    if (!saldoInicial || !(saldoInicial.quantidade > 0)) return item;
+
+    try {
+      await this.recordMovement(storeId, {
+        /*
+         * Chave determinística por item. Uma retentativa do mesmo movimento é
+         * reconhecida como repetição em vez de somar a quantidade de novo.
+         */
+        idempotencyKey: `${storeId}#ITEM_INICIAL#${item.id}`,
+        itemId: item.id,
+        type: "PURCHASE",
+        quantity: saldoInicial.quantidade,
+        // A unidade do movimento é a do item: entrada inicial não converte nada.
+        unitId: saldoInicial.unitId ?? data.baseUnitId,
+        note: saldoInicial.nota ?? "Quantidade inicial registrada na criação do item",
+        authorType: "ADMIN",
+      } as any);
+    } catch (erro) {
+      /*
+       * O item acabou de nascer: sem movimento, sem saldo, sem nada apontando
+       * para ele. Apagá-lo devolve o sistema ao estado anterior à tentativa —
+       * melhor do que deixar um item que o operador não sabe se existe, com um
+       * SKU que passa a estar ocupado.
+       */
+      await prisma.inventoryItem.delete({ where: { id: item.id } }).catch(() => {});
+      throw erro;
+    }
+
+    const comSaldo = await inventoryItemRepository.findById(storeId, item.id);
+    return this.serializeItem(comSaldo);
+  }
+
+
+  /**
    * Update an existing item
    * Cannot update quantityOnHand/quantityReserved directly
    */

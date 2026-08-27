@@ -111,7 +111,21 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
       itemType: itemType,
     });
 
-    const result = await InventoryService.createItem(admin.storeId, createData);
+    /*
+     * A quantidade inicial faz parte da criação, e por isso vai na MESMA
+     * chamada. A tela fazia duas: criava o item e depois registrava a entrada,
+     * engolindo o erro da segunda num `console.error`. O item ficava com saldo
+     * zero e o operador via "criado com sucesso".
+     */
+    const inicial = itemData?.initialQuantity
+      ? parseFloat(String(itemData.initialQuantity))
+      : 0;
+
+    const result = await InventoryService.criarItemComSaldoInicial(
+      admin.storeId,
+      createData,
+      inicial > 0 ? { quantidade: inicial, unitId } : undefined,
+    );
     return serializeInventoryItem(result);
   });
 

@@ -174,7 +174,28 @@ describe("os ids semeados são os que a tela vai oferecer", () => {
 });
 
 
-describe("movimentação: a unidade do movimento", () => {
+describe("movimentação inicial e atomicidade", () => {
+  it("08 · movimento inicial com unit_kg é aceito", async () => {
+    /*
+     * O segundo ponto do mesmo defeito: `unitId` tambem exigia `.cuid()`, e o
+     * item nascia sem a quantidade que o operador digitou.
+     */
+    const item = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Tomate", baseUnitId: "unit_kg", itemType: "INGREDIENT" } as any,
+      { quantidade: 12.5 },
+    );
+
+    expect(Number(item.quantityOnHand)).toBeCloseTo(12.5, 4);
+
+    const mov = await prisma.inventoryMovement.findFirst({
+      where: { itemId: item.id, type: "PURCHASE" },
+    });
+    expect(mov).toBeTruthy();
+    expect(mov!.unitId).toBe("unit_kg");
+    expect(Number(mov!.quantity)).toBeCloseTo(12.5, 4);
+  });
+
   it("08b · o SCHEMA do movimento aceita os ids semeados", () => {
     /*
      * Cenário nascido de uma mutação que passou verde: os outros cenários
@@ -235,4 +256,53 @@ describe("movimentação: a unidade do movimento", () => {
     }
   });
 
+
+  it("11 · falha na movimentação inicial NÃO deixa item órfão", async () => {
+    /*
+     * O estado parcial que apareceu no teste manual: o item ficava gravado com
+     * saldo zero, o operador via "criado com sucesso", e a quantidade digitada
+     * simplesmente nao existia. Pior, o SKU passava a estar ocupado.
+     */
+    await expect(
+      InventoryService.criarItemComSaldoInicial(
+        storeId,
+        { name: "Tomate", baseUnitId: "unit_kg", itemType: "INGREDIENT" } as any,
+        { quantidade: 10, unitId: "unidade-que-nao-existe" },
+      ),
+    ).rejects.toThrow(/Unit not found/i);
+
+    expect(await prisma.inventoryItem.count({ where: { storeId } })).toBe(0);
+    expect(await prisma.inventoryMovement.count({ where: { storeId } })).toBe(0);
+  });
+
+  it("12 · sem quantidade inicial, cria só o item — e nenhum movimento", async () => {
+    const item = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Tomate", baseUnitId: "unit_kg", itemType: "INGREDIENT" } as any,
+    );
+
+    expect(Number(item.quantityOnHand)).toBe(0);
+    expect(await prisma.inventoryMovement.count({ where: { storeId } })).toBe(0);
+  });
+
+  it("13 · a criação é idempotente por item: reprocessar não duplica a entrada", async () => {
+    const item = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Tomate", baseUnitId: "unit_kg", itemType: "INGREDIENT" } as any,
+      { quantidade: 5 },
+    );
+
+    /*
+     * A chave e `store#ITEM_INICIAL#{id}`, deterministica por item. Uma
+     * retentativa do mesmo movimento e reconhecida como repeticao em vez de
+     * somar 5 de novo.
+     */
+    await InventoryService.recordMovement(storeId, {
+      idempotencyKey: `${storeId}#ITEM_INICIAL#${item.id}`,
+      itemId: item.id, type: "PURCHASE", quantity: 5, unitId: "unit_kg",
+    } as any);
+
+    const depois = await prisma.inventoryItem.findUnique({ where: { id: item.id } });
+    expect(Number(depois!.quantityOnHand)).toBeCloseTo(5, 4);
+  });
 });
