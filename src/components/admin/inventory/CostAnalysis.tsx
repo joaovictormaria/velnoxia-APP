@@ -74,12 +74,12 @@ export function CostAnalysis() {
 
         {/* Total Profit */}
         <div className={`rounded-lg p-4 border-2 ${
-          kpis.totalProfit.greaterThan(0)
+          kpis.totalProfit > 0
             ? "bg-green-50 border-green-300"
             : "bg-red-50 border-red-300"
         }`}>
           <div className={`flex items-center gap-2 mb-2 ${
-            kpis.totalProfit.greaterThan(0)
+            kpis.totalProfit > 0
               ? "text-green-600"
               : "text-red-600"
           }`}>
@@ -87,7 +87,7 @@ export function CostAnalysis() {
             <span className="text-sm font-semibold">Lucro</span>
           </div>
           <div className={`text-2xl font-bold ${
-            kpis.totalProfit.greaterThan(0)
+            kpis.totalProfit > 0
               ? "text-green-600"
               : "text-red-600"
           }`}>
@@ -98,26 +98,26 @@ export function CostAnalysis() {
 
         {/* Profit Margin */}
         <div className={`rounded-lg p-4 border-2 ${
-          kpis.profitMargin.greaterThan(30)
+          kpis.profitMargin > 30
             ? "bg-green-50 border-green-300"
-            : kpis.profitMargin.greaterThan(20)
+            : kpis.profitMargin > 20
               ? "bg-yellow-50 border-yellow-300"
               : "bg-red-50 border-red-300"
         }`}>
           <div className="flex items-center gap-2 mb-2">
             <Percent className={
-              kpis.profitMargin.greaterThan(30)
+              kpis.profitMargin > 30
                 ? "text-green-600"
-                : kpis.profitMargin.greaterThan(20)
+                : kpis.profitMargin > 20
                   ? "text-yellow-600"
                   : "text-red-600"
             } size={20} />
             <span className="text-sm font-semibold">Margem</span>
           </div>
           <div className={`text-2xl font-bold ${
-            kpis.profitMargin.greaterThan(30)
+            kpis.profitMargin > 30
               ? "text-green-600"
-              : kpis.profitMargin.greaterThan(20)
+              : kpis.profitMargin > 20
                 ? "text-yellow-600"
                 : "text-red-600"
           }`}>
@@ -208,16 +208,16 @@ export function CostAnalysis() {
                       R$ {product.totalCost.toFixed(2)}
                     </td>
                     <td className={`py-2 text-right font-semibold ${
-                      product.totalProfit.greaterThan(0)
+                      product.totalProfit > 0
                         ? "text-green-600"
                         : "text-red-600"
                     }`}>
                       R$ {product.totalProfit.toFixed(2)}
                     </td>
                     <td className={`py-2 text-right font-semibold ${
-                      product.profitPercent.greaterThan(30)
+                      product.profitPercent > 30
                         ? "text-green-600"
-                        : product.profitPercent.greaterThan(20)
+                        : product.profitPercent > 20
                           ? "text-yellow-600"
                           : "text-red-600"
                     }`}>

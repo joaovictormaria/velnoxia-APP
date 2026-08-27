@@ -16,6 +16,8 @@ interface InventoryItem {
   baseUnit: { id: string; code: string };
   quantityOnHand: number;
   quantityReserved: number;
+  /** Custo unitário atual, para mostrar o que a compra vai substituir. */
+  cost?: number | null;
 }
 
 type MovementType = "PURCHASE" | "LOSS" | "ADJUSTMENT";
@@ -32,6 +34,7 @@ export function MovementForm(props: MovementFormProps) {
     unitId: "",
     reference: "",
     note: "",
+    totalPaid: "",
   });
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
@@ -87,6 +90,7 @@ export function MovementForm(props: MovementFormProps) {
           reference: formData.reference || undefined,
           referenceType: undefined,
           note: formData.note || undefined,
+          totalPaid: formData.totalPaid || undefined,
         }
       };
 
@@ -102,6 +106,7 @@ export function MovementForm(props: MovementFormProps) {
         unitId: "",
         reference: "",
         note: "",
+        totalPaid: "",
       });
       setSelectedItem(null);
     } catch (error) {
@@ -119,6 +124,22 @@ export function MovementForm(props: MovementFormProps) {
     if (!selectedItem) return 0;
     return selectedItem.quantityOnHand - selectedItem.quantityReserved;
   };
+
+  /*
+   * O unitário que a compra vai gravar, mostrado ao vivo.
+   *
+   * A conta é refeita no servidor — este número é conferência, não fonte. O
+   * operador digita o que está na nota e vê na hora se o resultado faz sentido;
+   * um "R$ 800,00 por kg" na tela pega o zero a mais antes de virar dado.
+   */
+  const custoUnitario = (() => {
+    if (formData.type !== "PURCHASE") return null;
+    const total = parseFloat(formData.totalPaid);
+    const qtd = parseFloat(formData.quantity);
+    if (!Number.isFinite(total) || !Number.isFinite(qtd)) return null;
+    if (total <= 0 || qtd <= 0) return null;
+    return total / qtd;
+  })();
 
   return (
     <div className="movement-form space-y-4 p-4 border rounded bg-white">
@@ -216,6 +237,49 @@ export function MovementForm(props: MovementFormProps) {
             </p>
           )}
         </div>
+
+        {/*
+          Valor pago — só na compra.
+          Perda e ajuste não têm preço, e mostrar o campo neles convidaria a
+          preencher algo que seria ignorado.
+        */}
+        {formData.type === "PURCHASE" && (
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Valor total pago (opcional)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0,00"
+              value={formData.totalPaid}
+              onChange={(e) =>
+                setFormData({ ...formData, totalPaid: e.target.value })
+              }
+              disabled={submitting}
+              className="w-full px-3 py-2 border rounded bg-white text-foreground"
+            />
+            {custoUnitario !== null ? (
+              <p className="text-xs text-neutral-700 mt-1">
+                ={" "}
+                <strong>
+                  R$ {custoUnitario.toFixed(2)}
+                </strong>{" "}
+                por {selectedItem?.baseUnit.code ?? "unidade"} — passa a ser o
+                custo deste item
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-500 mt-1">
+                O que está na nota. Em branco, a entrada não altera o custo
+                {selectedItem?.cost != null
+                  ? ` (hoje R$ ${Number(selectedItem.cost).toFixed(2)})`
+                  : ""}
+                .
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Reference */}
         <div>

@@ -127,14 +127,31 @@ export const adminRecordMovement = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
+    const quantity = data?.quantity ? parseFloat(data.quantity) : 0;
+
+    /*
+     * O formulário pergunta o valor TOTAL pago, porque é o que está na nota:
+     * "5,2 kg — R$ 41,60". A divisão acontece aqui, não na cabeça do operador,
+     * que é onde nasce erro de digitação.
+     *
+     * Só vale para compra. Perda e ajuste não têm valor pago, e um total
+     * enviado por engano num desses tipos é ignorado em vez de virar custo.
+     */
+    const totalPago = data?.totalPaid ? parseFloat(data.totalPaid) : null;
+    const custoUnitario =
+      data?.type === "PURCHASE" && totalPago != null && totalPago > 0 && quantity > 0
+        ? totalPago / quantity
+        : undefined;
+
     const validated = createInventoryMovementSchema.parse({
       itemId: data?.itemId,
       type: data?.type,
-      quantity: data?.quantity ? parseFloat(data.quantity) : 0,
+      quantity,
       unitId: data?.unitId,
       reference: data?.reference || undefined,
       referenceType: data?.referenceType || undefined,
       note: data?.note || undefined,
+      costAtTime: custoUnitario,
       authorType: "ADMIN",
       authorId: admin.id,
       authorName: admin.name,

@@ -73,6 +73,19 @@ export const createInventoryMovementSchema = z
     referenceType: z.string().optional(),
     originalMovementId: z.string().cuid().optional(), // Só se type=REVERSAL
     compositionId: z.string().cuid().optional(),
+    /**
+     * Custo UNITÁRIO a congelar neste movimento.
+     *
+     * O formulário pergunta o valor TOTAL pago — é o que está na nota — e a
+     * divisão pela quantidade acontece antes de chegar aqui. Guardar o unitário
+     * é o que permite comparar compras de tamanhos diferentes.
+     *
+     * Opcional: sem ele, a compra é só entrada de quantidade e o custo do item
+     * não muda. Cobre transferência, brinde e correção de contagem, onde não há
+     * valor pago — e forçar um número nesses casos empurraria o operador a
+     * inventar um, que é pior do que não ter.
+     */
+    costAtTime: z.number().nonnegative().optional(),
     note: z.string().max(500).optional(),
     authorType: z.enum(["ADMIN", "SYSTEM", "CUSTOMER"]).optional(),
     authorId: z.string().optional(),

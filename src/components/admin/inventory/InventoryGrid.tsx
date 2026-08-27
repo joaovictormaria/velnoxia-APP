@@ -350,7 +350,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                 >
                   <option value="INGREDIENT">🧪 Ingrediente</option>
                   <option value="RESALE">🛒 Revenda</option>
-                  <option value="PRODUCED">🍕 Produzido</option>
+                  <option value="PREPARED">🍲 Preparado</option>
                   <option value="PACKAGING">📦 Embalagem</option>
                 </select>
 
@@ -370,11 +370,11 @@ export function InventoryGrid(props: InventoryGridProps) {
                     Exemplos: Refrigerante, Cerveja, Suco, Água mineral
                   </>
                 )}
-                {newItem.itemType === "PRODUCED" && (
+                {newItem.itemType === "PREPARED" && (
                   <>
-                    <strong>🍕 Produzido:</strong> Produtos que VOCÊ FABRICA internamente.
+                    <strong>🍲 Preparado:</strong> O que a cozinha PRODUZ a partir de outros itens.
                     <br />
-                    Exemplos: Massa fresca, Molho caseiro, Pão caseiro
+                    Exemplos: Molho de tomate, Massa fresca, Recheio. Tem ficha técnica e rendimento, e o custo sai da produção.
                   </>
                 )}
                 {newItem.itemType === "PACKAGING" && (
