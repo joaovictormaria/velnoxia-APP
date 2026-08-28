@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/client";
+import type { Prisma } from "@prisma/client";
 import {
   inventoryItemRepository,
   inventoryMovementRepository,
@@ -288,18 +289,30 @@ export class InventoryService {
      * falhar, porque a alternativa seria deixá-lo incoerente para sempre desde
      * que ninguém toque nesse campo. E NADA é apagado por conta própria: o
      * cadastro errado é apontado, e quem corrige é a pessoa.
+     *
+     * DESATIVAR É A EXCEÇÃO, e ela nasceu de itens presos. O botão "Deletar"
+     * manda `isActive: false` por este mesmo caminho, e a validação recusava —
+     * porque a exclusão não mexe no conteúdo, e o conteúdo continuava
+     * incoerente. Farinha e Leite ficaram sem saída: não podiam ser corrigidos
+     * nem removidos. Quem tira o item de circulação não está afirmando nada
+     * sobre a embalagem dele.
+     *
+     * REATIVAR continua sendo cobrado. Sem isso, desativar e reativar viraria
+     * a porta dos fundos para trazer de volta um cadastro que a regra recusa.
      */
-    await this.conferirConteudo(
-      (item as any).baseUnitId,
-      campos.contentSize !== undefined
-        ? campos.contentSize
-        : ((item as any).contentSize == null
-            ? null
-            : Number((item as any).contentSize)),
-      campos.contentUnit !== undefined
-        ? campos.contentUnit
-        : ((item as any).contentUnit ?? null),
-    );
+    if (campos.isActive !== false) {
+      await this.conferirConteudo(
+        (item as any).baseUnitId,
+        campos.contentSize !== undefined
+          ? campos.contentSize
+          : ((item as any).contentSize == null
+              ? null
+              : Number((item as any).contentSize)),
+        campos.contentUnit !== undefined
+          ? campos.contentUnit
+          : ((item as any).contentUnit ?? null),
+      );
+    }
 
     /*
      * O que já foi gravado NÃO se mexe. Cada movimento tem seu `costAtTime`
@@ -357,6 +370,18 @@ export class InventoryService {
        * produção há um humano na frente da tela e ainda dá para não começar.
        */
       permitirSaldoNegativo?: boolean;
+      /**
+       * Transação de fora, para o movimento entrar no MESMO commit do chamador.
+       *
+       * O checkout precisa disto: a reserva tem que nascer e morrer junto com o
+       * pedido. Sem `tx`, este método abre a própria transação e o pedido
+       * commita antes — foi assim que pedido confirmado sem estoque virou marca
+       * de inconsistência em vez de recusa.
+       *
+       * Prisma não aninha transação: passar uma de fora é o único jeito.
+       * Ausente, o comportamento é exatamente o de antes.
+       */
+      tx?: Prisma.TransactionClient;
     }
   ) {
     const itemId = (data as any).itemId as string;
@@ -366,19 +391,36 @@ export class InventoryService {
     const permitirNegativoExplicito = (data as any).permitirSaldoNegativo as
       | boolean
       | undefined;
+    const txDeFora = (data as any).tx as Prisma.TransactionClient | undefined;
 
-    // Atalho: se já existe, devolve sem abrir transação. Não é a garantia.
-    const existing = await inventoryMovementRepository.findByIdempotencyKey(
-      data.idempotencyKey
-    );
+    /*
+     * Atalho: se já existe, devolve sem abrir transação. Não é a garantia.
+     *
+     * Dentro de uma transação de fora a consulta precisa ir pelo MESMO cliente,
+     * senão ela não enxerga o que aquela transação ainda não commitou — e uma
+     * retentativa dentro do mesmo pedido gravaria a chave duas vezes.
+     */
+    const existing = txDeFora
+      ? await txDeFora.inventoryMovement.findUnique({
+          where: { idempotencyKey: data.idempotencyKey },
+        })
+      : await inventoryMovementRepository.findByIdempotencyKey(
+          data.idempotencyKey
+        );
     if (existing) return existing;
 
     if (data.type === "REVERSAL" && !originalMovementId) {
       throw new Error("REVERSAL requires originalMovementId");
     }
 
-    try {
-      return await prisma.$transaction(async (tx) => {
+    /*
+     * O corpo inteiro, parametrizado pelo cliente. Com `tx` de fora ele roda
+     * dentro daquela transação; sem, abre a própria — o mesmo de sempre.
+     *
+     * O `SELECT ... FOR UPDATE` e a checagem de disponível continuam aqui
+     * dentro, então a proteção vale nos dois modos.
+     */
+    const corpo = async (tx: Prisma.TransactionClient) => {
         /*
          * Trava a linha antes de ler o saldo. Sem isto, dois pedidos disputando
          * o mesmo insumo leem o mesmo número e um sobrescreve o outro.
@@ -548,8 +590,13 @@ export class InventoryService {
           });
         }
 
-        return movement;
-      });
+      return movement;
+    };
+
+    try {
+      return txDeFora
+        ? await corpo(txDeFora)
+        : await prisma.$transaction(corpo);
     } catch (erro) {
       /*
        * Corrida de idempotência: outra chamada gravou a mesma chave entre o
@@ -684,14 +731,31 @@ export class InventoryService {
     storeId: string,
     itemId: string,
     quantity: number,
-    orderId: string
+    orderId: string,
+    /**
+     * Transação do chamador, para a reserva viver ou morrer com o pedido.
+     *
+     * Sem ela, o pedido commita e a reserva vem depois — e uma reserva que
+     * falha deixa pedido confirmado sem estoque. Com ela, falhar aqui desfaz
+     * o pedido inteiro.
+     */
+    tx?: Prisma.TransactionClient,
   ) {
-    const item = await inventoryItemRepository.findById(storeId, itemId);
+    /*
+     * A conferência de disponível AQUI é atalho para dar mensagem cedo. Quem
+     * garante é a checagem dentro de `recordMovement`, sobre a linha travada:
+     * esta lê sem lock e dois pedidos simultâneos passariam os dois.
+     *
+     * Dentro de uma transação de fora, a leitura vai pelo mesmo cliente para
+     * enxergar o que ela já escreveu.
+     */
+    const item = tx
+      ? await tx.inventoryItem.findFirst({ where: { id: itemId, storeId } })
+      : await inventoryItemRepository.findById(storeId, itemId);
     if (!item) {
       throw new Error("Item not found");
     }
 
-    // Check availability
     const quantityAvailable = Number(item.quantityOnHand) - Number(item.quantityReserved);
     if (quantityAvailable < quantity) {
       throw new Error(
@@ -711,6 +775,7 @@ export class InventoryService {
       reference: orderId,
       referenceType: "ORDER",
       authorType: "SYSTEM",
+      tx,
     } as any);
   }
 

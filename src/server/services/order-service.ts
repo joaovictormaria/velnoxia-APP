@@ -16,6 +16,7 @@ import {
 } from "./employee-benefit";
 import { conferirOpcoes } from "./option-pricing";
 import { orderStatusSync } from "./order-status-sync";
+import { OrderInventoryHandler } from "./order-inventory-handler";
 
 /**
  * Secret for the tracking link the customer gets. Generated with crypto rather
@@ -595,6 +596,24 @@ export async function createOrderFromCheckout(
       },
     });
 
+    /*
+     * A RESERVA DE ESTOQUE ENTRA AQUI, dentro da transação do pedido.
+     *
+     * Antes ela rodava depois do commit, disparada sem espera. Quando faltava
+     * saldo, a reserva falhava e o pedido JÁ ESTAVA CONFIRMADO ao cliente —
+     * sobrava a marca `inventoryInconsistentAt` para alguém conferir na mão, e
+     * o cliente pagando por um bolo que não existia.
+     *
+     * Falhar aqui derruba a transação inteira: sem Order, sem OrderItem, sem
+     * reserva órfã. O rollback do banco é o desfazer — não há compensação a
+     * escrever, e por isso não pode dar errado pela metade.
+     *
+     * A serialização entre dois clientes disputando a última unidade continua
+     * sendo a de sempre: o `SELECT ... FOR UPDATE` dentro de `recordMovement`,
+     * agora sob esta transação.
+     */
+    await OrderInventoryHandler.reservarNaCriacao(tx, created.id, storeId);
+
     if (couponId) {
       await tx.coupon.update({ where: { id: couponId }, data: { usageCount: { increment: 1 } } });
     }
@@ -612,10 +631,14 @@ export async function createOrderFromCheckout(
     return created;
   });
 
-  // Sync inventory after order creation (fire-and-forget)
-  orderStatusSync.onStatusChange(order.id, "RECEIVED").catch((err) => {
-    console.error(`Inventory sync failed for new order ${order.id}:`, err);
-  });
+  /*
+   * A reserva já aconteceu na transação acima. Este gancho segue existindo para
+   * os status POSTERIORES (preparando, cancelado), que continuam assíncronos —
+   * ali o pedido já é um fato, e adiar a baixa não engana ninguém.
+   *
+   * Chamá-lo com "RECEIVED" agora seria inofensivo, porque a chave de
+   * idempotência reconheceria a reserva já gravada, mas é trabalho à toa.
+   */
 
   return {
     ok: true,

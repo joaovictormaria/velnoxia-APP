@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/client";
+import type { Prisma } from "@prisma/client";
 import {
   converterParaUnidadeBase as converter,
   montarMapaDeConversoes,
@@ -38,15 +39,22 @@ export type InsumoNecessario = {
 export async function resolverComposicao(
   productId: string | null,
   compositionVersionIdCongelada: string | null,
+  /*
+   * Cliente da transação do chamador. Sem ele a consulta não enxerga o pedido
+   * que ainda não commitou, e a reserva no checkout leria um pedido vazio.
+   * Ausente, usa o cliente global — o comportamento de sempre.
+   */
+  tx?: Prisma.TransactionClient,
 ) {
+  const db = tx ?? prisma;
   if (compositionVersionIdCongelada) {
-    return prisma.productComposition.findUnique({
+    return db.productComposition.findUnique({
       where: { id: compositionVersionIdCongelada },
       include: { items: { include: { inventoryItem: true, unit: true } } },
     });
   }
   if (!productId) return null;
-  return prisma.productComposition.findFirst({
+  return db.productComposition.findFirst({
     where: { productId, isActive: true },
     orderBy: { version: "desc" },
     include: { items: { include: { inventoryItem: true, unit: true } } },
@@ -67,8 +75,10 @@ export { converterParaUnidadeBase } from "@/lib/conversao-de-unidade";
  * Uma consulta por operação, não uma por insumo: a tabela é minúscula e não
  * muda, e ler dentro do laço faria N consultas para uma receita de N linhas.
  */
-export async function carregarConversoes(): Promise<MapaDeConversoes> {
-  const linhas = await prisma.inventoryUnitConversion.findMany({
+export async function carregarConversoes(
+  tx?: Prisma.TransactionClient,
+): Promise<MapaDeConversoes> {
+  const linhas = await (tx ?? prisma).inventoryUnitConversion.findMany({
     select: { fromUnitId: true, toUnitId: true, conversionFactor: true },
   });
   return montarMapaDeConversoes(linhas);
@@ -88,13 +98,20 @@ export async function insumosDoPedido(
     quantity: number;
     compositionVersionId: string | null;
   }>,
+  /** Transação do chamador, para enxergar o pedido que ainda não commitou. */
+  tx?: Prisma.TransactionClient,
 ): Promise<{ insumos: InsumoNecessario[]; porItem: Map<string, string | null> }> {
   const acumulado = new Map<string, InsumoNecessario>();
   const porItem = new Map<string, string | null>();
-  const conversoes = await carregarConversoes();
+  const db = tx ?? prisma;
+  const conversoes = await carregarConversoes(tx);
 
   for (const item of itens) {
-    const composicao = await resolverComposicao(item.productId, item.compositionVersionId);
+    const composicao = await resolverComposicao(
+      item.productId,
+      item.compositionVersionId,
+      tx,
+    );
     porItem.set(item.productId ?? "", composicao?.id ?? null);
 
     if (composicao && composicao.items.length > 0) {
@@ -136,7 +153,7 @@ export async function insumosDoPedido(
 
     // Sem ficha: o produto é o próprio item de estoque (bebida, revenda).
     if (!item.productId) continue;
-    const produto = await prisma.product.findUnique({
+    const produto = await db.product.findUnique({
       where: { id: item.productId },
       select: { inventoryItemId: true, inventoryItem: { select: { baseUnitId: true } } },
     });
