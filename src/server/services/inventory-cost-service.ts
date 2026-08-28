@@ -1,5 +1,13 @@
 ﻿import { prisma } from "@/server/db/client";
 import { Decimal } from "@prisma/client/runtime/client";
+import {
+  apurarPedido,
+  coberturaDeApuracao,
+  dataDeCompetencia,
+  margemApurada,
+  receitaDoPedido,
+  ticketMedio,
+} from "@/lib/regra-financeira";
 
 /**
  * Custo de mercadoria vendida, margem e rentabilidade.
@@ -39,9 +47,206 @@ export class InventoryCostService {
   }
 
   /**
+   * Os pedidos que contam como venda no período — com receita, custo e apuração.
+   *
+   * O CARREGADOR ÚNICO. Antes cada relatório montava a sua própria noção de
+   * venda: um filtrava COMPLETED, outro não filtrava nada, e o custo vinha de
+   * uma consulta que não sabia a que pedido pertencia. Três respostas para a
+   * mesma pergunta. Aqui a pergunta é feita uma vez.
+   *
+   * O RECORTE É PELA DATA DE CONCLUSÃO, não pela de criação. Um pedido feito às
+   * 23h50 e concluído às 00h10 é receita do dia seguinte, e agrupar pela criação
+   * jogaria dinheiro no dia errado em todo fim de expediente. O segundo ramo do
+   * `OR` é o fallback para dados legados: pedidos concluídos antes de o
+   * histórico de status existir não têm a linha COMPLETED, e descartá-los
+   * apagaria vendas reais do passado.
+   *
+   * O CUSTO VEM EM UMA SEGUNDA CONSULTA, não num `include`. É o que impede o
+   * N+1 que existia em `getProductProfitability`, onde o custo de cada pedido
+   * era buscado dentro do laço.
+   *
+   * Os quatro filtros dos movimentos são a regra de CMV inteira:
+   *   type=CONSUMPTION       saída de verdade, não reserva
+   *   referenceType=ORDER    exclui a PRODUÇÃO — sem isto o sistema soma o
+   *                          custo do ingrediente E o do preparado feito com
+   *                          ele, cobrando o mesmo dinheiro duas vezes
+   *   reference IN (válidos) casa a janela do custo com a da receita
+   *   reversedBy IS NULL     exclui o que virou perda por cancelamento
+   */
+  private static async carregarPedidosValidos(
+    storeId: string,
+    inicio: Date,
+    fim: Date,
+  ) {
+    const pedidos = await prisma.order.findMany({
+      where: {
+        storeId,
+        status: "COMPLETED",
+        deletedAt: null,
+        OR: [
+          {
+            statusHistory: {
+              some: { status: "COMPLETED", createdAt: { gte: inicio, lte: fim } },
+            },
+          },
+          {
+            statusHistory: { none: { status: "COMPLETED" } },
+            createdAt: { gte: inicio, lte: fim },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        total: true,
+        refund: true,
+        createdAt: true,
+        statusHistory: {
+          where: { status: "COMPLETED" },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: { createdAt: true },
+        },
+        items: {
+          select: {
+            productNameSnapshot: true,
+            productId: true,
+            quantity: true,
+            unitPrice: true,
+            compositionVersionId: true,
+            // A ficha da versão usada NAQUELE dia, e não a ativa hoje.
+            compositionVersion: {
+              select: { items: { select: { inventoryItemId: true } } },
+            },
+            product: { select: { name: true, inventoryItemId: true } },
+          },
+        },
+      },
+    });
+
+    if (pedidos.length === 0) return [];
+
+    const movimentos = await prisma.inventoryMovement.findMany({
+      where: {
+        storeId,
+        type: "CONSUMPTION",
+        referenceType: "ORDER",
+        reference: { in: pedidos.map((p) => p.id) },
+        reversedBy: { is: null },
+      },
+      select: {
+        reference: true,
+        itemId: true,
+        quantity: true,
+        costAtTime: true,
+        createdAt: true,
+        item: { select: { name: true, cost: true } },
+      },
+    });
+
+    const porPedido = new Map<string, typeof movimentos>();
+    for (const m of movimentos) {
+      if (!m.reference) continue;
+      const lista = porPedido.get(m.reference);
+      if (lista) lista.push(m);
+      else porPedido.set(m.reference, [m]);
+    }
+
+    return pedidos.map((pedido) => {
+      const movs = porPedido.get(pedido.id) ?? [];
+
+      /*
+       * Os insumos de CADA LINHA, lidos de dado congelado.
+       *
+       * `compositionVersion.items` é a ficha da versão usada NAQUELE dia, presa
+       * ao OrderItem na reserva — mudar a receita hoje não reescreve o pedido de
+       * ontem. Sem ficha, vale o vínculo direto do produto. Sem nenhum dos dois,
+       * a linha não desce até o estoque, e é isso que a classifica.
+       *
+       * O produto pode ter sido apagado (`onDelete: SetNull`): aí a linha conta
+       * como sem vínculo, que é a leitura conservadora.
+       */
+      const linhas = pedido.items.map((item) => {
+        const daFicha = item.compositionVersion?.items ?? [];
+        const insumos = daFicha.length
+          ? daFicha.map((i) => ({ inventoryItemId: i.inventoryItemId }))
+          : item.product?.inventoryItemId
+            ? [{ inventoryItemId: item.product.inventoryItemId }]
+            : [];
+        /*
+         * ÓRFÃ é a linha que perdeu os DOIS sinais de vínculo de uma vez.
+         *
+         * Apagar um produto do cardápio é exclusão de verdade: `productId`
+         * vira nulo e a ficha técnica cai em cascata, levando junto o
+         * `compositionVersionId`. Uma linha assim não é igual a uma que nunca
+         * desceu ao estoque — aquela ainda tem o produto no cadastro dizendo
+         * que não tem vínculo. Quem decide o que fazer com a órfã é
+         * `apurarPedido`, olhando o razão.
+         */
+        return {
+          receita: Number(item.unitPrice) * item.quantity,
+          insumos,
+          orfa: item.productId === null && item.compositionVersionId === null,
+        };
+      });
+
+      const apuracao = apurarPedido({
+        linhas,
+        movimentos: movs.map((m) => {
+          const custo = this.custoDoMovimento(m);
+          return {
+            inventoryItemId: m.itemId,
+            quantidade: Number(m.quantity),
+            custoUnitario: custo === null ? null : custo.toNumber(),
+          };
+        }),
+      });
+
+      return {
+        id: pedido.id,
+        competencia: dataDeCompetencia({
+          concluidoEm: pedido.statusHistory[0]?.createdAt ?? null,
+          criadoEm: pedido.createdAt,
+        }),
+        /*
+         * A receita do PEDIDO é `Order.total` — já líquida de desconto e com a
+         * taxa de entrega dentro. É o dinheiro que entrou.
+         *
+         * `receitaDasLinhas` é outra coisa: a soma das mercadorias, sem taxa nem
+         * desconto. É ela que serve de base à cobertura, porque a receita
+         * apurada também sai das linhas. Comparar coisas de bases diferentes
+         * faria um pedido inteiramente apurado com taxa de entrega aparecer com
+         * cobertura abaixo de 100%.
+         */
+        receita: receitaDoPedido({
+          total: Number(pedido.total),
+          refund: pedido.refund === null ? null : Number(pedido.refund),
+        }),
+        receitaDasLinhas: apuracao.receitaDasLinhas,
+        receitaApurada: apuracao.receitaApurada,
+        custoApurado: apuracao.custoApurado,
+        custoConhecido: apuracao.custoConhecido,
+        apuracao: apuracao.apuracao,
+        linhasApuradas: apuracao.linhas,
+        itens: pedido.items,
+        movimentos: movs,
+      };
+    });
+  }
+
+  /**
    * Calcular custo total de um pedido baseado em consumos
    * (COGS - Cost of Goods Sold)
    */
+  /**
+   * Os pedidos reconhecidos como venda no período, para quem monta séries.
+   *
+   * Existe para que a linha do tempo financeira não reimplemente o recorte:
+   * gráfico e cards têm de discordar por dado, nunca por regra.
+   */
+  static async pedidosReconhecidos(storeId: string, inicio: Date, fim: Date) {
+    return this.carregarPedidosValidos(storeId, inicio, fim);
+  }
+
   static async calculateOrderCost(
     storeId: string,
     orderId: string
@@ -62,6 +267,15 @@ export class InventoryCostService {
         storeId,
         reference: orderId,
         type: "CONSUMPTION",
+        /*
+         * Os dois filtros que faltavam. `referenceType` separa a venda da
+         * PRODUÇÃO — sem ele um `reference` de corrida de produção poderia
+         * entrar como custo de pedido. `reversedBy` exclui o consumo que
+         * virou perda por cancelamento: o pedido não foi venda, e o custo
+         * dele não pode pesar no CMV.
+         */
+        referenceType: "ORDER",
+        reversedBy: { is: null },
       },
       include: {
         item: {
@@ -139,88 +353,63 @@ export class InventoryCostService {
       cost: Decimal;
     }>;
   }> {
-    // Pegar consumos do perÃ­odo
-    const movements = await prisma.inventoryMovement.findMany({
-      where: {
-        storeId,
-        type: "CONSUMPTION",
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      include: {
-        item: {
-          select: {
-            name: true,
-            cost: true,
-          },
-        },
-      },
-    });
+    /*
+     * O RELATÓRIO PARTE DOS PEDIDOS, NÃO DOS MOVIMENTOS.
+     *
+     * Antes ele varria todo `CONSUMPTION` do período e agrupava por
+     * `movement.reference`. Isso tinha três consequências, todas silenciosas:
+     * cada corrida de PRODUÇÃO virava uma linha de "pedido"; o custo do
+     * ingrediente e o do preparado feito com ele eram somados juntos, cobrando
+     * o mesmo dinheiro duas vezes; e `totalOrders` contava grupos de
+     * referência, não pedidos — o que distorcia o custo médio.
+     *
+     * Partindo dos pedidos válidos, os três problemas somem de uma vez: o que
+     * não é venda não entra, e um pedido é um pedido.
+     */
+    const pedidos = await this.carregarPedidosValidos(storeId, startDate, endDate);
 
-    // Agrupar por pedido
-    const costByOrder: Record<string, Decimal> = {};
     const costByItem: Record<
       string,
       { count: number; total: Decimal; usage: number }
     > = {};
-    const orders = new Map<
-      string,
-      { reference?: string; createdAt: Date; cost: Decimal }
-    >();
+    const costByType: Record<string, { count: number; total: Decimal }> = {};
 
-    for (const movement of movements) {
-      const itemCost = this.custoDoMovimento(movement);
-      if (!itemCost) continue;
-
-      const quantity = movement.quantity.abs();
-      const lineCost = quantity.mul(itemCost);
-
-      // Custo por pedido
-      const orderId = movement.reference || "UNKNOWN";
-      if (!costByOrder[orderId]) {
-        costByOrder[orderId] = new Decimal(0);
-      }
-      costByOrder[orderId] = costByOrder[orderId].add(lineCost);
-
-      // Custo por item
-      if (!costByItem[movement.item.name]) {
-        costByItem[movement.item.name] = {
-          count: 0,
-          total: new Decimal(0),
-          usage: 0,
-        };
-      }
-      costByItem[movement.item.name].count += 1;
-      costByItem[movement.item.name].total = costByItem[
-        movement.item.name
-      ].total.add(lineCost);
-      costByItem[movement.item.name].usage += 1;
-
-      // Rastrear ordem
-      if (!orders.has(orderId)) {
-        orders.set(orderId, {
-          reference: movement.reference ?? undefined,
-          createdAt: movement.createdAt,
-          cost: new Decimal(0),
-        });
-      }
-      const order = orders.get(orderId)!;
-      order.cost = order.cost.add(lineCost);
-    }
-
-    // Calcular total
     let totalCost = new Decimal(0);
-    for (const cost of Object.values(costByOrder)) {
-      totalCost = totalCost.add(cost);
+
+    for (const pedido of pedidos) {
+      totalCost = totalCost.add(new Decimal(pedido.custoConhecido));
+
+      for (const movimento of pedido.movimentos) {
+        const itemCost = this.custoDoMovimento(movimento);
+        if (!itemCost) continue;
+
+        const lineCost = movimento.quantity.abs().mul(itemCost);
+        const nome = movimento.item.name;
+
+        if (!costByItem[nome]) {
+          costByItem[nome] = { count: 0, total: new Decimal(0), usage: 0 };
+        }
+        costByItem[nome].count += 1;
+        costByItem[nome].usage += 1;
+        costByItem[nome].total = costByItem[nome].total.add(lineCost);
+
+        /*
+         * Só existe uma chave aqui — CONSUMPTION — porque o carregador já
+         * filtrou por tipo. O campo permanece pela forma do retorno, que a
+         * server function `getCostReport` expõe.
+         */
+        if (!costByType.CONSUMPTION) {
+          costByType.CONSUMPTION = { count: 0, total: new Decimal(0) };
+        }
+        costByType.CONSUMPTION.count += 1;
+        costByType.CONSUMPTION.total = costByType.CONSUMPTION.total.add(lineCost);
+      }
     }
 
-    const totalOrders = Object.keys(costByOrder).length;
+    const totalOrders = pedidos.length;
     const averageCostPerOrder =
       totalOrders > 0 ? totalCost.dividedBy(totalOrders) : new Decimal(0);
 
-    // Items mais caros
     const topExpensive = Object.entries(costByItem)
       .map(([name, data]) => ({
         itemName: name,
@@ -231,22 +420,6 @@ export class InventoryCostService {
       .sort((a, b) => b.totalCost.toNumber() - a.totalCost.toNumber())
       .slice(0, 10);
 
-    // Custo por tipo de movimento (para anÃ¡lise)
-    const costByType: Record<string, { count: number; total: Decimal }> = {};
-    for (const movement of movements) {
-      const itemCost = this.custoDoMovimento(movement);
-      if (!itemCost) continue;
-
-      const key = movement.type;
-      if (!costByType[key]) {
-        costByType[key] = { count: 0, total: new Decimal(0) };
-      }
-      costByType[key].count += 1;
-      costByType[key].total = costByType[key].total.add(
-        movement.quantity.abs().mul(itemCost)
-      );
-    }
-
     return {
       period: { startDate, endDate },
       summary: {
@@ -256,10 +429,11 @@ export class InventoryCostService {
         costByType,
       },
       topExpensiveItems: topExpensive,
-      orders: Array.from(orders.entries()).map(([id, order]) => ({
-        orderId: id,
-        createdAt: order.createdAt,
-        cost: order.cost,
+      // A data é a de COMPETÊNCIA — quando a venda foi reconhecida.
+      orders: pedidos.map((p) => ({
+        orderId: p.id,
+        createdAt: p.competencia,
+        cost: new Decimal(p.custoConhecido),
       })),
     };
   }
@@ -308,24 +482,34 @@ export class InventoryCostService {
       averageProfit: Decimal;
     }>
   > {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - days);
 
-    // Pegar pedidos do perÃ­odo (apenas COMPLETED)
-    const orders = await prisma.order.findMany({
-      where: {
-        storeId,
-        createdAt: { gte: startDate },
-        status: "COMPLETED",
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
+    /*
+     * SÓ OS PEDIDOS COM CUSTO INTEGRALMENTE APURADO ENTRAM AQUI.
+     *
+     * Um pedido cujo produto nunca foi ligado ao estoque tem custo zero, e
+     * incluí-lo faria o produto aparecer nesta lista com margem de 100% —
+     * liderando o ranking de rentabilidade justamente por não ter sido medido.
+     * Um produto sem vínculo não é lucrativo: é desconhecido, e desaparecer da
+     * lista diz isso melhor do que um número inventado.
+     *
+     * Quantos pedidos ficaram de fora e por quê é o que `getFinancialKPIs`
+     * devolve em `pedidosSemVinculo` e `pedidosSemCusto`.
+     */
+    /*
+     * AQUI O RECORTE CONTINUA SENDO O PEDIDO INTEIRO, e não a linha.
+     *
+     * O custo por produto já é uma aproximação — o rateio por preço de venda
+     * logo abaixo. Aceitar pedidos PARCIAIS obrigaria a ratear o custo entre
+     * linhas apuradas e não apuradas, que é exatamente a divisão que o razão
+     * não permite fazer. Então só entram os pedidos em que todas as linhas
+     * foram medidas.
+     */
+    const apurados = (await this.carregarPedidosValidos(storeId, inicio, fim)).filter(
+      (p) => p.apuracao === "APURADO",
+    );
 
     const profitByProduct: Record<
       string,
@@ -337,7 +521,7 @@ export class InventoryCostService {
       }
     > = {};
 
-    for (const order of orders) {
+    for (const pedido of apurados) {
       /*
        * O custo do pedido é apurado UMA VEZ, aqui fora.
        *
@@ -346,7 +530,7 @@ export class InventoryCostService {
        * custo três vezes, e a margem saía negativa sem que nada estivesse
        * errado na cozinha.
        */
-      const custoDoPedido = await this.calculateOrderCost(storeId, order.id);
+      const custoDoPedidoInteiro = new Decimal(pedido.custoApurado);
 
       /*
        * Rateio proporcional ao valor de venda de cada linha.
@@ -358,12 +542,12 @@ export class InventoryCostService {
        * no detalhe, razoável no agregado, e infinitamente melhor do que contar
        * o mesmo custo N vezes.
        */
-      const vendaDoPedido = order.items.reduce(
+      const vendaDoPedido = pedido.itens.reduce(
         (soma, i) => soma.add(new Decimal(i.unitPrice).mul(i.quantity)),
         new Decimal(0),
       );
 
-      for (const item of order.items) {
+      for (const item of pedido.itens) {
         /*
          * `productNameSnapshot` e não `product.name`: é o nome congelado no
          * momento do pedido, que é o correto num relatório histórico —
@@ -393,7 +577,7 @@ export class InventoryCostService {
           ? new Decimal(0)
           : itemSalesValue.dividedBy(vendaDoPedido);
         profitByProduct[key].totalCost = profitByProduct[key].totalCost.add(
-          custoDoPedido.totalCost.mul(fatia),
+          custoDoPedidoInteiro.mul(fatia),
         );
         profitByProduct[key].orders += 1;
       }
@@ -428,46 +612,87 @@ export class InventoryCostService {
   /**
    * Dashboard widget: KPIs financeiros
    */
+  /**
+   * Dashboard widget: KPIs financeiros.
+   *
+   * DOIS PARES DE NÚMEROS, E A DIFERENÇA ENTRE ELES É O ASSUNTO.
+   *
+   *   totalSalesValue / totalCost   o período inteiro: tudo que foi vendido e
+   *                                 tudo que se sabe ter saído do estoque.
+   *
+   *   receitaApurada / custoApurado só os pedidos com custo INTEGRALMENTE
+   *                                 conhecido. É sobre estes que a margem é
+   *                                 calculada.
+   *
+   * Por isso `totalProfit` não é `totalSalesValue − totalCost`. Aquela conta
+   * trataria como lucro toda venda cujo custo ninguém mediu — um produto sem
+   * vínculo de estoque apareceria com margem de 100%, que era exatamente o
+   * defeito que esta regra existe para eliminar. `cobertura` diz que fatia do
+   * faturamento sustenta a margem, e sem ela os dois pares se confundem.
+   */
   static async getFinancialKPIs(storeId: string, days: number = 30) {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    const endDate = new Date();
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - days);
 
-    const [costReport, profitability] = await Promise.all([
-      this.getCostReport(storeId, startDate, endDate),
+    const [pedidos, profitability] = await Promise.all([
+      this.carregarPedidosValidos(storeId, inicio, fim),
       this.getProductProfitability(storeId, days),
     ]);
 
-    // Helper: converter para número com segurança
-    const toNum = (val: any): number => {
-      if (typeof val === "number") return val;
-      if (val && typeof val.toNumber === "function") return val.toNumber();
-      return 0;
-    };
+    const receitaTotal = pedidos.reduce((soma, p) => soma + p.receita, 0);
+    const custoTotal = pedidos.reduce((soma, p) => soma + p.custoConhecido, 0);
 
-    // Calcular KPIs
-    let totalSalesValue = new Decimal(0);
-    for (const item of profitability) {
-      totalSalesValue = totalSalesValue.plus(item.totalSalesValue);
-    }
+    /*
+     * A soma é das FATIAS APURADAS de cada pedido, não dos pedidos inteiros.
+     *
+     * Um pedido com uma pizza medida e um refrigerante sem vínculo contribui
+     * com a pizza. Exigir o pedido inteiro descartaria custo real e afundaria a
+     * cobertura por causa de uma linha de R$ 5.
+     */
+    const receitaApurada = pedidos.reduce((soma, p) => soma + p.receitaApurada, 0);
+    const custoApurado = pedidos.reduce((soma, p) => soma + p.custoApurado, 0);
 
-    const totalCostNum = toNum(costReport.summary.totalCost);
-    const totalProfit = totalSalesValue.minus(new Decimal(totalCostNum));
-    const profitMargin = totalSalesValue.isZero()
-      ? 0
-      : totalProfit.dividedBy(totalSalesValue).times(100).toNumber();
+    /*
+     * A cobertura compara MERCADORIA com MERCADORIA. O denominador é a soma das
+     * linhas, não `Order.total`: a taxa de entrega entra no total e não sai de
+     * linha nenhuma, então usá-la como base faria um pedido inteiramente apurado
+     * com entrega aparecer abaixo de 100%.
+     */
+    const receitaDasLinhas = pedidos.reduce((soma, p) => soma + p.receitaDasLinhas, 0);
+    const margem = margemApurada({ receitaApurada, custoApurado });
+    const conta = (rotulo: string) => pedidos.filter((p) => p.apuracao === rotulo).length;
 
     return {
       period: `Últimos ${days} dias`,
-      totalSalesValue: totalSalesValue.toNumber(),
-      totalCost: totalCostNum,
-      totalProfit: totalProfit.toNumber(),
-      profitMargin,
-      averageOrderValue: toNum(costReport.summary.averageCostPerOrder),
-      totalOrders: costReport.summary.totalOrders,
+      totalSalesValue: receitaTotal,
+      totalCost: custoTotal,
+      totalProfit: receitaApurada - custoApurado,
+      profitMargin: margem ?? 0,
+      /*
+       * Ticket MÉDIO, e não custo médio.
+       *
+       * Este campo era preenchido com `averageCostPerOrder` e exibido na tela
+       * sob o rótulo "Ticket médio". Numa loja com margem saudável os dois
+       * números são muito diferentes, e ninguém percebia porque ambos são
+       * "um dinheiro por pedido".
+       */
+      averageOrderValue: ticketMedio({ receita: receitaTotal, pedidos: pedidos.length }),
+      totalOrders: pedidos.length,
+
+      // A apuração, para a tela poder ser honesta sobre o que mediu.
+      receitaApurada,
+      custoApurado,
+      receitaDasLinhas,
+      margemApurada: margem,
+      cobertura: coberturaDeApuracao({ receitaApurada, receitaTotal: receitaDasLinhas }),
+      pedidosApurados: conta("APURADO"),
+      pedidosParciais: conta("PARCIAL"),
+      pedidosSemVinculo: conta("SEM_VINCULO"),
+      pedidosSemCusto: conta("SEM_CUSTO"),
+
       mostProfitableProduct: profitability[0] || null,
-      leastProfitableProduct:
-        profitability[profitability.length - 1] || null,
+      leastProfitableProduct: profitability[profitability.length - 1] || null,
     };
   }
 }

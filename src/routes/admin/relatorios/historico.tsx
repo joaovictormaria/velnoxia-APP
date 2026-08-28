@@ -19,7 +19,7 @@ const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "
 
 type SortField = "date" | "type" | "amount" | "status";
 type SortOrder = "asc" | "desc";
-type FilterStatus = "all" | "PAID" | "PENDING" | "REFUNDED";
+type FilterStatus = "all" | "PAID" | "PENDING";
 
 interface Transaction {
   id: string;
@@ -27,10 +27,18 @@ interface Transaction {
   orderNumber: number;
   type: "SALE" | "REFUND" | "ADJUSTMENT";
   amount: number;
-  cost?: number;
-  profit?: number;
+  /*
+   * `null`, e nao opcional-com-zero. Zero afirmaria que a venda nao custou
+   * nada — foi essa afirmacao que pintava a coluna Lucro de verde para
+   * produtos que nunca foram ligados ao estoque.
+   */
+  cost: number | null;
+  profit: number | null;
   paymentMethod?: string;
-  paymentStatus: "PAID" | "PENDING" | "REFUNDED";
+  paymentStatus: string;
+  /** Se ja conta como receita sob a regra financeira. */
+  reconhecida: boolean;
+  apuracao: "APURADO" | "PARCIAL" | "SEM_VINCULO" | "SEM_CUSTO" | null;
   createdAt: Date;
   customerName?: string;
   notes?: string;
@@ -103,8 +111,8 @@ function TransactionHistoryPage() {
       t.customerName || "-",
       t.type,
       currency.format(t.amount),
-      t.cost ? currency.format(t.cost) : "-",
-      t.profit ? currency.format(t.profit) : "-",
+      t.cost === null ? "-" : currency.format(t.cost),
+      t.profit === null ? "-" : currency.format(t.profit),
       t.paymentStatus,
     ]);
 
@@ -162,7 +170,6 @@ function TransactionHistoryPage() {
               <option value="all">Todos os status</option>
               <option value="PAID">Pago</option>
               <option value="PENDING">Pendente</option>
-              <option value="REFUNDED">Reembolsado</option>
             </select>
           </div>
 
@@ -298,19 +305,19 @@ function TransactionHistoryPage() {
                     {currency.format(transaction.amount)}
                   </td>
                   <td className="px-4 py-3 text-right text-sm text-neutral-700">
-                    {transaction.cost ? currency.format(transaction.cost) : "-"}
+                    {transaction.cost === null ? "—" : currency.format(transaction.cost)}
                   </td>
                   <td className="px-4 py-3 text-right text-sm font-medium">
                     <span
                       className={
-                        transaction.profit && transaction.profit > 0
+                        transaction.profit !== null && transaction.profit > 0
                           ? "text-emerald-700"
-                          : transaction.profit && transaction.profit < 0
+                          : transaction.profit !== null && transaction.profit < 0
                             ? "text-red-700"
                             : "text-neutral-500"
                       }
                     >
-                      {transaction.profit ? currency.format(transaction.profit) : "-"}
+                      {transaction.profit === null ? "—" : currency.format(transaction.profit)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm">
@@ -327,8 +334,35 @@ function TransactionHistoryPage() {
                         ? "Pago"
                         : transaction.paymentStatus === "PENDING"
                           ? "Pendente"
-                          : "Reembolsado"}
+                          : transaction.paymentStatus}
                     </span>
+                    {/*
+                      Pedidos em preparo aparecem porque a tela tambem serve
+                      para acompanhar o dia — mas sob a regra financeira eles
+                      ainda nao sao receita, e as colunas Custo e Lucro vem
+                      vazias. Sem este aviso o travessao pareceria falta de
+                      dado em vez de venda nao reconhecida.
+                    */}
+                    {!transaction.reconhecida && (
+                      <span className="mt-1 block text-[11px] text-neutral-500">
+                        em andamento
+                      </span>
+                    )}
+                    {transaction.reconhecida && transaction.apuracao === "PARCIAL" && (
+                      <span className="mt-1 block text-[11px] text-amber-600">
+                        apuracao parcial
+                      </span>
+                    )}
+                    {transaction.reconhecida && transaction.apuracao === "SEM_VINCULO" && (
+                      <span className="mt-1 block text-[11px] text-amber-600">
+                        sem vinculo de estoque
+                      </span>
+                    )}
+                    {transaction.reconhecida && transaction.apuracao === "SEM_CUSTO" && (
+                      <span className="mt-1 block text-[11px] text-amber-600">
+                        custo nao apurado
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))

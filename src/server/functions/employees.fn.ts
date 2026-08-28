@@ -8,6 +8,7 @@ import {
   deleteBenefitPlan,
   deleteEmployee,
   listBenefitPlans,
+  consumoDosFuncionarios,
   listEmployees,
   saveBenefitPlan,
   setEmployeeActive,
@@ -47,6 +48,36 @@ export const listEmployeesFn = createServerFn({ method: "GET" }).handler(async (
   const { storeId } = await requireAdminSession();
   return listEmployees(storeId);
 });
+
+/**
+ * O consumo dos funcionários num MÊS, para o fechamento da folha.
+ *
+ * O período é um mês inteiro, e não um intervalo livre de dias, porque é assim
+ * que a folha fecha. Ano e mês entram separados para não depender de o cliente
+ * e o servidor concordarem sobre o formato de uma data.
+ *
+ * As bordas seguem o RELÓGIO DO SERVIDOR, a mesma convenção que `lerUsoDoDia` e
+ * o `dashboard-service` usam — e pelo mesmo motivo registrado lá: um mês
+ * calculado num fuso e um faturamento calculado noutro discordariam na virada.
+ *
+ * `mes` é 1–12 na entrada porque é assim que uma pessoa escreve; o `-1` traduz
+ * para o índice do `Date`, e `dia 0` do mês seguinte é o último dia deste.
+ */
+export const consumoDeFuncionariosFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      ano: z.number().int().min(2000).max(2200),
+      mes: z.number().int().min(1).max(12),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+
+    const inicio = new Date(data.ano, data.mes - 1, 1, 0, 0, 0, 0);
+    const fim = new Date(data.ano, data.mes, 0, 23, 59, 59, 999);
+
+    return consumoDosFuncionarios(storeId, inicio, fim);
+  });
 
 /**
  * Cadastra ou edita. O PIN Ã© obrigatÃ³rio no cadastro e opcional depois: sem

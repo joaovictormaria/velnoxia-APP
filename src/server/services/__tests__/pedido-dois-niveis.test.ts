@@ -245,7 +245,7 @@ describe("pedido com composição", () => {
     expect(await reservado(molhoId)).toBeCloseTo(3.6, 4);
   });
 
-  it("14 · cancelar devolve o PREPARADO, e não os ingredientes dele", async () => {
+  it("14 · cancelar não devolve o PREPARADO, e nunca os ingredientes dele", async () => {
     await produzirMolho(4);
     const tomateAposProducao = await saldo(tomateId);
 
@@ -257,15 +257,26 @@ describe("pedido com composição", () => {
     await OrderInventoryHandler.onOrderCancelled(pedido.id);
 
     /*
-     * Devolver tomate aqui seria inventar tomate: ele virou molho e não tem
-     * volta. O que volta é o molho.
+     * Nada volta, em nenhum dos dois níveis — por dois motivos diferentes.
+     *
+     * O tomate não volta porque virou molho, e molho não se desfaz em tomate:
+     * é o consumo da PRODUÇÃO, que o cancelamento de um pedido nem enxerga.
+     * O molho não volta porque em PREPARING ele já foi usado na pizza — o
+     * cancelamento reclassifica essa saída como perda, não a desfaz.
      */
-    expect(await saldo(molhoId)).toBeCloseTo(4, 4);
+    expect(await saldo(molhoId)).toBeCloseTo(3.4, 4);
     expect(await saldo(tomateId)).toBeCloseTo(tomateAposProducao, 4);
     expect(await reservado(molhoId)).toBeCloseTo(0, 4);
+
+    // A perda é do MOLHO, o nível que o pedido consome. O tomate não aparece.
+    const perdas = await prisma.inventoryMovement.findMany({
+      where: { type: "LOSS", reference: pedido.id },
+    });
+    expect(perdas).toHaveLength(1);
+    expect(perdas[0].itemId).toBe(molhoId);
   });
 
-  it("14b · cancelar sobre estoque JA negativo ainda devolve o consumo", async () => {
+  it("14b · cancelar sobre estoque JA negativo não mexe no saldo", async () => {
     await produzirMolho(4);
     const pedido = await criarPedido([{ productId: pizzaId, quantity: 3 }]);
     await OrderInventoryHandler.onOrderReceived(pedido.id);
@@ -282,12 +293,24 @@ describe("pedido com composição", () => {
     await OrderInventoryHandler.onOrderCancelled(pedido.id);
 
     /*
-     * Desfazer um consumo REPÕE saldo, mas partindo de −1,6 a reposição de 0,6
-     * ainda termina negativa. Sem a permissão explícita a reversão seria
-     * recusada — e o pedido ficaria cancelado com o consumo dele ainda de pé,
-     * que é a pior das duas situações: o cliente não paga e o estoque não volta.
+     * O saldo fica exatamente onde estava: o par REVERSAL+LOSS repõe 0,6 e
+     * tira 0,6 de novo, e a soma é zero de propósito.
+     *
+     * É AQUI QUE A PERMISSÃO EXPLÍCITA DE SALDO NEGATIVO NO LOSS SE PAGA. A
+     * perda recusa negativo por padrão — ali o negativo seria erro de digitação.
+     * Sem a permissão, a segunda metade do par seria rejeitada e sobraria só a
+     * reversão: molho devolvido ao estoque, perda nunca registrada, e o saldo
+     * subindo para −1 sem que nada tivesse voltado à prateleira.
+     *
+     * O consumo avulso acima não é tocado: ele não tem `reference` do pedido,
+     * e a conversão em perda só alcança o que o pedido baixou.
      */
-    expect(await saldo(molhoId)).toBeCloseTo(-1, 4);
+    expect(await saldo(molhoId)).toBeCloseTo(-1.6, 4);
+
+    const perda = await prisma.inventoryMovement.findFirstOrThrow({
+      where: { itemId: molhoId, type: "LOSS", reference: pedido.id },
+    });
+    expect(Math.abs(Number(perda.quantity))).toBeCloseTo(0.6, 4);
   });
 });
 

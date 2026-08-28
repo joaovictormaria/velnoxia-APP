@@ -73,6 +73,29 @@ async function consumir(itemId: string, quantidade: number, pedidoId: string) {
   } as any);
 }
 
+/**
+ * Um pedido concluido de verdade.
+ *
+ * `getCostReport` parte dos PEDIDOS reconhecidos, e nao dos movimentos soltos:
+ * foi essa inversao que impediu cada corrida de producao de ser contada como
+ * se fosse um pedido. A consequencia para os testes e que um `reference`
+ * inventado deixou de ser custo de venda — precisa existir um Order.
+ */
+async function pedidoConcluido() {
+  return prisma.order.create({
+    data: {
+      storeId,
+      number: Math.floor(Math.random() * 1000000),
+      status: "COMPLETED",
+      customerName: "Cliente",
+      customerPhone: "11999999999",
+      paymentMethod: "CASH",
+      subtotal: 100,
+      total: 100,
+    },
+  });
+}
+
 beforeEach(semear);
 afterAll(limparBanco);
 
@@ -153,7 +176,15 @@ describe("custo histórico", () => {
 
   it("6 · o relatório do período também usa o custo congelado", async () => {
     const tomate = await criarInsumo("Tomate", 100, 8);
-    await consumir(tomate.id, 5, "pedido-1");
+    /*
+     * O PEDIDO PRECISA EXISTIR. Este teste usava o `reference` fabricado
+     * "pedido-1", como os cenarios acima — mas aqueles verificam
+     * `calculateOrderCost`, que casa movimentos por referencia, enquanto este
+     * verifica `getCostReport`, que parte dos pedidos validos. Um custo orfao
+     * nao e custo de venda.
+     */
+    const pedido = await pedidoConcluido();
+    await consumir(tomate.id, 5, pedido.id);
 
     await prisma.inventoryItem.update({
       where: { id: tomate.id },

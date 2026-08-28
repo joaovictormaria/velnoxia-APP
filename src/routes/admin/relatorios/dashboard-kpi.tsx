@@ -18,6 +18,10 @@ interface KPIData {
   profitMargin?: number;
   totalOrders?: number;
   averageOrderValue?: number;
+  receitaApurada?: number;
+  custoApurado?: number;
+  margemApurada?: number | null;
+  cobertura?: number;
 }
 
 function FinancialDashboardPage() {
@@ -48,22 +52,60 @@ function FinancialDashboardPage() {
   });
 
   const kpi = currentKpi || {};
-  const prev = previousKpi ? { ...previousKpi } : null;
 
   const totalSalesValue = kpi.totalSalesValue ?? 0;
-  const totalCost = kpi.totalCost ?? 0;
   const totalProfit = kpi.totalProfit ?? 0;
-  const profitMargin = kpi.profitMargin ?? 0;
+  const totalOrders = kpi.totalOrders ?? 0;
+  const receitaApurada = kpi.receitaApurada ?? 0;
+  const custoApurado = kpi.custoApurado ?? 0;
+  const cobertura = kpi.cobertura ?? 0;
+  const margemApurada = kpi.margemApurada ?? null;
+  /* Para os indicadores de saúde, que precisam de um número. Nulo vira travessão na tela. */
+  const margemDaSaude = margemApurada ?? 0;
 
-  const calculateTrend = (current: number, previous?: number) => {
+  /*
+   * O PERÍODO ANTERIOR É SUBTRAÍDO, NÃO CONSULTADO.
+   *
+   * A consulta de comparação pede `period * 2` dias — mas `days` sempre conta
+   * a partir de HOJE, então isso devolvia os últimos 60 dias, que CONTÊM os 30
+   * atuais. Comparar um conjunto com um superconjunto dele: com vendas
+   * estáveis o atual é sempre metade do "anterior", e as três setas apontavam
+   * para baixo permanentemente, por construção e não por queda.
+   *
+   * Subtrair devolve a janela disjunta — os dias 31 a 60 — sem precisar de um
+   * parâmetro novo na server function.
+   */
+  const anterior = previousKpi
+    ? {
+        totalSalesValue: (previousKpi.totalSalesValue ?? 0) - totalSalesValue,
+        totalProfit: (previousKpi.totalProfit ?? 0) - totalProfit,
+        receitaApurada: (previousKpi.receitaApurada ?? 0) - receitaApurada,
+        custoApurado: (previousKpi.custoApurado ?? 0) - custoApurado,
+      }
+    : null;
+
+  /*
+   * A margem anterior é RECALCULADA a partir dos totais subtraídos. Margem é
+   * razão, não soma: subtrair a margem de 60 dias da de 30 não produz a margem
+   * dos 30 dias anteriores.
+   */
+  const margemAnterior =
+    anterior && anterior.receitaApurada > 0
+      ? ((anterior.receitaApurada - anterior.custoApurado) / anterior.receitaApurada) * 100
+      : null;
+
+  const calculateTrend = (current: number, previous?: number | null) => {
     if (!previous || previous === 0) return null;
     const change = ((current - previous) / previous) * 100;
     return Math.round(change);
   };
 
-  const salesTrend = prev ? calculateTrend(totalSalesValue, prev.totalSalesValue) : null;
-  const profitTrend = prev ? calculateTrend(totalProfit, prev.totalProfit) : null;
-  const marginTrend = prev ? calculateTrend(profitMargin, prev.profitMargin) : null;
+  const salesTrend = anterior ? calculateTrend(totalSalesValue, anterior.totalSalesValue) : null;
+  const profitTrend = anterior ? calculateTrend(totalProfit, anterior.totalProfit) : null;
+  const marginTrend =
+    margemAnterior !== null && margemApurada !== null
+      ? calculateTrend(margemApurada, margemAnterior)
+      : null;
 
   return (
     <div className="space-y-6">
@@ -107,7 +149,15 @@ function FinancialDashboardPage() {
       </div>
 
       {/* KPIs Principais com Tendência */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/*
+        Faturamento de um lado, resultado apurado do outro.
+
+        Num quarteto único, "Faturamento − Custo" não bateria com "Lucro"
+        sempre que a cobertura fosse menor que 100% — e o leitor concluiria,
+        com razão, que a tela está errada. Separados, cada bloco fecha na
+        própria conta.
+      */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <KPICardWithTrend
           title="Faturamento"
           value={currency.format(totalSalesValue)}
@@ -116,33 +166,67 @@ function FinancialDashboardPage() {
           bgColor="bg-blue-50"
         />
         <KPICardWithTrend
-          title="Custo de Matéria-Prima"
-          value={currency.format(totalCost)}
+          title="Pedidos concluídos"
+          value={String(totalOrders)}
           trend={null}
-          icon="📦"
-          bgColor="bg-orange-50"
+          icon="🧾"
+          bgColor="bg-neutral-50"
         />
-        <KPICardWithTrend
-          title="Lucro Bruto"
-          value={currency.format(totalProfit)}
-          trend={profitTrend}
-          icon="📈"
-          bgColor="bg-emerald-50"
-        />
-        <KPICardWithTrend
-          title="Margem de Lucro"
-          value={percent.format(profitMargin / 100)}
-          trend={marginTrend}
-          icon="📊"
-          bgColor="bg-purple-50"
-        />
+      </div>
+
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-neutral-900">Resultado apurado</h3>
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+              cobertura >= 90
+                ? "bg-emerald-50 text-emerald-700"
+                : cobertura > 0
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-neutral-100 text-neutral-600"
+            }`}
+          >
+            {percent.format(cobertura / 100)} do faturamento
+          </span>
+        </div>
+
+        {cobertura === 0 ? (
+          <p className="mt-4 text-sm text-neutral-600">
+            Nenhuma venda do período tem custo apurado. Vincule os produtos a itens
+            de estoque para que a margem possa ser calculada.
+          </p>
+        ) : (
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <KPICardWithTrend
+              title="Custo de Matéria-Prima"
+              value={currency.format(custoApurado)}
+              trend={null}
+              icon="📦"
+              bgColor="bg-orange-50"
+            />
+            <KPICardWithTrend
+              title="Lucro Bruto"
+              value={currency.format(totalProfit)}
+              trend={profitTrend}
+              icon="📈"
+              bgColor="bg-emerald-50"
+            />
+            <KPICardWithTrend
+              title="Margem de Lucro"
+              value={margemApurada === null ? "—" : percent.format(margemApurada / 100)}
+              trend={marginTrend}
+              icon="📊"
+              bgColor="bg-purple-50"
+            />
+          </div>
+        )}
       </div>
 
       {/* Análise Detalhada */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Breakdown de Valores */}
         <div className="rounded-2xl border border-neutral-200 bg-white p-6">
-          <h3 className="text-lg font-bold text-neutral-900 mb-4">Breakdown de Valores</h3>
+          <h3 className="text-lg font-bold text-neutral-900 mb-4">Breakdown do resultado apurado</h3>
 
           <div className="space-y-4">
             {/* Faturamento */}
@@ -150,7 +234,7 @@ function FinancialDashboardPage() {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium text-neutral-700">Faturamento</span>
                 <span className="text-sm font-bold text-neutral-900">
-                  {currency.format(totalSalesValue)}
+                  {currency.format(receitaApurada)}
                 </span>
               </div>
               <div className="w-full bg-neutral-200 rounded-full h-2">
@@ -163,14 +247,14 @@ function FinancialDashboardPage() {
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium text-neutral-700">Custo (-)</span>
                 <span className="text-sm font-bold text-red-600">
-                  -{currency.format(totalCost)}
+                  -{currency.format(custoApurado)}
                 </span>
               </div>
               <div className="w-full bg-neutral-200 rounded-full h-2">
                 <div
                   className="bg-red-500 h-2 rounded-full"
                   style={{
-                    width: totalSalesValue > 0 ? `${(totalCost / totalSalesValue) * 100}%` : "0%",
+                    width: receitaApurada > 0 ? `${(custoApurado / receitaApurada) * 100}%` : "0%",
                   }}
                 ></div>
               </div>
@@ -188,7 +272,7 @@ function FinancialDashboardPage() {
                 <div
                   className="bg-emerald-500 h-2 rounded-full"
                   style={{
-                    width: totalSalesValue > 0 ? `${(totalProfit / totalSalesValue) * 100}%` : "0%",
+                    width: receitaApurada > 0 ? `${(totalProfit / receitaApurada) * 100}%` : "0%",
                   }}
                 ></div>
               </div>
@@ -203,13 +287,13 @@ function FinancialDashboardPage() {
               <div className="flex justify-between">
                 <span className="text-neutral-700">Custo como % do faturamento:</span>
                 <span className="font-medium">
-                  {percent.format(totalSalesValue > 0 ? totalCost / totalSalesValue : 0)}
+                  {percent.format(receitaApurada > 0 ? custoApurado / receitaApurada : 0)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-700">Lucro como % do faturamento:</span>
                 <span className="font-medium text-emerald-700">
-                  {percent.format(totalSalesValue > 0 ? totalProfit / totalSalesValue : 0)}
+                  {percent.format(receitaApurada > 0 ? totalProfit / receitaApurada : 0)}
                 </span>
               </div>
             </div>
@@ -254,12 +338,12 @@ function FinancialDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <HealthIndicator
             label="Margem de Lucro"
-            value={percent.format(profitMargin / 100)}
-            status={profitMargin >= 40 ? "good" : profitMargin >= 25 ? "ok" : "warning"}
+            value={margemApurada === null ? "—" : percent.format(margemDaSaude / 100)}
+            status={margemDaSaude >= 40 ? "good" : margemDaSaude >= 25 ? "ok" : "warning"}
             description={
-              profitMargin >= 40
+              margemDaSaude >= 40
                 ? "Excelente margem"
-                : profitMargin >= 25
+                : margemDaSaude >= 25
                   ? "Margem aceitável"
                   : "Margem baixa - revisar custos"
             }
@@ -267,21 +351,21 @@ function FinancialDashboardPage() {
 
           <HealthIndicator
             label="Faturamento vs Custo"
-            value={percent.format(totalSalesValue > 0 ? totalCost / totalSalesValue : 0)}
+            value={percent.format(receitaApurada > 0 ? custoApurado / receitaApurada : 0)}
             status={
-              totalSalesValue > 0
-                ? totalCost / totalSalesValue <= 0.6
+              receitaApurada > 0
+                ? custoApurado / receitaApurada <= 0.6
                   ? "good"
-                  : totalCost / totalSalesValue <= 0.75
+                  : custoApurado / receitaApurada <= 0.75
                     ? "ok"
                     : "warning"
                 : "warning"
             }
             description={
-              totalSalesValue > 0
-                ? totalCost / totalSalesValue <= 0.6
+              receitaApurada > 0
+                ? custoApurado / receitaApurada <= 0.6
                   ? "Custos saudáveis"
-                  : totalCost / totalSalesValue <= 0.75
+                  : custoApurado / receitaApurada <= 0.75
                     ? "Custos dentro do esperado"
                     : "Custos muito altos"
                 : "Sem faturamento"

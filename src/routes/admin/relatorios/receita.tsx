@@ -35,6 +35,13 @@ interface KPIData {
   profitMargin?: number;
   totalOrders?: number;
   averageOrderValue?: number;
+  receitaApurada?: number;
+  custoApurado?: number;
+  margemApurada?: number | null;
+  cobertura?: number;
+  pedidosSemVinculo?: number;
+  pedidosSemCusto?: number;
+  pedidosParciais?: number;
 }
 
 function ReportFinancialPage() {
@@ -85,11 +92,17 @@ function ReportFinancialPage() {
 
   const kpi = kpiData || {};
   const totalSalesValue = kpi.totalSalesValue ?? 0;
-  const totalCost = kpi.totalCost ?? 0;
   const totalProfit = kpi.totalProfit ?? 0;
-  const profitMargin = kpi.profitMargin ?? 0;
   const totalOrders = kpi.totalOrders ?? 0;
   const averageOrderValue = kpi.averageOrderValue ?? 0;
+  const receitaApurada = kpi.receitaApurada ?? 0;
+  const custoApurado = kpi.custoApurado ?? 0;
+  const cobertura = kpi.cobertura ?? 0;
+  const pedidosSemVinculo = kpi.pedidosSemVinculo ?? 0;
+  const pedidosSemCusto = kpi.pedidosSemCusto ?? 0;
+  const pedidosParciais = kpi.pedidosParciais ?? 0;
+  /* `null` quando nada foi apurado. Zero diria que a loja nao tem margem. */
+  const margemApurada = kpi.margemApurada ?? null;
 
   return (
     <div className="space-y-6">
@@ -142,8 +155,18 @@ function ReportFinancialPage() {
         ))}
       </div>
 
-      {/* KPIs principais */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/*
+        DOIS BLOCOS, E A SEPARAÇÃO É O ASSUNTO.
+
+        Faturamento é tudo que foi vendido. Resultado apurado é só a fatia cujo
+        custo o sistema realmente mediu. Juntar os dois num quarteto de cards
+        faria "Faturamento − Custos" não bater com "Lucro" — e o leitor
+        concluiria, com razão, que a tela está errada.
+
+        Separados, cada bloco fecha na própria aritmética, e a cobertura no
+        cabeçalho explica por que o segundo é menor que o primeiro.
+      */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KPICard
           title="Faturamento"
           value={currency.format(totalSalesValue)}
@@ -151,77 +174,118 @@ function ReportFinancialPage() {
           color="bg-emerald-50 text-emerald-700"
           loading={isPending}
         />
-        <KPICard
-          title="Custos"
-          value={currency.format(totalCost)}
-          icon={TrendingDown}
-          color="bg-orange-50 text-orange-700"
-          loading={isPending}
-        />
-        <KPICard
-          title="Lucro"
-          value={currency.format(totalProfit)}
-          icon={TrendingUp}
-          color="bg-blue-50 text-blue-700"
-          loading={isPending}
-        />
-        <KPICard
-          title="Margem"
-          value={percent.format(profitMargin / 100)}
-          icon={Percent}
-          color="bg-purple-50 text-purple-700"
-          loading={isPending}
-        />
-      </div>
-
-      {/* Detalhes adicionais */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-          <p className="text-sm text-neutral-500">Quantidade de pedidos</p>
+          <p className="text-sm text-neutral-500">Pedidos</p>
           <p className="mt-2 text-3xl font-bold text-neutral-900">
             {isPending ? "-" : totalOrders}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">pedidos neste período</p>
+          <p className="mt-1 text-xs text-neutral-500">vendas concluídas no período</p>
         </div>
-
         <div className="rounded-2xl border border-neutral-200 bg-white p-5">
           <p className="text-sm text-neutral-500">Ticket médio</p>
           <p className="mt-2 text-3xl font-bold text-neutral-900">
             {isPending ? "-" : currency.format(averageOrderValue)}
           </p>
-          <p className="mt-1 text-xs text-neutral-500">por pedido</p>
+          <p className="mt-1 text-xs text-neutral-500">faturamento por pedido</p>
         </div>
       </div>
 
-      {/* Resumo */}
       <div className="rounded-2xl border border-neutral-200 bg-white p-5">
-        <h3 className="text-sm font-semibold text-neutral-900">Resumo Financeiro</h3>
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-neutral-600">Faturamento bruto:</span>
-            <span className="font-medium text-neutral-900">
-              {isPending ? "-" : currency.format(totalSalesValue)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
-            <span className="text-sm text-neutral-600">Menos custos:</span>
-            <span className="font-medium text-neutral-900">
-              -{isPending ? "-" : currency.format(totalCost)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
-            <span className="text-sm font-semibold text-neutral-900">Lucro bruto:</span>
-            <span className="text-lg font-bold text-emerald-700">
-              {isPending ? "-" : currency.format(totalProfit)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
-            <span className="text-sm text-neutral-600">Margem de lucro:</span>
-            <span className="font-medium text-neutral-900">
-              {isPending ? "-" : percent.format(profitMargin / 100)}
-            </span>
-          </div>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-neutral-900">Resultado apurado</h3>
+          <span
+            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+              cobertura >= 90
+                ? "bg-emerald-50 text-emerald-700"
+                : cobertura > 0
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-neutral-100 text-neutral-600"
+            }`}
+          >
+            {isPending ? "—" : `${percent.format(cobertura / 100)} do faturamento`}
+          </span>
         </div>
+
+        {!isPending && cobertura === 0 ? (
+          /*
+            Nada medido. Antes esta situação produzia margem de 100%: sem
+            vínculo de estoque o custo chegava como zero, e a tela anunciava
+            lucro integral sobre uma venda que ninguém apurou.
+          */
+          <p className="mt-4 text-sm text-neutral-600">
+            Nenhuma venda do período tem custo apurado. Vincule os produtos a itens
+            de estoque para que a margem possa ser calculada.
+          </p>
+        ) : (
+          <>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <KPICard
+                title="Receita apurada"
+                value={currency.format(receitaApurada)}
+                icon={DollarSign}
+                color="bg-emerald-50 text-emerald-700"
+                loading={isPending}
+              />
+              <KPICard
+                title="Custo (CMV)"
+                value={currency.format(custoApurado)}
+                icon={TrendingDown}
+                color="bg-orange-50 text-orange-700"
+                loading={isPending}
+              />
+              <KPICard
+                title="Lucro bruto"
+                value={currency.format(totalProfit)}
+                icon={TrendingUp}
+                color="bg-blue-50 text-blue-700"
+                loading={isPending}
+              />
+              <KPICard
+                title="Margem"
+                value={margemApurada === null ? "—" : percent.format(margemApurada / 100)}
+                icon={Percent}
+                color="bg-purple-50 text-purple-700"
+                loading={isPending}
+              />
+            </div>
+
+            <div className="mt-4 space-y-3 border-t border-neutral-100 pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-neutral-600">Receita apurada:</span>
+                <span className="font-medium text-neutral-900">
+                  {isPending ? "-" : currency.format(receitaApurada)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
+                <span className="text-sm text-neutral-600">Menos custo da mercadoria:</span>
+                <span className="font-medium text-neutral-900">
+                  -{isPending ? "-" : currency.format(custoApurado)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between border-t border-neutral-100 pt-3">
+                <span className="text-sm font-semibold text-neutral-900">Lucro bruto:</span>
+                <span className="text-lg font-bold text-emerald-700">
+                  {isPending ? "-" : currency.format(totalProfit)}
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {!isPending && (pedidosSemVinculo > 0 || pedidosSemCusto > 0 || pedidosParciais > 0) && (
+          <p className="mt-4 border-t border-neutral-100 pt-4 text-xs text-neutral-500">
+            {pedidosParciais > 0 && (
+              <>
+                {pedidosParciais} pedido(s) com apuração parcial — parte das linhas não
+                tem custo medido.{" "}
+              </>
+            )}
+            {(pedidosSemVinculo > 0 || pedidosSemCusto > 0) && "Fora da apuração: "}
+            {pedidosSemVinculo > 0 && `${pedidosSemVinculo} sem vínculo de estoque`}
+            {pedidosSemVinculo > 0 && pedidosSemCusto > 0 && " · "}
+            {pedidosSemCusto > 0 && `${pedidosSemCusto} sem custo cadastrado`}.
+          </p>
+        )}
       </div>
 
       {/* Gráficos de Evolução */}

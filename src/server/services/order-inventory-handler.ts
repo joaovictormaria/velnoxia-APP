@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/client";
+import type { Prisma } from "@prisma/client";
 import { InventoryService } from "@/server/services/inventory-service";
 import { insumosDoPedido, resolverComposicao } from "@/server/services/composicao-do-pedido";
 
@@ -22,6 +23,62 @@ export class OrderInventoryHandler {
    * recusar faz sentido: ninguém foi cobrado ainda, e aceitar seria prometer o
    * que não existe.
    */
+  /**
+   * Reserva o estoque DENTRO da transação que está criando o pedido.
+   *
+   * NASCEU DE PEDIDO CONFIRMADO SEM ESTOQUE. O caminho antigo — e ainda vivo,
+   * logo abaixo — roda depois do commit, disparado sem espera. Quando faltava
+   * saldo, a reserva falhava, o pedido já estava confirmado ao cliente, e tudo
+   * o que sobrava era a marca `inventoryInconsistentAt` para alguém conferir
+   * na mão. O cliente pagava por um bolo que não existia.
+   *
+   * Aqui a reserva entra no MESMO commit: falhar significa que o pedido inteiro
+   * é desfeito pelo rollback, sem Order parcial e sem reserva órfã. Não há
+   * `desfazerReservas` porque não há o que desfazer — o banco cuida disso.
+   *
+   * A CHECAGEM DE CONCORRÊNCIA CONTINUA SENDO A DE SEMPRE: o
+   * `SELECT ... FOR UPDATE` dentro de `recordMovement`, agora sob a transação
+   * do pedido. Dois clientes disputando a última unidade continuam serializados
+   * pelo banco, e só um passa.
+   *
+   * A ficha técnica é congelada aqui também, pelo mesmo motivo do caminho
+   * antigo: do consumo em diante todo mundo lê a versão do pedido, nunca "a
+   * ativa agora".
+   */
+  static async reservarNaCriacao(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    storeId: string,
+  ) {
+    const itens = await tx.orderItem.findMany({ where: { orderId } });
+    if (itens.length === 0) return;
+
+    for (const item of itens) {
+      if (item.compositionVersionId) continue;
+      const composicao = await resolverComposicao(item.productId, null, tx);
+      if (composicao) {
+        await tx.orderItem.update({
+          where: { id: item.id },
+          data: { compositionVersionId: composicao.id },
+        });
+        item.compositionVersionId = composicao.id;
+      }
+    }
+
+    const { insumos } = await insumosDoPedido(itens as any, tx);
+    if (insumos.length === 0) return;
+
+    for (const insumo of insumos) {
+      await InventoryService.reserveForOrder(
+        storeId,
+        insumo.inventoryItemId,
+        insumo.quantidade,
+        orderId,
+        tx,
+      );
+    }
+  }
+
   static async onOrderReceived(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -145,11 +202,28 @@ export class OrderInventoryHandler {
   static async onOrderCompleted(_orderId: string) {}
 
   /**
-   * Pedido cancelado: devolver o que foi tirado.
+   * Pedido cancelado: a reserva volta, o que já foi consumido vira perda.
    *
-   * Reverte em ordem inversa à criação, e a reversão agora repõe o saldo de
-   * verdade — antes ela gravava o movimento na trilha e não devolvia nada,
-   * porque o cálculo do delta não tinha caso para REVERSAL.
+   * A REGRA MUDOU, E A MUDANÇA TEM UM MOTIVO FÍSICO. Antes isto revertia
+   * RESERVATION e CONSUMPTION juntos, e o insumo voltava inteiro para a
+   * prateleira. Só que `onOrderPreparing` grava o consumo justamente porque a
+   * cozinha JÁ USOU o material — é o que o `permitirSaldoNegativo` de lá
+   * admite. Devolver farinha que virou massa criava saldo que ninguém
+   * encontraria na contagem física.
+   *
+   * Os dois momentos passam a ser tratados de forma diferente:
+   *
+   *   RECEIVED → CANCELLED    nada saiu da prateleira. A reserva é revertida e
+   *                           o saldo volta a ficar livre. Idêntico ao anterior.
+   *
+   *   PREPARING → CANCELLED   o material saiu. O consumo é anulado como VENDA,
+   *                           deixando de ser CMV, e reclassificado como PERDA,
+   *                           sem que o saldo suba.
+   *
+   * A ordem importa: a reserva primeiro. Um pedido cancelado em PREPARING já
+   * teve a reserva revertida lá atrás, então a primeira chamada não acha nada e
+   * segue — mas um pedido cancelado em RECEIVED depende dela, e o laço de
+   * perdas abaixo é que fica vazio.
    */
   static async onOrderCancelled(orderId: string) {
     const order = await prisma.order.findUnique({
@@ -157,7 +231,143 @@ export class OrderInventoryHandler {
       select: { storeId: true },
     });
     if (!order?.storeId) return;
-    await this.reverterMovimentos(order.storeId, orderId, ["RESERVATION", "CONSUMPTION"]);
+
+    await this.reverterMovimentos(order.storeId, orderId, ["RESERVATION"]);
+    await this.perderConsumos(order.storeId, orderId);
+  }
+
+  /**
+   * Transforma em perda o que o pedido cancelado já tinha consumido.
+   *
+   * SÃO DOIS MOVIMENTOS, E NENHUM DELES SOZINHO RESOLVE:
+   *
+   *   REVERSAL do consumo   devolve `+q` ao saldo e preenche `reversedBy` no
+   *                         movimento original. É esse preenchimento que tira o
+   *                         consumo do CMV: o custo da venda não pode carregar
+   *                         um pedido que não virou venda.
+   *
+   *   LOSS de `q`           tira `−q` de novo, agora com o nome certo. É assim
+   *                         que este material passa a aparecer no relatório de
+   *                         perdas, onde antes era invisível.
+   *
+   * A SOMA DOS DOIS É ZERO — o insumo não reaparece na prateleira. O par existe
+   * pela TRILHA, não pelo saldo: sem ele, ou o estoque mente (devolvendo comida
+   * usada) ou o razão mente (chamando de venda o que foi desperdício).
+   *
+   * OS DOIS NA MESMA TRANSAÇÃO, e não por hábito: entre um e outro o saldo fica
+   * momentaneamente alto, e um segundo pedido poderia reservar estoque que não
+   * existe. Dentro da transação essa janela não existe para mais ninguém.
+   *
+   * IDEMPOTENTE por construção: a busca exige `reversedBy: null`, então uma
+   * segunda passada não encontra nada. E as duas chaves derivam do id do
+   * movimento original, que é único — duas execuções simultâneas disputam o
+   * índice e a segunda recebe o que a primeira gravou.
+   */
+  private static async perderConsumos(storeId: string, orderId: string) {
+    const consumos = await prisma.inventoryMovement.findMany({
+      where: {
+        storeId,
+        reference: orderId,
+        referenceType: "ORDER",
+        type: "CONSUMPTION",
+        reversedBy: { is: null },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    for (const consumo of consumos) {
+      /*
+       * O custo viaja junto, congelado. É o custo do momento da BAIXA, não o de
+       * hoje: uma perda de março vale o que o insumo valia em março, e o preço
+       * que o fornecedor cobrar em abril não reescreve isso.
+       *
+       * Nulo continua nulo, e é por isso que o ternário existe: `undefined`
+       * faria `recordMovement` cair no custo ATUAL do item, inventando um valor
+       * para uma perda cujo custo nunca foi conhecido.
+       */
+      const custo = consumo.costAtTime === null ? null : consumo.costAtTime.toString();
+
+      await prisma.$transaction(async (tx) => {
+        /*
+         * TRAVA A LINHA DO CONSUMO ANTES DE ESCREVER QUALQUER COISA.
+         *
+         * Sem isto, duas execuções simultâneas — e elas acontecem: a transição
+         * dispara o sync sem `await`, e a varredura de expiração chama
+         * `syncOrderStatus` por conta própria — encontravam o mesmo consumo não
+         * revertido e tentavam gravar o MESMO `idempotencyKey`.
+         *
+         * O `recordMovement` sabe transformar esse P2002 em "já processado",
+         * mas só quando abre a própria transação: ali o conflito aborta apenas
+         * a dela. Dentro de uma transação de FORA, o P2002 aborta a transação
+         * COMPARTILHADA, e a chamada seguinte — o LOSS — morria com
+         * `25P02: current transaction is aborted`. O par ficava pela metade e o
+         * cancelamento estourava, em vez de simplesmente não ter nada a fazer.
+         *
+         * Travar aqui EVITA o conflito em vez de tentar se recuperar dele: a
+         * segunda transação espera, e quando entra já enxerga a reversão da
+         * primeira. Nenhum P2002 chega a existir.
+         */
+        await tx.$queryRaw`SELECT "id" FROM "InventoryMovement" WHERE "id" = ${consumo.id} FOR UPDATE`;
+
+        /*
+         * Saída explícita, relida DEPOIS da trava.
+         *
+         * É DEFESA, NÃO O GUARDA. Removê-la não muda o comportamento: com a
+         * trava acima, o atalho de idempotência do próprio `recordMovement` já
+         * encontra a reversão que a vencedora acabou de gravar e devolve o
+         * registro sem tentar inserir. Quem elimina a corrida é o FOR UPDATE.
+         *
+         * Fica porque torna a intenção legível e porque não faz este caminho
+         * depender do comportamento interno de `recordMovement` — se aquele
+         * atalho mudar um dia, aqui continua correto.
+         */
+        const jaRevertido = await tx.inventoryMovement.findUnique({
+          where: { originalMovementId: consumo.id },
+          select: { id: true },
+        });
+        // Já processado por outra execução. Não é erro: é não ter o que fazer.
+        if (jaRevertido) return;
+
+        await InventoryService.recordMovement(storeId, {
+          idempotencyKey: `${storeId}#REVERSAL#${consumo.id}`,
+          itemId: consumo.itemId,
+          type: "REVERSAL",
+          quantity: Number(consumo.quantity) * -1,
+          unitId: consumo.unitId,
+          originalMovementId: consumo.id,
+          reference: orderId,
+          referenceType: "ORDER",
+          permitirSaldoNegativo: true,
+          authorType: "SYSTEM",
+          authorId: "ORDER",
+          authorName: "Cancelamento após preparo",
+          tx,
+        } as any);
+
+        await InventoryService.recordMovement(storeId, {
+          idempotencyKey: `${storeId}#LOSS#${consumo.id}`,
+          itemId: consumo.itemId,
+          type: "LOSS",
+          quantity: Math.abs(Number(consumo.quantity)),
+          unitId: consumo.unitId,
+          reference: orderId,
+          referenceType: "ORDER",
+          costAtTime: custo,
+          /*
+           * A perda recusa saldo negativo por padrão — ali o negativo seria erro
+           * de digitação. Aqui não: se o consumo já tinha deixado o item
+           * negativo, esta baixa apenas devolve o saldo ao valor que ele tinha
+           * antes do REVERSAL acima. Recusar deixaria o par pela metade.
+           */
+          permitirSaldoNegativo: true,
+          authorType: "SYSTEM",
+          authorId: "ORDER",
+          authorName: "Cancelamento após preparo",
+          note: "Pedido cancelado depois do preparo: material já consumido.",
+          tx,
+        } as any);
+      });
+    }
   }
 
   /** Desfaz só as reservas — usado quando a reserva falha no meio. */

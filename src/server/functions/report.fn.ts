@@ -2,6 +2,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
+import { numeros } from "./serializar";
+import { decimalToNumber } from "../utils/decimal-converter";
 import { reportRepository } from "@/server/repositories/report-repository";
 
 function serializeItem(item: any) {
@@ -50,16 +52,32 @@ export const adminGetMovementHistory = createServerFn({ method: "POST" })
     const movements = await reportRepository.getMovementHistory(admin.storeId, {
       itemId: data.itemId || undefined,
       type: data.type || undefined,
+      // O repositorio ja aceitava recorte por data; o wrapper e que descartava.
+      startDate: data.startDate ? new Date(data.startDate) : undefined,
+      endDate: data.endDate ? new Date(data.endDate) : undefined,
       limit,
     });
 
-    // Serialize Decimal values - convert to JSON and back to ensure all Decimals are converted
-    return JSON.parse(JSON.stringify(movements, (key, value) => {
-      if (value && typeof value === 'object' && value.constructor.name === 'Decimal') {
-        return Number(value);
-      }
-      return value;
-    }));
+    /*
+     * O REPLACER QUE ESTAVA AQUI NUNCA FUNCIONOU, POR DOIS MOTIVOS INDEPENDENTES.
+     *
+     * 1. `JSON.stringify` chama `toJSON()` ANTES de passar o valor ao replacer.
+     *    O Decimal do Prisma tem `toJSON`, então o replacer recebia uma STRING —
+     *    e o teste `typeof value === 'object'` era falso para todos eles.
+     *
+     * 2. Mesmo que recebesse o objeto, `constructor.name` do Decimal do Prisma 7
+     *    é `Decimal2`, não `Decimal`. A comparação nunca casaria.
+     *
+     * O efeito não era visível porque o repositório converte à mão os campos que
+     * as telas leem. Mas ele converte 3 dos 10 campos Decimal do item, e nenhum
+     * dos dois de `originalMovement`: os outros nove atravessavam a fronteira
+     * como string, esperando o primeiro código que fizesse conta com eles.
+     *
+     * `numeros` é o mesmo walker recursivo que serve as funções de custo. Ele
+     * identifica o Decimal pelo `toNumber()` — comportamento, não nome de classe
+     * — e preserva Date, que o round-trip de JSON transformava em string.
+     */
+    return numeros(movements);
   });
 
 export const adminGetCostAnalysis = createServerFn({ method: "POST" })
@@ -97,6 +115,35 @@ export const adminGetInventoryValueReport = createServerFn({ method: "GET" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return reportRepository.getInventoryValue(admin.storeId);
+    const relatorio = await reportRepository.getInventoryValue(admin.storeId);
+
+    /*
+     * Decimal do Prisma não atravessa a fronteira da server function: o
+     * Seroval estoura com "[object Decimal] cannot be parsed/serialized".
+     * Ficou dormindo enquanto nenhuma tela chamava isto; a aba Gráficos
+     * passou a chamar e o erro apareceu inteiro na cara do usuário.
+     *
+     * CONVERSÃO EXPLÍCITA, e não um replacer de JSON.stringify.
+     *
+     * O replacer que a função vizinha usa NÃO CONVERTE NADA, e vale registrar
+     * por que: `JSON.stringify` chama o `toJSON()` do valor ANTES de passar
+     * pelo replacer, então o que chega lá já é a string do Decimal — e o
+     * `typeof === "object"` nunca bate. O crash some porque string serializa,
+     * mas os números chegam ao gráfico como texto.
+     *
+     * (O `constructor.name` também não ajudaria: o bundler renomeia a classe
+     * para `Decimal2`.)
+     */
+    return {
+      totalValue: decimalToNumber(relatorio.totalValue),
+      itemCount: relatorio.itemCount,
+      breakdown: relatorio.breakdown.map((linha: any) => ({
+        id: linha.id,
+        name: linha.name,
+        quantity: decimalToNumber(linha.quantity),
+        cost: decimalToNumber(linha.cost),
+        value: decimalToNumber(linha.value),
+      })),
+    };
   });
 

@@ -1,5 +1,7 @@
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "../db/client";
+import { InventoryCostService } from "./inventory-cost-service";
+import { ticketMedio } from "@/lib/regra-financeira";
 import { horasDoGrafico, rotuloDaHora } from "./janela-do-grafico";
 
 function startOfDay(date: Date): Date {
@@ -25,17 +27,31 @@ function percentChange(current: number, previous: number): number | null {
   return Math.round(((current - previous) / previous) * 100);
 }
 
+/**
+ * O faturamento do painel, sob a MESMA regra dos relatórios.
+ *
+ * Antes esta função somava `status != CANCELLED`, e era o número que o dono
+ * via todo dia. Os relatórios somavam só o concluído. Dois faturamentos
+ * oficiais, discordando exatamente pelos pedidos em preparo — e nenhum jeito
+ * de dizer qual estava certo, porque nenhum estava errado sozinho.
+ *
+ * Chamar `pedidosReconhecidos` em vez de repetir o filtro aqui é o que impede a
+ * divergência de voltar: existe UMA definição de venda, e ela mora num lugar só.
+ *
+ * As outras funções deste arquivo continuam com `status != CANCELLED` de
+ * propósito. Pico de movimento por hora e ranking de produtos são perguntas
+ * OPERACIONAIS — quanta gente trabalha às 20h, o que a cozinha precisa ter
+ * pronto. Um pedido em preparo conta para as duas, e recortá-lo por regra
+ * financeira responderia a pergunta errada.
+ */
 async function summaryForRange(storeId: string, from: Date, to: Date) {
-  const orders = await prisma.order.findMany({
-    where: { storeId, createdAt: { gte: from, lte: to }, status: { not: "CANCELLED" } },
-    select: { total: true },
-  });
-  const count = orders.length;
-  const revenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
+  const pedidos = await InventoryCostService.pedidosReconhecidos(storeId, from, to);
+  const count = pedidos.length;
+  const revenue = pedidos.reduce((soma, p) => soma + p.receita, 0);
   return {
     count,
     revenue,
-    averageTicket: count === 0 ? 0 : revenue / count,
+    averageTicket: ticketMedio({ receita: revenue, pedidos: count }),
   };
 }
 

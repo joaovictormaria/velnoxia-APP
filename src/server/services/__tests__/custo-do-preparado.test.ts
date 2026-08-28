@@ -325,46 +325,163 @@ describe("eficiência da corrida", () => {
 });
 
 describe("rentabilidade por produto", () => {
-  it("15 · o custo do pedido é contado UMA vez, não uma por linha", async () => {
-    const categoriaId = (await prisma.category.create({
-      data: { storeId, name: "Cardápio", slug: `c-${Date.now()}`, kind: "SIMPLE" },
-    })).id;
+  async function categoria() {
+    return (
+      await prisma.category.create({
+        data: {
+          storeId,
+          name: "Cardápio",
+          slug: `c-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          kind: "SIMPLE",
+        },
+      })
+    ).id;
+  }
 
+  /** Produto de cardápio ligado ao tomate, que custa R$ 8/kg. */
+  async function produtoLigado(nome: string, categoriaId: string, preco: number) {
+    return prisma.product.create({
+      data: {
+        storeId,
+        categoryId: categoriaId,
+        name: nome,
+        slug: `${nome.toLowerCase()}-${Math.random().toString(36).slice(2, 7)}`,
+        description: "",
+        basePrice: preco,
+        inventoryItemId: tomateId,
+      },
+    });
+  }
+
+  /**
+   * Um pedido concluído de três linhas, com UM consumo de R$ 20 atribuído a ele.
+   *
+   * 2,5 kg de tomate a R$ 8. As linhas somam R$ 100 — 30, 30 e 40 —, que é o
+   * que torna o rateio verificável.
+   */
+  async function pedidoDeTresLinhas(
+    linhas: Array<{ produtoId: string | null; nome: string; preco: number }>,
+  ) {
     const pedido = await prisma.order.create({
       data: {
-        storeId, number: 1, customerName: "C", customerPhone: "1",
-        paymentMethod: "PIX", subtotal: 100, total: 100, status: "COMPLETED",
+        storeId,
+        number: 1,
+        customerName: "C",
+        customerPhone: "1",
+        paymentMethod: "PIX",
+        subtotal: 100,
+        total: 100,
+        status: "COMPLETED",
         items: {
-          create: [
-            { productNameSnapshot: "A", unitPrice: 30, quantity: 1 },
-            { productNameSnapshot: "B", unitPrice: 30, quantity: 1 },
-            { productNameSnapshot: "C", unitPrice: 40, quantity: 1 },
-          ],
+          create: linhas.map((l) => ({
+            productId: l.produtoId,
+            productNameSnapshot: l.nome,
+            unitPrice: l.preco,
+            quantity: 1,
+          })),
         },
       },
     });
 
-    // Um consumo de R$ 20 atribuído ao pedido.
     await InventoryService.recordMovement(storeId, {
       idempotencyKey: `${storeId}#ORDER#${pedido.id}#CONSUMPTION#${tomateId}`,
-      itemId: tomateId, type: "CONSUMPTION", quantity: -2.5, unitId: unitKg,
-      reference: pedido.id, referenceType: "ORDER", permitirSaldoNegativo: true,
+      itemId: tomateId,
+      type: "CONSUMPTION",
+      quantity: -2.5,
+      unitId: unitKg,
+      reference: pedido.id,
+      referenceType: "ORDER",
+      permitirSaldoNegativo: true,
     } as any);
 
-    const rentabilidade = await InventoryCostService.getProductProfitability(storeId, 30);
-    const somaDosCustos = rentabilidade.reduce((s, p) => s + Number(p.totalCost), 0);
+    return pedido;
+  }
 
+  it("15 · o custo do pedido é contado UMA vez, não uma por linha", async () => {
     /*
      * Antes, `calculateOrderCost` era chamado DENTRO do laço de itens: um
      * pedido de três linhas somava R$ 20 três vezes, R$ 60 no total, e a
      * margem saía negativa sem nada estar errado na cozinha.
+     *
+     * Os três produtos estão VIVOS e vinculados ao tomate, então o pedido apura
+     * por inteiro e o rateio interno da rentabilidade continua valendo.
      */
+    const cat = await categoria();
+    const a = await produtoLigado("A", cat, 30);
+    const b = await produtoLigado("B", cat, 30);
+    const c = await produtoLigado("C", cat, 40);
+
+    await pedidoDeTresLinhas([
+      { produtoId: a.id, nome: "A", preco: 30 },
+      { produtoId: b.id, nome: "B", preco: 30 },
+      { produtoId: c.id, nome: "C", preco: 40 },
+    ]);
+
+    const rentabilidade = await InventoryCostService.getProductProfitability(storeId, 30);
+    const somaDosCustos = rentabilidade.reduce((s, p) => s + Number(p.totalCost), 0);
+
     expect(somaDosCustos).toBeCloseTo(20, 2);
     expect(somaDosCustos).not.toBeCloseTo(60, 2);
 
     // E o rateio segue o valor de venda: 30/30/40 sobre 100.
-    const porNome = Object.fromEntries(rentabilidade.map((p) => [p.productName, Number(p.totalCost)]));
+    const porNome = Object.fromEntries(
+      rentabilidade.map((p) => [p.productName, Number(p.totalCost)]),
+    );
     expect(porNome["A"]).toBeCloseTo(6, 2);
     expect(porNome["C"]).toBeCloseTo(8, 2);
+  });
+
+  it("16 · com produtos APAGADOS, não há atribuição arbitrária", async () => {
+    /*
+     * A TRAVA DO PRODUTO ÓRFÃO, no relatório por produto.
+     *
+     * Apagar o produto do cardápio é exclusão de verdade: `productId` vira nulo
+     * e a ficha técnica cai em cascata. Com TRÊS linhas nesse estado e um único
+     * consumo, não há como saber qual delas gastou — e escolher por preço,
+     * quantidade ou posição seria inventar a resposta.
+     *
+     * O rateio do cenário 15 NÃO se aplica aqui. Lá os três produtos existem e
+     * declaram vínculo com o estoque; aqui essa declaração foi apagada, e o que
+     * sobra é uma prova de que ALGUÉM gastou, sem dizer quem. Nenhuma linha é
+     * reconhecida, e o ranking fica vazio: é melhor perder cobertura do que
+     * fabricar margem.
+     *
+     * A recuperação de UMA órfã, que é o caso em que a prova basta, está em
+     * `cmv-da-venda.test.ts`.
+     */
+    const cat = await categoria();
+    const a = await produtoLigado("A", cat, 30);
+    const b = await produtoLigado("B", cat, 30);
+    const c = await produtoLigado("C", cat, 40);
+
+    const pedido = await pedidoDeTresLinhas([
+      { produtoId: a.id, nome: "A", preco: 30 },
+      { produtoId: b.id, nome: "B", preco: 30 },
+      { produtoId: c.id, nome: "C", preco: 40 },
+    ]);
+
+    for (const p of [a, b, c]) {
+      await prisma.product.delete({ where: { id: p.id } });
+    }
+
+    // A cascata levou os dois sinais de vínculo de cada linha.
+    const itens = await prisma.orderItem.findMany({ where: { orderId: pedido.id } });
+    expect(itens).toHaveLength(3);
+    for (const item of itens) {
+      expect(item.productId).toBeNull();
+      expect(item.compositionVersionId).toBeNull();
+    }
+
+    const rentabilidade = await InventoryCostService.getProductProfitability(storeId, 30);
+    expect(rentabilidade).toHaveLength(0);
+
+    /*
+     * Mas o CMV do pedido continua registrando o que de fato saiu do estoque.
+     * A trava tira a receita da margem; ela não apaga o custo do relatório.
+     */
+    const ontem = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const amanha = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const relatorio = await InventoryCostService.getCostReport(storeId, ontem, amanha);
+    expect(Number(relatorio.summary.totalCost)).toBeCloseTo(20, 2);
   });
 });

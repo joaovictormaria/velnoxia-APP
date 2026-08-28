@@ -176,7 +176,33 @@ describe('InventoryCostService', () => {
 
   describe('getCostReport', () => {
     it('deve gerar relatório de custos do período', async () => {
-      const orderId = 'ORDER-REPORT-' + Date.now();
+      /*
+       * O PEDIDO PRECISA EXISTIR DE VERDADE.
+       *
+       * Este teste usava um `reference` inventado — a string 'ORDER-REPORT-...'
+       * sem nenhum Order correspondente. Passava porque o relatório varria
+       * movimentos soltos e agrupava por referência, sem perguntar a que venda
+       * cada custo pertencia.
+       *
+       * Agora o relatório parte dos pedidos reconhecidos, então um custo órfão
+       * simplesmente não é custo de venda. É essa mudança que impede a produção
+       * de ser contada como pedido.
+       */
+      const order = await prisma.order.create({
+        data: {
+          storeId: testStoreId,
+          number: Math.floor(Math.random() * 1000000),
+          status: 'COMPLETED',
+          customerName: 'Cliente',
+          customerPhone: '11999999999',
+          paymentMethod: 'CASH',
+          subtotal: 200,
+          total: 200,
+          items: {
+            create: [{ productNameSnapshot: 'Pão', unitPrice: 200, quantity: 1 }],
+          },
+        },
+      });
 
       await InventoryService.recordMovement(testStoreId, {
         idempotencyKey: 'cost-report-1',
@@ -184,13 +210,13 @@ describe('InventoryCostService', () => {
         type: 'CONSUMPTION',
         quantity: new Decimal(-8),
         unitId: testUnitId as any,
-        reference: orderId,
+        reference: order.id,
         referenceType: 'ORDER',
       } as any);
 
       const now = new Date();
-      const startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 dia atrás
-      const endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 1 dia depois
+      const startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const endDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
       const report = await InventoryCostService.getCostReport(
         testStoreId,
@@ -199,9 +225,11 @@ describe('InventoryCostService', () => {
       );
 
       expect(report.summary.totalOrders).toBeGreaterThan(0);
-      expect(report.summary.totalCost).toEqual(new Decimal(84)); // 8 * 10.50
+      expect(Number(report.summary.totalCost)).toBeCloseTo(84, 4); // 8 * 10,50
       expect(report.topExpensiveItems).toHaveLength(1);
       expect(report.topExpensiveItems[0].itemName).toBe('Farinha Premium');
+
+      await prisma.order.deleteMany({ where: { storeId: testStoreId } });
     });
   });
 });

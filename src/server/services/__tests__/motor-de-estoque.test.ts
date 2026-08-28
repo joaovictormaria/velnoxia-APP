@@ -441,7 +441,7 @@ describe("reversão", () => {
     expect((await saldo(item.id)).reserved).toBe(0);
   });
 
-  it("18. cancelar depois do preparo devolve o saldo físico", async () => {
+  it("18. cancelar depois do preparo NÃO devolve o saldo físico", async () => {
     const item = await criarInsumo("Insumo", 20);
     const { produto } = await criarProdutoComFicha("P", [{ itemId: item.id, quantidade: 5 }]);
     const pedido = await criarPedido([{ productId: produto.id, quantity: 1 }]);
@@ -451,7 +451,28 @@ describe("reversão", () => {
     expect((await saldo(item.id)).onHand).toBe(15);
 
     await OrderInventoryHandler.onOrderCancelled(pedido.id);
-    expect((await saldo(item.id)).onHand).toBe(20);
+
+    /*
+     * O insumo NÃO volta. Em PREPARING a cozinha já usou — é o que a permissão
+     * de saldo negativo daquele passo admite. O que o cancelamento faz é trocar
+     * o nome do que aconteceu: a saída deixa de ser venda e passa a ser perda.
+     * Devolver aqui inventaria material que a contagem física não encontraria.
+     */
+    expect((await saldo(item.id)).onHand).toBe(15);
+
+    const perda = await prisma.inventoryMovement.findFirstOrThrow({
+      where: { itemId: item.id, type: "LOSS", reference: pedido.id },
+    });
+    expect(Math.abs(Number(perda.quantity))).toBe(5);
+    // O custo viaja congelado, do consumo para a perda.
+    expect(Number(perda.costAtTime)).toBe(10);
+
+    // E o consumo sai do CMV: o pedido não virou receita.
+    const consumo = await prisma.inventoryMovement.findFirstOrThrow({
+      where: { itemId: item.id, type: "CONSUMPTION", reference: pedido.id },
+      include: { reversedBy: true },
+    });
+    expect(consumo.reversedBy).not.toBeNull();
   });
 
   it("19. reverter duas vezes é recusado", async () => {
@@ -478,7 +499,7 @@ describe("reversão", () => {
     expect((await saldo(item.id)).onHand).toBe(20);
   });
 
-  it("20. o ciclo completo volta ao saldo inicial", async () => {
+  it("20. o ciclo completo devolve a reserva e converte o consumo em perda", async () => {
     const item = await criarInsumo("Insumo", 30);
     const { produto } = await criarProdutoComFicha("P", [{ itemId: item.id, quantidade: 3 }]);
     const pedido = await criarPedido([{ productId: produto.id, quantity: 2 }]);
@@ -487,9 +508,21 @@ describe("reversão", () => {
     await OrderInventoryHandler.onOrderPreparing(pedido.id);
     await OrderInventoryHandler.onOrderCancelled(pedido.id);
 
+    /*
+     * O ciclo NÃO fecha no saldo inicial, e é essa a regra: a reserva volta
+     * porque nada tinha saído da prateleira, mas os 6 baixados no preparo
+     * continuam fora. Um ciclo que voltasse a 30 estaria dizendo que o pedido
+     * não custou nada à cozinha.
+     */
     const s = await saldo(item.id);
-    expect(s.onHand).toBe(30);
+    expect(s.onHand).toBe(24);
     expect(s.reserved).toBe(0);
+
+    const perdas = await prisma.inventoryMovement.findMany({
+      where: { itemId: item.id, type: "LOSS", reference: pedido.id },
+    });
+    expect(perdas).toHaveLength(1);
+    expect(Math.abs(Number(perdas[0].quantity))).toBe(6);
   });
 });
 

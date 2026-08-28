@@ -204,6 +204,145 @@ export async function listEmployees(storeId: string): Promise<FuncionarioDaLista
   }));
 }
 
+// ---------- Relatório mensal ----------
+
+export type ConsumoDoFuncionario = {
+  employeeId: string;
+  nome: string;
+  cargo: string | null;
+  /** Continua no quadro. */
+  ativo: boolean;
+  /** Excluído do cadastro, mas com histórico no período. */
+  desligado: boolean;
+  pedidos: number;
+  /** Renúncia de receita: o que a loja deixou de cobrar. */
+  beneficioConcedido: number;
+  /** O que o funcionário deve, a lançar na folha. */
+  aDescontarEmFolha: number;
+};
+
+/**
+ * O que cada funcionário consumiu no mês, para fechar a folha.
+ *
+ * DOIS NÚMEROS DE NATUREZAS DIFERENTES, E CONFUNDI-LOS SERIA O ERRO CARO:
+ *
+ *   beneficioConcedido   desconto que a loja deu. Já está DENTRO de
+ *                        `Order.total` — entrou como `discount` no checkout.
+ *                        Não é despesa nova: é receita que a loja abriu mão de
+ *                        cobrar. Somá-la como custo cobraria o mesmo dinheiro
+ *                        duas vezes.
+ *
+ *   aDescontarEmFolha    o que o funcionário DEVE. Sai de pedidos pagos com
+ *                        `PAYROLL`, que ficam `PENDING` de propósito: concluir
+ *                        um pedido quita o pagamento, menos nesse método, onde
+ *                        o acerto é no salário.
+ *
+ * O RECORTE É O FINANCEIRO, não o operacional. `status = COMPLETED` e
+ * `deletedAt IS NULL`, a mesma definição de venda válida dos relatórios — e a
+ * mesma data de competência, a da conclusão. A cota diária (`lerUsoDoDia`)
+ * continua com o recorte dela, que é outro: lá um pedido em preparo já gastou a
+ * cota, aqui ele ainda não é venda.
+ *
+ * NÃO EXISTE BAIXA DE FOLHA NO BANCO. Nada registra "já descontei este pedido
+ * no salário", então este número é o VALOR A DESCONTAR no período pedido, nunca
+ * uma confirmação de que o desconto aconteceu. A tela precisa dizer isso.
+ *
+ * Só aparece quem teve movimento: quem não pediu nada no mês não vira linha
+ * vazia no fechamento.
+ */
+export async function consumoDosFuncionarios(
+  storeId: string,
+  inicio: Date,
+  fim: Date,
+): Promise<ConsumoDoFuncionario[]> {
+  const pedidos = await prisma.order.findMany({
+    where: {
+      storeId,
+      status: "COMPLETED",
+      deletedAt: null,
+      employeeId: { not: null },
+      /*
+       * Recorte pela data de CONCLUSÃO. O segundo ramo é o fallback para
+       * pedidos anteriores ao histórico de status, que não têm a linha
+       * COMPLETED — descartá-los apagaria consumo real do passado.
+       */
+      OR: [
+        {
+          statusHistory: {
+            some: { status: "COMPLETED", createdAt: { gte: inicio, lte: fim } },
+          },
+        },
+        {
+          statusHistory: { none: { status: "COMPLETED" } },
+          createdAt: { gte: inicio, lte: fim },
+        },
+      ],
+    },
+    select: {
+      employeeId: true,
+      employeeNameSnapshot: true,
+      employeeDiscount: true,
+      total: true,
+      paymentMethod: true,
+      paymentStatus: true,
+      employee: {
+        select: { name: true, jobTitle: true, isActive: true, deletedAt: true },
+      },
+    },
+  });
+
+  const porFuncionario = new Map<string, ConsumoDoFuncionario>();
+
+  for (const pedido of pedidos) {
+    const id = pedido.employeeId;
+    if (!id) continue;
+
+    let linha = porFuncionario.get(id);
+    if (!linha) {
+      /*
+       * O nome vem do SNAPSHOT primeiro. É o nome que valia no dia do pedido, e
+       * é o que mantém o histórico legível depois de o funcionário ser
+       * desligado ou renomeado. O cadastro atual é o segundo recurso.
+       */
+      linha = {
+        employeeId: id,
+        nome: pedido.employeeNameSnapshot || pedido.employee?.name || "Funcionário removido",
+        cargo: pedido.employee?.jobTitle ?? null,
+        ativo: pedido.employee?.isActive ?? false,
+        desligado: pedido.employee == null || pedido.employee.deletedAt != null,
+        pedidos: 0,
+        beneficioConcedido: 0,
+        aDescontarEmFolha: 0,
+      };
+      porFuncionario.set(id, linha);
+    }
+
+    linha.pedidos += 1;
+    linha.beneficioConcedido += Number(pedido.employeeDiscount);
+
+    /*
+     * OS DOIS FILTROS SÃO NECESSÁRIOS, e nenhum deles sozinho basta.
+     *
+     * `PAYROLL` sem `PENDING` seria um pedido já acertado. `PENDING` sem
+     * `PAYROLL` pegaria pedido comum que o funcionário deixou de pagar — que é
+     * problema de caixa, não de folha.
+     */
+    if (pedido.paymentMethod === "PAYROLL" && pedido.paymentStatus === "PENDING") {
+      linha.aDescontarEmFolha += Number(pedido.total);
+    }
+  }
+
+  const centavos = (n: number) => Math.round(n * 100) / 100;
+
+  return [...porFuncionario.values()]
+    .map((l) => ({
+      ...l,
+      beneficioConcedido: centavos(l.beneficioConcedido),
+      aDescontarEmFolha: centavos(l.aDescontarEmFolha),
+    }))
+    .sort((a, b) => b.aDescontarEmFolha - a.aDescontarEmFolha || a.nome.localeCompare(b.nome));
+}
+
 export function findEmployeeById(storeId: string, id: string) {
   return prisma.employee.findFirst({ where: { id, storeId }, select: { id: true, name: true } });
 }
