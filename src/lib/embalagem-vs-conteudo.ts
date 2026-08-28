@@ -166,3 +166,37 @@ export function custoPorUnidadeDeEstoque(
   if (!Number.isFinite(preco) || preco <= 0) return null;
   return preco / unidadesPorEmbalagem(purchasePackSize);
 }
+
+/**
+ * O campo de conteúdo deve aparecer no formulário?
+ *
+ * NASCEU DE UM IMPASSE QUE EU MESMO CRIEI. A regra anterior olhava o que estava
+ * DIGITADO: campo com valor, campo visível. Só que num item contado por medida
+ * — óleo em ml — o campo só aparecia porque havia conteúdo herdado inválido, e
+ * o formulário só enviava o campo quando ele estava visível.
+ *
+ * O resultado era um nó: apagar o valor escondia o campo, esconder o campo
+ * omitia-o do envio, omitir significava "não mexa", e o conteúdo inválido
+ * sobrevivia — fazendo o servidor recusar a gravação. APAGAR O CAMPO ERA O QUE
+ * IMPEDIA O CAMPO DE SER APAGADO. Não havia caminho pela interface.
+ *
+ * A correção é olhar o que está GRAVADO, e não o rascunho: enquanto o item
+ * tiver conteúdo no banco, o campo continua na tela — vazio, esperando o
+ * salvamento que vai limpá-lo. Some só depois de a limpeza ser gravada.
+ *
+ * O que o pedido original queria segue de pé: nada é apagado sozinho. Quem
+ * esvazia é a pessoa, e a gravação é o consentimento.
+ */
+export function deveMostrarConteudo(entrada: {
+  /** A unidade de estoque é de contagem (`un`)? */
+  contaPorUnidades: boolean;
+  /** Há `contentSize` GRAVADO no item? Falso ao criar um item novo. */
+  temConteudoGravado: boolean;
+  /** O que está no formulário agora — pode ter sido esvaziado. */
+  conteudoDigitado: string;
+}): boolean {
+  if (entrada.contaPorUnidades) return true;
+  // Item por medida: só aparece para consertar o que já está gravado errado,
+  // ou enquanto a pessoa digita algo que ainda será recusado.
+  return entrada.temConteudoGravado || entrada.conteudoDigitado.trim() !== "";
+}

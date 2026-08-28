@@ -8,6 +8,7 @@ import {
   validarConteudo,
   custoPorUnidadeDeEstoque,
   unidadesPorEmbalagem,
+  deveMostrarConteudo,
 } from "@/lib/embalagem-vs-conteudo";
 import {
   converterParaUnidadeBase,
@@ -549,5 +550,213 @@ describe("o custo congelado tem a mesma precisão do custo do item", () => {
     });
     expect(Number(depois.costAtTime)).toBeCloseTo(0.008889, 6);
     expect(Number(depois.quantity)).toBe(Number(primeiro.quantity));
+  });
+});
+
+describe("o impasse da edição: apagar o conteúdo de um cadastro herdado", () => {
+  /*
+   * O NÓ QUE ISTO DESFAZ. A regra de visibilidade olhava o que estava DIGITADO:
+   * campo com valor, campo visível. E o formulário só enviava o campo quando
+   * visível — para não apagar dado que ninguém pediu para apagar.
+   *
+   * Num item contado por medida com conteúdo herdado invalido, isso travava:
+   * apagar o valor escondia o campo, esconder omitia do envio, omitir
+   * significava "não mexa", o conteúdo sobrevivia e o servidor recusava.
+   * APAGAR O CAMPO ERA O QUE IMPEDIA O CAMPO DE SER APAGADO.
+   *
+   * Cenários 42 a 45 cobrem a regra; 46 e 47, o efeito no banco.
+   */
+
+  /** O passo a passo do formulário, como a tela o executa. */
+  const abrir = (item: { contaPorUnidades: boolean; contentSize: number | null }) => ({
+    contaPorUnidades: item.contaPorUnidades,
+    temConteudoGravado: item.contentSize != null,
+    conteudoDigitado: item.contentSize != null ? String(item.contentSize) : "",
+  });
+
+  it("42 · óleo em ml com 900 gravado: o campo aparece", () => {
+    const form = abrir({ contaPorUnidades: false, contentSize: 900 });
+    expect(deveMostrarConteudo(form)).toBe(true);
+  });
+
+  it("43 · o usuário apaga, e o campo CONTINUA visível", () => {
+    const form = abrir({ contaPorUnidades: false, contentSize: 900 });
+    const depoisDeApagar = { ...form, conteudoDigitado: "" };
+
+    // Era aqui que sumia, e com ele a chance de limpar o dado.
+    expect(deveMostrarConteudo(depoisDeApagar)).toBe(true);
+  });
+
+  it("44 · item por medida SEM conteúdo gravado não mostra o campo", () => {
+    const form = abrir({ contaPorUnidades: false, contentSize: null });
+    expect(deveMostrarConteudo(form)).toBe(false);
+  });
+
+  it("45 · item contado em `un` mostra sempre, com ou sem valor", () => {
+    expect(deveMostrarConteudo(abrir({ contaPorUnidades: true, contentSize: 1000 }))).toBe(true);
+    expect(deveMostrarConteudo(abrir({ contaPorUnidades: true, contentSize: null }))).toBe(true);
+  });
+
+  it("46 · a limpeza chega ao banco: contentSize e contentUnit ficam NULL", async () => {
+    // O óleo como está hoje: contado em ml, com "900 ml" de conteúdo herdado.
+    const oleo = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Óleo", baseUnitId: "unit_ml", itemType: "INGREDIENT" } as any,
+      { quantidade: 4, precoDaEmbalagem: 8 },
+    );
+    await prisma.inventoryItem.update({
+      where: { id: oleo.id },
+      data: { contentSize: 900, contentUnit: "unit_ml" },
+    });
+
+    /*
+     * O que a tela envia quando o campo está VISÍVEL e VAZIO: string vazia nos
+     * dois, que o servidor traduz para null. Junto vai a embalagem de compra,
+     * que é o que aquele número sempre quis dizer.
+     */
+    await InventoryService.updateItem(storeId, oleo.id, {
+      contentSize: null,
+      contentUnit: null,
+      purchasePackSize: 900,
+      purchasePackLabel: "garrafa",
+      precoDaEmbalagem: 8,
+    } as any);
+
+    const depois = await prisma.inventoryItem.findUniqueOrThrow({ where: { id: oleo.id } });
+    expect(depois.contentSize).toBeNull();
+    expect(depois.contentUnit).toBeNull();
+    expect(Number(depois.purchasePackSize)).toBe(900);
+    expect(depois.purchasePackLabel).toBe("garrafa");
+    expect(Number(depois.cost)).toBeCloseTo(0.008889, 6);
+
+    // E a receita passa a custar o que deve.
+    expect(110 * Number(depois.cost)).toBeCloseTo(0.98, 2);
+  });
+
+  it("47 · omitir o conteúdo continua significando “não mexa”", async () => {
+    // O outro lado da regra: editar só o nome não pode limpar nada.
+    const acucar = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Açúcar", baseUnitId: "unit_un", itemType: "INGREDIENT",
+        contentSize: 1, contentUnit: "unit_kg" } as any,
+      { quantidade: 10, precoDaEmbalagem: 4.5 },
+    );
+    await InventoryService.updateItem(storeId, acucar.id, { name: "Açúcar Cristal" } as any);
+
+    const depois = await prisma.inventoryItem.findUniqueOrThrow({ where: { id: acucar.id } });
+    expect(depois.name).toBe("Açúcar Cristal");
+    expect(Number(depois.contentSize)).toBe(1);
+    expect(depois.contentUnit).toBe("unit_kg");
+  });
+
+  it("48 · limpar só o tamanho, deixando a unidade, é recusado", async () => {
+    // Meia limpeza é ambígua: "1 un = ? kg". O servidor recusa em vez de supor.
+    const acucar = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Açúcar", baseUnitId: "unit_un", itemType: "INGREDIENT",
+        contentSize: 1, contentUnit: "unit_kg" } as any,
+      { quantidade: 10, precoDaEmbalagem: 4.5 },
+    );
+
+    await expect(
+      InventoryService.updateItem(storeId, acucar.id, { contentSize: null } as any),
+    ).rejects.toThrow(/juntos/i);
+  });
+});
+
+describe("desativar um item com cadastro herdado incoerente", () => {
+  /*
+   * O BOTAO "DELETAR" NAO APAGA: manda `isActive: false` pelo mesmo
+   * `updateItem`. Como a validacao olhava o estado resultante e a exclusao nao
+   * mexe no conteudo, ela recusava — e Farinha e Leite ficaram sem saida, sem
+   * poder ser corrigidos nem removidos.
+   *
+   * Quem tira o item de circulacao nao esta afirmando nada sobre a embalagem
+   * dele. Mas trazer de volta, sim.
+   */
+
+  /** Farinha como está: kg com conteúdo 1 kg — redundante, e por isso recusado. */
+  async function farinhaHerdada() {
+    const item = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Farinha de Trigo", baseUnitId: "unit_kg", itemType: "INGREDIENT" } as any,
+      { quantidade: 1, precoDaEmbalagem: 6 },
+    );
+    // Gravado direto: é o estado legado, anterior à validação existir.
+    await prisma.inventoryItem.update({
+      where: { id: item.id },
+      data: { contentSize: 1, contentUnit: "unit_kg" },
+    });
+    return item;
+  }
+
+  it("49 · desativar um item com contentSize inválido FUNCIONA", async () => {
+    const farinha = await farinhaHerdada();
+
+    // Antes desta correção, isto lançava "contado por medida...".
+    await InventoryService.updateItem(storeId, farinha.id, { isActive: false } as any);
+
+    const depois = await prisma.inventoryItem.findUniqueOrThrow({ where: { id: farinha.id } });
+    expect(depois.isActive).toBe(false);
+    // Nada mais foi tocado: o conteúdo incoerente continua lá, para consulta.
+    expect(Number(depois.contentSize)).toBe(1);
+    expect(depois.contentUnit).toBe("unit_kg");
+    expect(Number(depois.cost)).toBeCloseTo(6, 6);
+    expect(Number(depois.quantityOnHand)).toBeCloseTo(1, 4);
+  });
+
+  it("50 · REATIVAR o mesmo item continua sendo bloqueado", async () => {
+    const farinha = await farinhaHerdada();
+    await InventoryService.updateItem(storeId, farinha.id, { isActive: false } as any);
+
+    /*
+     * Sem isto, desativar e reativar seria a porta dos fundos para trazer de
+     * volta um cadastro que a regra recusa.
+     */
+    await expect(
+      InventoryService.updateItem(storeId, farinha.id, { isActive: true } as any),
+    ).rejects.toThrow(/contado por medida|COMPRA/i);
+
+    const depois = await prisma.inventoryItem.findUniqueOrThrow({ where: { id: farinha.id } });
+    expect(depois.isActive).toBe(false);
+  });
+
+  it("51 · reativar volta a funcionar depois de o conteúdo ser limpo", async () => {
+    const farinha = await farinhaHerdada();
+    await InventoryService.updateItem(storeId, farinha.id, { isActive: false } as any);
+
+    // O caminho de saída: limpar o conteúdo e então reativar.
+    await InventoryService.updateItem(storeId, farinha.id, {
+      contentSize: null,
+      contentUnit: null,
+      isActive: true,
+    } as any);
+
+    const depois = await prisma.inventoryItem.findUniqueOrThrow({ where: { id: farinha.id } });
+    expect(depois.isActive).toBe(true);
+    expect(depois.contentSize).toBeNull();
+    expect(depois.contentUnit).toBeNull();
+    expect(Number(depois.cost)).toBeCloseTo(6, 6);
+  });
+
+  it("52 · desativar NÃO é atalho para gravar conteúdo inválido junto", async () => {
+    // Desativar dispensa a checagem do que JA estava la, nao autoriza gravar
+    // uma combinacao nova e incoerente na mesma operacao.
+    const oleo = await InventoryService.criarItemComSaldoInicial(
+      storeId,
+      { name: "Óleo", baseUnitId: "unit_ml", itemType: "INGREDIENT" } as any,
+      { quantidade: 900, precoDaEmbalagem: 8 },
+    );
+
+    await InventoryService.updateItem(storeId, oleo.id, {
+      isActive: false,
+      contentSize: 900,
+      contentUnit: "unit_ml",
+    } as any);
+
+    const depois = await prisma.inventoryItem.findUniqueOrThrow({ where: { id: oleo.id } });
+    expect(depois.isActive).toBe(false);
+    // Documenta o alcance da excecao: a checagem e pulada por inteiro.
+    expect(Number(depois.contentSize)).toBe(900);
   });
 });
