@@ -100,6 +100,8 @@ function ProductsPage() {
       freeChoices: g.freeChoices,
       options: g.options.map((o: any) => ({ name: o.name, price: o.price })),
     })),
+    // O vinculo com o estoque, para o seletor abrir ja no item certo.
+    inventoryItemId: (p as any).inventoryItemId ?? null,
   });
 
   return (

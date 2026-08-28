@@ -21,6 +21,8 @@ const EMPTY: ProductFormValues = {
   sortOrder: 0,
   sizes: [],
   optionGroups: [],
+  // Produto novo nasce sem vinculo; escolhe-se no formulario.
+  inventoryItemId: null,
 };
 
 function NewProductPage() {

@@ -7,7 +7,11 @@ import {
   OptionGroupEditor,
   type GrupoRascunho,
 } from "@/components/admin/menu/OptionGroupEditor";
-import { saveProductFn } from "@/server/functions/products.fn";
+import {
+  saveProductFn,
+  adminLinkProductToInventory,
+} from "@/server/functions/products.fn";
+import { adminListarItensParaVinculo } from "@/server/functions/inventory.fn";
 import { getBusinessTypeFn } from "@/server/functions/settings.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { CardsDoCardapio } from "@/components/admin/preview/CardsDoCardapio";
@@ -28,6 +32,17 @@ export type ProductFormValues = {
   sizes: { categorySizeId: string; price: number; isAvailable: boolean }[];
   /** Perguntas só deste produto, além das que a categoria já faz. */
   optionGroups: GrupoRascunho[];
+  /**
+   * Item de estoque que este produto consome ao ser vendido.
+   *
+   * Vender um "Bolo de Chocolate" reserva UMA unidade do item Bolo de
+   * Chocolate e para ali — não desce nos ovos nem na farinha, que já foram
+   * debitados quando o bolo foi PRODUZIDO.
+   *
+   * NÃO vai no `saveProductFn`: o vínculo tem função própria, e num produto
+   * novo o id só existe depois de salvar.
+   */
+  inventoryItemId?: string | null;
 };
 
 function slugify(value: string): string {
@@ -128,8 +143,56 @@ export function ProductForm({
     }));
   }
 
+  /*
+   * O VÍNCULO É GRAVADO SEPARADO, e de propósito.
+   *
+   * `saveProductFn` serve todos os produtos do cardápio; enfiar estoque nele
+   * mexeria no caminho de quem não usa preparado nenhum. E num produto novo o
+   * `productId` só existe depois de salvar, então não haveria como mandar os
+   * dois juntos sem mudar aquela função.
+   *
+   * Se o vínculo falhar, o produto fica criado e sem vínculo, com o erro à
+   * vista — corrigível pelo Editar. É menos ruim que perder o produto.
+   */
+  const [itemDeEstoque, setItemDeEstoque] = useState<string>(
+    initial.inventoryItemId ?? "",
+  );
+  const itensDeEstoque = useQuery({
+    queryKey: ["itens-para-vinculo"],
+    queryFn: () => adminListarItensParaVinculo(),
+  });
+
+  const rotuloDoTipo: Record<string, string> = {
+    PREPARED: "Preparado",
+    RESALE: "Revenda",
+    INGREDIENT: "Ingrediente",
+    PACKAGING: "Embalagem",
+  };
+
   const save = useMutation({
-    mutationFn: () => saveProductFn({ data: { id: productId, data: values } }),
+    mutationFn: async () => {
+      const salvo: any = await saveProductFn({
+        data: { id: productId, data: values },
+      });
+      const id = productId ?? salvo?.id ?? salvo?.product?.id;
+
+      // Só toca no vínculo se ele mudou; produto sem estoque nem chama.
+      const antes = initial.inventoryItemId ?? "";
+      if (id && itemDeEstoque !== antes) {
+        try {
+          await adminLinkProductToInventory({
+            data: { productId: id, inventoryItemId: itemDeEstoque || null },
+          } as any);
+        } catch (e) {
+          throw new Error(
+            "O produto foi salvo, mas o vínculo com o estoque falhou: " +
+              (e instanceof Error ? e.message : String(e)) +
+              ". Abra o produto em Editar para vincular.",
+          );
+        }
+      }
+      return salvo;
+    },
     onSuccess: async () => {
       // Await the refetch so the list never flashes the pre-save values.
       await queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -244,6 +307,46 @@ export function ProductForm({
                     required
                     className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
                   />
+                </div>
+
+                {/*
+                  CONTROLE DE ESTOQUE — o elo com o item que a venda consome.
+
+                  Fica fora do `saveProductFn` porque aquele caminho serve
+                  todo produto do cardápio, e a maioria não controla estoque.
+                  Vazio é o normal.
+                */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+                    Controla estoque por (opcional)
+                  </label>
+                  <select
+                    value={itemDeEstoque}
+                    onChange={(e) => setItemDeEstoque(e.target.value)}
+                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+                  >
+                    <option value="">Não controla estoque</option>
+                    {(itensDeEstoque.data ?? []).map((it: any) => (
+                      <option key={it.id} value={it.id}>
+                        {it.nome} — {rotuloDoTipo[it.tipo] ?? it.tipo} —{" "}
+                        {it.unidade} — saldo {it.saldo.toLocaleString("pt-BR")}
+                      </option>
+                    ))}
+                  </select>
+                  {itemDeEstoque ? (
+                    <p className="text-xs text-neutral-600 mt-1">
+                      Cada venda deste produto reserva{" "}
+                      <strong>1 unidade</strong> desse item. Se ele for um
+                      preparado, os ingredientes da receita <strong>não</strong>{" "}
+                      são baixados de novo — já saíram na produção.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-neutral-600 mt-1">
+                      Deixe em branco se este produto não tem estoque
+                      controlado. Preparados e itens de revenda aparecem no
+                      topo da lista.
+                    </p>
+                  )}
                 </div>
 
                 <div>

@@ -14,6 +14,7 @@ import {
   createAdjustmentSchema,
 } from "@/lib/estoque-schemas";
 import { inventoryItemRepository, inventoryUnitRepository } from "@/server/repositories";
+import { prisma } from "@/server/db/client";
 import { calcularMovimentoDeCompra } from "@/lib/embalagem-de-compra";
 
 /**
@@ -439,3 +440,53 @@ export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
   });
 
 
+
+/**
+ * Os itens de estoque que um produto de cardápio pode controlar.
+ *
+ * Enxuta de propósito: o seletor precisa de nome, tipo, unidade e saldo, e nada
+ * mais. O relatório de estoque traz movimentação e custo, que aqui só pesariam.
+ *
+ * NÃO FILTRA POR TIPO. Vender farinha a quilo é legítimo, ainda que raro —
+ * bloquear ingrediente seria decidir pelo lojista. O que a ordenação faz é
+ * colocar Preparado e Revenda na frente, que é o caso comum, e deixar
+ * Ingrediente e Embalagem embaixo.
+ */
+export const adminListarItensParaVinculo = createServerFn({ method: "POST" }).handler(
+  async () => {
+    const admin = await requireAdminSession();
+    const itens = await prisma.inventoryItem.findMany({
+      where: { storeId: admin.storeId, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        itemType: true,
+        quantityOnHand: true,
+        baseUnit: { select: { code: true } },
+      },
+      orderBy: { name: "asc" },
+    });
+
+    const ordem: Record<string, number> = {
+      PREPARED: 0,
+      RESALE: 1,
+      INGREDIENT: 2,
+      PACKAGING: 3,
+    };
+
+    return itens
+      .map((i) => ({
+        id: i.id,
+        nome: i.name,
+        tipo: i.itemType as string,
+        unidade: i.baseUnit.code,
+        // Decimal não sobrevive à serialização da server function.
+        saldo: Number(i.quantityOnHand),
+      }))
+      .sort(
+        (a, b) =>
+          (ordem[a.tipo] ?? 9) - (ordem[b.tipo] ?? 9) ||
+          a.nome.localeCompare(b.nome),
+      );
+  },
+);

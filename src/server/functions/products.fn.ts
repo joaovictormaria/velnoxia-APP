@@ -157,12 +157,21 @@ export const adminDeleteCategoryFn = createServerFn({ method: "POST" })
   });
 
 /**
- * Link a product to an inventory item for stock control
+ * Liga um produto de cardápio ao item de estoque que ele consome.
+ *
+ * O ELO É DE UM NÍVEL SÓ, e é isso que o torna correto. Vender um "Bolo de
+ * Chocolate" reserva UMA unidade do item Bolo de Chocolate e para ali — não
+ * desce nos ovos, na farinha, no óleo. Esses já foram debitados quando o bolo
+ * foi PRODUZIDO. Descer de novo cobraria a farinha duas vezes.
+ *
+ * `inventoryItemId` nulo DESVINCULA. Sem isso, ligar no item errado não tinha
+ * volta pela interface. Desvincular não toca em saldo, movimento, receita nem
+ * histórico: só remove a referência.
  */
 export const adminLinkProductToInventory = createServerFn({ method: "POST" })
   .validator(z.object({
     productId: z.string(),
-    inventoryItemId: z.string(),
+    inventoryItemId: z.string().nullable(),
   }))
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
@@ -175,12 +184,18 @@ export const adminLinkProductToInventory = createServerFn({ method: "POST" })
       throw new Error("Produto nÃ£o encontrado");
     }
 
-    const inventoryItem = await prisma.inventoryItem.findFirst({
-      where: { id: data.inventoryItemId, storeId: admin.storeId }
-    });
+    /*
+     * Só existe item a conferir quando se está VINCULANDO. Desvincular é a
+     * ausência de item, e não um item inexistente.
+     */
+    if (data.inventoryItemId !== null) {
+      const inventoryItem = await prisma.inventoryItem.findFirst({
+        where: { id: data.inventoryItemId, storeId: admin.storeId }
+      });
 
-    if (!inventoryItem) {
-      throw new Error("Item de estoque nÃ£o encontrado");
+      if (!inventoryItem) {
+        throw new Error("Item de estoque não encontrado");
+      }
     }
 
     const updated = await prisma.product.update({
