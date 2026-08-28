@@ -1,5 +1,17 @@
 import "./lib/error-capture";
 
+/*
+ * A varredura de reservas expiradas sobe junto com o servidor.
+ *
+ * Aqui, e nao num modulo qualquer, porque este arquivo e avaliado uma vez por
+ * processo: e o unico lugar onde "ligar no boot" significa exatamente isso.
+ * A funcao tem guarda propria em `globalThis`, entao um reimport do HMR nao
+ * cria um segundo intervalo.
+ */
+import { iniciarExpiracaoDeReservas } from "./server/services/expiracao-de-reservas";
+
+iniciarExpiracaoDeReservas();
+
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 

@@ -1,6 +1,7 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { OrderInventoryHandler } from "@/server/services/order-inventory-handler";
 import { requireAdminSession } from "../auth/session";
 import { prisma } from "../db/client";
 import {
@@ -264,16 +265,61 @@ export const confirmPaymentFn = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Pedido já foi marcado como pago" };
     }
 
-    // Marcar como pago e completed (libera a mesa)
-    console.log(`[CONFIRM PAYMENT] Updating order status to COMPLETED and PAID for ${data.orderId}`);
+    // Marcar como pago (libera a mesa logo abaixo)
     await prisma.order.update({
       where: { id: data.orderId },
-      data: {
-        paymentStatus: "PAID",
-        status: "COMPLETED", // Auto-complete quando pagamento confirmado
-      },
+      data: { paymentStatus: "PAID" },
     });
-    console.log(`[CONFIRM PAYMENT] ✓ Order marked as PAID + COMPLETED`);
+
+    /*
+     * O STATUS ANDA PELA MÁQUINA DE ESTADOS, e não por um salto.
+     *
+     * Aqui havia `prisma.order.update({ status: "COMPLETED" })` direto. Um
+     * pedido em RECEIVED pulava PREPARING inteiro — e PREPARING é onde a
+     * reserva é liberada e o consumo é gravado. O resultado era estoque
+     * comprometido para sempre num pedido já pago e entregue: reserva presa,
+     * material físico intacto, e o produto sumindo do cardápio por causa dela.
+     *
+     * `transitionOrderStatus` valida cada passo contra ALLOWED_TRANSITIONS e
+     * dispara o `orderStatusSync`, que é quem chama o handler de estoque.
+     * RECEIVED não vai direto a COMPLETED, então o caminho é percorrido:
+     * primeiro PREPARING, depois COMPLETED.
+     *
+     * Pedido que JÁ passou por PREPARING pula esse passo — `transitionOrderStatus`
+     * devolve ok quando o status já é o pedido, e a idempotência dos
+     * movimentos cuida de uma confirmação repetida.
+     */
+    if (order.status === "RECEIVED") {
+      const preparando = await transitionOrderStatus(storeId, data.orderId, "PREPARING", {
+        authorType: "SYSTEM",
+        note: "Consumo do estoque ao confirmar o pagamento",
+      });
+      if (!preparando.ok) {
+        return { ok: false as const, error: preparando.error };
+      }
+
+      /*
+       * O efeito no estoque é ESPERADO aqui, e não deixado para depois.
+       *
+       * `transitionOrderStatus` dispara o sync sem `await` — o que serve para
+       * a cozinha clicando no painel, mas não aqui: entre marcar PREPARING e
+       * marcar COMPLETED não pode haver janela em que a reserva ainda esteja
+       * de pé. Confirmar pagamento tem que sair com o estoque já acertado.
+       *
+       * Chamar de novo é seguro: as chaves de idempotência são determinísticas
+       * por pedido e item, e a segunda passagem reconhece o que a primeira
+       * gravou em vez de descontar duas vezes.
+       */
+      await OrderInventoryHandler.syncOrderStatus(data.orderId, "PREPARING");
+    }
+
+    const concluindo = await transitionOrderStatus(storeId, data.orderId, "COMPLETED", {
+      authorType: "SYSTEM",
+      note: "Pagamento confirmado",
+    });
+    if (!concluindo.ok) {
+      return { ok: false as const, error: concluindo.error };
+    }
 
     // Se é um pedido de mesa, fechar a sessão e liberar a mesa
     console.log(`[CONFIRM PAYMENT] Checking for table session: tableId=${order.tableId}, sessionId=${order.sessionId}`);
