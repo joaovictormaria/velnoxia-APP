@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { validateTableSessionPinFn } from "@/server/functions/table-session.fn";
 import { Button } from "@/components/ui/button";
+import { atualizarContextoDeMesa, lerContextoDeMesa } from "@/lib/contexto-de-mesa";
 
 export const Route = createFileRoute("/qr-pin/$storeSlug/$sessionId")({
   component: QRPinEntry,
@@ -15,11 +16,10 @@ function QRPinEntry() {
   const [loading, setLoading] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
 
-  // Recuperar tableId do localStorage
+  // O contexto desta loja, aberto pelo scan do QR que trouxe o cliente até aqui.
   useEffect(() => {
-    const storedTableId = localStorage.getItem("tableId");
-    setTableId(storedTableId);
-  }, []);
+    setTableId(lerContextoDeMesa(storeSlug)?.tableId ?? null);
+  }, [storeSlug]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +42,10 @@ function QRPinEntry() {
       });
 
       if (result.ok) {
-        // PIN validado com sucesso - armazenar deviceToken
-        localStorage.setItem("deviceToken", result.deviceToken);
+        // PIN validado: o aparelho passa a ter autorização dentro do contexto
+        // já aberto. Sem contexto, nada é gravado — um PIN correto não inventa
+        // uma mesa que este navegador nunca escaneou.
+        atualizarContextoDeMesa(storeSlug, { deviceToken: result.deviceToken });
 
         // Redirecionar para o cardápio
         navigate({

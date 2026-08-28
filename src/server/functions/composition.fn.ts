@@ -8,6 +8,7 @@ import {
 } from "@/lib/estoque-schemas";
 import { productCompositionRepository } from "@/server/repositories";
 import { prisma } from "@/server/db/client";
+import { numeros } from "./serializar";
 
 /**
  * Admin only: Create a new recipe/composition
@@ -111,20 +112,39 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
       isActive: data?.isActive !== false,
     });
 
-    return CompositionService.createComposition(admin.storeId, product.id, validated);
+    return numeros(await CompositionService.createComposition(admin.storeId, product.id, validated));
   });
 
 /**
  * Admin only: Update a recipe (only if not yet used)
  */
-function serializeComposition(comp: any) {
-  return JSON.parse(JSON.stringify(comp, (key, value) => {
-    if (value && typeof value === 'object' && value.constructor.name === 'Decimal') {
-      return Number(value);
-    }
-    return value;
-  }));
-}
+/*
+ * DECIMAL NÃO ATRAVESSA A FRONTEIRA DA SERVER FUNCTION.
+ *
+ * O seroval do TanStack Start não sabe serializar o Decimal do Prisma, e o
+ * POST morre com "[object Decimal] cannot be parsed/serialized" — 500 na cara
+ * do usuário, receita não salva.
+ *
+ * Havia duas tentativas de conserto aqui, e as duas vazavam:
+ *
+ *   1. Uma lista manual de campos em `composition-service`, convertendo cinco
+ *      dos DEZ campos Decimal de InventoryItem. `purchasePackSize`,
+ *      `averageCost`, `minimumThreshold`, `idealQuantity` e `maximumCapacity`
+ *      passavam direto. Bastava um insumo comprado em embalagem para quebrar.
+ *
+ *   2. Um replacer com `constructor.name === 'Decimal'`. No Prisma 7 a classe
+ *      se chama `Decimal2`, então nunca casava — e `JSON.stringify` chama
+ *      `toJSON()` antes do replacer, então o valor nem chegava lá como Decimal.
+ *
+ * `numeros()` percorre o objeto inteiro e reconhece Decimal por ter
+ * `toNumber()`, sem depender de nome de classe nem de lista de campos: campo
+ * novo no schema já sai convertido, sem ninguém lembrar de atualizar nada.
+ *
+ * PRECISÃO: os campos são Decimal(15,4), (15,6) e (12,4) — no máximo 15 dígitos
+ * significativos, dentro do que um double representa sem perder o valor decimal
+ * na ida e volta. O Decimal continua sendo o tipo dentro do serviço e no banco,
+ * que é onde soma de dinheiro acontece; a conversão é só na saída, para exibir.
+ */
 
 export const adminUpdateComposition = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
@@ -149,7 +169,7 @@ export const adminUpdateComposition = createServerFn({ method: "POST" })
       validated
     );
 
-    return serializeComposition(result);
+    return numeros(result);
   });
 
 /**
@@ -160,7 +180,7 @@ export const adminActivateVersion = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return CompositionService.activateVersion(admin.storeId, data.compositionId);
+    return numeros(await CompositionService.activateVersion(admin.storeId, data.compositionId));
   });
 
 /**
@@ -171,7 +191,7 @@ export const adminDeleteComposition = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return CompositionService.deleteComposition(admin.storeId, data.compositionId);
+    return numeros(await CompositionService.deleteComposition(admin.storeId, data.compositionId));
   });
 
 /**
@@ -213,7 +233,7 @@ export const adminGetComposition = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return productCompositionRepository.findById(admin.storeId, data.compositionId);
+    return numeros(await productCompositionRepository.findById(admin.storeId, data.compositionId));
   });
 
 /**
@@ -224,7 +244,7 @@ export const adminGetProductVersions = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return productCompositionRepository.findAllVersions(admin.storeId, data.productId);
+    return numeros(await productCompositionRepository.findAllVersions(admin.storeId, data.productId));
   });
 
 /**
@@ -235,7 +255,7 @@ export const adminCalculateCompositionCost = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return CompositionService.calculateCost(admin.storeId, data.compositionId);
+    return numeros(await CompositionService.calculateCost(admin.storeId, data.compositionId));
   });
 
 /**
@@ -246,7 +266,7 @@ export const getActiveComposition = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
-    return CompositionService.getActiveComposition(admin.storeId, data.productId);
+    return numeros(await CompositionService.getActiveComposition(admin.storeId, data.productId));
   });
 
 /**
@@ -256,9 +276,11 @@ export const adminGetAllCompositions = createServerFn({ method: "POST" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
-    return productCompositionRepository.findAllByStore(admin.storeId, {
-      activeOnly: false,
-    });
+    return numeros(
+      await productCompositionRepository.findAllByStore(admin.storeId, {
+        activeOnly: false,
+      }),
+    );
   });
 
 /**

@@ -73,3 +73,47 @@ export function horasDoGrafico(
 }
 
 export const rotuloDaHora = (h: number) => `${String(h).padStart(2, "0")}h`;
+
+/** "HH:MM" em minutos desde a meia-noite. Null se vier lixo. */
+function minutos(hhmm: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return null;
+  return h * 60 + min;
+}
+
+/**
+ * A loja está atendendo NESTE momento?
+ *
+ * Mora aqui, e não num módulo novo, porque a parte difícil já estava resolvida
+ * neste arquivo: a travessia da meia-noite. Um bar que abre 18h e fecha 2h está
+ * aberto à 1h da manhã, e comparar `abre <= agora < fecha` diria que não.
+ *
+ * A PRECISÃO É DE MINUTO, e não de hora como em `horasDoGrafico`. Ali a unidade
+ * é a coluna do gráfico; aqui é a diferença entre dizer "aberto" às 23h50 de uma
+ * casa que fecha 23h30 — e alguém do outro lado do balcão acreditar.
+ *
+ * `opensAt === closesAt` conta como FECHADO. É um intervalo de duração zero, e
+ * quase sempre um cadastro pela metade; ler como "24 horas" seria escolher a
+ * interpretação que promete atendimento onde talvez não haja.
+ */
+export function estaAbertoAgora(
+  horario: HorarioDoDia | null | undefined,
+  agora: Date = new Date(),
+): boolean {
+  if (!horario || !horario.isOpen) return false;
+
+  const abre = minutos(horario.opensAt);
+  const fecha = minutos(horario.closesAt);
+  // Horário ilegível não vira "aberto": na dúvida, não se promete atendimento.
+  if (abre === null || fecha === null || abre === fecha) return false;
+
+  const momento = agora.getHours() * 60 + agora.getMinutes();
+
+  // Fechar depois de abrir é o dia normal; fechar antes atravessa a meia-noite.
+  return abre < fecha
+    ? momento >= abre && momento < fecha
+    : momento >= abre || momento < fecha;
+}

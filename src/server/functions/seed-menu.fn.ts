@@ -13,10 +13,10 @@ export const seedMenuFn = createServerFn({ method: "POST" })
 
     // Criar categorias
     const pratos = await prisma.category.upsert({
-      where: { storeId_name: { storeId: store.id, name: "Pratos" } },
+      where: { storeId_name: { storeId: store.storeId, name: "Pratos" } },
       update: {},
       create: {
-        storeId: store.id,
+        storeId: store.storeId,
         name: "Pratos",
         slug: "pratos",
         icon: "🍔",
@@ -25,10 +25,10 @@ export const seedMenuFn = createServerFn({ method: "POST" })
     });
 
     const bebidas = await prisma.category.upsert({
-      where: { storeId_name: { storeId: store.id, name: "Bebidas" } },
+      where: { storeId_name: { storeId: store.storeId, name: "Bebidas" } },
       update: {},
       create: {
-        storeId: store.id,
+        storeId: store.storeId,
         name: "Bebidas",
         slug: "bebidas",
         icon: "🥤",
@@ -59,13 +59,13 @@ export const seedMenuFn = createServerFn({ method: "POST" })
       await prisma.product.upsert({
         where: {
           storeId_slug: {
-            storeId: store.id,
+            storeId: store.storeId,
             slug: prato.name.toLowerCase().replace(/\s+/g, "-"),
           },
         },
         update: {},
         create: {
-          storeId: store.id,
+          storeId: store.storeId,
           categoryId: pratos.id,
           name: prato.name,
           slug: prato.name.toLowerCase().replace(/\s+/g, "-"),
@@ -95,13 +95,13 @@ export const seedMenuFn = createServerFn({ method: "POST" })
       await prisma.product.upsert({
         where: {
           storeId_slug: {
-            storeId: store.id,
+            storeId: store.storeId,
             slug: bebida.name.toLowerCase().replace(/\s+/g, "-"),
           },
         },
         update: {},
         create: {
-          storeId: store.id,
+          storeId: store.storeId,
           categoryId: bebidas.id,
           name: bebida.name,
           slug: bebida.name.toLowerCase().replace(/\s+/g, "-"),

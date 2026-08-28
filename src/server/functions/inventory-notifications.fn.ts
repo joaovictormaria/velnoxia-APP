@@ -17,7 +17,7 @@ export const sendAlertEmail = createServerFn({ method: "POST" })
     // Pegar email do admin
     const adminEmail = (store as any).adminUser.email;
 
-    return InventoryNotificationService.sendAlertEmail(store.id, adminEmail);
+    return InventoryNotificationService.sendAlertEmail(store.storeId, adminEmail);
   });
 
 /**
@@ -34,7 +34,7 @@ export const sendForecastEmail = createServerFn({ method: "POST" })
     const adminEmail = store.adminUser.email;
 
     return InventoryNotificationService.sendForecastEmail(
-      store.id,
+      store.storeId,
       adminEmail
     );
   });
@@ -53,7 +53,7 @@ export const sendWeeklyReport = createServerFn({ method: "POST" })
     const adminEmail = store.adminUser.email;
 
     return InventoryNotificationService.sendWeeklyReportEmail(
-      store.id,
+      store.storeId,
       adminEmail
     );
   });

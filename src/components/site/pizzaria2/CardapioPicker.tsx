@@ -5,6 +5,7 @@ import { categoryDescriptions } from "./CategorySaboresSection";
 import { ProductRow } from "./ProductRow";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { useStore } from "@/lib/pizzaria2/store-provider";
+import { lerContextoDeMesa } from "@/lib/contexto-de-mesa";
 import {
   formatCurrency,
   defaultSize,
@@ -47,10 +48,11 @@ export function CardapioPicker({
     categories[0]?.slug ?? "tradicionais",
   );
   const [query, setQuery] = useState("");
-  const [tableId] = useState(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem("tableId");
-  });
+  /*
+   * Mesa DESTA loja, e ainda válida. Antes era a chave global crua, que fazia
+   * a mesa de um restaurante viajar para o carrinho de outro.
+   */
+  const [tableId] = useState(() => lerContextoDeMesa(storeSlug)?.tableId ?? null);
 
   const activeCategory = categories.find((c) => c.slug === activeSlug);
 

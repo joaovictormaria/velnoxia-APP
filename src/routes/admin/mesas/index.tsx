@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { QrCode, Copy, Download, Trash2, Loader } from "lucide-react";
+import { QrCode, Download, Trash2, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateUUID } from "@/lib/uuid";
 import { generateQRCodeDataUrl, generateQRCodePNG } from "@/lib/qrcode-generator";
@@ -45,7 +45,6 @@ function MesasPage() {
   const admin = context?.admin;
   const queryClient = useQueryClient();
   const [qrcodes, setQrcodes] = useState<GeneratedQRCode[]>([]);
-  const [copied, setCopied] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
   // Carregar mesas do banco de dados
@@ -124,15 +123,11 @@ function MesasPage() {
     }
   };
 
-  const copyLink = (url: string) => {
-    navigator.clipboard.writeText(url);
-    setCopied(url);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
   const downloadQR = async (qr: GeneratedQRCode) => {
     try {
-      const blob = await generateQRCodePNG(qr.url);
+      // "Mesa 3" impresso sob o código: é o que identifica o papel depois de
+      // colado, quando o arquivo já não está mais à vista.
+      const blob = await generateQRCodePNG(qr.url, `Mesa ${qr.number}`);
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -168,10 +163,15 @@ function MesasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Mesas (QRCode)</h1>
-          <p className="text-sm text-neutral-400">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          {/*
+           * `text-white` num painel de fundo creme (#FAF9F7): o título existia
+           * no HTML e não existia na tela. É o tipo de defeito que sobrevive
+           * porque quem programou já sabia o que estava escrito ali.
+           */}
+          <h1 className="text-2xl font-bold text-neutral-950 sm:text-3xl">Mesas (QRCode)</h1>
+          <p className="mt-1 text-sm text-neutral-600">
             {qrcodes.length} QRCodes gerados • {qrcodes.reduce((sum, q) => sum + q.ordersCount, 0)} pedidos abertos
           </p>
         </div>
@@ -190,28 +190,67 @@ function MesasPage() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-          <p className="text-sm text-neutral-600">Total de QRCodes</p>
-          <p className="text-2xl font-bold text-blue-600">{qrcodes.length}</p>
-        </div>
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-          <p className="text-sm text-neutral-600">Mesas Abertas</p>
-          <p className="text-2xl font-bold text-red-600">{qrcodes.filter(q => q.ordersCount > 0).length}</p>
-        </div>
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-          <p className="text-sm text-neutral-600">Pedidos Abertos</p>
-          <p className="text-2xl font-bold text-yellow-600">{qrcodes.reduce((sum, q) => sum + q.ordersCount, 0)}</p>
-        </div>
+      {/*
+       * A mesma barra de vitais do Dashboard: uma peça só, células separadas
+       * por fio de cabelo, rótulo pequeno em caixa alta e o número na fonte de
+       * display. Três cartões soltos com números azul, vermelho e amarelo
+       * sugeriam gravidade onde não há nenhuma — mesa aberta é a loja
+       * funcionando, não um alerta.
+       */}
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-200 sm:grid-cols-3">
+        {[
+          { rotulo: "Total de QR Codes", valor: qrcodes.length },
+          { rotulo: "Mesas abertas", valor: qrcodes.filter((q) => q.ordersCount > 0).length },
+          {
+            rotulo: "Pedidos abertos",
+            valor: qrcodes.reduce((sum, q) => sum + q.ordersCount, 0),
+          },
+        ].map((item) => (
+          <div key={item.rotulo} className="bg-white p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              {item.rotulo}
+            </p>
+            <p className="mt-2 font-display text-3xl font-bold leading-none tracking-tight tabular-nums text-neutral-950">
+              {item.valor}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* QRCodes Grid */}
       {qrcodes.length === 0 ? (
-        <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-8 text-center">
-          <QrCode className="mx-auto mb-4 size-12 text-neutral-600" />
-          <p className="text-neutral-400">Nenhum QRCode gerado ainda</p>
-          <Button onClick={generateQRCode} className="mt-4">Gerar Primeiro QRCode</Button>
+        /*
+         * O estado vazio era um cartão ESCURO (`bg-neutral-900`) sobre a mesa
+         * creme do painel — parecia um buraco na página, não um convite.
+         *
+         * Agora é a mesma moldura dos cards de mesa, com um lugar vazio no
+         * formato exato de um QR: quem chega entende o que vai aparecer ali
+         * antes de clicar em nada.
+         */
+        <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center">
+          <div className="mx-auto flex size-36 items-center justify-center rounded-lg border border-dashed border-neutral-200 bg-neutral-50">
+            <QrCode className="size-10 text-neutral-300" />
+          </div>
+          <p className="mt-5 font-display text-lg font-bold text-neutral-950">
+            Nenhuma mesa com QR Code
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-neutral-500">
+            Gere um código para cada mesa e cole no suporte. O cliente aponta a câmera e pede
+            sem sair do lugar.
+          </p>
+          <Button onClick={generateQRCode} disabled={generating} className="mt-6 gap-2">
+            {generating ? (
+              <>
+                <Loader className="size-4 animate-spin" />
+                Gerando...
+              </>
+            ) : (
+              <>
+                <QrCode className="size-4" />
+                Gerar primeiro QR Code
+              </>
+            )}
+          </Button>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
@@ -240,18 +279,6 @@ function MesasPage() {
                 >
                   <Download className="mr-1 size-4" />
                   Baixar PNG
-                </Button>
-
-                <Button
-                  onClick={() => {
-                    navigator.clipboard.writeText(qr.url);
-                    alert("Link copiado: " + qr.url);
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                >
-                  Ver Link
                 </Button>
 
                 <Button

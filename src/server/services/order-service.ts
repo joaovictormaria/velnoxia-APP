@@ -6,8 +6,13 @@ import type {
 } from "@prisma/client";
 import { randomBytes } from "node:crypto";
 import { prisma } from "../db/client";
+import { EstoqueInsuficienteError } from "./inventory-service";
+import { quantidade as formatarQuantidade } from "@/lib/formato";
 import { verifyPassword } from "../auth/password";
-import { findEmployeeForCheckout, lerUsoDoDia } from "../repositories/employee-repository";
+import {
+  findEmployeeForCheckout,
+  lerUsoDoDia,
+} from "../repositories/employee-repository";
 import { extrasPermitidosPorProduto } from "../repositories/extra-repository";
 import {
   calcularBeneficio,
@@ -68,7 +73,13 @@ export type CheckoutInput = {
 };
 
 export type CheckoutResult =
-  | { ok: true; orderId: string; orderNumber: number; total: number | string; trackingToken: string | null }
+  | {
+      ok: true;
+      orderId: string;
+      orderNumber: number;
+      total: number | string;
+      trackingToken: string | null;
+    }
   | { ok: false; error: string };
 
 /**
@@ -79,13 +90,15 @@ export type CheckoutResult =
  * pequena por uma gigante, e o erro só apareceria no fim do mês.
  */
 function priceForSize(
-  product: { basePrice: number | string; sizes: { categorySizeId: string; price: number | string }[] },
+  product: {
+    basePrice: number | string;
+    sizes: { categorySizeId: string; price: number | string }[];
+  },
   sizeId: string | null,
 ): number | string | null {
   if (!sizeId) return product.basePrice;
   return product.sizes.find((s) => s.categorySizeId === sizeId)?.price ?? null;
 }
-
 
 /** Uma linha do pedido, com o preço e os nomes já copiados do cardápio. */
 type LinhaDoPedido = {
@@ -108,7 +121,12 @@ type LinhaDoPedido = {
 };
 
 export type Precificacao =
-  | { ok: true; lines: LinhaDoPedido[]; linhasParaBeneficio: LinhaParaBeneficio[]; subtotal: number | string }
+  | {
+      ok: true;
+      lines: LinhaDoPedido[];
+      linhasParaBeneficio: LinhaParaBeneficio[];
+      subtotal: number | string;
+    }
   | { ok: false; error: string };
 
 /**
@@ -127,7 +145,9 @@ export async function precificarItens(
   const slugs = [
     ...new Set(
       items.flatMap((i) =>
-        [i.productSlug, i.secondProductSlug].filter((s): s is string => Boolean(s)),
+        [i.productSlug, i.secondProductSlug].filter((s): s is string =>
+          Boolean(s),
+        ),
       ),
     ),
   ];
@@ -147,7 +167,9 @@ export async function precificarItens(
    * no pedido, e é onde sai o nome gravado no item.
    */
   const sizes = await prisma.categorySize.findMany({
-    where: { categoryId: { in: [...new Set(products.map((p) => p.categoryId))] } },
+    where: {
+      categoryId: { in: [...new Set(products.map((p) => p.categoryId))] },
+    },
     select: { id: true, label: true },
   });
   const sizesById = new Map(sizes.map((s) => [s.id, s]));
@@ -162,7 +184,10 @@ export async function precificarItens(
    * primeiro o que vale para tudo da categoria, depois o que é só daquele
    * item.
    */
-  const gruposPorProduto = new Map<string, Awaited<ReturnType<typeof buscarGrupos>>>();
+  const gruposPorProduto = new Map<
+    string,
+    Awaited<ReturnType<typeof buscarGrupos>>
+  >();
   for (const produto of products) {
     gruposPorProduto.set(produto.id, [
       ...(await buscarGrupos({ categoryId: produto.categoryId })),
@@ -172,7 +197,9 @@ export async function precificarItens(
 
   const extraIds = [...new Set(items.flatMap((i) => i.extraIds))];
   const extras = extraIds.length
-    ? await prisma.extra.findMany({ where: { storeId, id: { in: extraIds }, isActive: true } })
+    ? await prisma.extra.findMany({
+        where: { storeId, id: { in: extraIds }, isActive: true },
+      })
     : [];
   const extraById = new Map(extras.map((e) => [e.id, e]));
 
@@ -204,17 +231,25 @@ export async function precificarItens(
   for (const item of items) {
     const product = productBySlug.get(item.productSlug);
     if (!product) {
-      return { ok: false, error: `"${item.productSlug}" não está mais disponível.` };
+      return {
+        ok: false,
+        error: `"${item.productSlug}" não está mais disponível.`,
+      };
     }
     if (item.quantity < 1) return { ok: false, error: "Quantidade inválida." };
 
     const sizeId = item.sizeId ?? null;
     const tamanho = sizeId ? sizesById.get(sizeId) : null;
     if (sizeId && !tamanho) {
-      return { ok: false, error: `O tamanho escolhido para "${product.name}" não está disponível.` };
+      return {
+        ok: false,
+        error: `O tamanho escolhido para "${product.name}" não está disponível.`,
+      };
     }
 
-    const second = item.secondProductSlug ? productBySlug.get(item.secondProductSlug) : undefined;
+    const second = item.secondProductSlug
+      ? productBySlug.get(item.secondProductSlug)
+      : undefined;
     if (item.secondProductSlug && !second) {
       return { ok: false, error: "O segundo sabor não está mais disponível." };
     }
@@ -224,7 +259,10 @@ export async function precificarItens(
 
     const primeiroPreco = priceForSize(product as any, sizeId);
     if (primeiroPreco === null) {
-      return { ok: false, error: `O tamanho escolhido para "${product.name}" não está disponível.` };
+      return {
+        ok: false,
+        error: `O tamanho escolhido para "${product.name}" não está disponível.`,
+      };
     }
 
     let unitPrice = Number(primeiroPreco);
@@ -245,14 +283,18 @@ export async function precificarItens(
       secondPrice = Number(secondPrice);
       unitPrice =
         product.halfPizzaPricingRule === "AVERAGE_PRICE"
-          ? Math.round((unitPrice + secondPrice) / 2 * 100) / 100
+          ? Math.round(((unitPrice + secondPrice) / 2) * 100) / 100
           : Math.max(unitPrice, secondPrice);
     }
 
-    const opcoes = conferirOpcoes(gruposPorProduto.get(product.id) as any ?? [], item.optionIds ?? []);
+    const opcoes = conferirOpcoes(
+      (gruposPorProduto.get(product.id) as any) ?? [],
+      item.optionIds ?? [],
+    );
     if (!opcoes.ok) return { ok: false, error: opcoes.error };
 
-    const permitidos = permitidosPorProduto.get(product.id) ?? new Set<string>();
+    const permitidos =
+      permitidosPorProduto.get(product.id) ?? new Set<string>();
     const naoPermitido = item.extraIds.find((id) => !permitidos.has(id));
     if (naoPermitido) {
       // Diz o nome do produto, e não o do adicional: quem lê é quem montou o
@@ -276,7 +318,10 @@ export async function precificarItens(
         : null;
     });
     if (lineExtras.some((e) => e === null)) {
-      return { ok: false, error: "Um dos adicionais não está mais disponível." };
+      return {
+        ok: false,
+        error: "Um dos adicionais não está mais disponível.",
+      };
     }
     const resolvedExtras = lineExtras as unknown as {
       extraId: string | null;
@@ -297,7 +342,10 @@ export async function precificarItens(
     }));
 
     const todosAdicionais = [...resolvedExtras, ...escolhas];
-    const extrasTotal = todosAdicionais.reduce((s, e) => s + Number(e.priceSnapshot), 0);
+    const extrasTotal = todosAdicionais.reduce(
+      (s, e) => s + Number(e.priceSnapshot),
+      0,
+    );
     subtotal += (unitPrice + extrasTotal) * item.quantity;
 
     lines.push({
@@ -332,6 +380,17 @@ export async function precificarItens(
 }
 
 /**
+ * UMA mensagem para toda falha do contexto de mesa.
+ *
+ * Distinguir "mesa não existe" de "token inválido" de "token é de outra mesa"
+ * transforma o checkout num oráculo: quem está sondando descobre quais mesas
+ * existem e quais tokens ainda valem, uma tentativa por vez. Para quem escaneou
+ * o QR de verdade a instrução é a mesma nos quatro casos — reescanear.
+ */
+const SESSAO_INVALIDA =
+  "Sessão de mesa inválida ou expirada. Escaneie o QRCode da mesa novamente.";
+
+/**
  * Creates an order, recomputing every price from the database. Nothing the
  * client sends about money is trusted — only ids, sizes and quantities.
  */
@@ -340,56 +399,103 @@ export async function createOrderFromCheckout(
   input: CheckoutInput,
   deviceToken?: string,
 ): Promise<CheckoutResult> {
-  if (input.items.length === 0) return { ok: false, error: "O carrinho está vazio." };
+  if (input.items.length === 0)
+    return { ok: false, error: "O carrinho está vazio." };
 
-  const settings = await prisma.storeSettings.findUnique({ where: { storeId } });
-  if (!settings) return { ok: false, error: "A loja ainda não está configurada." };
+  const settings = await prisma.storeSettings.findUnique({
+    where: { storeId },
+  });
+  if (!settings)
+    return { ok: false, error: "A loja ainda não está configurada." };
 
-  // Validate device token if provided (table session authorization)
+  /*
+   * O PIN É PROPRIEDADE DO CONTEXTO DE MESA, NÃO DE UM PEDIDO QUALQUER.
+   *
+   * A guarda era `if (deviceToken)`, sem olhar a mesa. Bastava um token velho
+   * sobrando no navegador para um pedido da vitrine PÚBLICA ser recusado com
+   * "Sessão de mesa expirou ou PIN inválido" — um erro de mesa num pedido que
+   * nunca teve mesa. O cliente não tinha como se livrar: nada apagava a chave.
+   *
+   * Agora o caminho de mesa só existe quando há `tableId`. Sem ele o pedido é
+   * público por definição, o token é ignorado, e `sessionId`/`deviceId` ficam
+   * nulos — o pedido não é amarrado a sessão nenhuma.
+   *
+   * Ignorar não é afrouxar. Um token sem mesa não conseguia provar coisa
+   * alguma: a checagem de IDOR logo abaixo exige os dois para comparar, então
+   * um token solto gravava `sessionId` no pedido SEM que ninguém tivesse
+   * conferido a qual mesa ele pertencia. O caminho que sumiu era o inseguro.
+   */
   let sessionId: string | null = null;
   let deviceId: string | null = null;
 
-  if (deviceToken) {
+  if (input.tableId) {
+    /*
+     * O `tableId` NÃO É CREDENCIAL. Ele vem impresso no QR colado na mesa, é
+     * permanente e aparece na URL pública — qualquer pessoa que tenha sentado
+     * ali uma vez o conhece para sempre.
+     *
+     * Antes bastava mandá-lo. As três checagens eram independentes: a do token
+     * só rodava `if (tableId && deviceToken)`, e a do IDOR `if (sessionId &&
+     * tableId)`. Sem token, as duas eram puladas, sobrava conferir que a mesa
+     * existia — e o pedido era gravado amarrado a ela. Dava para lançar consumo
+     * na conta de quem estava sentado em qualquer mesa, de qualquer lugar.
+     *
+     * Agora é um portão só, e ele exige a cadeia inteira: token presente, token
+     * válido, mesa desta loja, e a sessão daquele token sendo a desta mesa.
+     *
+     * SEM REBAIXAMENTO SILENCIOSO. `tableId` sem credencial é erro, nunca vira
+     * pedido público: transformar calado o que o cliente pediu como mesa em
+     * outra coisa esconderia tanto o ataque quanto o defeito legítimo.
+     */
+    if (!deviceToken) {
+      return { ok: false, error: SESSAO_INVALIDA };
+    }
+
     const { validateDeviceToken } = await import("./table-session-service");
     const deviceInfo = await validateDeviceToken(storeId, deviceToken);
-
+    // Cobre token inventado, revogado, de sessão fechada e de sessão expirada:
+    // `validateDeviceToken` devolve null em todos esses casos.
     if (!deviceInfo) {
-      return { ok: false, error: "Sessão de mesa expirou ou PIN inválido. Escaneie o QRCode novamente." };
+      return { ok: false, error: SESSAO_INVALIDA };
+    }
+
+    // A mesa tem de existir E ser desta loja: fecha o cruzamento entre lojas.
+    const table = await prisma.table.findUnique({
+      where: { id: input.tableId },
+      select: { storeId: true },
+    });
+    if (!table || table.storeId !== storeId) {
+      return { ok: false, error: SESSAO_INVALIDA };
+    }
+
+    /*
+     * IDOR mesa ↔ sessão: o token vale para a sessão dele e para mais nenhuma.
+     * Sem isto, quem senta na mesa 1 manda o próprio token com o `tableId` da
+     * mesa 2 e almoça por conta dos vizinhos.
+     */
+    const session = await prisma.tableSession.findUnique({
+      where: { id: deviceInfo.sessionId },
+      select: { tableId: true },
+    });
+    if (!session || session.tableId !== input.tableId) {
+      return { ok: false, error: SESSAO_INVALIDA };
     }
 
     sessionId = deviceInfo.sessionId;
     deviceId = (deviceInfo as any).deviceId;
   }
 
-  // Validate tableId if provided: table must exist
-  if (input.tableId) {
-    const table = await prisma.table.findUnique({ where: { id: input.tableId } });
-    if (!table || table.storeId !== storeId) {
-      return { ok: false, error: "Sua sessão de mesa expirou após 24 horas. Escaneie o QRCode da mesa novamente para continuar." };
-    }
-  }
-
-  // CRITICAL: Validate session belongs to correct table (prevent IDOR)
-  // A device token is only valid for its specific session and table.
-  // A client cannot use token from Table A to order at Table B.
-  if (sessionId && input.tableId) {
-    const session = await prisma.tableSession.findUnique({
-      where: { id: sessionId },
-      select: { tableId: true },
-    });
-    if (!session || session.tableId !== input.tableId) {
-      return {
-        ok: false,
-        error: "Sua sessão de mesa expirou. Escaneie o QRCode da mesa novamente para continuar.",
-      };
-    }
-  }
-
   if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
-    return { ok: false, error: "A loja não está aceitando entregas no momento." };
+    return {
+      ok: false,
+      error: "A loja não está aceitando entregas no momento.",
+    };
   }
   if (input.type === "PICKUP" && !settings.acceptsPickup) {
-    return { ok: false, error: "A loja não está aceitando retiradas no momento." };
+    return {
+      ok: false,
+      error: "A loja não está aceitando retiradas no momento.",
+    };
   }
   const phone = input.customerPhone.replace(/\D/g, "");
 
@@ -407,15 +513,22 @@ export async function createOrderFromCheckout(
     ? await findEmployeeForCheckout(prisma, storeId, phone)
     : null;
   if (input.employeePin) {
-    if (!funcionario || !(await verifyPassword(input.employeePin, funcionario.pinHash))) {
+    if (
+      !funcionario ||
+      !(await verifyPassword(input.employeePin, funcionario.pinHash))
+    ) {
       // A mesma mensagem para "não é funcionário" e "PIN errado": separá-las
       // transformaria o checkout num jeito de descobrir quem trabalha na loja.
-      return { ok: false, error: "Telefone ou PIN de funcionário não confere." };
+      return {
+        ok: false,
+        error: "Telefone ou PIN de funcionário não confere.",
+      };
     }
     if (!funcionario.plano) {
       return {
         ok: false,
-        error: "Seu cadastro ainda não tem um benefício definido. Fale com a loja.",
+        error:
+          "Seu cadastro ainda não tem um benefício definido. Fale com a loja.",
       };
     }
   }
@@ -424,7 +537,10 @@ export async function createOrderFromCheckout(
     // Desconto em folha não é forma de pagamento da loja: não está em
     // `acceptedPaymentMethods` e é o plano que o libera, pessoa a pessoa.
     if (!funcionario?.plano?.allowPayroll) {
-      return { ok: false, error: "Desconto em folha não está liberado para este pedido." };
+      return {
+        ok: false,
+        error: "Desconto em folha não está liberado para este pedido.",
+      };
     }
   } else if (!settings.acceptedPaymentMethods.includes(input.paymentMethod)) {
     return { ok: false, error: "Forma de pagamento não aceita." };
@@ -437,7 +553,9 @@ export async function createOrderFromCheckout(
   if (Number(subtotal) < Number((settings as any).minOrderValue)) {
     return {
       ok: false,
-      error: `O pedido mínimo é de R$ ${Number((settings as any).minOrderValue).toFixed(2).replace(".", ",")}.`,
+      error: `O pedido mínimo é de R$ ${Number((settings as any).minOrderValue)
+        .toFixed(2)
+        .replace(".", ",")}.`,
     };
   }
 
@@ -469,7 +587,8 @@ export async function createOrderFromCheckout(
     if (beneficio && beneficio.descontoTotal > 0) {
       return {
         ok: false,
-        error: "Este pedido já tem o desconto de funcionário; o cupom não acumula.",
+        error:
+          "Este pedido já tem o desconto de funcionário; o cupom não acumula.",
       };
     }
     const coupon = await prisma.coupon.findFirst({
@@ -482,7 +601,8 @@ export async function createOrderFromCheckout(
       coupon.validFrom > now ||
       coupon.validUntil < now ||
       (coupon.maxUsage !== null && coupon.usageCount >= coupon.maxUsage) ||
-      (coupon.minOrderValue !== null && Number(subtotal) < Number(coupon.minOrderValue))
+      (coupon.minOrderValue !== null &&
+        Number(subtotal) < Number(coupon.minOrderValue))
     ) {
       return { ok: false, error: "Cupom inválido ou expirado." };
     }
@@ -490,146 +610,197 @@ export async function createOrderFromCheckout(
       coupon.discountType === "PERCENTAGE"
         ? (Number(subtotal) * Number(coupon.discountValue)) / 100
         : Number(coupon.discountValue);
-    descontoDoCupom = Math.min(Math.round(descontoDoCupom * 100) / 100, Number(subtotal));
+    descontoDoCupom = Math.min(
+      Math.round(descontoDoCupom * 100) / 100,
+      Number(subtotal),
+    );
     couponId = coupon.id;
   }
 
   const deliveryFee =
     input.type === "DELIVERY" &&
-    !(settings.freeDeliveryMinOrder !== null && Number(subtotal) >= Number(settings.freeDeliveryMinOrder))
+    !(
+      settings.freeDeliveryMinOrder !== null &&
+      Number(subtotal) >= Number(settings.freeDeliveryMinOrder)
+    )
       ? Number(settings.deliveryFee)
       : 0;
 
   const estimatedMinutes =
-    input.type === "DELIVERY" ? settings.estimatedDeliveryMinMax : settings.estimatedPickupMinMax;
+    input.type === "DELIVERY"
+      ? settings.estimatedDeliveryMinMax
+      : settings.estimatedPickupMinMax;
 
-  const order = await prisma.$transaction(async (tx) => {
-    /*
-     * A cota é relida aqui dentro, e o desconto refeito com ela.
-     *
-     * Sem isto, duas abas abertas gastariam a mesma cota duas vezes: as duas
-     * leriam "nenhum item usado hoje", as duas dariam o desconto inteiro, e o
-     * funcionário almoçaria de graça duas vezes com uma cota de uma. O número
-     * calculado lá em cima serve para conferir o cupom e para a prévia; o que
-     * vai para o pedido é este.
-     */
-    const beneficioFinal = funcionario?.plano
-      ? calcularBeneficio(
-          funcionario.plano,
-          linhasParaBeneficio,
-          await lerUsoDoDia(tx, storeId, funcionario.id),
-        )
-      : null;
-
-    const employeeDiscount = beneficioFinal?.descontoTotal ?? 0;
-    const discount = Math.min(
-      Math.round((employeeDiscount + descontoDoCupom) * 100) / 100,
-      Number(subtotal),
-    );
-    const total = Math.round((Number(subtotal) + deliveryFee - discount) * 100) / 100;
-
-    const customer = await tx.customer.upsert({
-      where: { storeId_phone: { storeId, phone } },
-      create: { storeId, phone, name: input.customerName },
-      update: { name: input.customerName },
-    });
-
-    // Order numbers restart at #1 for every store, so each lanchonete sees a
-    // clean sequence instead of a database-wide counter. Computed inside the
-    // transaction and protected by the unique (storeId, number) index: two
-    // simultaneous checkouts cannot land on the same number.
-    const last = await tx.order.findFirst({
-      where: { storeId },
-      orderBy: { number: "desc" },
-      select: { number: true },
-    });
-    const nextNumber = (last?.number ?? 0) + 1;
-
-    const created = await tx.order.create({
-      data: {
-        storeId,
-        number: nextNumber,
-        customerId: customer.id,
-        customerName: input.customerName,
-        customerPhone: phone,
-        trackingToken: newTrackingToken(),
-        type: input.type,
-        status: "RECEIVED",
-        source: "SITE",
-        paymentMethod: input.paymentMethod,
-        subtotal: Number(subtotal),
-        deliveryFee,
-        discount,
-        total,
-        couponId,
-        tableId: input.tableId ?? null,
-        sessionId: sessionId ?? null,  // Table session (if table order)
-        deviceId: deviceId ?? null,    // Device that created order (if table order)
-        employeeId: funcionario?.id ?? null,
-        // O nome vai copiado: apagar a ficha do funcionário um dia não pode
-        // apagar o registro de quem pegou o quê.
-        employeeNameSnapshot: funcionario?.name ?? null,
-        employeeDiscount,
-        employeeBenefitNote: beneficioFinal?.nota ?? null,
-        deliveryStreet: input.delivery?.street ?? null,
-        deliveryNumber: input.delivery?.number ?? null,
-        deliveryComplement: input.delivery?.complement ?? null,
-        deliveryNeighborhood: input.delivery?.neighborhood ?? null,
-        deliveryCity: input.delivery?.city ?? null,
-        deliveryState: input.delivery?.state ?? null,
-        deliveryZipCode: input.delivery?.zipCode ?? null,
-        customerNote: input.customerNote?.trim() || null,
-        estimatedDeliveryAt: new Date(Date.now() + estimatedMinutes * 60_000),
-        autoPrintRequested: (settings as any).autoPrintEnabled,
-        items: {
-          create: lines.map(({ extras: lineExtras, productId, ...line }, i) => ({
-            ...line,
-            product: productId ? { connect: { id: productId } } : undefined,
-            employeeDiscount: beneficioFinal?.porLinha[i]?.desconto ?? 0,
-            benefitQuantity: beneficioFinal?.porLinha[i]?.quantidade ?? 0,
-            extras: { create: lineExtras },
-          })),
-        },
-        statusHistory: {
-          create: { status: "RECEIVED", authorType: "CUSTOMER", authorName: input.customerName },
-        },
-      },
-    });
-
-    /*
-     * A RESERVA DE ESTOQUE ENTRA AQUI, dentro da transação do pedido.
-     *
-     * Antes ela rodava depois do commit, disparada sem espera. Quando faltava
-     * saldo, a reserva falhava e o pedido JÁ ESTAVA CONFIRMADO ao cliente —
-     * sobrava a marca `inventoryInconsistentAt` para alguém conferir na mão, e
-     * o cliente pagando por um bolo que não existia.
-     *
-     * Falhar aqui derruba a transação inteira: sem Order, sem OrderItem, sem
-     * reserva órfã. O rollback do banco é o desfazer — não há compensação a
-     * escrever, e por isso não pode dar errado pela metade.
-     *
-     * A serialização entre dois clientes disputando a última unidade continua
-     * sendo a de sempre: o `SELECT ... FOR UPDATE` dentro de `recordMovement`,
-     * agora sob esta transação.
-     */
-    await OrderInventoryHandler.reservarNaCriacao(tx, created.id, storeId);
-
-    if (couponId) {
-      await tx.coupon.update({ where: { id: couponId }, data: { usageCount: { increment: 1 } } });
+  /*
+   * FALTAR ESTOQUE É RESPOSTA, NÃO 500.
+   *
+   * A reserva roda dentro da transação abaixo, e falhar ali derruba o pedido
+   * inteiro — esse comportamento está certo. O que estava errado era o que
+   * chegava ao cliente: a exceção subia até a server function, virava HTTP 500
+   * e a tela dizia "Não foi possível enviar o pedido. Tente novamente".
+   *
+   * Tentar de novo não resolvia nada, porque o problema não era transitório —
+   * era que o bolo tinha acabado, e ninguém contava isso a quem estava
+   * comprando.
+   *
+   * SÓ falta de estoque é traduzida. Qualquer outra falha continua subindo:
+   * erro de banco não pode virar recado educado enquanto o log fica quieto.
+   */
+  let order;
+  try {
+    order = await criarPedido();
+  } catch (erro) {
+    if (erro instanceof EstoqueInsuficienteError) {
+      return {
+        ok: false,
+        error:
+          erro.disponivel > 0
+            ? `${erro.nomeDoItem}: resta apenas ${formatarQuantidade(erro.disponivel)}. Ajuste a quantidade e tente de novo.`
+            : `${erro.nomeDoItem} acabou. Remova o item do carrinho para continuar.`,
+      };
     }
+    throw erro;
+  }
 
-    await tx.notification.create({
-      data: {
-        storeId,
-        type: "NEW_ORDER",
-        title: "Novo pedido recebido",
-        message: `Pedido #${created.number} de ${input.customerName}`,
-        relatedOrderId: created.id,
-      },
+  async function criarPedido() {
+    return prisma.$transaction(async (tx) => {
+      /*
+       * A cota é relida aqui dentro, e o desconto refeito com ela.
+       *
+       * Sem isto, duas abas abertas gastariam a mesma cota duas vezes: as duas
+       * leriam "nenhum item usado hoje", as duas dariam o desconto inteiro, e o
+       * funcionário almoçaria de graça duas vezes com uma cota de uma. O número
+       * calculado lá em cima serve para conferir o cupom e para a prévia; o que
+       * vai para o pedido é este.
+       */
+      const beneficioFinal = funcionario?.plano
+        ? calcularBeneficio(
+            funcionario.plano,
+            linhasParaBeneficio,
+            await lerUsoDoDia(tx, storeId, funcionario.id),
+          )
+        : null;
+
+      const employeeDiscount = beneficioFinal?.descontoTotal ?? 0;
+      const discount = Math.min(
+        Math.round((employeeDiscount + descontoDoCupom) * 100) / 100,
+        Number(subtotal),
+      );
+      const total =
+        Math.round((Number(subtotal) + deliveryFee - discount) * 100) / 100;
+
+      const customer = await tx.customer.upsert({
+        where: { storeId_phone: { storeId, phone } },
+        create: { storeId, phone, name: input.customerName },
+        update: { name: input.customerName },
+      });
+
+      // Order numbers restart at #1 for every store, so each lanchonete sees a
+      // clean sequence instead of a database-wide counter. Computed inside the
+      // transaction and protected by the unique (storeId, number) index: two
+      // simultaneous checkouts cannot land on the same number.
+      const last = await tx.order.findFirst({
+        where: { storeId },
+        orderBy: { number: "desc" },
+        select: { number: true },
+      });
+      const nextNumber = (last?.number ?? 0) + 1;
+
+      const created = await tx.order.create({
+        data: {
+          storeId,
+          number: nextNumber,
+          customerId: customer.id,
+          customerName: input.customerName,
+          customerPhone: phone,
+          trackingToken: newTrackingToken(),
+          type: input.type,
+          status: "RECEIVED",
+          source: "SITE",
+          paymentMethod: input.paymentMethod,
+          subtotal: Number(subtotal),
+          deliveryFee,
+          discount,
+          total,
+          couponId,
+          tableId: input.tableId ?? null,
+          sessionId: sessionId ?? null, // Table session (if table order)
+          deviceId: deviceId ?? null, // Device that created order (if table order)
+          employeeId: funcionario?.id ?? null,
+          // O nome vai copiado: apagar a ficha do funcionário um dia não pode
+          // apagar o registro de quem pegou o quê.
+          employeeNameSnapshot: funcionario?.name ?? null,
+          employeeDiscount,
+          employeeBenefitNote: beneficioFinal?.nota ?? null,
+          deliveryStreet: input.delivery?.street ?? null,
+          deliveryNumber: input.delivery?.number ?? null,
+          deliveryComplement: input.delivery?.complement ?? null,
+          deliveryNeighborhood: input.delivery?.neighborhood ?? null,
+          deliveryCity: input.delivery?.city ?? null,
+          deliveryState: input.delivery?.state ?? null,
+          deliveryZipCode: input.delivery?.zipCode ?? null,
+          customerNote: input.customerNote?.trim() || null,
+          estimatedDeliveryAt: new Date(Date.now() + estimatedMinutes * 60_000),
+          autoPrintRequested: (settings as any).autoPrintEnabled,
+          items: {
+            create: lines.map(
+              ({ extras: lineExtras, productId, ...line }, i) => ({
+                ...line,
+                product: productId ? { connect: { id: productId } } : undefined,
+                employeeDiscount: beneficioFinal?.porLinha[i]?.desconto ?? 0,
+                benefitQuantity: beneficioFinal?.porLinha[i]?.quantidade ?? 0,
+                extras: { create: lineExtras },
+              }),
+            ),
+          },
+          statusHistory: {
+            create: {
+              status: "RECEIVED",
+              authorType: "CUSTOMER",
+              authorName: input.customerName,
+            },
+          },
+        },
+      });
+
+      /*
+       * A RESERVA DE ESTOQUE ENTRA AQUI, dentro da transação do pedido.
+       *
+       * Antes ela rodava depois do commit, disparada sem espera. Quando faltava
+       * saldo, a reserva falhava e o pedido JÁ ESTAVA CONFIRMADO ao cliente —
+       * sobrava a marca `inventoryInconsistentAt` para alguém conferir na mão, e
+       * o cliente pagando por um bolo que não existia.
+       *
+       * Falhar aqui derruba a transação inteira: sem Order, sem OrderItem, sem
+       * reserva órfã. O rollback do banco é o desfazer — não há compensação a
+       * escrever, e por isso não pode dar errado pela metade.
+       *
+       * A serialização entre dois clientes disputando a última unidade continua
+       * sendo a de sempre: o `SELECT ... FOR UPDATE` dentro de `recordMovement`,
+       * agora sob esta transação.
+       */
+      await OrderInventoryHandler.reservarNaCriacao(tx, created.id, storeId);
+
+      if (couponId) {
+        await tx.coupon.update({
+          where: { id: couponId },
+          data: { usageCount: { increment: 1 } },
+        });
+      }
+
+      await tx.notification.create({
+        data: {
+          storeId,
+          type: "NEW_ORDER",
+          title: "Novo pedido recebido",
+          message: `Pedido #${created.number} de ${input.customerName}`,
+          relatedOrderId: created.id,
+        },
+      });
+
+      return created;
     });
-
-    return created;
-  });
+  }
 
   /*
    * A reserva já aconteceu na transação acima. Este gancho segue existindo para
@@ -710,7 +881,10 @@ export async function transitionOrderStatus(
 
   // TABLE_READY é apenas para pedidos de mesa
   if (status === "TABLE_READY" && !order.tableId) {
-    return { ok: false, error: "Apenas pedidos de mesa podem ir para 'Pronto para entregar'." };
+    return {
+      ok: false,
+      error: "Apenas pedidos de mesa podem ir para 'Pronto para entregar'.",
+    };
   }
   // Pickup orders never go out for delivery.
   if (status === "OUT_FOR_DELIVERY" && order.type === "PICKUP") {
@@ -722,8 +896,15 @@ export async function transitionOrderStatus(
    * checagem, entao um pedido nunca fica "na rua" sem alguem responsavel.
    * Quem despacha usa dispatchOrder, que escolhe o entregador junto.
    */
-  if (status === "OUT_FOR_DELIVERY" && order.type === "DELIVERY" && !order.courierId) {
-    return { ok: false, error: "Escolha quem vai levar antes de liberar a saída." };
+  if (
+    status === "OUT_FOR_DELIVERY" &&
+    order.type === "DELIVERY" &&
+    !order.courierId
+  ) {
+    return {
+      ok: false,
+      error: "Escolha quem vai levar antes de liberar a saída.",
+    };
   }
 
   await prisma.$transaction([
@@ -773,7 +954,10 @@ export async function transitionOrderStatus(
 
   // Sync inventory after status change (fire-and-forget, doesn't block order update)
   orderStatusSync.onStatusChange(orderId, status).catch((err) => {
-    console.error(`Inventory sync failed for order ${orderId} (status: ${status}):`, err);
+    console.error(
+      `Inventory sync failed for order ${orderId} (status: ${status}):`,
+      err,
+    );
   });
 
   return { ok: true };
@@ -809,7 +993,10 @@ export async function dispatchOrder(
     return { ok: false, error: "Este pedido é para retirada no balcão." };
   }
   if (order.status !== "PREPARING") {
-    return { ok: false, error: "Só um pedido em preparo pode sair para entrega." };
+    return {
+      ok: false,
+      error: "Só um pedido em preparo pode sair para entrega.",
+    };
   }
 
   await prisma.$transaction([
@@ -837,7 +1024,10 @@ export async function dispatchOrder(
 
   // Sync inventory after dispatch (fire-and-forget)
   orderStatusSync.onStatusChange(orderId, "OUT_FOR_DELIVERY").catch((err) => {
-    console.error(`Inventory sync failed for order ${orderId} (status: OUT_FOR_DELIVERY):`, err);
+    console.error(
+      `Inventory sync failed for order ${orderId} (status: OUT_FOR_DELIVERY):`,
+      err,
+    );
   });
 
   return { ok: true, courierName: courier.name };
@@ -864,7 +1054,10 @@ export async function setOrderAwaitingCourier(
     return { ok: false, error: "Só pedido de entrega espera por entregador." };
   }
   if (order.status !== "PREPARING") {
-    return { ok: false, error: "Só um pedido em preparo pode aguardar entregador." };
+    return {
+      ok: false,
+      error: "Só um pedido em preparo pode aguardar entregador.",
+    };
   }
 
   await prisma.order.update({

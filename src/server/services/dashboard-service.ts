@@ -1,8 +1,7 @@
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "../db/client";
-import { InventoryCostService } from "./inventory-cost-service";
-import { ticketMedio } from "@/lib/regra-financeira";
-import { horasDoGrafico, rotuloDaHora } from "./janela-do-grafico";
+import { estaAbertoAgora, horasDoGrafico, rotuloDaHora } from "./janela-do-grafico";
+import { getKanbanMetrics, pedidosRecentes } from "../repositories/order-repository";
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -16,81 +15,18 @@ function endOfDay(date: Date): Date {
   return d;
 }
 
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-function percentChange(current: number, previous: number): number | null {
-  if (previous === 0) return current === 0 ? 0 : null;
-  return Math.round(((current - previous) / previous) * 100);
-}
-
-/**
- * O faturamento do painel, sob a MESMA regra dos relatórios.
+/*
+ * As funções de contagem deste arquivo usam `status != CANCELLED`, e não a
+ * regra financeira de venda reconhecida, de propósito. Pico de movimento por
+ * hora e ranking de produtos são perguntas OPERACIONAIS — quanta gente
+ * trabalha às 20h, o que a cozinha precisa ter pronto. Um pedido em preparo
+ * conta para as duas, e recortá-lo por regra financeira responderia a
+ * pergunta errada.
  *
- * Antes esta função somava `status != CANCELLED`, e era o número que o dono
- * via todo dia. Os relatórios somavam só o concluído. Dois faturamentos
- * oficiais, discordando exatamente pelos pedidos em preparo — e nenhum jeito
- * de dizer qual estava certo, porque nenhum estava errado sozinho.
- *
- * Chamar `pedidosReconhecidos` em vez de repetir o filtro aqui é o que impede a
- * divergência de voltar: existe UMA definição de venda, e ela mora num lugar só.
- *
- * As outras funções deste arquivo continuam com `status != CANCELLED` de
- * propósito. Pico de movimento por hora e ranking de produtos são perguntas
- * OPERACIONAIS — quanta gente trabalha às 20h, o que a cozinha precisa ter
- * pronto. Um pedido em preparo conta para as duas, e recortá-lo por regra
- * financeira responderia a pergunta errada.
+ * O faturamento que morava aqui foi removido junto com `summary`: o painel
+ * não mostra dinheiro, e calcular e enviar o que ninguém lê custava quatro
+ * agregações a cada recarga de 8 segundos.
  */
-async function summaryForRange(storeId: string, from: Date, to: Date) {
-  const pedidos = await InventoryCostService.pedidosReconhecidos(storeId, from, to);
-  const count = pedidos.length;
-  const revenue = pedidos.reduce((soma, p) => soma + p.receita, 0);
-  return {
-    count,
-    revenue,
-    averageTicket: ticketMedio({ receita: revenue, pedidos: count }),
-  };
-}
-
-export async function getDashboardSummary(storeId: string, reference = new Date()) {
-  const todayStart = startOfDay(reference);
-  const todayEnd = endOfDay(reference);
-  const yesterdayStart = startOfDay(addDays(reference, -1));
-  const yesterdayEnd = endOfDay(addDays(reference, -1));
-
-  const [today, yesterday, ratingToday, ratingYesterday] = await Promise.all([
-    summaryForRange(storeId, todayStart, todayEnd),
-    summaryForRange(storeId, yesterdayStart, yesterdayEnd),
-    prisma.review.aggregate({
-      _avg: { rating: true },
-      where: { storeId, createdAt: { lte: todayEnd } },
-    }),
-    prisma.review.aggregate({
-      _avg: { rating: true },
-      where: { storeId, createdAt: { lte: yesterdayEnd } },
-    }),
-  ]);
-
-  const avgRating = ratingToday._avg.rating ?? 0;
-  const avgRatingYesterday = ratingYesterday._avg.rating ?? 0;
-
-  return {
-    orders: { value: today.count, change: percentChange(today.count, yesterday.count) },
-    revenue: { value: today.revenue, change: percentChange(today.revenue, yesterday.revenue) },
-    averageTicket: {
-      value: today.averageTicket,
-      change: percentChange(today.averageTicket, yesterday.averageTicket),
-    },
-    rating: {
-      value: avgRating,
-      change: Math.round((avgRating - avgRatingYesterday) * 10) / 10,
-    },
-  };
-}
-
 export async function getOrdersByStatus(storeId: string, reference = new Date()) {
   const grouped = await prisma.order.groupBy({
     by: ["status"],
@@ -102,11 +38,29 @@ export async function getOrdersByStatus(storeId: string, reference = new Date())
     grouped.map((g) => [g.status, g._count._all]),
   );
 
+  /*
+   * O TOTAL SAI DAQUI, e não de uma consulta nova: o `groupBy` acima já trouxe
+   * todos os status do dia, inclusive os que este retorno não nomeia.
+   *
+   * Ele existe porque o painel precisa de "quantos pedidos entraram hoje", e o
+   * número que estava sendo usado vinha do resumo financeiro — que seguia a
+   * regra de venda reconhecida (COMPLETED). Às 11h, com vinte
+   * pedidos na casa e três entregues, o painel dizia três.
+   *
+   * Cancelados ficam de fora: entraram e saíram, e contá-los faria o movimento
+   * do dia parecer maior do que a cozinha viu.
+   */
+  let total = 0;
+  for (const g of grouped) {
+    if (g.status !== "CANCELLED") total += g._count._all;
+  }
+
   return {
     received: counts.get("RECEIVED") ?? 0,
     preparing: counts.get("PREPARING") ?? 0,
     outForDelivery: counts.get("OUT_FOR_DELIVERY") ?? 0,
     completed: counts.get("COMPLETED") ?? 0,
+    total,
   };
 }
 
@@ -182,16 +136,98 @@ export async function getTopProducts(storeId: string, reference = new Date(), li
   }));
 }
 
+/**
+ * Quantos produtos do cardápio estão indisponíveis agora.
+ *
+ * MESMA REGRA DA VITRINE, do outro lado do balcão. `listMenuForStorefront`
+ * decide o `esgotado` de cada produto para o cliente; aqui o dono precisa do
+ * número. Manter as duas leituras iguais é o que impede o painel de dizer que
+ * está tudo bem enquanto o cardápio esconde três itens.
+ *
+ * `disponivel = quantityOnHand - quantityReserved`: o que outro cliente já
+ * separou não está à venda, mesmo ainda estando na prateleira. Produto sem
+ * vínculo com estoque nunca esgota — ausência de vínculo é "não controlo", não
+ * "acabou".
+ */
+async function contarProdutosEsgotados(storeId: string) {
+  const produtos = await prisma.product.findMany({
+    where: {
+      storeId,
+      deletedAt: null,
+      isActive: true,
+      inventoryItemId: { not: null },
+      inventoryItem: { isActive: true },
+    },
+    select: {
+      inventoryItem: { select: { quantityOnHand: true, quantityReserved: true } },
+    },
+  });
+
+  return produtos.filter((p) => {
+    if (!p.inventoryItem) return false;
+    const disponivel =
+      Number(p.inventoryItem.quantityOnHand) - Number(p.inventoryItem.quantityReserved);
+    return disponivel <= 0;
+  }).length;
+}
+
+/**
+ * Itens de estoque abaixo do limite mínimo.
+ *
+ * Mesma regra de `ProductionService.getLowStockItems`: item SEM limite definido
+ * fica de fora, em vez de ser comparado contra zero e virar alarme permanente
+ * para todo insumo que a loja nunca configurou.
+ */
+async function contarEstoqueBaixo(storeId: string) {
+  const itens = await prisma.inventoryItem.findMany({
+    where: { storeId, isActive: true, minimumThreshold: { not: null } },
+    select: { quantityOnHand: true, minimumThreshold: true },
+  });
+
+  return itens.filter((i) => Number(i.quantityOnHand) < Number(i.minimumThreshold)).length;
+}
+
 export async function getDashboardData(storeId: string, reference = new Date()) {
-  const [summary, byStatus, byHour, topProducts, settings] = await Promise.all([
-    getDashboardSummary(storeId, reference),
+  /*
+   * Tudo em paralelo, de propósito. O painel recarrega a cada 8 segundos; uma
+   * consulta serializada aqui vira latência que o dono sente a cada ciclo.
+   */
+  const [
+    byStatus,
+    byHour,
+    topProducts,
+    settings,
+    metricas,
+    esgotados,
+    estoqueBaixo,
+    recentes,
+  ] = await Promise.all([
     getOrdersByStatus(storeId, reference),
     getOrdersByHour(storeId, reference),
     getTopProducts(storeId, reference),
     prisma.storeSettings.findUnique({
       where: { storeId },
-      select: { acceptsDelivery: true },
+      select: {
+        acceptsDelivery: true,
+        /*
+         * O horário de HOJE, não a semana inteira: é o único de que o painel
+         * precisa para dizer se a casa está atendendo neste momento.
+         */
+        openingHours: {
+          where: { weekday: DIAS_DA_SEMANA[reference.getDay()] },
+          select: { isOpen: true, opensAt: true, closesAt: true },
+        },
+      },
     }),
+    /*
+     * `paidWaiting` já vem daqui com o recorte certo — pago E recebido — e sem
+     * seguir o corte do dia: pedido pago ontem e esquecido continua aparecendo,
+     * que é justamente quando mais importa.
+     */
+    getKanbanMetrics(storeId),
+    contarProdutosEsgotados(storeId),
+    contarEstoqueBaixo(storeId),
+    pedidosRecentes(storeId, 5),
   ]);
 
   /*
@@ -204,5 +240,26 @@ export async function getDashboardData(storeId: string, reference = new Date()) 
    */
   const mostrarEntrega = (settings?.acceptsDelivery ?? true) || byStatus.outForDelivery > 0;
 
-  return { summary, byStatus, byHour, topProducts, mostrarEntrega };
+  return {
+    byStatus,
+    byHour,
+    topProducts,
+    mostrarEntrega,
+    /*
+     * O bloco que o painel consome. NADA AQUI É DINHEIRO, e nada em dinheiro
+     * sai mais desta função: a tela fica aberta o dia todo, muitas vezes com o
+     * cliente do outro lado do balcão. Faturamento, ticket médio e margem
+     * vivem em Relatórios, que é a tela que se abre de propósito.
+     */
+    operacao: {
+      pedidosHoje: byStatus.total,
+      emPreparo: byStatus.preparing,
+      aguardandoRecebimento: metricas.paidWaiting,
+      minutosAguardando: metricas.paidWaitingMinutes,
+      produtosEsgotados: esgotados,
+      estoqueBaixo,
+      abertoAgora: estaAbertoAgora(settings?.openingHours[0] ?? null, reference),
+    },
+    pedidosRecentes: recentes,
+  };
 }

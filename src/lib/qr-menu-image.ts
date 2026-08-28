@@ -10,19 +10,41 @@
  *  256 px esticado num adesivo de mesa sai serrilhado. */
 export const LADO_QR = 1024;
 
-/** Espaço lateral reservado para a legenda não encostar na borda do papel. */
-const MARGEM_LATERAL = 72;
+/*
+ * As medidas da legenda são PROPORCIONAIS à largura do QR, e não absolutas.
+ *
+ * Elas nasceram em pixels fixos porque só havia um tamanho de QR: os 1024 px do
+ * cardápio. Quando o mesmo compositor passou a servir o QR de mesa, de 300 px,
+ * as margens de 72 px de cada lado passaram a comer 48% da largura, e "Mesa 1"
+ * — duas palavras que jamais deveriam se separar — saía quebrado em duas
+ * linhas, porque cabiam duas linhas e não cabia uma.
+ *
+ * As frações abaixo são as medidas originais divididas por 1024, então num QR
+ * de 1024 px cada uma volta ao inteiro exato de antes: a arte do cardápio não
+ * muda um pixel. Em qualquer outra largura, agora escalam junto.
+ */
+const RAZAO = {
+  /** Espaço lateral reservado para a legenda não encostar na borda do papel. */
+  margemLateral: 72 / 1024,
+  fonteMax: 60 / 1024,
+  fonteMin: 30 / 1024,
+  /** Respiro entre o QR e a frase, e sobra embaixo. Não derivados da fonte:
+   *  assim a arte não encolhe junto quando o nome é comprido. */
+  respiro: 28 / 1024,
+  rodape: 44 / 1024,
+} as const;
 
-const FONTE_MAX = 60;
-const FONTE_MIN = 30;
+const medidas = (largura: number) => ({
+  margemLateral: Math.round(largura * RAZAO.margemLateral),
+  fonteMax: Math.round(largura * RAZAO.fonteMax),
+  fonteMin: Math.round(largura * RAZAO.fonteMin),
+  respiro: Math.round(largura * RAZAO.respiro),
+  rodape: Math.round(largura * RAZAO.rodape),
+});
 
 /** Até onde vale quebrar a frase antes de aceitar letra menor. */
 const MAX_LINHAS = 3;
 
-/** Respiro entre o QR e a frase, e sobra embaixo. Fixos, não derivados da
- *  fonte: assim a arte não encolhe junto quando o nome é comprido. */
-const RESPIRO = 28;
-const RODAPE = 44;
 const FAMILIA = 'Arial, "Segoe UI", Helvetica, sans-serif';
 
 export const legendaDoCardapio = (storeName: string) => `Acesse o Cardápio do ${storeName}`;
@@ -94,9 +116,10 @@ function quebrar(ctx: CanvasRenderingContext2D, texto: string, disponivel: numbe
  */
 export function ajustarLegenda(texto: string, largura: number) {
   const { ctx } = novoContexto();
-  const disponivel = largura - MARGEM_LATERAL * 2;
+  const { margemLateral, fonteMax, fonteMin } = medidas(largura);
+  const disponivel = largura - margemLateral * 2;
 
-  for (let tamanho = FONTE_MAX; tamanho >= FONTE_MIN; tamanho -= 2) {
+  for (let tamanho = fonteMax; tamanho >= fonteMin; tamanho -= 2) {
     ctx.font = `bold ${tamanho}px ${FAMILIA}`;
     const linhas = quebrar(ctx, texto, disponivel);
     // Uma palavra sozinha pode estourar a largura por si só; nesse caso a
@@ -105,8 +128,8 @@ export function ajustarLegenda(texto: string, largura: number) {
     if (linhas.length <= MAX_LINHAS && todasCabem) return { tamanho, linhas };
   }
 
-  ctx.font = `bold ${FONTE_MIN}px ${FAMILIA}`;
-  return { tamanho: FONTE_MIN, linhas: quebrar(ctx, texto, disponivel) };
+  ctx.font = `bold ${fonteMin}px ${FAMILIA}`;
+  return { tamanho: fonteMin, linhas: quebrar(ctx, texto, disponivel) };
 }
 
 /** Monta a imagem final: o QR em cima, a chamada embaixo, fundo branco. */
@@ -114,12 +137,13 @@ export function comLegenda(qr: HTMLImageElement | HTMLCanvasElement, texto: stri
   const larguraQr = qr.width;
   const alturaQr = qr.height;
   const { tamanho, linhas } = ajustarLegenda(texto, larguraQr);
+  const { respiro, rodape } = medidas(larguraQr);
 
   const alturaLinha = Math.round(tamanho * 1.25);
 
   const { canvas, ctx } = novoContexto(
     larguraQr,
-    alturaQr + RESPIRO + alturaLinha * linhas.length + RODAPE,
+    alturaQr + respiro + alturaLinha * linhas.length + rodape,
   );
 
   // Fundo branco explícito: canvas nasce transparente, e transparência virando
@@ -133,7 +157,7 @@ export function comLegenda(qr: HTMLImageElement | HTMLCanvasElement, texto: stri
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   linhas.forEach((linha, i) => {
-    ctx.fillText(linha, canvas.width / 2, alturaQr + RESPIRO + alturaLinha * i);
+    ctx.fillText(linha, canvas.width / 2, alturaQr + respiro + alturaLinha * i);
   });
 
   return canvas.toDataURL("image/png");

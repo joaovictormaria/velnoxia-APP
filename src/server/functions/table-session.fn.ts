@@ -2,102 +2,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getStoreBySlug } from "../repositories/store-repository";
+import { permitido } from "../security/rate-limit";
 import {
-  getOrCreateOpenTableSession,
   validateTableSessionPin,
   authorizeDeviceForSession,
 } from "../services/table-session-service";
 import { orchestrateTableSession } from "../services/table-session-orchestrator";
-
-const createTableSessionSchema = z.object({
-  storeSlug: z.string().min(1),
-  tableId: z.string().uuid(),
-  tableNumber: z.number().int().min(1),
-});
-
-export const createTableSessionFn = createServerFn({ method: "POST" })
-  .validator(createTableSessionSchema)
-  .handler(async ({ data }) => {
-    const { prisma } = await import("../db/client");
-    const store = await getStoreBySlug(data.storeSlug);
-    if (!store) {
-      return { ok: false as const, error: "Loja nÃ£o encontrada" };
-    }
-
-    // Limpar sessions expiradas da loja
-    await prisma.tableSession.deleteMany({
-      where: {
-        storeId: store.id,
-        expiresAt: { lt: new Date() },
-      },
-    });
-
-    // Criar nova sessÃ£o (24 horas de validade)
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24);
-
-    try {
-      const session = await prisma.tableSession.create({
-        data: {
-          storeId: store.id,
-          tableId: data.tableId,
-          tableNumber: data.tableNumber,
-          expiresAt,
-        },
-      });
-
-      return {
-        ok: true as const,
-        sessionToken: session.id,
-        tableNumber: session.tableNumber,
-      };
-    } catch (error) {
-      return { ok: false as const, error: "Erro ao criar sessÃ£o da mesa" };
-    }
-  });
-
-
-/**
- * Get or create an open table session.
- *
- * Public server function called from storefront.
- *
- * Behavior:
- * - If session OPEN exists for this table: return it
- * - If no session exists: create new, generate PIN, return it
- *
- * Concurrency safe: unique constraint ensures only 1 OPEN session per table
- */
-const getOrCreateSessionSchema = z.object({
-  storeSlug: z.string().min(1),
-  tableId: z.string().uuid(),
-});
-
-export const getOrCreateTableSessionFn = createServerFn({ method: "POST" })
-  .validator(getOrCreateSessionSchema)
-  .handler(async ({ data }) => {
-    try {
-      const store = await getStoreBySlug(data.storeSlug);
-      if (!store) {
-        return { ok: false as const, error: "Loja nÃ£o encontrada" };
-      }
-
-      const session = await getOrCreateOpenTableSession(store.id, data.tableId);
-
-      return {
-        ok: true as const,
-        sessionId: session.id,
-        tableId: session.tableId,
-        status: session.status,
-        openedAt: session.openedAt,
-        expiresAt: session.expiresAt,
-        // NEVER expose PIN to frontend in response
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Erro desconhecido";
-      return { ok: false as const, error: msg };
-    }
-  });
 
 /**
  * Validate a PIN for a table session.
@@ -117,6 +27,15 @@ export const validateTableSessionPinFn = createServerFn({ method: "POST" })
   .validator(validateSessionPinSchema)
   .handler(async ({ data }) => {
     try {
+      /*
+       * Segundo teto, por ORIGEM. `validateTableSessionPin` já limita por
+       * sessão+IP; este limita a própria origem, para uma máquina não varrer
+       * muitas sessões diferentes gastando 5 tentativas em cada.
+       */
+      if (!permitido("mesa-pin", { max: 10, janelaMs: 60_000 })) {
+        return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+      }
+
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
         return { ok: false as const, error: "Loja nÃ£o encontrada" };
@@ -134,72 +53,6 @@ export const validateTableSessionPinFn = createServerFn({ method: "POST" })
       }
 
       return result as { ok: false; error: string };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Erro desconhecido";
-      return { ok: false as const, error: msg };
-    }
-  });
-
-/**
- * Authorize the first device for a table session.
- *
- * Called immediately after session creation.
- * First device enters automatically without needing PIN.
- */
-const authorizeFirstDeviceSchema = z.object({
-  storeSlug: z.string().min(1),
-  sessionId: z.string().cuid(),
-});
-
-export const authorizeFirstDeviceFn = createServerFn({ method: "POST" })
-  .validator(authorizeFirstDeviceSchema)
-  .handler(async ({ data }) => {
-    try {
-      const store = await getStoreBySlug(data.storeSlug);
-      if (!store) {
-        return { ok: false as const, error: "Loja nÃ£o encontrada" };
-      }
-
-      const result = await authorizeDeviceForSession(store.id, data.sessionId, true);
-
-      return {
-        ok: true as const,
-        deviceId: result.id,
-        deviceToken: result.deviceToken,
-      };
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "Erro desconhecido";
-      return { ok: false as const, error: msg };
-    }
-  });
-
-/**
- * Authorize an additional device for a table session.
- *
- * Called AFTER PIN validation (PIN must be correct before this is called).
- * Second and subsequent devices require PIN entry first.
- */
-const authorizeDeviceSchema = z.object({
-  storeSlug: z.string().min(1),
-  sessionId: z.string().cuid(),
-});
-
-export const authorizeDeviceForSessionFn = createServerFn({ method: "POST" })
-  .validator(authorizeDeviceSchema)
-  .handler(async ({ data }) => {
-    try {
-      const store = await getStoreBySlug(data.storeSlug);
-      if (!store) {
-        return { ok: false as const, error: "Loja nÃ£o encontrada" };
-      }
-
-      const result = await authorizeDeviceForSession(store.id, data.sessionId, false);
-
-      return {
-        ok: true as const,
-        deviceId: result.id,
-        deviceToken: result.deviceToken,
-      };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
       return { ok: false as const, error: msg };
@@ -226,6 +79,16 @@ export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
   .validator(orchestrateTableSessionSchema)
   .handler(async ({ data }) => {
     try {
+      /*
+       * Abrir sessão é a operação mais cara desta tela e a que mexe no estado
+       * do salão — encerra a sessão ociosa e gera PIN novo. Um cliente real
+       * escaneia uma vez; um script varrendo mesas bate no teto na primeira
+       * rajada.
+       */
+      if (!permitido("mesa-sessao", { max: 10, janelaMs: 60_000 })) {
+        return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+      }
+
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
         return { ok: false as const, error: "Loja nÃ£o encontrada" };
@@ -260,6 +123,10 @@ export const getSessionPinHintFn = createServerFn({ method: "POST" })
   .validator(getSessionPinHintSchema)
   .handler(async ({ data }) => {
     try {
+      if (!permitido("mesa-pin-hint", { max: 20, janelaMs: 60_000 })) {
+        return { ok: false as const, error: "Muitas tentativas. Aguarde um instante." };
+      }
+
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
         return { ok: false as const, error: "Loja não encontrada" };
@@ -304,4 +171,3 @@ export const getSessionPinHintFn = createServerFn({ method: "POST" })
       return { ok: false as const, error: msg };
     }
   });
-

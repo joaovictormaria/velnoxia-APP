@@ -22,7 +22,7 @@ export async function orchestrateTableSession(
   pin?: string; // PIN shown to first device ONLY (from newly created session)
 }> {
   // Step 1: Get or create session (returns PIN if newly created)
-  const sessionResult = await getOrCreateOpenTableSession(storeId, tableId);
+  let sessionResult = await getOrCreateOpenTableSession(storeId, tableId);
 
   // Step 2: Verificar se sessão tem pedidos
   const sessionOrders = await prisma.order.count({
@@ -32,19 +32,37 @@ export async function orchestrateTableSession(
     },
   });
 
-  // Se sessão OPEN mas SEM PEDIDOS = tratar como primeira pessoa
   const hasActiveOrders = sessionOrders > 0;
 
-  // Step 3: Check if this is the first device
-  let isFirstDevice = await checkExistingDevices(sessionResult.id) === 0;
-
-  // Se não há pedidos ativos, sempre é primeira pessoa (nova mesa)
-  if (!hasActiveOrders) {
-    isFirstDevice = true;
+  /*
+   * V3 — "SEM PEDIDOS" NÃO É PROVA DE PRESENÇA.
+   *
+   * Aqui havia `if (!hasActiveOrders) isFirstDevice = true`, e era um buraco de
+   * autorização: o `tableId` vem impresso no QR, é permanente e público, então
+   * qualquer um que o conhecesse chamava este fluxo de fora e era tratado como
+   * primeira pessoa — recebendo deviceToken sem nunca ter estado na mesa.
+   *
+   * A regra existia por um motivo real, porém: a sessão dura 24h, então a do
+   * almoço ainda está OPEN no jantar, e o cliente novo virava "segundo
+   * aparelho", preso atrás de um PIN que ninguém lhe deu.
+   *
+   * A troca é encerrar a sessão parada e deixar o fluxo normal criar outra, em
+   * vez de distribuir autorização. O gatilho continua sendo "nenhum pedido
+   * ativo", mas agora ele decide o CICLO DE VIDA da sessão — não quem entra.
+   */
+  const aparelhosNaSessao = await checkExistingDevices(sessionResult.id);
+  if (!hasActiveOrders && aparelhosNaSessao > 0) {
     console.log(
-      `[TABLE SESSION] Mesa tem sessão OPEN mas SEM PEDIDOS - tratando como PRIMEIRA PESSOA`
+      `[TABLE SESSION] Sessão ${sessionResult.id} ociosa (sem pedidos) - encerrando e abrindo nova`,
     );
+    await prisma.tableSession.update({
+      where: { id: sessionResult.id },
+      data: { status: "CLOSED", closedAt: new Date() },
+    });
+    sessionResult = await getOrCreateOpenTableSession(storeId, tableId);
   }
+
+  const isFirstDevice = (await checkExistingDevices(sessionResult.id)) === 0;
 
   // Step 3: If first device, mark table as OCCUPIED
   if (isFirstDevice) {

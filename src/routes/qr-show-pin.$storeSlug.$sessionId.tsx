@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { Share2, ChevronRight } from "lucide-react";
 import { getSessionPinHintFn } from "@/server/functions/table-session.fn";
+import { atualizarContextoDeMesa, lerContextoDeMesa } from "@/lib/contexto-de-mesa";
 
 export const Route = createFileRoute("/qr-show-pin/$storeSlug/$sessionId")({
   component: QRShowPIN,
@@ -19,16 +20,14 @@ function QRShowPIN() {
   const [pinMessage, setPinMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedTableId = localStorage.getItem("tableId");
-    const storedTableNumber = localStorage.getItem("tableNumber");
-    const storedPin = localStorage.getItem("pin");
+    const contexto = lerContextoDeMesa(storeSlug);
 
-    setTableId(storedTableId);
-    setTableNumber(storedTableNumber);
+    setTableId(contexto?.tableId ?? null);
+    setTableNumber(contexto?.tableNumber != null ? String(contexto.tableNumber) : null);
 
-    if (storedPin) {
-      // PIN foi armazenado na localStorage pela rota QR
-      setPin(storedPin);
+    if (contexto?.pin) {
+      // O PIN foi guardado no contexto pela rota do QR
+      setPin(contexto.pin);
     } else if (process.env.NODE_ENV !== "production") {
       // Em desenvolvimento: gerar PIN para mostrar se não houver
       // (útil quando sessão já existe de testes anteriores)
@@ -36,7 +35,7 @@ function QRShowPIN() {
         .toString()
         .padStart(4, "0");
       setPin(demoPin);
-      localStorage.setItem("pin", demoPin);
+      atualizarContextoDeMesa(storeSlug, { pin: demoPin });
     }
 
     setLoading(false);

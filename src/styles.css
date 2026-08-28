@@ -603,31 +603,31 @@
 /* ── Pedido esperando na fila ──────────────────────────── */
 
 /*
- * O card de "Recebidos" pulsa enquanto houver pedido parado nele.
+ * A célula de "Recebidos" pulsa enquanto houver pedido parado nela.
  *
- * Pulsa a borda e o fundo, não a opacidade do card inteiro: piscar o número
- * junto o deixa ilegível justamente quando ele importa, e quem está no meio do
- * movimento lê o card de relance, de longe.
+ * Pulsa o FUNDO, não a opacidade da célula inteira: piscar o número junto o
+ * deixa ilegível justamente quando ele importa, e quem está no meio do
+ * movimento lê a barra de relance, de longe.
  *
  * Só para quando o pedido sai de Recebidos — é um alarme, não um enfeite, e um
  * alarme que se cansa antes de ser atendido não serve para nada.
+ *
+ * A borda e o halo que existiam aqui saíram junto com os cartões soltos: as
+ * células da barra não têm borda própria, e um `box-shadow` externo seria
+ * cortado pelo `overflow-hidden` que desenha as divisórias.
  */
-@keyframes pedido-esperando {
+@keyframes celula-alerta {
   0%,
   100% {
     background-color: var(--color-red-50);
-    border-color: var(--color-red-100);
-    box-shadow: 0 0 0 0 rgb(225 29 46 / 0);
   }
   50% {
     background-color: rgb(254 226 226);
-    border-color: rgb(225 29 46 / 0.55);
-    box-shadow: 0 0 0 6px rgb(225 29 46 / 0.12);
   }
 }
 
-@utility animate-pedido-esperando {
-  animation: pedido-esperando 1.4s ease-in-out infinite;
+@utility animate-celula-alerta {
+  animation: celula-alerta 1.4s ease-in-out infinite;
 }
 
 /*
@@ -635,9 +635,186 @@
  * Em vez de tirar o aviso, ele deixa de piscar e fica aceso.
  */
 @media (prefers-reduced-motion: reduce) {
-  .animate-pedido-esperando {
+  .animate-celula-alerta {
     animation: none;
     background-color: rgb(254 226 226);
-    border-color: rgb(225 29 46 / 0.55);
+  }
+}
+
+/*
+ * A entrada dos blocos do painel: sobem 8px enquanto aparecem.
+ *
+ * Roda UMA VEZ, na montagem. A recarga de 8 segundos não remonta nada — os
+ * dados anteriores ficam na tela — então a tela não se reanima sozinha a cada
+ * ciclo, que é a diferença entre uma entrada e um tique nervoso.
+ *
+ * Curta de propósito. Passando de ~250ms, a animação deixa de ser percebida
+ * como a chegada do conteúdo e passa a ser percebida como lentidão.
+ */
+@keyframes entrada-suave {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-entrada-suave {
+  animation: entrada-suave 240ms ease-out both;
+}
+
+/*
+ * O pedido que acabou de chegar: uma barra no canto esquerdo da linha, que
+ * acende e some sozinha.
+ *
+ * Some porque o recado tem prazo. Ele diz "isto acabou de acontecer" — mantê-lo
+ * aceso faria a linha parecer permanentemente mais importante que as outras, e
+ * na recarga seguinte todas já teriam sido novas alguma vez.
+ */
+@keyframes pedido-chegou {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.3);
+  }
+  15% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-pedido-chegou {
+  animation: pedido-chegou 1.4s ease-out forwards;
+}
+
+/*
+ * O alerta que aparece no painel lateral não pode simplesmente estar lá: quem
+ * estava olhando outro canto da tela perderia a chegada dele.
+ */
+@keyframes alerta-surgindo {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-alerta-surgindo {
+  animation: alerta-surgindo 260ms ease-out both;
+}
+
+/* O ponto verde do "Aberto agora" respira devagar — é sinal de vida, não
+   alarme, então o contraste é mínimo e o ciclo, longo. */
+@keyframes brilho-suave {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@utility animate-brilho-suave {
+  animation: brilho-suave 2.4s ease-in-out infinite;
+}
+
+/*
+ * O brilho que atravessa os blocos do esqueleto.
+ *
+ * Preferido ao `animate-pulse`: o pulso faz o bloco inteiro respirar, o que a
+ * esta altura da tela lê como conteúdo pronto piscando. O brilho tem direção, e
+ * direção diz "carregando", não "pronto".
+ */
+@keyframes brilho-esqueleto {
+  from {
+    background-position: -160% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
+}
+
+@utility skeleton-brilho {
+  background-image: linear-gradient(
+    90deg,
+    rgb(0 0 0 / 0) 20%,
+    rgb(255 255 255 / 0.75) 50%,
+    rgb(0 0 0 / 0) 80%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: brilho-esqueleto 1.5s ease-in-out infinite;
+}
+
+/*
+ * Sem movimento, tudo aparece pronto — e aparece INTEIRO. O `both` das
+ * animações de entrada mantém o estado inicial durante o `animation-delay`,
+ * então apagar só a animação deixaria os blocos invisíveis; a opacidade
+ * precisa voltar junto.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-entrada-suave,
+  .animate-alerta-surgindo,
+  .animate-pedido-chegou,
+  .skeleton-brilho {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-brilho-suave {
+    animation: none;
+  }
+}
+
+/*
+ * As linhas dos "Últimos pedidos" entram de cima para baixo.
+ *
+ * A tela recarrega sozinha a cada 8 segundos e a lista se remonta. Sem a
+ * entrada escalonada, um pedido novo aparece no topo empurrando os outros para
+ * baixo de uma vez, e o que se percebe é a lista inteira pulando — não o pedido
+ * que chegou. Com ela, o movimento tem direção, e a direção é a de leitura.
+ *
+ * Deslocamento pequeno e curto de propósito: são no máximo 5 linhas, e a última
+ * termina em menos de 400ms. Uma entrada mais longa viraria espera.
+ */
+@keyframes linha-entrando {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-linha-entrando {
+  animation: linha-entrando 260ms ease-out both;
+}
+
+/*
+ * Sem movimento, a lista aparece pronta — e aparece INTEIRA. O `both` do
+ * atalho acima mantém o estado inicial durante o `animation-delay`, então
+ * apagar só a animação deixaria as linhas invisíveis; a opacidade precisa
+ * voltar junto.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-linha-entrando {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

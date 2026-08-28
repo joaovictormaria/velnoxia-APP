@@ -16,6 +16,26 @@ import {
 } from "@/lib/embalagem-de-compra";
 import { validarConteudo } from "@/lib/embalagem-vs-conteudo";
 
+/**
+ * Faltou saldo para reservar.
+ *
+ * Existe como tipo, e não como Error solto, porque o checkout precisa
+ * distinguir "o cliente pediu mais do que existe" de "alguma coisa quebrou".
+ * O primeiro é resposta; o segundo é 500. Sem essa distinção, faltar um bolo
+ * derrubava a tela com "Não foi possível enviar o pedido" — e o cliente não
+ * tinha como saber que bastava pedir menos.
+ */
+export class EstoqueInsuficienteError extends Error {
+  constructor(
+    readonly nomeDoItem: string,
+    readonly disponivel: number,
+    readonly solicitado: number,
+  ) {
+    super(`Insufficient quantity. Available: ${disponivel}, Requested: ${solicitado}`);
+    this.name = "EstoqueInsuficienteError";
+  }
+}
+
 export class InventoryService {
   /**
    * O conteúdo declarado faz sentido para esta unidade de estoque?
@@ -519,7 +539,20 @@ export class InventoryService {
            * mesmo tempo e os dez passavam. Um teste de concorrência pegou —
            * saldo para três, dez reservas, dez aceitas.
            */
-          if (delta.reserved > 0) {
+          /*
+           * ...EXCETO quando o chamador diz que a falta não recusa.
+           *
+           * O pedido do cliente passa por aqui com `permitirSaldoNegativo`:
+           * quem compra não conhece nem responde pelo estoque interno da casa,
+           * e recusar a venda por causa dele expunha controle interno e perdia
+           * o pedido. A reserva é gravada no vermelho, e a falta vira aviso
+           * para o salão — que é quem tem como repor ou cancelar.
+           *
+           * O teto continua valendo para todo o resto: produção e ajuste
+           * manual são operações internas, e ali estourar o saldo é engano de
+           * quem digitou.
+           */
+          if (delta.reserved > 0 && !permitirNegativoExplicito) {
             const disponivel =
               Number(travado.quantityOnHand) - Number(travado.quantityReserved);
             if (delta.reserved > disponivel) {
@@ -740,6 +773,20 @@ export class InventoryService {
      * o pedido inteiro.
      */
     tx?: Prisma.TransactionClient,
+    /**
+     * ESTOQUE NÃO AUTORIZA VENDA.
+     *
+     * Quando o pedido do cliente chama por aqui, faltar saldo não pode
+     * recusar a compra — quem compra não conhece nem responde pelo estoque
+     * interno da casa. A reserva é gravada mesmo assim, o disponível fica
+     * negativo, e a falta vira problema do salão: aviso no pedido e o item
+     * aparecendo como esgotado no painel.
+     *
+     * O padrão continua recusando, porque os outros chamadores — produção,
+     * ajuste manual — são operações internas onde estourar o saldo é erro de
+     * quem digitou, e avisar na hora é o certo.
+     */
+    opcoes?: { permitirIndisponivel?: boolean },
   ) {
     /*
      * A conferência de disponível AQUI é atalho para dar mensagem cedo. Quem
@@ -757,16 +804,24 @@ export class InventoryService {
     }
 
     const quantityAvailable = Number(item.quantityOnHand) - Number(item.quantityReserved);
-    if (quantityAvailable < quantity) {
-      throw new Error(
-        `Insufficient quantity. Available: ${quantityAvailable}, Requested: ${quantity}`
-      );
+    const faltou = quantityAvailable < quantity;
+    if (faltou && !opcoes?.permitirIndisponivel) {
+      /*
+       * ERRO TIPADO, com o nome do item e os números.
+       *
+       * Falta de estoque é decisão de negócio, não defeito — quem está no
+       * checkout precisa saber QUAL item e QUANTO ainda tem. A mensagem em
+       * inglês continua idêntica de propósito: ela é o contrato desta camada e
+       * há testes sobre ela. Quem traduz para o cliente é a fronteira do
+       * pedido, que é onde existe alguém para ler.
+       */
+      throw new EstoqueInsuficienteError(item.name, quantityAvailable, quantity);
     }
 
     // Create RESERVATION movement (flag)
     const reservationKey = `${storeId}#ORDER#${orderId}#RESERVATION#${itemId}#0`;
 
-    return this.recordMovement(storeId, {
+    const movimento = await this.recordMovement(storeId, {
       idempotencyKey: reservationKey,
       itemId,
       type: "RESERVATION",
@@ -775,8 +830,13 @@ export class InventoryService {
       reference: orderId,
       referenceType: "ORDER",
       authorType: "SYSTEM",
+      // Leva a decisão adiante: quem garante é a checagem sob o lock.
+      permitirSaldoNegativo: opcoes?.permitirIndisponivel === true,
       tx,
     } as any);
+
+    // Quem chamou precisa saber que reservou no vermelho, para avisar o salão.
+    return { movimento, faltou, disponivel: quantityAvailable };
   }
 
   /**

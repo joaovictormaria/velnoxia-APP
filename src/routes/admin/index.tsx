@@ -1,12 +1,13 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { contagemNoAr } from "@/components/admin/layout/ContagemDoTeste";
-import { useQuery } from "@tanstack/react-query";
-import { CalendarDays, Clock, ExternalLink, ShoppingBag } from "lucide-react";
-import { KpiCard } from "@/components/admin/dashboard/KpiCard";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { Clock, ExternalLink } from "lucide-react";
+import { BarraDeOperacao } from "@/components/admin/dashboard/BarraDeOperacao";
 import { semProtocolo, urlDoCardapio, useBaseUrlPublica } from "@/lib/public-url";
 import { MenuQrCodeButton } from "@/components/admin/dashboard/MenuQrCodeButton";
 import { OrdersByHourChart } from "@/components/admin/dashboard/OrdersByHourChart";
-import { OrdersByStatusCard } from "@/components/admin/dashboard/OrdersByStatusCard";
+import { PainelDeStatus } from "@/components/admin/dashboard/PainelDeStatus";
+import { PedidosRecentes } from "@/components/admin/dashboard/PedidosRecentes";
 import { TopProductsList } from "@/components/admin/dashboard/TopProductsList";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
 import { getDashboardFn } from "@/server/functions/dashboard.fn";
@@ -15,7 +16,11 @@ export const Route = createFileRoute("/admin/")({
   component: DashboardPage,
 });
 
-const todayLabel = new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long" });
+const DATA_LONGA = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
 
 function DashboardPage() {
   const { admin } = Route.useRouteContext();
@@ -35,12 +40,24 @@ function DashboardPage() {
     /*
      * 8 segundos, o mesmo da tela de Pedidos.
      *
-     * Eram 30, o que servia para um resumo mas não para um alarme: o card de
+     * Eram 30, o que servia para um resumo mas não para um alarme: a célula de
      * "Recebidos" pulsa quando há pedido esperando, e com meio minuto de atraso
      * o pedido chega, o cliente espera, e a tela continua calma. Um aviso que
      * demora a aparecer ensina a não confiar nele.
      */
     refetchInterval: 8_000,
+    /*
+     * A TELA NÃO VOLTA AO ESQUELETO A CADA 8 SEGUNDOS.
+     *
+     * Sem isto, cada ciclo de recarga desmonta o painel e o remonta — e como
+     * quase sempre nada mudou, o que se vê é a tela piscando sozinha. Com os
+     * dados anteriores no lugar, só os números que de fato mudaram se movem,
+     * que é exatamente o que o painel deveria fazer notar.
+     *
+     * É também o que mantém as animações de entrada acontecendo UMA vez: nada
+     * é remontado, então nada se reanima.
+     */
+    placeholderData: keepPreviousData,
   });
 
   return (
@@ -70,34 +87,42 @@ function DashboardPage() {
         </div>
       )}
 
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        {/* Largura inteira para o sino alcançar a borda direita da tela. Solto
-            na fileira de botões ele era o último item e sobrava sozinho numa
-            linha quando a barra quebrava no celular. */}
-        <div className="w-full min-w-0">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          {/* O sino fica na linha do título para alcançar a borda direita da
+              tela. Solto na fileira de botões, sobrava sozinho numa linha
+              quando a barra quebrava no celular. */}
           <div className="flex items-center justify-between gap-3">
-            <h1 className="min-w-0 text-3xl font-bold text-neutral-900">
-              Olá, {admin?.name}! 👋
+            <h1 className="min-w-0 truncate text-2xl font-bold text-neutral-900 sm:text-3xl">
+              {saudacao()}, {admin?.name}! 👋
             </h1>
+            {/* UMA instância só. O sino tem `useQuery` própria com recarga de
+                15s; montá-lo duas vezes (uma por breakpoint) criaria dois
+                observers para o mesmo sino. Fica na linha do título, e não na
+                fileira de botões, porque ali ele sobrava sozinho numa segunda
+                linha quando a barra quebrava no celular. */}
             <div className="shrink-0">
               <NotificationBell />
             </div>
           </div>
           <p className="mt-1 text-sm text-neutral-600">
-            Aqui está o resumo do seu negócio hoje.
+            Veja o que está acontecendo hoje.{" "}
+            <span className="text-neutral-400">· {DATA_LONGA.format(new Date())}</span>
           </p>
           {/* The address is what the owner sends to customers, so it belongs
-              where they see it every day — not buried in the settings page. */}
+              where they see it every day — not buried in the settings page.
+              Discreto de propósito: é referência, não ação. */}
           {admin && basePublica && (
-            <p className="mt-2 text-sm text-neutral-500">
-              Seu cardápio:{' '}
-              <span className="font-mono text-neutral-700">
+            <p className="mt-2 text-xs text-neutral-500">
+              Seu cardápio:{" "}
+              <span className="font-mono text-neutral-600">
                 {semProtocolo(urlDoCardapio(basePublica, admin.store.slug))}
               </span>
             </p>
           )}
         </div>
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
+
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Opens in a new tab: this is the public site, and the owner is
               usually mid-task in the panel — replacing it loses that place. */}
           {admin && (
@@ -105,7 +130,7 @@ function DashboardPage() {
               href={`/${admin.store.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a]"
+              className="flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:bg-[#c4172a] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E11D2E] motion-reduce:transition-none"
             >
               <ExternalLink className="size-4" />
               Ver meu cardápio
@@ -116,39 +141,52 @@ function DashboardPage() {
           {admin && (
             <MenuQrCodeButton slug={admin.store.slug} storeName={admin.store.name} />
           )}
-          <div className="hidden items-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm text-neutral-700 sm:flex">
-            <CalendarDays className="size-4 text-neutral-500" />
-            Hoje, {todayLabel.format(new Date())}
-          </div>
         </div>
       </header>
 
       {isPending || !data ? (
-        <p className="text-sm text-neutral-500">Carregando...</p>
+        <Esqueleto />
       ) : (
         <>
-          {/* A fila de trabalho primeiro: é o que se olha no meio do movimento,
-              e a única coisa aqui que muda de minuto em minuto. */}
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-neutral-900">Pedidos por status</h2>
-            <OrdersByStatusCard counts={data.byStatus} mostrarEntrega={data.mostrarEntrega} />
-          </section>
+          {/*
+           * A barra de vitais primeiro, em qualquer largura: é o que se olha no
+           * meio do movimento, e a única coisa aqui que muda de minuto a minuto.
+           *
+           * NENHUM VALOR EM DINHEIRO EM NENHUM BLOCO DESTA TELA. Faturamento,
+           * ticket médio e margem vivem em Relatórios, que é a tela que se abre
+           * de propósito quando se quer ver dinheiro. O painel fica aberto o dia
+           * todo, muitas vezes com o cliente do outro lado do balcão.
+           */}
+          <BarraDeOperacao
+            pedidosHoje={data.operacao.pedidosHoje}
+            recebidos={data.byStatus.received}
+            emPreparo={data.operacao.emPreparo}
+            esgotados={data.operacao.produtosEsgotados}
+          />
 
-          {/* Nenhum valor em dinheiro: faturamento e ticket médio vivem só em
-              Relatórios, que é a tela que se abre de propósito quando se quer
-              ver dinheiro. O painel fica aberto o dia todo, muitas vezes com o
-              cliente do outro lado do balcão. */}
-          <div className="grid grid-cols-1 gap-4">
-            <KpiCard
-              label="Pedidos"
-              value={String(data.summary.orders.value)}
-              change={data.summary.orders.change}
-              icon={ShoppingBag}
-              accent="#E11D2E"
-            />
+          {/*
+           * A ORDEM DO DOM É A ORDEM DO CELULAR, e ela segue a prioridade
+           * operacional: o que precisa de atenção vem antes da lista de
+           * chegada. No desktop a grade recoloca os dois lado a lado, sem
+           * duplicar marcação e sem inverter a ordem de foco do teclado.
+           */}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="lg:col-start-3 lg:row-start-1">
+              <PainelDeStatus
+                abertoAgora={data.operacao.abertoAgora}
+                aguardandoRecebimento={data.operacao.aguardandoRecebimento}
+                minutosAguardando={data.operacao.minutosAguardando}
+                estoqueBaixo={data.operacao.estoqueBaixo}
+              />
+            </div>
+            <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1">
+              <PedidosRecentes pedidos={data.pedidosRecentes} />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* O gráfico por último: é leitura de tendência, não de operação —
+              ninguém precisa dele para saber o que fazer nos próximos minutos. */}
+          <div className="grid gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               <OrdersByHourChart data={data.byHour} />
             </div>
@@ -158,6 +196,77 @@ function DashboardPage() {
       )}
     </div>
   );
+}
+
+/** Bom dia até meio-dia, boa tarde até as 18h, boa noite depois disso. */
+function saudacao() {
+  const hora = new Date().getHours();
+  if (hora < 12) return "Bom dia";
+  if (hora < 18) return "Boa tarde";
+  return "Boa noite";
+}
+
+/**
+ * O desenho da tela enquanto os dados não chegaram.
+ *
+ * Blocos na forma exata de cada peça, e não um "Carregando..." solto: o layout
+ * não salta quando os números entram, e quem já conhece o painel começa a se
+ * localizar antes de haver o que ler. Aparece uma vez só, na primeira carga —
+ * as recargas de 8 segundos mantêm os dados anteriores na tela.
+ */
+function Esqueleto() {
+  return (
+    <div className="space-y-6" aria-hidden>
+      {/* A barra: mesma moldura, mesmas divisórias, mesma altura. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-200 lg:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="space-y-4 bg-white p-5 sm:p-6">
+            <Bloco className="h-3 w-24" />
+            <Bloco className="h-9 w-16" />
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-2">
+          <Bloco className="h-4 w-36" />
+          <div className="mt-5 space-y-4">
+            {Array.from({ length: 5 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <Bloco className="h-4 w-10" />
+                <Bloco className="h-4 flex-1" />
+                <Bloco className="h-6 w-24 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <Bloco className="h-4 w-28" />
+          <Bloco className="mt-5 h-10 w-full" />
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-2">
+          <Bloco className="h-4 w-32" />
+          <Bloco className="mt-5 h-56 w-full" />
+        </div>
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <Bloco className="h-4 w-24" />
+          <div className="mt-5 space-y-4">
+            {Array.from({ length: 4 }, (_, i) => (
+              <Bloco key={i} className="h-6 w-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Um retângulo de espera, com o brilho que atravessa em vez do pulso. */
+function Bloco({ className }: { className: string }) {
+  return <div className={`skeleton-brilho rounded-lg bg-neutral-100 ${className}`} />;
 }
 
 /**

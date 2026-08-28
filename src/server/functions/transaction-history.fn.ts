@@ -75,10 +75,10 @@ export const getTransactionHistory = createServerFn({ method: "POST" })
     inicio.setDate(inicio.getDate() - days);
 
     const [reconhecidos, emAndamento] = await Promise.all([
-      InventoryCostService.pedidosReconhecidos(store.id, inicio, fim),
+      InventoryCostService.pedidosReconhecidos(store.storeId, inicio, fim),
       prisma.order.findMany({
         where: {
-          storeId: store.id,
+          storeId: store.storeId,
           deletedAt: null,
           status: { in: EM_ANDAMENTO as unknown as string[] as any },
           createdAt: { gte: inicio, lte: fim },

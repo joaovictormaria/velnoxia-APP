@@ -37,32 +37,27 @@ export const getStorefrontMenuFn = createServerFn({ method: "GET" })
         ...g,
         options: g.options?.map((o) => ({ ...o, price: decimalToNumber(o.price) })),
       })),
-      products: cat.products?.map(({ inventoryItem, ...p }: any) => ({
+      products: cat.products?.map((p: any) => ({
         ...p,
         /*
-         * ESGOTADO É DERIVADO, e some daqui para baixo só como sim ou não.
+         * ESTOQUE NÃO DECIDE O QUE ESTÁ À VENDA.
          *
-         * `disponível = quantityOnHand − quantityReserved` é a mesma conta que
-         * a reserva usa no checkout — uma regra, um lugar. Nada é gravado: um
-         * campo persistido precisaria ser mantido em sincronia a cada
-         * movimento, e uma segunda fonte de verdade diverge.
+         * Isto derivava `esgotado` de `quantityOnHand − quantityReserved`, e o
+         * produto sumia da vitrine quando o saldo zerava. Era controle interno
+         * da casa decidindo o que o cliente pode comprar — e o saldo quase
+         * nunca reflete a prateleira: sobra do dia anterior, entrega que
+         * chegou e ninguém lançou, contagem atrasada.
          *
-         * Produto sem vínculo nunca esgota: a maioria do cardápio não controla
-         * estoque, e tratar ausência de vínculo como zero esvaziaria a loja.
+         * Perder a venda por causa de um número que a cozinha resolveria em
+         * dois minutos é o pior desfecho possível. O estoque continua inteiro
+         * onde importa — alerta, reposição, CMV, relatório —, mas não autoriza
+         * nem recusa compra.
          *
-         * Item de estoque INATIVO também não esgota. Inativar é tirar o item
-         * da gestão, não declarar que o produto acabou — quem quer parar de
-         * vender desativa o produto, que é outra coisa e já existe.
-         *
-         * O `inventoryItem` é desestruturado para FORA: os saldos não podem
-         * vazar para a vitrine pública.
+         * O campo permanece no contrato porque a vitrine ainda o consome, e
+         * porque quem decide parar de vender continua tendo como: desativar o
+         * produto, que é `isActive` e é outra coisa.
          */
-        esgotado:
-          inventoryItem != null && inventoryItem.isActive === true
-            ? Number(inventoryItem.quantityOnHand) -
-                Number(inventoryItem.quantityReserved) <=
-              0
-            : false,
+        esgotado: false,
         basePrice: decimalToNumber(p.basePrice),
         sizes: p.sizes?.map((s) => ({ ...s, price: decimalToNumber(s.price) })),
         optionGroups: p.optionGroups?.map((g) => ({

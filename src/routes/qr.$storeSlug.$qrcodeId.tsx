@@ -1,6 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { orchestrateTableSessionFn } from "@/server/functions/table-session.fn";
+import {
+  atualizarContextoDeMesa,
+  gravarContextoDeMesa,
+  limparContextoDeMesa,
+} from "@/lib/contexto-de-mesa";
 
 export const Route = createFileRoute("/qr/$storeSlug/$qrcodeId")({
   component: QRCodeRedirect,
@@ -15,34 +20,36 @@ function QRCodeRedirect() {
   useEffect(() => {
     if (!qrcodeId) return;
 
-    // Limpar dados de sessão anterior (novo cliente)
-    localStorage.removeItem("deviceToken");
-    localStorage.removeItem("pin");
-    localStorage.removeItem("sessionId");
-
-    // Armazenar QR Token (tableId) no localStorage
-    localStorage.setItem("tableId", qrcodeId);
+    // Sessão anterior encerra aqui: escanear de novo é começar de novo.
+    limparContextoDeMesa(storeSlug);
 
     // Buscar número da mesa do mapeamento
     const storeSlugKey = `tableNumbers_${storeSlug}`;
     const tableNumberMap = JSON.parse(localStorage.getItem(storeSlugKey) || "{}");
     const tableNumber = tableNumberMap[qrcodeId];
-    if (tableNumber) {
-      localStorage.setItem("tableNumber", tableNumber.toString());
-    }
+
+    /*
+     * ESTE é o único lugar do sistema que abre um contexto de mesa. Chegar
+     * por aqui — pelo QR da mesa, nesta loja — é o que define um pedido de
+     * mesa; qualquer outra porta leva à vitrine pública.
+     */
+    gravarContextoDeMesa(storeSlug, {
+      tableId: qrcodeId,
+      tableNumber: tableNumber ? Number(tableNumber) : null,
+    });
 
     // Orchestrar table session para coordenar fluxo de PIN
     orchestrateTableSessionFn({ data: { storeSlug, tableId: qrcodeId } })
       .then((res) => {
         if (res.ok) {
-          localStorage.setItem("sessionId", res.sessionId);
+          atualizarContextoDeMesa(storeSlug, { sessionId: res.sessionId });
 
           if (res.firstDevice && res.deviceToken) {
             // Primeiro dispositivo: autorizado automaticamente
-            localStorage.setItem("deviceToken", res.deviceToken);
+            atualizarContextoDeMesa(storeSlug, { deviceToken: res.deviceToken });
             // Armazenar PIN para exibir na próxima tela
             if (res.pin) {
-              localStorage.setItem("pin", res.pin);
+              atualizarContextoDeMesa(storeSlug, { pin: res.pin });
             }
             // Mostrar PIN antes de ir para o cardápio
             navigate({

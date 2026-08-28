@@ -141,62 +141,117 @@ describe("estoque suficiente", () => {
   });
 });
 
-describe("estoque insuficiente", () => {
-  it("03 · pedido é RECUSADO quando falta saldo", async () => {
+describe("estoque insuficiente NÃO recusa o cliente", () => {
+  /*
+   * ESTOQUE NÃO AUTORIZA VENDA.
+   *
+   * Este bloco afirmava o contrário: faltando saldo, o pedido era recusado e
+   * nada era gravado. A tela devolvia "Bolo de Chocolate: resta apenas 0,93" a
+   * uma pessoa que só queria um bolo — expondo controle interno da casa e
+   * perdendo a venda por um saldo que o salão talvez já tivesse resolvido.
+   *
+   * A regra agora separa as duas coisas: o pedido do cliente entra sempre, e a
+   * falta vira problema interno — disponível negativo, item aparecendo como
+   * esgotado no painel, e o pedido marcado para o salão ver.
+   */
+  it("03 · falta saldo e o pedido PASSA mesmo assim", async () => {
     const bolo = await boloEmEstoque(1);
     const p = await produto("Bolo de Chocolate", bolo.id);
 
     // 1 em estoque, cliente pede 2.
-    await expect(comprar(p.slug, 2)).rejects.toThrow(/estoque|Insufficient|suficiente/i);
+    const r = await comprar(p.slug, 2);
+
+    expect(r.ok).toBe(true);
+    // E nada de estoque vaza na resposta ao cliente.
+    expect(JSON.stringify(r)).not.toMatch(/estoque|resta|dispon/i);
   });
 
-  it("04 · nenhuma Order fica no banco depois da recusa", async () => {
+  it("04 · o pedido fica registrado", async () => {
     const bolo = await boloEmEstoque(1);
     const p = await produto("Bolo de Chocolate", bolo.id);
 
-    await expect(comprar(p.slug, 2)).rejects.toThrow();
+    await comprar(p.slug, 2);
 
+    expect(await prisma.order.count({ where: { storeId } })).toBe(1);
+    expect(await prisma.orderItem.count()).toBe(1);
+  });
+
+  it("05 · o consumo é reservado por inteiro, e o disponível fica negativo", async () => {
     /*
-     * O que o caminho antigo não conseguia: lá o pedido já estava gravado
-     * quando a reserva falhava.
+     * Reservar só o que cabia seria pior: a cozinha veria 1 comprometido para
+     * um pedido de 2 e ninguém saberia que falta um. O número no vermelho é o
+     * que diz exatamente quanto falta comprar.
      */
-    expect(await prisma.order.count({ where: { storeId } })).toBe(0);
-    expect(await prisma.orderItem.count()).toBe(0);
-  });
-
-  it("05 · nenhuma reserva parcial permanece", async () => {
     const bolo = await boloEmEstoque(1);
     const p = await produto("Bolo de Chocolate", bolo.id);
 
-    await expect(comprar(p.slug, 2)).rejects.toThrow();
+    await comprar(p.slug, 2);
 
-    expect(await reservado(bolo.id)).toBe(0);
+    expect(await reservado(bolo.id)).toBe(2);
     expect(await saldo(bolo.id)).toBe(1);
+    expect(await saldo(bolo.id) - (await reservado(bolo.id))).toBe(-1);
     expect(
       await prisma.inventoryMovement.count({
         where: { itemId: bolo.id, type: "RESERVATION" },
       }),
-    ).toBe(0);
+    ).toBe(1);
   });
 
-  it("06 · saldo zero recusa qualquer quantidade", async () => {
+  it("06 · saldo ZERO também não recusa", async () => {
     const bolo = await boloEmEstoque(0);
     const p = await produto("Bolo de Chocolate", bolo.id);
 
-    await expect(comprar(p.slug, 1)).rejects.toThrow();
-    expect(await prisma.order.count({ where: { storeId } })).toBe(0);
+    const r = await comprar(p.slug, 1);
+
+    expect(r.ok).toBe(true);
+    expect(await prisma.order.count({ where: { storeId } })).toBe(1);
+    expect(await reservado(bolo.id)).toBe(1);
+  });
+
+  it("06b · o ADMIN enxerga a falta: o pedido fica marcado", async () => {
+    // `inventoryInconsistentAt` é o campo que o salão já consultava para
+    // "estoque não fechou". É por ele que a cozinha descobre o que repor.
+    const bolo = await boloEmEstoque(1);
+    const p = await produto("Bolo de Chocolate", bolo.id);
+
+    await comprar(p.slug, 2);
+
+    const pedido = await prisma.order.findFirstOrThrow({ where: { storeId } });
+    expect(pedido.inventoryInconsistentAt).not.toBeNull();
+  });
+
+  it("06c · com saldo suficiente, NADA é marcado", async () => {
+    // O aviso só aparece quando há o que avisar; um alarme que toca sempre
+    // ensina a ignorá-lo.
+    const bolo = await boloEmEstoque(5);
+    const p = await produto("Bolo de Chocolate", bolo.id);
+
+    const r = await comprar(p.slug, 2);
+
+    expect(r.ok).toBe(true);
+    const pedido = await prisma.order.findFirstOrThrow({ where: { storeId } });
+    expect(pedido.inventoryInconsistentAt).toBeNull();
+    expect(await reservado(bolo.id)).toBe(2);
   });
 });
 
 describe("concorrência", () => {
-  it("07 · dois pedidos pela última unidade: exatamente um passa", async () => {
+  it("07 · dois pedidos pela última unidade: os DOIS passam", async () => {
     const bolo = await boloEmEstoque(1);
     const p = await produto("Bolo de Chocolate", bolo.id);
 
     /*
-     * A serialização é do banco: `SELECT ... FOR UPDATE` dentro de
-     * `recordMovement`, agora sob a transação do pedido. Sem o lock, os dois
-     * leriam "há 1 disponível" e os dois passariam.
+     * O LOCK CONTINUA, O QUE MUDOU FOI O QUE ELE DECIDE.
+     *
+     * Este teste afirmava que apenas um passava: o `SELECT ... FOR UPDATE`
+     * serializava a disputa e o segundo era recusado. A serialização segue
+     * igual — o que saiu foi o teto, porque estoque não autoriza venda. Dois
+     * clientes pedindo o último bolo compram os dois, e quem resolve a falta é
+     * o salão.
+     *
+     * O lock ainda importa: sem ele as duas reservas poderiam se sobrescrever e
+     * o total ficaria em 1 em vez de 2 — a cozinha veria falta de um bolo onde
+     * faltam dois.
      */
     const resultados = await Promise.allSettled([
       comprar(p.slug, 1),
@@ -206,32 +261,42 @@ describe("concorrência", () => {
     const aprovados = resultados.filter(
       (r) => r.status === "fulfilled" && (r.value as any).ok,
     );
-    expect(aprovados).toHaveLength(1);
+    expect(aprovados).toHaveLength(2);
 
-    expect(await prisma.order.count({ where: { storeId } })).toBe(1);
-    expect(await reservado(bolo.id)).toBe(1);
-    // Nunca negativo: é o que a disputa poderia produzir sem o lock.
-    expect((await saldo(bolo.id)) - (await reservado(bolo.id))).toBe(0);
+    expect(await prisma.order.count({ where: { storeId } })).toBe(2);
+    // As duas reservas somam, sem se perder: 1 na prateleira, 2 prometidos.
+    expect(await reservado(bolo.id)).toBe(2);
+    expect((await saldo(bolo.id)) - (await reservado(bolo.id))).toBe(-1);
   });
 
-  it("08 · cinco pedidos para três unidades: três passam, dois falham", async () => {
+  it("08 · cinco pedidos para três unidades: os cinco passam e a falta aparece", async () => {
     const bolo = await boloEmEstoque(3);
     const p = await produto("Bolo de Chocolate", bolo.id);
 
     const resultados = await Promise.allSettled(
-      [1, 2, 3, 4, 5].map(() => comprar(p.slug, 1)),
+      Array.from({ length: 5 }, () => comprar(p.slug, 1)),
     );
+
     const aprovados = resultados.filter(
       (r) => r.status === "fulfilled" && (r.value as any).ok,
     );
+    expect(aprovados).toHaveLength(5);
 
-    expect(aprovados).toHaveLength(3);
-    expect(await reservado(bolo.id)).toBe(3);
-    expect((await saldo(bolo.id)) - (await reservado(bolo.id))).toBe(0);
+    // Nenhuma reserva se perdeu na disputa: cinco prometidos, três em estoque.
+    expect(await reservado(bolo.id)).toBe(5);
+    expect(await saldo(bolo.id)).toBe(3);
+    expect((await saldo(bolo.id)) - (await reservado(bolo.id))).toBe(-2);
+
+    /*
+     * Os dois que estouraram o saldo ficam marcados. Os três primeiros não —
+     * o aviso aponta exatamente onde a conta não fechou.
+     */
+    const marcados = await prisma.order.count({
+      where: { storeId, inventoryInconsistentAt: { not: null } },
+    });
+    expect(marcados).toBe(2);
   });
-});
 
-describe("idempotência", () => {
   it("09 · reprocessar o mesmo pedido não duplica a reserva", async () => {
     const bolo = await boloEmEstoque(5);
     const p = await produto("Bolo de Chocolate", bolo.id);
@@ -339,7 +404,7 @@ describe("pedido com DOIS itens: ou reserva tudo, ou nada", () => {
     const pTorta = await produto("Torta", torta.id);
 
     // Bolo tem 5 (sobra), Torta tem 1 e o cliente pede 3.
-    await expect(
+    const r = await (async () =>
       createOrderFromCheckout(storeId, {
         storeSlug: slugDaLoja,
         items: [
@@ -350,14 +415,23 @@ describe("pedido com DOIS itens: ou reserva tudo, ou nada", () => {
         customerPhone: "11999999999",
         type: "PICKUP",
         paymentMethod: "CASH",
-      } as any),
-    ).rejects.toThrow();
+      } as any))();
+    /*
+     * O pedido passa inteiro, e as DUAS reservas ficam — inclusive a torta,
+     * que vai para o vermelho. A transação compartilhada continua sendo o que
+     * garante o tudo-ou-nada: se qualquer coisa que NÃO seja falta de estoque
+     * falhar aqui, as duas reservas caem junto com o pedido.
+     */
+    expect(r.ok).toBe(true);
 
-    // O bolo NÃO pode ficar com reserva órfã.
-    expect(await reservado(bolo.id)).toBe(0);
-    expect(await reservado(torta.id)).toBe(0);
-    expect(await prisma.inventoryMovement.count({ where: { type: "RESERVATION" } })).toBe(0);
-    expect(await prisma.order.count({ where: { storeId } })).toBe(0);
+    expect(await reservado(bolo.id)).toBe(2);
+    expect(await reservado(torta.id)).toBe(3);
+    expect(await prisma.inventoryMovement.count({ where: { type: "RESERVATION" } })).toBe(2);
+    expect(await prisma.order.count({ where: { storeId } })).toBe(1);
+
+    // Só a torta faltou, e o pedido carrega a marca para o salão.
+    const pedido = await prisma.order.findFirstOrThrow({ where: { storeId } });
+    expect(pedido.inventoryInconsistentAt).not.toBeNull();
   });
 
   it("14 · dois itens com saldo: os dois reservam no mesmo pedido", async () => {

@@ -113,30 +113,47 @@ async function esgotadoNoCardapio(slug: string) {
     : false;
 }
 
-describe("a disponibilidade derivada", () => {
-  it("01 · produto com estoque → esgotado: false", async () => {
+describe("o estoque não decide o que está à venda", () => {
+  /*
+   * ESTOQUE É CONTROLE INTERNO, NÃO AUTORIZAÇÃO DE COMPRA.
+   *
+   * Este bloco afirmava o contrário: saldo zerado marcava o produto como
+   * esgotado e ele saía da vitrine. Era o número da cozinha decidindo o que o
+   * cliente pode comprar — e esse número quase nunca reflete a prateleira:
+   * sobra do dia anterior, entrega que chegou e ninguém lançou, contagem
+   * atrasada. Perder a venda por isso é o pior desfecho possível.
+   *
+   * Quem quer parar de vender continua tendo como: desativar o PRODUTO, que é
+   * outra coisa e segue funcionando.
+   */
+  it("01 · estoque positivo → aparece", async () => {
     const item = await itemComSaldo("Bolo", 5);
     const p = await produto("Bolo", item.id);
     expect(await esgotadoNoCardapio(p.slug)).toBe(false);
   });
 
-  it("02 · estoque exatamente zero → true", async () => {
-    const item = await itemComSaldo("Bolo", 0);
+  it("02 · estoque baixo → aparece", async () => {
+    // O caso da tela: 0,93 restante bloqueava a compra de 3.
+    const item = await itemComSaldo("Bolo", 1);
     const p = await produto("Bolo", item.id);
-    expect(await esgotadoNoCardapio(p.slug)).toBe(true);
+    expect(await esgotadoNoCardapio(p.slug)).toBe(false);
   });
 
-  it("03 · reservado igual ao saldo → true", async () => {
-    // O saldo físico existe, mas está todo prometido a outros pedidos.
+  it("03 · estoque ZERO → aparece", async () => {
+    const item = await itemComSaldo("Bolo", 0);
+    const p = await produto("Bolo", item.id);
+    expect(await esgotadoNoCardapio(p.slug)).toBe(false);
+  });
+
+  it("04 · tudo reservado para outros pedidos → aparece", async () => {
     const item = await itemComSaldo("Bolo", 3);
     await InventoryService.reserveForOrder(storeId, item.id, 3, "pedido-antigo");
     const p = await produto("Bolo", item.id);
 
-    expect(Number((await prisma.inventoryItem.findUniqueOrThrow({ where: { id: item.id } })).quantityOnHand)).toBe(3);
-    expect(await esgotadoNoCardapio(p.slug)).toBe(true);
+    expect(await esgotadoNoCardapio(p.slug)).toBe(false);
   });
 
-  it("04 · saldo negativo → true", async () => {
+  it("05 · saldo NEGATIVO → aparece", async () => {
     const item = await itemComSaldo("Bolo", 1);
     // CONSUMPTION permite negativo de propósito: a cozinha já usou.
     await InventoryService.recordMovement(storeId, {
@@ -150,38 +167,36 @@ describe("a disponibilidade derivada", () => {
     } as any);
     const p = await produto("Bolo", item.id);
 
-    expect(await esgotadoNoCardapio(p.slug)).toBe(true);
+    expect(await esgotadoNoCardapio(p.slug)).toBe(false);
   });
 
-  it("05 · produto SEM vínculo → false, sempre", async () => {
+  it("06 · produto SEM vínculo de estoque → aparece", async () => {
     const p = await produto("Refrigerante");
     expect(await esgotadoNoCardapio(p.slug)).toBe(false);
   });
 
-  it("06 · item de estoque INATIVO → false", async () => {
+  it("07 · produto DESATIVADO pelo admin continua oculto", async () => {
     /*
-     * Comportamento definido de propósito: inativar o item é tirá-lo da gestão
-     * de estoque, não declarar que o produto acabou. Quem quer parar de vender
-     * desativa o PRODUTO, que é outra coisa e já existe.
+     * A única chave que ainda esconde. É decisão explícita de quem administra,
+     * e é justamente o que sobra quando o estoque para de mandar na vitrine.
      */
-    const item = await itemComSaldo("Bolo", 0);
-    await prisma.inventoryItem.update({
-      where: { id: item.id },
-      data: { isActive: false },
-    });
+    const item = await itemComSaldo("Bolo", 5);
     const p = await produto("Bolo", item.id);
+    await prisma.product.update({ where: { id: p.id }, data: { isActive: false } });
 
-    expect(await esgotadoNoCardapio(p.slug)).toBe(false);
+    const categorias = await listMenuForStorefront(storeId);
+    const slugs = categorias.flatMap((c: any) => c.products).map((x: any) => x.slug);
+
+    expect(slugs).not.toContain(p.slug);
   });
 
-  it("07 · produto esgotado CONTINUA na vitrine", async () => {
+  it("08 · produto com estoque zerado CONTINUA na vitrine", async () => {
     const item = await itemComSaldo("Bolo", 0);
     const p = await produto("Bolo", item.id);
 
     const categorias = await listMenuForStorefront(storeId);
     const slugs = categorias.flatMap((c: any) => c.products).map((x: any) => x.slug);
 
-    // Esconder faria o cliente achar que a loja parou de vender.
     expect(slugs).toContain(p.slug);
   });
 });
@@ -216,7 +231,7 @@ describe("a barreira do carrinho", () => {
 });
 
 describe("os dois níveis, juntos", () => {
-  it("12 · cardápio dizia disponível, estoque acabou, a reserva recusa", async () => {
+  it("12 · o estoque acaba e nada muda para o cliente", async () => {
     const item = await itemComSaldo("Bolo", 1);
     const p = await produto("Bolo", item.id);
 
@@ -225,21 +240,29 @@ describe("os dois níveis, juntos", () => {
 
     // Outro cliente levou a última unidade enquanto este decidia.
     await InventoryService.reserveForOrder(storeId, item.id, 1, "pedido-do-outro");
-    expect(await esgotadoNoCardapio(p.slug)).toBe(true);
 
-    // Este cliente tenta finalizar com a fotografia velha: a reserva recusa.
-    await expect(
-      createOrderFromCheckout(storeId, {
-        storeSlug: slugDaLoja,
-        items: [{ productSlug: p.slug, quantity: 1, extraIds: [] }],
-        customerName: "Cliente",
-        customerPhone: "11999999999",
-        type: "PICKUP",
-        paymentMethod: "CASH",
-      } as any),
-    ).rejects.toThrow();
+    // A vitrine continua igual: o saldo não manda mais nela.
+    expect(await esgotadoNoCardapio(p.slug)).toBe(false);
 
-    expect(await prisma.order.count({ where: { storeId } })).toBe(0);
+    const r = await createOrderFromCheckout(storeId, {
+      storeSlug: slugDaLoja,
+      items: [{ productSlug: p.slug, quantity: 1, extraIds: [] }],
+      customerName: "Cliente",
+      customerPhone: "11999999999",
+      type: "PICKUP",
+      paymentMethod: "CASH",
+    } as any);
+
+    /*
+     * E O PEDIDO PASSA, com o estoque já comprometido. Os dois níveis dizem a
+     * mesma coisa agora: estoque é assunto interno. A falta vira aviso para o
+     * salão, não recusa para quem está comprando.
+     */
+    expect(r.ok).toBe(true);
+
+    const pedido = await prisma.order.findFirstOrThrow({ where: { storeId } });
+    expect(pedido.inventoryInconsistentAt).not.toBeNull();
+
   });
 
   it("13 · o cardápio não expõe saldo nem reservado", async () => {
@@ -253,9 +276,12 @@ describe("os dois níveis, juntos", () => {
     const categorias = await listMenuForStorefront(storeId);
     const bruto = categorias.flatMap((c: any) => c.products)[0];
 
-    // A consulta traz os saldos; a server function os descarta ao serializar.
-    expect(bruto.inventoryItem).toBeTruthy();
-    const { inventoryItem, ...publico } = bruto;
-    expect(JSON.stringify(publico)).not.toMatch(/quantityOnHand|quantityReserved/);
+    /*
+     * A consulta nem traz mais os saldos: com o estoque fora da decisão de
+     * venda, a vitrine deixou de ter motivo para lê-los — e o dado sensível
+     * parou de sair do banco numa consulta pública.
+     */
+    expect(bruto.inventoryItem).toBeUndefined();
+    expect(JSON.stringify(bruto)).not.toMatch(/quantityOnHand|quantityReserved/);
   });
 });

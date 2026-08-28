@@ -160,16 +160,13 @@ export function listMenuForStorefront(storeId: string) {
         orderBy: { sortOrder: "asc" },
         include: {
           /*
-           * O item de estoque que este produto consome, se houver.
+           * O saldo NÃO é mais consultado aqui.
            *
-           * Só os dois saldos: o cardápio precisa saber SE pode vender, não
-           * QUANTO existe. O número vira um booleano na server function e
-           * nunca chega ao navegador — saldo é informação de negócio, e a
-           * vitrine é pública.
+           * Ele existia para derivar `esgotado` e esconder o produto quando
+           * zerava. Estoque virou controle interno e parou de decidir o que
+           * está à venda, então a vitrine deixou de ter motivo para ler saldo
+           * — e o dado sensível deixa de sair do banco numa consulta pública.
            */
-          inventoryItem: {
-            select: { quantityOnHand: true, quantityReserved: true, isActive: true },
-          },
           optionGroups: {
             orderBy: { sortOrder: "asc" },
             include: {

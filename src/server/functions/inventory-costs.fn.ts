@@ -21,7 +21,7 @@ export const getOrderCost = createServerFn({ method: "POST" })
       throw new Error("Not authenticated");
     }
 
-    return numeros(await InventoryCostService.calculateOrderCost(store.id, data.orderId));
+    return numeros(await InventoryCostService.calculateOrderCost(store.storeId, data.orderId));
   });
 
 /**
@@ -41,7 +41,7 @@ export const getCostReport = createServerFn({ method: "POST" })
     }
 
     return numeros(await InventoryCostService.getCostReport(
-      store.id,
+      store.storeId,
       new Date(data.startDate),
       new Date(data.endDate)
     ));
@@ -82,7 +82,7 @@ export const getProductProfitability = createServerFn({
     }
 
     return numeros(await InventoryCostService.getProductProfitability(
-      store.id,
+      store.storeId,
       data.days || 30
     ));
   });
@@ -102,5 +102,5 @@ export const getFinancialKPIs = createServerFn({ method: "POST" })
       throw new Error("Not authenticated");
     }
 
-    return numeros(await InventoryCostService.getFinancialKPIs(store.id, data.days || 30));
+    return numeros(await InventoryCostService.getFinancialKPIs(store.storeId, data.days || 30));
   });

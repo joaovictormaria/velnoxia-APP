@@ -358,3 +358,44 @@ export async function getKanbanMetrics(storeId: string, date?: string) {
     paidWaitingMinutes: MINUTOS_PARA_ALERTAR_PAGO_PARADO,
   };
 }
+
+/**
+ * Os ultimos pedidos que entraram, para o painel.
+ *
+ * SELECT PROPRIO, e nao `listKanbanOrders`: aquele monta o quadro inteiro —
+ * todas as colunas, itens, extras, entregador — e o painel precisa de cinco
+ * linhas com numero, cliente, quantos itens e o status. Recarregando a cada
+ * oito segundos, a diferenca deixa de ser detalhe.
+ *
+ * NENHUM VALOR EM DINHEIRO no retorno. O painel fica aberto o dia todo, muitas
+ * vezes com o cliente do outro lado do balcao, e o total do pedido nao ajuda
+ * ninguem a decidir o que fazer agora.
+ *
+ * Cancelados ficam de fora: a lista existe para mostrar o que esta acontecendo,
+ * e um pedido cancelado nao pede acao nenhuma.
+ */
+export async function pedidosRecentes(storeId: string, limite = 5) {
+  const pedidos = await prisma.order.findMany({
+    where: { storeId, deletedAt: null, status: { not: "CANCELLED" } },
+    orderBy: { createdAt: "desc" },
+    take: limite,
+    select: {
+      id: true,
+      number: true,
+      customerName: true,
+      status: true,
+      createdAt: true,
+      // `_count` em vez de trazer as linhas: o painel mostra "2 itens", nao os itens.
+      _count: { select: { items: true } },
+    },
+  });
+
+  return pedidos.map((p) => ({
+    id: p.id,
+    numero: p.number,
+    cliente: p.customerName,
+    status: p.status,
+    criadoEm: p.createdAt,
+    itens: p._count.items,
+  }));
+}

@@ -60,7 +60,7 @@ export const getFinancialTimeline = createServerFn({ method: "POST" })
     const inicio = new Date();
     inicio.setDate(inicio.getDate() - days);
 
-    const pedidos = await InventoryCostService.pedidosReconhecidos(store.id, inicio, fim);
+    const pedidos = await InventoryCostService.pedidosReconhecidos(store.storeId, inicio, fim);
     if (pedidos.length === 0) return [];
 
     type Dia = {

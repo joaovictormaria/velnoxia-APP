@@ -68,14 +68,42 @@ export class OrderInventoryHandler {
     const { insumos } = await insumosDoPedido(itens as any, tx);
     if (insumos.length === 0) return;
 
+    /*
+     * O PEDIDO DO CLIENTE NÃO É RECUSADO POR FALTA DE ESTOQUE.
+     *
+     * Quem compra não conhece o estoque interno da casa e não responde por
+     * ele. Recusar aqui devolvia "resta apenas 0,93" a uma pessoa que só
+     * queria um bolo — expondo controle interno e perdendo a venda por um
+     * saldo que o salão talvez já tivesse resolvido.
+     *
+     * A reserva é gravada mesmo faltando: o disponível fica negativo, o item
+     * passa a aparecer como esgotado no painel, e o pedido é marcado para o
+     * salão ver. A decisão de cancelar, repor ou avisar o cliente passa a ser
+     * de quem está na cozinha — que é quem tem como decidir.
+     */
+    let faltouAlgum = false;
     for (const insumo of insumos) {
-      await InventoryService.reserveForOrder(
+      const r = await InventoryService.reserveForOrder(
         storeId,
         insumo.inventoryItemId,
         insumo.quantidade,
         orderId,
         tx,
+        { permitirIndisponivel: true },
       );
+      if (r?.faltou) faltouAlgum = true;
+    }
+
+    /*
+     * `inventoryInconsistentAt` já existia para marcar pedido cujo estoque não
+     * fechou — é o campo que o salão consulta. Reusado aqui em vez de inventar
+     * um segundo sinal para a mesma pergunta.
+     */
+    if (faltouAlgum) {
+      await tx.order.update({
+        where: { id: orderId },
+        data: { inventoryInconsistentAt: new Date() },
+      });
     }
   }
 

@@ -12,6 +12,7 @@ import {
   type RespostaDoFuncionario,
 } from "@/components/site/pizzaria2/CampoDeFuncionario";
 import { useStore } from "@/lib/pizzaria2/store-provider";
+import { lerContextoDeMesa } from "@/lib/contexto-de-mesa";
 import { submitCheckoutFn } from "@/server/functions/storefront-checkout.fn";
 import { previewCouponFn } from "@/server/functions/coupons.fn";
 import {
@@ -66,23 +67,28 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   /** O telefone digitado é de funcionário — o campo do PIN se abre sozinho. */
   const [employeeRecognized, setEmployeeRecognized] = useState(false);
 
-  // Carregar tableId e tableNumber do localStorage quando o componente monta
+  /*
+   * ESTE PEDIDO É DE MESA OU É PÚBLICO?
+   *
+   * A resposta vem inteira do contexto desta loja. Antes vinha de três chaves
+   * globais e perpétuas do `localStorage`, e quem tivesse escaneado uma mesa
+   * qualquer, um dia, em qualquer loja, caía aqui como pedido de mesa: sem
+   * opção de entrega, com o nome trocado por "Mesa N", e recusado no servidor
+   * por um PIN que aquele pedido nunca deveria ter envolvido.
+   *
+   * `null` é vitrine pública — e é o que o módulo devolve para contexto de
+   * outra loja, vencido, ou apenas legado.
+   */
   useEffect(() => {
-    const storedTableId = localStorage.getItem("tableId");
-    const storedTableNumber = localStorage.getItem("tableNumber");
-    const storedDeviceToken = localStorage.getItem("deviceToken");
-    if (storedTableId) {
-      setTableId(storedTableId);
-      // Table orders must always be PICKUP (no delivery for mesa)
-      setType("PICKUP");
-    }
-    if (storedTableNumber) {
-      setTableNumber(parseInt(storedTableNumber, 10));
-    }
-    if (storedDeviceToken) {
-      setDeviceToken(storedDeviceToken);
-    }
-  }, []);
+    const contexto = lerContextoDeMesa(storeInfo.slug);
+    if (!contexto) return;
+
+    setTableId(contexto.tableId);
+    setTableNumber(contexto.tableNumber);
+    setDeviceToken(contexto.deviceToken);
+    // Pedido de mesa é sempre retirada: o cliente já está sentado nela.
+    setType("PICKUP");
+  }, [storeInfo.slug]);
 
 
   /*

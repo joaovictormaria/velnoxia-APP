@@ -22,7 +22,7 @@ export const forecastItemConsumption = createServerFn({ method: "POST" })
     }
 
     return InventoryForecastService.forecastItemConsumption(
-      store.id,
+      store.storeId,
       data.itemId,
       data.historicalDays || 30,
       data.forecastDays || 7
@@ -47,7 +47,7 @@ export const forecastStoreConsumption = createServerFn({ method: "POST" })
     }
 
     return InventoryForecastService.forecastStoreConsumption(
-      store.id,
+      store.storeId,
       data.historicalDays || 30,
       data.forecastDays || 7
     );
@@ -72,7 +72,7 @@ export const getPurchaseRecommendations = createServerFn({
     }
 
     return InventoryForecastService.getPurchaseRecommendations(
-      store.id,
+      store.storeId,
       data.forecastDays || 7
     );
   });
@@ -93,5 +93,5 @@ export const getDemandTrend = createServerFn({ method: "POST" })
       throw new Error("Not authenticated");
     }
 
-    return InventoryForecastService.getDemandTrend(store.id, data.days || 30);
+    return InventoryForecastService.getDemandTrend(store.storeId, data.days || 30);
   });
