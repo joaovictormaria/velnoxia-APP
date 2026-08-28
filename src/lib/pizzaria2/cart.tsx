@@ -10,6 +10,7 @@ import {
 } from "react";
 import { AvisoDoCarrinho } from "@/components/site/pizzaria2/AvisoDoCarrinho";
 import type { LucideIcon } from "lucide-react";
+import { useMenu } from "./menu-provider";
 
 export type CartLineExtra = { id: string; label: string; price: number };
 
@@ -62,7 +63,26 @@ function readInitialLines(): CartLine[] {
   }
 }
 
+/**
+ * Os slugs que não podem ser vendidos agora.
+ *
+ * Puro e exportado para poder ser testado sem React: a barreira é regra, e
+ * regra que só existe dentro de um componente não tem como ser verificada.
+ */
+export function estaEsgotado(
+  productSlug: string,
+  produtos: Array<{ slug: string; esgotado?: boolean }>,
+): boolean {
+  return produtos.some((p) => p.slug === productSlug && p.esgotado === true);
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
+  /*
+   * O cardápio é a fonte do que está esgotado. O CartProvider fica DENTRO do
+   * MenuProvider, então dá para consultar sem passar nada pelos chamadores —
+   * que é o ponto: nenhum dos seis precisa saber desta regra.
+   */
+  const { products: produtosDoCardapio } = useMenu();
   // Starts empty so the very first client render matches the server (which
   // has no access to sessionStorage) — the real cart loads right after, in
   // this effect, instead of in the initializer where it would run during
@@ -93,7 +113,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [avisando, setAvisando] = useState(false);
   const relogioDoAviso = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const addLine = useCallback((line: Omit<CartLine, "id">) => {
+  /*
+   * A BARREIRA MORA AQUI, e não nos botões.
+   *
+   * Há seis pontos que adicionam ao carrinho, em seis arquivos, e o sétimo que
+   * alguém criar não vai lembrar desta regra. Desabilitar o botão é
+   * conveniência — o que impede de verdade é a função que todo mundo chama.
+   *
+   * E nem esta é a garantia final: o cardápio é uma fotografia de quando a
+   * página carregou, e o estoque pode acabar enquanto o cliente decide. Quem
+   * garante é a reserva síncrona no checkout, sob lock. Aqui se evita que ele
+   * descubra no fim.
+   */
+  const addLine = useCallback((line: Omit<CartLine, "id">): boolean => {
+    if (estaEsgotado(line.productSlug, produtosDoCardapio)) return false;
+
     setLines((prev) => [
       ...prev,
       { ...line, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
@@ -106,7 +140,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (relogioDoAviso.current) clearTimeout(relogioDoAviso.current);
     setAvisando(true);
     relogioDoAviso.current = setTimeout(() => setAvisando(false), 1800);
-  }, []);
+    return true;
+  }, [produtosDoCardapio]);
 
   useEffect(() => () => {
     if (relogioDoAviso.current) clearTimeout(relogioDoAviso.current);

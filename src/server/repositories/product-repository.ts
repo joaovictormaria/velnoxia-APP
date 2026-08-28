@@ -159,6 +159,17 @@ export function listMenuForStorefront(storeId: string) {
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
         include: {
+          /*
+           * O item de estoque que este produto consome, se houver.
+           *
+           * Só os dois saldos: o cardápio precisa saber SE pode vender, não
+           * QUANTO existe. O número vira um booleano na server function e
+           * nunca chega ao navegador — saldo é informação de negócio, e a
+           * vitrine é pública.
+           */
+          inventoryItem: {
+            select: { quantityOnHand: true, quantityReserved: true, isActive: true },
+          },
           optionGroups: {
             orderBy: { sortOrder: "asc" },
             include: {

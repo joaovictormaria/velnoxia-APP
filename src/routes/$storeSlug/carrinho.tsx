@@ -38,6 +38,18 @@ function PizzariaCarrinho() {
   const { lines, addLine, removeLine, clearCart, subtotal, deliveryFee, total } = useCart();
   const store = useStore();
   const { categories, products, productsByCategory } = useMenu();
+
+  /*
+   * O carrinho é `localStorage` e sobrevive a recarregamentos: uma linha pode
+   * ter sido adicionada quando havia estoque e envelhecer até acabar.
+   *
+   * Não removemos sozinho — o cliente perderia o item sem entender. A linha
+   * fica marcada e o "Finalizar" trava, para ele decidir o que fazer.
+   */
+  const esgotados = new Set(
+    products.filter((p) => p.esgotado).map((p) => p.slug),
+  );
+  const temLinhaEsgotada = lines.some((l) => esgotados.has(l.productSlug));
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   /*
    * Abre o pagamento sozinho para quem veio pelo "Finalizar compras".
@@ -114,7 +126,12 @@ function PizzariaCarrinho() {
         <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
           <div className="flex flex-col gap-3">
             {lines.map((line) => (
-              <CartItemRow key={line.id} line={line} onRemove={() => removeLine(line.id)} />
+              <CartItemRow
+                key={line.id}
+                line={line}
+                esgotado={esgotados.has(line.productSlug)}
+                onRemove={() => removeLine(line.id)}
+              />
             ))}
           </div>
 
@@ -198,11 +215,17 @@ function PizzariaCarrinho() {
               ← Continuar comprando
             </Link>
           </Button>
+          {/*
+            Com linha esgotada o checkout seria recusado pela reserva de
+            qualquer jeito. Barrar aqui evita o cliente preencher endereço e
+            pagamento para descobrir no fim.
+          */}
           <Button
             onClick={() => setCheckoutOpen(true)}
-            className="h-auto rounded-full bg-tomato px-8 py-4 text-base font-semibold text-[color:var(--on-primary)] shadow-none hover:bg-tomato/90 sm:max-w-sm sm:flex-1"
+            disabled={temLinhaEsgotada}
+            className="h-auto rounded-full bg-tomato px-8 py-4 text-base font-semibold text-[color:var(--on-primary)] shadow-none hover:bg-tomato/90 disabled:opacity-50 sm:max-w-sm sm:flex-1"
           >
-            Finalizar pedido →
+            {temLinhaEsgotada ? "Remova os itens indisponíveis" : "Finalizar pedido →"}
           </Button>
         </div>
       )}

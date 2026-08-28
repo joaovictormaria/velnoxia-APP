@@ -71,6 +71,17 @@ export type Product = {
   allowHalfAndHalf?: boolean;
   /** Absolute price per size, as configured in the admin panel. */
   sizes?: ProductSize[];
+  /**
+   * Não há estoque para vender este produto agora.
+   *
+   * Vem DERIVADO do servidor: `quantityOnHand − quantityReserved <= 0` no item
+   * que o produto consome. Produto sem vínculo com estoque é sempre `false`.
+   *
+   * É uma FOTOGRAFIA do momento em que o cardápio carregou. Quem garante de
+   * verdade é a reserva síncrona no checkout, que roda sob lock — este campo
+   * evita que o cliente descubra no fim, não substitui a barreira.
+   */
+  esgotado?: boolean;
 };
 
 /**

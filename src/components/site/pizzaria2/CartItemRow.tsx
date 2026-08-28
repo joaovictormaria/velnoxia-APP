@@ -4,12 +4,32 @@ import { PriceTag } from "./PriceTag";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import type { CartLine } from "@/lib/pizzaria2/cart";
 
-export function CartItemRow({ line, onRemove }: { line: CartLine; onRemove: () => void }) {
+export function CartItemRow({
+  line,
+  onRemove,
+  esgotado = false,
+}: {
+  line: CartLine;
+  onRemove: () => void;
+  /** O produto desta linha acabou depois de ela ter sido adicionada. */
+  esgotado?: boolean;
+}) {
   const extrasTotal = line.extras.reduce((sum, e) => sum + e.price, 0);
   const lineTotal = (line.unitPrice + extrasTotal) * line.qty;
 
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-charcoal/8 bg-mozzarella p-3">
+    <div
+      className={
+        esgotado
+          ? "flex flex-wrap items-start gap-3 rounded-2xl border border-red-300 bg-red-50/60 p-3"
+          : "flex flex-wrap items-start gap-3 rounded-2xl border border-charcoal/8 bg-mozzarella p-3"
+      }
+    >
+      {esgotado && (
+        <p className="w-full text-xs font-medium text-red-700">
+          Este item acabou. Remova para finalizar o pedido.
+        </p>
+      )}
       <MenuThumb
         image={line.image}
         icon={line.icon}

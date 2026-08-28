@@ -128,6 +128,7 @@ function adapt(payload: MenuPayload): MenuApi {
       categoryId: c.id,
       tag: p.tag ?? undefined,
       allowHalfAndHalf: p.allowHalfAndHalf,
+      esgotado: (p as any).esgotado === true,
       optionGroups: paraGrupos(p.optionGroups),
       sizes: p.sizes.map((s) => ({
         id: s.categorySize.id,

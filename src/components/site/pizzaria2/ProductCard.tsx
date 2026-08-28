@@ -172,7 +172,20 @@ export function ProductCard({
           value={product.price}
           className="whitespace-nowrap text-xl sm:text-2xl"
         />
-        {ctaQuickAdd ? (
+        {/*
+          ESGOTADO SUBSTITUI O BOTÃO, não o desabilita por cima.
+
+          Um botão cinza que ainda parece botão convida ao clique e frustra.
+          A etiqueta diz o estado e não promete nada.
+
+          Isto é conveniência: quem impede de verdade é `addLine`, que recusa
+          o slug esgotado venha de onde vier — e, no fim, a reserva síncrona.
+        */}
+        {product.esgotado ? (
+          <span className="inline-flex shrink-0 items-center rounded-full bg-neutral-200 px-4.5 py-3 text-sm font-semibold text-neutral-600">
+            Indisponível
+          </span>
+        ) : ctaQuickAdd ? (
           <button
             type="button"
             onClick={handleQuickAdd}

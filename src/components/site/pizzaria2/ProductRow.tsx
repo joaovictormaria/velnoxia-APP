@@ -58,7 +58,12 @@ export function ProductRow({
           <p className="text-xs text-charcoal/60 line-clamp-2 mt-1">{product.desc}</p>
           <div className="flex items-center justify-between gap-2 mt-auto pt-1.5">
             <p className="text-sm font-bold text-tomato">R$ {price.toFixed(2).replace(".", ",")}</p>
-            {exigeEscolha ? (
+            {/* Esgotado: etiqueta no lugar do botao, como no card. */}
+            {product.esgotado ? (
+              <span className="inline-flex shrink-0 items-center rounded-full bg-neutral-200 px-2 py-1 text-[10px] font-semibold text-neutral-600">
+                Indisponível
+              </span>
+            ) : exigeEscolha ? (
               <Link
                 to="/$storeSlug/produto/$slug"
                 params={{ storeSlug, slug: product.slug }}

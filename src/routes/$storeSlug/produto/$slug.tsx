@@ -486,12 +486,14 @@ function PizzariaPersonalizacao() {
                     tela é melhor que devolver um erro depois do clique. */}
                 <Button
                   onClick={handleAddToCart}
-                  disabled={Boolean(faltando)}
+                  disabled={Boolean(faltando) || product.esgotado === true}
                   className="mt-6 h-auto w-full whitespace-normal rounded-full bg-tomato px-4 py-4 text-base font-semibold text-mozzarella shadow-none hover:bg-tomato/90 disabled:opacity-50"
                 >
-                  {faltando
-                    ? `Escolha: ${faltando.name}`
-                    : `Adicionar ao carrinho — ${formatCurrency(total)}`}
+                  {product.esgotado
+                    ? "Indisponível no momento"
+                    : faltando
+                      ? `Escolha: ${faltando.name}`
+                      : `Adicionar ao carrinho — ${formatCurrency(total)}`}
                 </Button>
               </div>
 
