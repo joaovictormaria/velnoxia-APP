@@ -123,6 +123,10 @@ export type KanbanMetrics = {
   avgPrepMinutes: number | null;
   avgDeliveryMinutes: number | null;
   completionRate: number | null;
+  /** Pedidos pagos que ninguem aceitou ainda. Apenas informativo. */
+  paidWaiting: number;
+  /** A partir de quantos minutos um pedido pago vira alerta. */
+  paidWaitingMinutes: number;
 };
 
 export type KanbanResponse = {

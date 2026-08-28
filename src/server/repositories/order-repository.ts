@@ -278,6 +278,19 @@ export function updateOrderNotes(
   return prisma.order.update({ where: { id, storeId }, data });
 }
 
+/**
+ * A partir de quantos minutos um pedido PAGO parado vira alerta.
+ *
+ * Pagamento confirmado é compromisso com o cliente. Quinze minutos sem ninguém
+ * aceitar já é atraso perceptível num restaurante — e é metade da expiração de
+ * reserva, de propósito: o aviso aparece bem antes de o caso virar problema de
+ * estoque.
+ *
+ * Constante para poder subir se a operação da cozinha for mais lenta. Alerta
+ * que fica sempre aceso deixa de ser lido.
+ */
+export const MINUTOS_PARA_ALERTAR_PAGO_PARADO = 15;
+
 /** Footer metrics of the Kanban board. */
 export async function getKanbanMetrics(storeId: string, date?: string) {
   const { from, to } = dayRange(date);
@@ -294,6 +307,30 @@ export async function getKanbanMetrics(storeId: string, date?: string) {
 
   const total = orders.length;
   const completed = orders.filter((o) => o.status === "COMPLETED").length;
+
+  /*
+   * PEDIDOS PAGOS QUE NINGUÉM ACEITOU.
+   *
+   * O cliente pagou e o pedido continua em RECEIVED: a cozinha não começou. É
+   * só um AVISO — não cancela nada, não libera reserva, não toca no estoque.
+   * A expiração automática ignora pedidos pagos de propósito, porque cancelar
+   * quem pagou significaria estornar dinheiro por demora da casa.
+   *
+   * Consulta própria, e não derivada do `orders` acima: aquele recorta pelo
+   * DIA, e um pedido pago ontem e esquecido é exatamente o que mais precisa
+   * aparecer.
+   */
+  const paidWaitingSince = new Date(
+    Date.now() - MINUTOS_PARA_ALERTAR_PAGO_PARADO * 60_000,
+  );
+  const paidWaiting = await prisma.order.count({
+    where: {
+      storeId,
+      status: "RECEIVED",
+      paymentStatus: "PAID",
+      createdAt: { lt: paidWaitingSince },
+    },
+  });
 
   function averageMinutes(fromStatus: OrderStatus | "CREATED", toStatus: OrderStatus): number | null {
     const spans: number[] = [];
@@ -316,5 +353,8 @@ export async function getKanbanMetrics(storeId: string, date?: string) {
     avgPrepMinutes: averageMinutes("CREATED", "PREPARING"),
     avgDeliveryMinutes: averageMinutes("OUT_FOR_DELIVERY", "COMPLETED"),
     completionRate: total === 0 ? null : Math.round((completed / total) * 100),
+    /** Quantos pedidos pagos esperam início do preparo. Só informativo. */
+    paidWaiting,
+    paidWaitingMinutes: MINUTOS_PARA_ALERTAR_PAGO_PARADO,
   };
 }

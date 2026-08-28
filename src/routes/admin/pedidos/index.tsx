@@ -9,6 +9,7 @@ import {
   Clock,
   Search,
   ShoppingBag,
+  AlertTriangle,
 } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
 import { KanbanBoard, type KanbanOrder } from "@/components/admin/orders/KanbanBoard";
@@ -204,6 +205,39 @@ function KanbanPage() {
         />
       )}
 
+      {/*
+        PEDIDOS PAGOS QUE NINGUÉM ACEITOU.
+      
+        Aviso, e só. Não cancela, não libera reserva, não toca no estoque — quem
+        pagou não pode ter o pedido desfeito porque a cozinha demorou. O clique
+        leva à coluna Recebidos, onde eles já estão.
+      */}
+      {metrics && metrics.paidWaiting > 0 && (
+        <button
+          type="button"
+          onClick={() =>
+            document
+              .getElementById("coluna-RECEIVED")
+              ?.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+          className="mb-4 flex w-full items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left hover:bg-amber-100"
+        >
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-amber-600" />
+          <span>
+            <span className="block text-sm font-medium text-amber-900">
+              Pedidos pagos aguardando atendimento
+            </span>
+            <span className="mt-0.5 block text-sm text-amber-800">
+              {metrics.paidWaiting === 1
+                ? "Existe 1 pedido pago"
+                : `Existem ${metrics.paidWaiting} pedidos pagos`}{" "}
+              há mais de {metrics.paidWaitingMinutes} minutos aguardando início do
+              preparo. Toque para ver na coluna Recebidos.
+            </span>
+          </span>
+        </button>
+      )}
+      
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Metric
           icon={ShoppingBag}

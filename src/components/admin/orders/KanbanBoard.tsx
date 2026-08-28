@@ -128,7 +128,12 @@ export function KanbanBoard({
         const Icon = col.icon;
 
         return (
-          <section key={col.status} className="flex flex-col">
+          <section
+            key={col.status}
+            /* Ancora para o alerta de pedidos pagos parados levar ate aqui. */
+            id={`coluna-${col.status}`}
+            className="flex flex-col"
+          >
             <header
               className={`flex items-center justify-center rounded-t-2xl px-4 py-3 text-white relative ${col.header}`}
             >
