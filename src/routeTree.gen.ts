@@ -54,6 +54,7 @@ import { Route as AdminRelatoriosIndexRouteImport } from './routes/admin/relator
 import { Route as AdminRelatoriosDashboardKpiRouteImport } from './routes/admin/relatorios/dashboard-kpi'
 import { Route as AdminRelatoriosFuncionariosRouteImport } from './routes/admin/relatorios/funcionarios'
 import { Route as AdminRelatoriosHistoricoRouteImport } from './routes/admin/relatorios/historico'
+import { Route as AdminRelatoriosPerdasRouteImport } from './routes/admin/relatorios/perdas'
 import { Route as AdminRelatoriosProdutosRouteImport } from './routes/admin/relatorios/produtos'
 import { Route as AdminRelatoriosReceitaRouteImport } from './routes/admin/relatorios/receita'
 import { Route as QrPinStoreSlugSessionIdRouteImport } from './routes/qr-pin.$storeSlug.$sessionId'
@@ -289,6 +290,11 @@ const AdminRelatoriosHistoricoRoute =
     path: '/relatorios/historico',
     getParentRoute: () => AdminRouteRoute,
   } as any)
+const AdminRelatoriosPerdasRoute = AdminRelatoriosPerdasRouteImport.update({
+  id: '/relatorios/perdas',
+  path: '/relatorios/perdas',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminRelatoriosProdutosRoute = AdminRelatoriosProdutosRouteImport.update({
   id: '/relatorios/produtos',
   path: '/relatorios/produtos',
@@ -350,6 +356,7 @@ export interface FileRoutesByFullPath {
   '/admin/relatorios/dashboard-kpi': typeof AdminRelatoriosDashboardKpiRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/historico': typeof AdminRelatoriosHistoricoRoute
+  '/admin/relatorios/perdas': typeof AdminRelatoriosPerdasRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/admin/relatorios/receita': typeof AdminRelatoriosReceitaRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
@@ -399,6 +406,7 @@ export interface FileRoutesByTo {
   '/admin/relatorios/dashboard-kpi': typeof AdminRelatoriosDashboardKpiRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/historico': typeof AdminRelatoriosHistoricoRoute
+  '/admin/relatorios/perdas': typeof AdminRelatoriosPerdasRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/admin/relatorios/receita': typeof AdminRelatoriosReceitaRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
@@ -452,6 +460,7 @@ export interface FileRoutesById {
   '/admin/relatorios/dashboard-kpi': typeof AdminRelatoriosDashboardKpiRoute
   '/admin/relatorios/funcionarios': typeof AdminRelatoriosFuncionariosRoute
   '/admin/relatorios/historico': typeof AdminRelatoriosHistoricoRoute
+  '/admin/relatorios/perdas': typeof AdminRelatoriosPerdasRoute
   '/admin/relatorios/produtos': typeof AdminRelatoriosProdutosRoute
   '/admin/relatorios/receita': typeof AdminRelatoriosReceitaRoute
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
@@ -506,6 +515,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/dashboard-kpi'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/historico'
+    | '/admin/relatorios/perdas'
     | '/admin/relatorios/produtos'
     | '/admin/relatorios/receita'
     | '/qr-pin/$storeSlug/$sessionId'
@@ -555,6 +565,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/dashboard-kpi'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/historico'
+    | '/admin/relatorios/perdas'
     | '/admin/relatorios/produtos'
     | '/admin/relatorios/receita'
     | '/qr-pin/$storeSlug/$sessionId'
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/admin/relatorios/dashboard-kpi'
     | '/admin/relatorios/funcionarios'
     | '/admin/relatorios/historico'
+    | '/admin/relatorios/perdas'
     | '/admin/relatorios/produtos'
     | '/admin/relatorios/receita'
     | '/qr-pin/$storeSlug/$sessionId'
@@ -961,6 +973,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRelatoriosHistoricoRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/relatorios/perdas': {
+      id: '/admin/relatorios/perdas'
+      path: '/relatorios/perdas'
+      fullPath: '/admin/relatorios/perdas'
+      preLoaderRoute: typeof AdminRelatoriosPerdasRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/relatorios/produtos': {
       id: '/admin/relatorios/produtos'
       path: '/relatorios/produtos'
@@ -1033,6 +1052,7 @@ interface AdminRouteRouteChildren {
   AdminRelatoriosDashboardKpiRoute: typeof AdminRelatoriosDashboardKpiRoute
   AdminRelatoriosFuncionariosRoute: typeof AdminRelatoriosFuncionariosRoute
   AdminRelatoriosHistoricoRoute: typeof AdminRelatoriosHistoricoRoute
+  AdminRelatoriosPerdasRoute: typeof AdminRelatoriosPerdasRoute
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
   AdminRelatoriosReceitaRoute: typeof AdminRelatoriosReceitaRoute
   AdminAvaliacoesIndexRoute: typeof AdminAvaliacoesIndexRoute
@@ -1065,6 +1085,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminRelatoriosDashboardKpiRoute: AdminRelatoriosDashboardKpiRoute,
   AdminRelatoriosFuncionariosRoute: AdminRelatoriosFuncionariosRoute,
   AdminRelatoriosHistoricoRoute: AdminRelatoriosHistoricoRoute,
+  AdminRelatoriosPerdasRoute: AdminRelatoriosPerdasRoute,
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
   AdminRelatoriosReceitaRoute: AdminRelatoriosReceitaRoute,
   AdminAvaliacoesIndexRoute: AdminAvaliacoesIndexRoute,

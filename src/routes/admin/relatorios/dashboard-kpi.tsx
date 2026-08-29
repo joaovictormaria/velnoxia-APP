@@ -1,8 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
-import { getFinancialKPIs } from "@/server/functions/inventory-costs.fn";
+import { ArrowLeft, TrendingUp, TrendingDown, AlertCircle, ChevronRight } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import {
+  getFinancialKPIs,
+  getPedidosComEstoqueInconsistente,
+} from "@/server/functions/inventory-costs.fn";
 
 export const Route = createFileRoute("/admin/relatorios/dashboard-kpi")({
   component: FinancialDashboardPage,
@@ -22,6 +26,13 @@ interface KPIData {
   custoApurado?: number;
   margemApurada?: number | null;
   cobertura?: number;
+  /** Quanto do faturamento ficou fora da apuração, em reais. */
+  receitaSemCusto?: number;
+  /** Terceira categoria: nem receita, nem CMV. */
+  perdas?: number;
+  perdasSemCusto?: number;
+  pedidosInconsistentes?: number;
+  valorInconsistente?: number;
 }
 
 function FinancialDashboardPage() {
@@ -62,6 +73,20 @@ function FinancialDashboardPage() {
   const margemApurada = kpi.margemApurada ?? null;
   /* Para os indicadores de saúde, que precisam de um número. Nulo vira travessão na tela. */
   const margemDaSaude = margemApurada ?? 0;
+  const receitaSemCusto = kpi.receitaSemCusto ?? 0;
+  const perdas = kpi.perdas ?? 0;
+  const pedidosInconsistentes = kpi.pedidosInconsistentes ?? 0;
+  const valorInconsistente = kpi.valorInconsistente ?? 0;
+
+  /*
+   * A lista só é buscada quando há o que listar. Sem inconsistência — que é
+   * o normal — a tela não gasta uma consulta para descobrir que não há nada.
+   */
+  const { data: inconsistentes } = useQuery({
+    queryKey: ["pedidos-inconsistentes", period],
+    enabled: pedidosInconsistentes > 0,
+    queryFn: async () => getPedidosComEstoqueInconsistente({ data: { days: period } }),
+  });
 
   /*
    * O PERÍODO ANTERIOR É SUBTRAÍDO, NÃO CONSULTADO.
@@ -221,6 +246,138 @@ function FinancialDashboardPage() {
           </div>
         )}
       </div>
+
+      {/*
+        O QUE FICOU FORA DA CONTA, dito em dinheiro.
+
+        A cobertura logo acima já diz "87%", mas ninguém administra um
+        restaurante em porcentagem. A pergunta é quanto faturamento não tem
+        custo medido — e a resposta em reais é a que faz alguém ir cadastrar o
+        insumo que falta.
+
+        As PERDAS ficam do lado porque são a terceira categoria do resultado:
+        não são receita e não são custo de venda. Material que saiu do estoque
+        sem ter vendido nada some do lucro sem aparecer em lugar nenhum, e é
+        exatamente esse dinheiro que ninguém encontrava.
+      */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Faturamento sem custo apurado
+          </p>
+          <p className="mt-2 font-display text-3xl font-bold leading-none tracking-tight tabular-nums text-neutral-950">
+            {currency.format(receitaSemCusto)}
+          </p>
+          <p className="mt-2 text-xs text-neutral-500">
+            {receitaSemCusto > 0
+              ? "Vendas cujo custo o sistema não conseguiu medir. Elas contam no faturamento, mas ficam fora da margem."
+              : "Todo o faturamento do período tem custo medido."}
+          </p>
+        </div>
+
+        {/* Clicável: o total responde "quanto", a tela de detalhe responde
+            "o quê" e "por quê" — que são as perguntas que mudam algo. */}
+        <Link
+          to="/admin/relatorios/perdas"
+          className="group rounded-2xl border border-neutral-200 bg-white p-5 transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        >
+          <p className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Perdas
+            <ChevronRight className="size-4 text-neutral-300 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-neutral-500 motion-reduce:transition-none" />
+          </p>
+          <p
+            className={`mt-2 font-display text-3xl font-bold leading-none tracking-tight tabular-nums ${
+              perdas > 0 ? "text-[#E11D2E]" : "text-neutral-950"
+            }`}
+          >
+            {currency.format(perdas)}
+          </p>
+          <p className="mt-2 text-xs text-neutral-500">
+            {perdas > 0
+              ? "Material que saiu do estoque sem virar venda — cancelamento após o preparo, quebra na produção."
+              : "Nenhuma perda registrada no período."}
+          </p>
+          {(kpi.perdasSemCusto ?? 0) > 0 && (
+            <p className="mt-1 text-xs text-amber-700">
+              {kpi.perdasSemCusto} perda(s) sem custo cadastrado ficaram fora deste total.
+            </p>
+          )}
+        </Link>
+      </div>
+
+      {/*
+        ESTOQUE NÃO SINCRONIZADO.
+
+        `inventoryInconsistentAt` era gravado em quatro lugares do sistema e
+        lido em nenhum: o aviso existia no banco e nunca chegava a ninguém.
+
+        Só aparece quando há o que avisar. Um bloco permanente dizendo "0
+        pedidos com problema" vira moldura e ninguém lê no dia em que houver um.
+      */}
+      {pedidosInconsistentes > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                <AlertCircle className="size-4 shrink-0" />
+                Estoque não sincronizado em {pedidosInconsistentes} pedido(s)
+              </p>
+              {/*
+                A frase mais importante do bloco. Sem ela, um aviso amarelo ao
+                lado do faturamento é lido como "estas vendas não valem" — e
+                alguém sai conferindo caixa atrás de um dinheiro que está lá.
+              */}
+              <p className="mt-1 max-w-xl text-xs text-amber-800">
+                <strong>A venda continua válida e a receita está contada.</strong> O que pode
+                estar incompleto é o custo desses pedidos: a baixa de estoque não fechou, então
+                eles podem ficar fora da margem. Vale conferir o estoque físico dos itens
+                envolvidos.
+              </p>
+            </div>
+            <p className="shrink-0 text-right">
+              <span className="block text-xs text-amber-700">Faturamento envolvido</span>
+              <span className="font-display text-xl font-bold tabular-nums text-amber-900">
+                {currency.format(valorInconsistente)}
+              </span>
+            </p>
+          </div>
+
+          <ul className="mt-4 divide-y divide-amber-200/70 border-t border-amber-200/70">
+            {(inconsistentes ?? []).slice(0, 8).map((pedido: any) => (
+              <li key={pedido.id}>
+                <Link
+                  to="/admin/pedidos/$orderId"
+                  params={{ orderId: pedido.id }}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-xs transition-colors hover:bg-amber-100/60"
+                >
+                  <span className="font-display font-bold tabular-nums text-amber-900">
+                    #{pedido.number}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-amber-900">
+                    {pedido.customerName ?? "Cliente"}
+                  </span>
+                  {/*
+                    RECEITA, não `total`. O cabeçalho soma receita líquida de
+                    estorno; mostrar o bruto aqui embaixo fazia a coluna não
+                    fechar com o total logo acima em qualquer pedido com refund.
+                  */}
+                  <span className="tabular-nums text-amber-800">
+                    {currency.format(Number(pedido.receita))}
+                  </span>
+                  <span className="w-full truncate text-amber-700 sm:w-auto sm:max-w-md">
+                    {pedido.inventoryInconsistency ?? "Baixa de estoque não concluída."}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {pedidosInconsistentes > 8 && (
+            <p className="mt-2 text-xs text-amber-700">
+              e mais {pedidosInconsistentes - 8} pedido(s).
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Análise Detalhada */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

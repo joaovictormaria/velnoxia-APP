@@ -100,6 +100,9 @@ export class InventoryCostService {
         total: true,
         refund: true,
         createdAt: true,
+        // Não muda regra nenhuma: a venda continua reconhecida. É só o aviso
+        // de que a baixa de estoque daquele pedido não fechou.
+        inventoryInconsistentAt: true,
         statusHistory: {
           where: { status: "COMPLETED" },
           orderBy: { createdAt: "desc" },
@@ -221,6 +224,7 @@ export class InventoryCostService {
           total: Number(pedido.total),
           refund: pedido.refund === null ? null : Number(pedido.refund),
         }),
+        estoqueInconsistente: pedido.inventoryInconsistentAt !== null,
         receitaDasLinhas: apuracao.receitaDasLinhas,
         receitaApurada: apuracao.receitaApurada,
         custoApurado: apuracao.custoApurado,
@@ -245,6 +249,62 @@ export class InventoryCostService {
    */
   static async pedidosReconhecidos(storeId: string, inicio: Date, fim: Date) {
     return this.carregarPedidosValidos(storeId, inicio, fim);
+  }
+
+  /**
+   * Os pedidos do período cuja baixa de estoque não fechou.
+   *
+   * PASSA PELO MESMO CARREGADOR DOS KPIs, e não por uma consulta paralela.
+   *
+   * A primeira versão montava o próprio recorte — sem filtro de status e com a
+   * janela sobre `createdAt` — e o resultado era um cabeçalho dizendo "1
+   * pedido" com três linhas embaixo. `inventoryInconsistentAt` é carimbado na
+   * reserva e no preparo, muito antes de o pedido virar venda: um pedido em
+   * PREPARING entrava na lista sem entrar na contagem.
+   *
+   * Reusando `carregarPedidosValidos`, o universo é IDÊNTICO por construção —
+   * mesmo status, mesma janela de competência, mesmo recorte de loja. Não
+   * existem dois filtros para divergirem no dia em que um deles mudar.
+   *
+   * A RECEITA VEM DO MESMO LUGAR: `receitaDoPedido()`, já líquida de estorno.
+   * A tela mostrava `Order.total` bruto embaixo de um total líquido, e as duas
+   * colunas não fechavam quando havia refund.
+   */
+  static async pedidosComEstoqueInconsistente(storeId: string, dias: number) {
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - dias);
+
+    const inconsistentes = (
+      await this.carregarPedidosValidos(storeId, inicio, fim)
+    ).filter((p) => p.estoqueInconsistente);
+    if (inconsistentes.length === 0) return [];
+
+    /*
+     * Segunda consulta só para o que a TELA mostra. O carregador não traz
+     * número nem nome do cliente porque nenhum cálculo financeiro depende
+     * deles — e engordar o select dos KPIs por causa de um bloco de aviso
+     * seria pagar em toda leitura do dashboard.
+     */
+    const detalhes = await prisma.order.findMany({
+      where: { id: { in: inconsistentes.map((p) => p.id) } },
+      select: {
+        id: true,
+        number: true,
+        customerName: true,
+        inventoryInconsistentAt: true,
+        inventoryInconsistency: true,
+      },
+    });
+
+    const receitaPorPedido = new Map(inconsistentes.map((p) => [p.id, p.receita]));
+    return detalhes
+      .map((d) => ({ ...d, receita: receitaPorPedido.get(d.id) ?? 0 }))
+      .sort(
+        (a, b) =>
+          (b.inventoryInconsistentAt?.getTime() ?? 0) -
+          (a.inventoryInconsistentAt?.getTime() ?? 0),
+      );
   }
 
   static async calculateOrderCost(
@@ -613,6 +673,92 @@ export class InventoryCostService {
    * Dashboard widget: KPIs financeiros
    */
   /**
+   * As PERDAS do período, lidas do razão de estoque.
+   *
+   * Perda é a terceira categoria do resultado, ao lado de receita e CMV — e não
+   * uma delas. Material que virou lixo não vendeu nada e não é custo de venda
+   * nenhuma; somá-lo ao CMV faria a margem cair por um motivo que não é a
+   * margem, e ignorá-lo faz o dinheiro sumir sem explicação.
+   *
+   * NÃO HÁ REGRA NOVA AQUI. O razão já sabe o que foi perdido: cancelamento
+   * depois do preparo grava `LOSS` ao lado do `REVERSAL` do consumo, e a
+   * produção grava `LOSS` do que estragou. Esta função só soma o que já existe.
+   *
+   * SEM DUPLA CONTAGEM. O par REVERSAL+LOSS do cancelamento soma zero no saldo,
+   * mas são movimentos de tipos diferentes: o filtro é `type: "LOSS"`, então o
+   * REVERSAL nunca entra. E o consumo revertido já saiu do CMV pelo
+   * `reversedBy` — o material aparece uma vez, como perda, e nenhuma como venda.
+   *
+   * `reversedBy: null` exclui a perda que foi ela mesma estornada.
+   *
+   * O VALOR VEM DO CUSTO HISTÓRICO. `costAtTime` é o que o material valia
+   * quando saiu; o custo de hoje não descreve o prejuízo de ontem. Sem ele,
+   * cai para o custo atual do item — e, sem nem isso, a perda entra em
+   * `semCusto` em vez de virar zero, pela mesma razão que rege o CMV: ausência
+   * de dado não é ausência de valor.
+   */
+  static async perdasNoPeriodo(storeId: string, inicio: Date, fim: Date) {
+    const movimentos = await prisma.inventoryMovement.findMany({
+      where: {
+        storeId,
+        type: "LOSS",
+        reversedBy: { is: null },
+        createdAt: { gte: inicio, lte: fim },
+      },
+      select: {
+        id: true,
+        quantity: true,
+        costAtTime: true,
+        reference: true,
+        referenceType: true,
+        note: true,
+        createdAt: true,
+        item: { select: { id: true, name: true, cost: true } },
+        // A unidade em que a perda foi medida: "2" não diz nada sem o "kg".
+        unit: { select: { code: true, name: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    let total = 0;
+    let semCusto = 0;
+    const linhas = movimentos.map((m) => {
+      // LOSS grava quantidade positiva; o sinal do saldo é aplicado no delta.
+      const quantidade = Math.abs(Number(m.quantity));
+      const custoUnitario = this.custoDoMovimento(m);
+      const valor = custoUnitario === null ? null : quantidade * custoUnitario.toNumber();
+
+      if (valor === null) semCusto += 1;
+      else total += valor;
+
+      return {
+        movimentoId: m.id,
+        itemId: m.item.id,
+        item: m.item.name,
+        quantidade,
+        unidade: m.unit.code,
+        /*
+         * O unitário sai do MESMO custo usado no total — não é uma segunda
+         * conta. Exposto para a tela poder mostrar de onde o valor veio, em vez
+         * de pedir para o leitor confiar no produto final.
+         */
+        custoUnitario: custoUnitario === null ? null : custoUnitario.toNumber(),
+        valor,
+        /*
+         * A origem da perda, para o rastro não morrer no total: `ORDER` com o
+         * id do pedido cancelado, `PRODUCTION_RUN` com o da corrida.
+         */
+        origem: m.referenceType,
+        referencia: m.reference,
+        motivo: m.note,
+        data: m.createdAt,
+      };
+    });
+
+    return { total, semCusto, linhas };
+  }
+
+  /**
    * Dashboard widget: KPIs financeiros.
    *
    * DOIS PARES DE NÚMEROS, E A DIFERENÇA ENTRE ELES É O ASSUNTO.
@@ -635,9 +781,10 @@ export class InventoryCostService {
     const inicio = new Date();
     inicio.setDate(inicio.getDate() - days);
 
-    const [pedidos, profitability] = await Promise.all([
+    const [pedidos, profitability, perdas] = await Promise.all([
       this.carregarPedidosValidos(storeId, inicio, fim),
       this.getProductProfitability(storeId, days),
+      this.perdasNoPeriodo(storeId, inicio, fim),
     ]);
 
     const receitaTotal = pedidos.reduce((soma, p) => soma + p.receita, 0);
@@ -690,6 +837,34 @@ export class InventoryCostService {
       pedidosParciais: conta("PARCIAL"),
       pedidosSemVinculo: conta("SEM_VINCULO"),
       pedidosSemCusto: conta("SEM_CUSTO"),
+
+      /*
+       * Quanto do faturamento ficou FORA da apuração, em reais.
+       *
+       * A cobertura já dizia isso em porcentagem, mas "87%" não responde à
+       * pergunta que o dono faz — quanto dinheiro eu não sei medir. A base é
+       * a receita das LINHAS, a mesma da cobertura: taxa de entrega não sai
+       * de linha nenhuma e não pode aparecer como mercadoria sem custo.
+       */
+      receitaSemCusto: receitaDasLinhas - receitaApurada,
+
+      /*
+       * PERDAS: a terceira categoria. Não é receita e não é CMV — some do
+       * estoque sem ter vendido nada. Fica ao lado dos outros dois para o
+       * resultado fechar de verdade.
+       */
+      perdas: perdas.total,
+      perdasSemCusto: perdas.semCusto,
+
+      /*
+       * Pedidos cuja baixa de estoque não fechou. A RECEITA DELES CONTINUA
+       * VALENDO — estão aqui dentro, somados no faturamento. O que pode estar
+       * incompleto é o custo, e é isso que o número avisa.
+       */
+      pedidosInconsistentes: pedidos.filter((p) => p.estoqueInconsistente).length,
+      valorInconsistente: pedidos
+        .filter((p) => p.estoqueInconsistente)
+        .reduce((soma, p) => soma + p.receita, 0),
 
       mostProfitableProduct: profitability[0] || null,
       leastProfitableProduct: profitability[profitability.length - 1] || null,

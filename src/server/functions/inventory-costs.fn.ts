@@ -104,3 +104,51 @@ export const getFinancialKPIs = createServerFn({ method: "POST" })
 
     return numeros(await InventoryCostService.getFinancialKPIs(store.storeId, data.days || 30));
   });
+
+/**
+ * Os pedidos cuja baixa de estoque não fechou.
+ *
+ * `Order.inventoryInconsistentAt` era gravado em quatro lugares do sistema e
+ * lido em NENHUM: o aviso existia no banco e não chegava a ninguém. Um pedido
+ * podia concluir sem consumo registrado, sair da apuração e derrubar a
+ * cobertura em silêncio.
+ *
+ * A VENDA CONTINUA VÁLIDA. Estes pedidos estão dentro do faturamento, do
+ * histórico e dos relatórios — nada é escondido. O que a marca diz é que o
+ * CUSTO deles pode estar incompleto, e que o estoque precisa de contagem.
+ *
+ * O RECORTE NÃO MORA AQUI. Quem define o universo é
+ * `InventoryCostService.pedidosComEstoqueInconsistente`, que passa pelo mesmo
+ * carregador dos KPIs — é o que garante que o número do cabeçalho e as linhas
+ * da lista falem do mesmo conjunto de pedidos.
+ */
+export const getPedidosComEstoqueInconsistente = createServerFn({ method: "POST" })
+  .validator(z.object({ days: z.number().int().positive().optional() }))
+  .handler(async ({ data }) => {
+    // `storeId` da sessão, nunca do cliente — o recorte de loja é o mesmo do
+    // resto do financeiro.
+    const store = await requireAdminSession();
+    if (!store) throw new Error("Not authenticated");
+
+    return numeros(
+      await InventoryCostService.pedidosComEstoqueInconsistente(
+        store.storeId,
+        data.days || 30,
+      ),
+    );
+  });
+
+/** As perdas do período, para a tela poder abrir o total em linhas. */
+export const getPerdas = createServerFn({ method: "POST" })
+  .validator(z.object({ days: z.number().int().positive().optional() }))
+  .handler(async ({ data }) => {
+    const store = await requireAdminSession();
+    if (!store) throw new Error("Not authenticated");
+
+    const dias = data.days || 30;
+    const fim = new Date();
+    const inicio = new Date();
+    inicio.setDate(inicio.getDate() - dias);
+
+    return numeros(await InventoryCostService.perdasNoPeriodo(store.storeId, inicio, fim));
+  });
