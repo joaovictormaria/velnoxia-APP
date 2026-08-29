@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import { VolumeX } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/layout/AdminSidebar";
 import { ContagemDoTeste } from "@/components/admin/layout/ContagemDoTeste";
+import { CentralDeNovidades } from "@/components/admin/novidades/CentralDeNovidades";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { useSomDePedido } from "@/lib/alerta-sonoro";
 import { registrarPainelInstalavel } from "@/lib/painel-instalavel";
@@ -141,6 +142,16 @@ function AdminLayout() {
        */}
       <NewOrderDialog />
       <AvisoDeSomBloqueado />
+      {/*
+       * A apresentação de novas funcionalidades mora na moldura pelo mesmo
+       * motivo do aviso de pedido: precisa atravessar as telas. O tour começa
+       * no painel inicial e termina em Relatórios — montado dentro de uma
+       * página, ele seria desmontado no primeiro passo que navegasse.
+       *
+       * Com o catálogo sem nenhuma novidade publicada, este componente devolve
+       * `null` antes de montar hook algum.
+       */}
+      <CentralDeNovidades adminUserId={admin.id} papel={admin.role} />
     </div>
   );
 }
