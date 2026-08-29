@@ -1,5 +1,4 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { semProtocolo, useBaseUrlPublica } from "@/lib/public-url";
 import { useRef, useState } from "react";
 import { UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,12 +41,6 @@ function SignupPage() {
    */
   const [contaSemSessao, setContaSemSessao] = useState(false);
   const [pending, setPending] = useState(false);
-  const basePublica = useBaseUrlPublica();
-
-  // Preview only. The real address is built on the server, which appends the
-  // verifier code — so this shows the shape, never a promise of the final URL.
-  const slugPreview = localSlugify(storeName);
-
   /**
    * Reaplica a mascara sem jogar o cursor para o fim.
    *
@@ -245,21 +238,6 @@ function SignupPage() {
             </p>
           </div>
 
-          {slugPreview && (
-            <div className="rounded-lg bg-neutral-100 px-3 py-2.5">
-              <p className="text-xs text-neutral-500">Endereço do seu cardápio</p>
-              <p className="mt-0.5 font-mono text-sm text-neutral-800">
-                {basePublica ? semProtocolo(basePublica) : ""}/{slugPreview}-
-                <span className="text-neutral-400">••••</span>
-              </p>
-              <p className="mt-1 text-xs text-neutral-500">
-                Criado automaticamente a partir do nome, com um código só seu — assim
-                duas lanchonetes com o mesmo nome nunca se confundem. Você vê o
-                endereço completo assim que a conta for criada.
-              </p>
-            </div>
-          )}
-
           <div className="space-y-2">
             <Label htmlFor="whatsappNumber">WhatsApp da loja</Label>
             <Input
@@ -366,13 +344,3 @@ function SignupPage() {
   );
 }
 
-/** Mirrors the server's slugify so the preview matches what will be saved. */
-function localSlugify(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40);
-}

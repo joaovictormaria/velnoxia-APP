@@ -65,12 +65,36 @@ function KanbanPage() {
   const advance = useMutation({
     mutationFn: (vars: { id: string; status: OrderStatus }) =>
       updateOrderStatusFn({ data: vars }),
-    onSuccess: async (res) => {
+    onSuccess: async (res, vars) => {
       if (!res.ok) {
         setError(res.error);
         return;
       }
       setError(null);
+
+      /*
+       * A COMANDA IMPRIME AO ACEITAR — e só ao aceitar.
+       *
+       * Isto morava no diálogo de pedido novo, que foi removido. Sem ele o
+       * balcão passou a precisar de dois cliques a mais por pedido no horário
+       * de pico: abrir o pedido e clicar em imprimir.
+       *
+       * `PREPARING` é a única transição que imprime. Recusar não imprime, e
+       * avançar para pronto ou concluído também não — a comanda já saiu quando
+       * o pedido entrou na fila.
+       *
+       * DEPOIS do `res.ok`, e não junto com o clique: a versão antiga disparava
+       * a impressão em paralelo com a mutação, e um pedido que o servidor
+       * recusasse mudar imprimia comanda assim mesmo.
+       *
+       * `setTimeout` porque `window.print()` trava a thread principal até
+       * alguém fechar o diálogo do sistema. Adiando um tick, a atualização do
+       * quadro não fica esperando a impressora.
+       */
+      if (vars.status === "PREPARING") {
+        setTimeout(() => window.print(), 0);
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["orders", "kanban"] });
       await queryClient.invalidateQueries({ queryKey: ["mesas", "abertas"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });

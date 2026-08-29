@@ -1,19 +1,7 @@
-﻿// @ts-nocheck
 import { useEffect, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, CheckSquare, Clock, PartyPopper, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { tocarAvisoDePedido } from "@/lib/alerta-sonoro";
-import {
-  getOrderFn,
-  listPendingOrdersFn,
-  markOrderNotificationsReadFn,
-  updateOrderStatusFn,
-} from "@/server/functions/orders.fn";
-import type { OrderDetailResponse } from "@/types/api-responses";
-
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const time = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
-const day = new Intl.DateTimeFormat("pt-BR");
+import { listPendingOrdersFn } from "@/server/functions/orders.fn";
 
 const STORAGE_KEY = "velnoxia:seen-orders";
 
@@ -26,239 +14,77 @@ function readSeen(): string[] {
 }
 
 /**
- * Polls for RECEIVED orders and pops a dialog for ones this session hasn't
- * shown yet. Seen ids live in sessionStorage so a refresh doesn't re-alert.
+ * O aviso sonoro de pedido novo. Não desenha nada.
+ *
+ * Antes isto abria um diálogo em cima da tela a cada pedido, e quem estava no
+ * balcão precisava fechá-lo para voltar ao painel. O pedido já aparece sozinho
+ * na coluna "Recebidos" — a lista se atualiza a cada três segundos —, então o
+ * diálogo só interrompia para contar algo que a tela já estava mostrando.
+ *
+ * O que sobrou é a parte que a tela não faz: chamar a atenção de quem não está
+ * olhando para ela.
  */
 export function NewOrderDialog() {
-  const queryClient = useQueryClient();
-  const [activeId, setActiveId] = useState<string | null>(null);
-  const [autoPrint, setAutoPrint] = useState(true);
-  const seenRef = useRef<Set<string> | null>(null);
+  /** Ids já vistos, para não alertar de novo o que já estava na tela. */
+  const vistos = useRef<Set<string> | null>(null);
+  /** O pedido que está tocando o aviso agora. */
+  const [alertando, setAlertando] = useState<string | null>(null);
 
-  const { data: pending } = useQuery({
+  const { data: pendentes } = useQuery({
     queryKey: ["orders", "pending"],
     queryFn: () => listPendingOrdersFn(),
     refetchInterval: 5_000,
-    // Sem isto o padrÃ£o do react-query congela a busca quando a janela perde o
-    // foco â€” que Ã© exatamente o estado do painel de balcÃ£o a maior parte do
-    // expediente. O pedido sÃ³ apareceria quando alguÃ©m clicasse na janela.
+    /*
+     * Sem isto o padrão do react-query congela a busca quando a janela perde o
+     * foco — que é exatamente o estado do painel de balcão a maior parte do
+     * expediente. O pedido só apareceria quando alguém clicasse na janela.
+     */
     refetchIntervalInBackground: true,
   });
 
   useEffect(() => {
-    if (!pending) return;
+    if (!pendentes) return;
+    const ids = pendentes.map((o: { id: string }) => o.id);
 
-    // First poll only records what already exists â€” no dialog storm on load.
-    if (seenRef.current === null) {
-      seenRef.current = new Set([...readSeen(), ...pending.map((o) => o.id)]);
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...seenRef.current]));
+    /*
+     * A primeira leitura só registra o que já existe. Sem isto, abrir o painel
+     * com pedidos na fila dispararia o aviso para todos eles de uma vez.
+     */
+    if (vistos.current === null) {
+      vistos.current = new Set([...readSeen(), ...ids]);
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...vistos.current]));
       return;
     }
 
-    const fresh = pending.find((o) => !seenRef.current!.has(o.id));
-    if (fresh && !activeId) {
-      seenRef.current.add(fresh.id);
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...seenRef.current]));
-      setActiveId(fresh.id);
+    /*
+     * O aviso para quando o pedido sai de "Recebidos" — alguém o colocou na
+     * fila ou recusou, pelo próprio quadro. Antes quem encerrava o som era o
+     * botão do diálogo; agora é a ação de verdade, que é o que importa.
+     */
+    if (alertando && !ids.includes(alertando)) {
+      setAlertando(null);
+      return;
     }
-  }, [pending, activeId]);
 
-  const { data: orderData } = useQuery({
-    queryKey: ["order", activeId],
-    queryFn: () => getOrderFn({ data: { id: activeId! } }),
-    enabled: Boolean(activeId),
-  });
-  const order = orderData as OrderDetailResponse | undefined;
+    const novo = ids.find((id: string) => !vistos.current!.has(id));
+    if (novo && !alertando) {
+      vistos.current.add(novo);
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...vistos.current]));
+      setAlertando(novo);
+    }
+  }, [pendentes, alertando]);
 
   /**
-   * O aviso se repete enquanto o pedido nÃ£o for atendido. Um toque sÃ³ se perde
-   * numa cozinha barulhenta, e a janela pode estar minimizada â€” o que para Ã©
-   * alguÃ©m decidir sobre o pedido, nÃ£o o tempo passar.
+   * O aviso se repete enquanto o pedido não for atendido. Um toque só se perde
+   * numa cozinha barulhenta, e a janela pode estar minimizada — o que para é
+   * alguém decidir sobre o pedido, não o tempo passar.
    */
   useEffect(() => {
-    if (!activeId) return;
+    if (!alertando) return;
     tocarAvisoDePedido();
     const repetir = setInterval(tocarAvisoDePedido, 10_000);
     return () => clearInterval(repetir);
-  }, [activeId]);
+  }, [alertando]);
 
-  const decide = useMutation({
-    mutationFn: (status: "PREPARING" | "CANCELLED") =>
-      updateOrderStatusFn({ data: { id: activeId!, status } }),
-    onSuccess: async () => {
-      await markOrderNotificationsReadFn({ data: { orderId: activeId! } });
-      await queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      setActiveId(null);
-    },
-  });
-
-  if (!activeId || !order) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="admin-theme max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 text-neutral-900 shadow-2xl">
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="flex items-center gap-2 text-2xl font-bold italic">
-            <PartyPopper className="size-6 text-[#E11D2E]" />
-            Novo pedido recebido!
-          </h2>
-          <button
-            type="button"
-            onClick={() => setActiveId(null)}
-            className="text-neutral-400 hover:text-neutral-700"
-            aria-label="Fechar"
-          >
-            <X className="size-5" />
-          </button>
-        </div>
-
-        <div className="mt-4 rounded-xl border border-neutral-200 p-5">
-          <div className="flex items-start justify-between">
-            <p className="text-3xl font-bold text-[#E11D2E]">#{order.number}</p>
-            <div className="text-right text-sm text-neutral-600">
-              <p>{time.format(new Date(order.createdAt))}</p>
-              <p>{day.format(new Date(order.createdAt))}</p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-6 border-t border-neutral-200 pt-4 sm:grid-cols-2">
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-neutral-500">Cliente</p>
-                <p className="font-bold text-neutral-900">{order.customerName}</p>
-                <p className="text-sm text-emerald-700">{order.customerPhone}</p>
-              </div>
-
-              {order.type === "DELIVERY" && (
-                <div>
-                  <p className="text-sm text-neutral-500">Entrega</p>
-                  <p className="text-sm text-neutral-800">
-                    {order.deliveryStreet}, {order.deliveryNumber}
-                  </p>
-                  <p className="text-sm text-neutral-800">
-                    {[order.deliveryComplement, order.deliveryNeighborhood]
-                      .filter(Boolean)
-                      .join(" - ")}
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <p className="text-sm text-neutral-500">Pagamento</p>
-                <p className="text-sm text-neutral-800">{order.paymentMethod}</p>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm text-neutral-500">Itens do pedido</p>
-              <ul className="mt-2 divide-y divide-neutral-100">
-                {order.items.map((item) => (
-                  <li key={item.id} className="flex justify-between gap-3 py-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-neutral-900">
-                        <span className="text-[#E11D2E]">{item.quantity}x</span>{" "}
-                        {item.productNameSnapshot}
-                        {item.sizeLabel ? ` ${item.sizeLabel}` : ""}
-                      </p>
-                      {item.isHalfAndHalf && item.secondProductNameSnapshot && (
-                        <p className="text-xs text-neutral-500">
-                          {item.productNameSnapshot} / {item.secondProductNameSnapshot}
-                        </p>
-                      )}
-                      {((item as any).extras || []).map((e: any) => (
-                        <p
-                          key={e.id}
-                          className="flex justify-between gap-2 text-xs text-neutral-500"
-                        >
-                          {/* O grupo antes do nome: na cozinha, um sabor
-                              obrigatÃ³rio e um adicional pago sÃ£o coisas
-                              diferentes, e "+ Morango" nÃ£o distingue as duas. */}
-                          <span>
-                            {e.groupNameSnapshot
-                              ? e.groupNameSnapshot + ": " + e.nameSnapshot
-                              : "+ " + e.nameSnapshot}
-                          </span>
-                          <span>{currency.format(e.priceSnapshot)}</span>
-                        </p>
-                      ))}
-                    </div>
-                    <span className="shrink-0 text-sm text-neutral-700">
-                      {currency.format(
-                        (item.unitPrice +
-                          ((item as any).extras || []).reduce((s: any, e: any) => s + e.priceSnapshot, 0)) *
-                          item.quantity,
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {Number(order.discount) > 0 && (
-                <div className="flex items-center justify-between text-sm text-emerald-700">
-                  <span>
-                    Desconto{order.coupon ? " Â· " + order.coupon.code : ""}
-                  </span>
-                  <span>-{currency.format(Number(order.discount))}</span>
-                </div>
-              )}
-              <div className="mt-3 flex items-baseline justify-between border-t border-neutral-200 pt-3">
-                <span className="text-lg font-bold">Total</span>
-                <span className="text-lg font-bold">{currency.format(order.total)}</span>
-              </div>
-            </div>
-          </div>
-
-          {order.customerNote && (
-            <div className="mt-4 border-t border-neutral-200 pt-4">
-              <p className="text-sm text-neutral-500">ObservaÃ§Ã£o do cliente</p>
-              <p className="text-sm text-neutral-800">{order.customerNote}</p>
-            </div>
-          )}
-        </div>
-
-        <label className="mt-4 flex items-center gap-2 text-sm text-neutral-700">
-          <input
-            type="checkbox"
-            checked={autoPrint}
-            onChange={(e) => setAutoPrint(e.target.checked)}
-            className="size-4 accent-[#E11D2E]"
-          />
-          Imprimir automaticamente
-        </label>
-
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            disabled={decide.isPending}
-            onClick={() => decide.mutate("CANCELLED")}
-            className="flex items-center justify-center gap-2 rounded-xl border-2 border-[#E11D2E] py-3 font-semibold text-[#E11D2E] transition-colors hover:bg-red-50 disabled:opacity-60"
-          >
-            <Ban className="size-5" />
-            Recusar pedido
-          </button>
-          <button
-            type="button"
-            disabled={decide.isPending}
-            onClick={() => {
-              // Fire the status change first: window.print() blocks the main
-              // thread until the print dialog is dismissed, and the order
-              // should not wait on that.
-              decide.mutate("PREPARING");
-              if (autoPrint) setTimeout(() => window.print(), 0);
-            }}
-            className="flex items-center justify-center gap-2 rounded-xl bg-[#E11D2E] py-3 font-semibold text-white transition-colors hover:bg-[#c4172a] disabled:opacity-60"
-          >
-            <CheckSquare className="size-5" />
-            Colocar na fila
-          </button>
-        </div>
-
-        <p className="mt-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-neutral-700">
-          <Clock className="size-4 text-[#E11D2E]" />
-          O pedido serÃ¡ adicionado na coluna <strong>"Em preparo"</strong>.
-        </p>
-      </div>
-    </div>
-  );
+  return null;
 }
-
