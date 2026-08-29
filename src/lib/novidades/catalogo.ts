@@ -45,7 +45,7 @@ export const CATALOGO: Novidade[] = [
      *
      * Trocar para `true` é o lançamento.
      */
-    publicada: false,
+    publicada: true,
 
     /*
      * Só quem tem o painel. O entregador é barrado antes, no `beforeLoad` da
