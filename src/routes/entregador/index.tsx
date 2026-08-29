@@ -191,8 +191,13 @@ function CartaoDeEntrega({
   // Desconto em folha fica de fora: o pedido segue em aberto de propósito, mas
   // quem acerta é a loja no salário — mandar o entregador cobrar na porta seria
   // pedir duas vezes pela mesma comida.
+  // Venda a prazo tambem fica de fora, pelo mesmo motivo do desconto em folha:
+  // alguem da loja ja decidiu que o cliente paga outro dia, e mandar cobrar na
+  // porta desmentiria essa decisao na frente do cliente.
   const receberNaEntrega =
-    entrega.paymentStatus !== "PAID" && entrega.paymentMethod !== "PAYROLL";
+    entrega.paymentStatus !== "PAID" &&
+    entrega.paymentStatus !== "OPEN" &&
+    entrega.paymentMethod !== "PAYROLL";
 
   return (
     <article className="rounded-2xl bg-white p-5 shadow-sm">

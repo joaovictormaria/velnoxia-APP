@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BadgePercent,
+  HandCoins,
   BarChart3,
   Bike,
   ChevronDown,
@@ -105,6 +106,15 @@ const MENU: (Item | Grupo)[] = [
       { to: "/admin/relatorios", label: "Visão Geral", icon: PieChart, exact: true },
       { to: "/admin/relatorios/produtos", label: "Produtos", icon: BarChart3 },
       { to: "/admin/relatorios/funcionarios", label: "Funcionários", icon: BadgePercent },
+      /*
+       * Entrada PERMANENTE, e é esse o ponto.
+       *
+       * O indicador no topo do quadro de pedidos some quando não há saldo em
+       * aberto — é o comportamento certo para um aviso, e o errado para uma
+       * porta: sem dívida nenhuma, a tela ficava inalcançável e ninguém sabia
+       * que ela existia.
+       */
+      { to: "/admin/relatorios/recebimentos", label: "Pagamentos em aberto", icon: HandCoins },
     ],
   },
   { to: "/admin/estoque", label: "Estoque & Produção", icon: Package },

@@ -83,7 +83,7 @@ export type KanbanOrder = {
   /** O nome copiado no despacho. Sobrevive à exclusão da conta. */
   courierNameSnapshot: string | null;
   /** Status do pagamento: PENDING ou PAID */
-  paymentStatus: "PENDING" | "PAID";
+  paymentStatus: "PENDING" | "PAID" | "OPEN";
   /** Método de pagamento do pedido */
   paymentMethod: "PIX" | "CREDIT_CARD" | "DEBIT_CARD" | "CASH" | "PAYROLL";
 };
@@ -99,6 +99,7 @@ export function KanbanBoard({
   onAdvance,
   onDispatch,
   onConfirmPayment,
+  onAbrirFiado,
   mostrarEntrega = true,
 }: {
   columns: KanbanColumnData[];
@@ -107,6 +108,7 @@ export function KanbanBoard({
   onDispatch: (order: KanbanOrder) => void;
   /** Confirmar pagamento manualmente */
   onConfirmPayment?: (orderId: string) => void;
+  onAbrirFiado?: (order: KanbanOrder) => void;
   /** Falso numa loja que só faz retirada — ver listKanbanOrders. */
   mostrarEntrega?: boolean;
 }) {
@@ -159,6 +161,7 @@ export function KanbanBoard({
                   onAdvance={onAdvance}
                   onDispatch={onDispatch}
                   onConfirmPayment={onConfirmPayment}
+                  onAbrirFiado={onAbrirFiado}
                 />
               ))}
 
@@ -191,6 +194,7 @@ function OrderCard({
   onAdvance,
   onDispatch,
   onConfirmPayment,
+  onAbrirFiado,
 }: {
   order: KanbanOrder;
   badge: string;
@@ -198,6 +202,7 @@ function OrderCard({
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
   onDispatch: (order: KanbanOrder) => void;
   onConfirmPayment?: (orderId: string) => void;
+  onAbrirFiado?: (order: KanbanOrder) => void;
 }) {
   // Pedidos de mesa vão para TABLE_READY em vez de saírem para entrega
   // Pickup orders skip the delivery step entirely.
@@ -296,6 +301,24 @@ function OrderCard({
               Pago
             </span>
           )}
+          {/*
+            FIADO TEM SELO PRÓPRIO, e não é o de "Pendente".
+            "Pendente" é um pagamento que ainda vai acontecer agora; "Em aberto"
+            é uma decisão de deixar para depois, que alguém assinou. Tratar os
+            dois com a mesma cor apagaria a diferença justamente para quem
+            precisa cobrar.
+          */}
+          {/*
+            NÃO HÁ SELO DE "EM ABERTO" AQUI, e não é esquecimento.
+
+            `listKanbanOrders` filtra `paymentStatus: { not: "OPEN" }` no where
+            base, então um pedido fiado nunca chega a este componente. Um selo
+            para ele seria código que não roda, prometendo um estado que o
+            quadro não mostra.
+
+            Quem cobra fiado usa a tela de recebimentos; quem precisa saber que
+            existe dívida vê o indicador no topo do quadro.
+          */}
         </div>
 
         <div className="mt-2 space-y-2">
@@ -311,6 +334,28 @@ function OrderCard({
               className="w-full rounded-lg border border-green-300 bg-green-50 py-1.5 text-xs font-medium text-green-700 transition-colors hover:border-green-500 cursor-pointer"
             >
               Confirmar pagamento
+            </button>
+          )}
+          {/*
+            PAGAMENTO OUTRO DIA — o fiado do cliente da casa.
+            Fica ao lado de "Confirmar pagamento" porque é a mesma decisão vista
+            de outro lado: recebo agora, ou anoto. E aparece em qualquer coluna,
+            não só na mesa pronta — quem conhece o cliente decide isso quando o
+            pedido chega, não no fim.
+            Não muda o status do pedido: ele segue para o preparo normalmente, e
+            o estoque baixa na hora de sempre.
+          */}
+          {order.paymentStatus === "PENDING" && onAbrirFiado && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAbrirFiado(order);
+              }}
+              className="w-full rounded-lg border border-amber-300 bg-amber-50 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:border-amber-500 cursor-pointer"
+            >
+              Pagamento outro dia
             </button>
           )}
           {(next || precisaEscolherEntregador) && (

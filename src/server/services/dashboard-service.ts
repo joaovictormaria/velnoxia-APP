@@ -2,6 +2,7 @@ import type { OrderStatus } from "@prisma/client";
 import { prisma } from "../db/client";
 import { estaAbertoAgora, horasDoGrafico, rotuloDaHora } from "./janela-do-grafico";
 import { getKanbanMetrics, pedidosRecentes } from "../repositories/order-repository";
+import { RecebimentosService } from "./recebimentos-service";
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -31,7 +32,22 @@ export async function getOrdersByStatus(storeId: string, reference = new Date())
   const grouped = await prisma.order.groupBy({
     by: ["status"],
     _count: { _all: true },
-    where: { storeId, createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) } },
+    where: {
+      storeId,
+      createdAt: { gte: startOfDay(reference), lte: endOfDay(reference) },
+    /*
+     * FIADO NÃO É PEDIDO OPERACIONAL.
+     *
+     * Um pedido com pagamento em aberto já foi feito e já saiu do estoque — o
+     * que falta nele é dinheiro, não trabalho. Contá-lo aqui faz a barra
+     * anunciar uma fila que a cozinha não tem, e é a mesma razão pela qual ele
+     * não aparece no Kanban.
+     *
+     * Ele não some do sistema: vai para o card "Pagamentos em aberto", ao
+     * lado, e volta a contar aqui no instante em que o cliente quita.
+     */
+    paymentStatus: { not: "OPEN" as const },
+    },
   });
 
   const counts = new Map<OrderStatus, number>(
@@ -201,6 +217,7 @@ export async function getDashboardData(storeId: string, reference = new Date()) 
     esgotados,
     estoqueBaixo,
     recentes,
+    emAberto,
   ] = await Promise.all([
     getOrdersByStatus(storeId, reference),
     getOrdersByHour(storeId, reference),
@@ -228,6 +245,15 @@ export async function getDashboardData(storeId: string, reference = new Date()) 
     contarProdutosEsgotados(storeId),
     contarEstoqueBaixo(storeId),
     pedidosRecentes(storeId, 5),
+    /*
+     * O SALDO VEM DE QUEM JÁ SABE CALCULÁ-LO.
+     *
+     * `pagamentosEmAberto` é a mesma função que alimenta a tela de
+     * recebimentos e o indicador do quadro: total − refund − pagamentos não
+     * estornados, com pedido cancelado de fora. Recontar aqui criaria uma
+     * segunda regra de saldo, e duas regras divergem no primeiro ajuste.
+     */
+    RecebimentosService.pagamentosEmAberto(storeId),
   ]);
 
   /*
@@ -258,6 +284,13 @@ export async function getDashboardData(storeId: string, reference = new Date()) 
       minutosAguardando: metricas.paidWaitingMinutes,
       produtosEsgotados: esgotados,
       estoqueBaixo,
+      /*
+       * A ÚNICA COISA EM DINHEIRO NESTA BARRA, e ela está aqui de propósito:
+       * é uma cobrança pendente, não faturamento. Sem o valor, "1 em aberto"
+       * não diz se vale a pena ligar para o cliente hoje.
+       */
+      pagamentosEmAberto: emAberto.quantidade,
+      valorEmAberto: emAberto.total,
       abertoAgora: estaAbertoAgora(settings?.openingHours[0] ?? null, reference),
     },
     pedidosRecentes: recentes,

@@ -94,6 +94,8 @@ export const updateOrderStatusFn = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     return transitionOrderStatus(admin.storeId, data.id, data.status, {
       authorType: "ADMIN",
+      // Para o estorno de cancelamento saber a quem perguntar depois.
+      authorId: admin.id,
       authorName: admin.name,
       note: data.note,
     });

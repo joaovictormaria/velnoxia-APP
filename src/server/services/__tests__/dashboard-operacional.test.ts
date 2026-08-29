@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
 import { prisma } from "@/server/db/client";
 import { getDashboardData, getOrdersByStatus } from "@/server/services/dashboard-service";
+import { RecebimentosService } from "@/server/services/recebimentos-service";
+import { transitionOrderStatus } from "@/server/services/order-service";
 
 /*
  * O PAINEL É OPERACIONAL, NÃO FINANCEIRO.
@@ -303,5 +305,116 @@ describe("aberto agora", () => {
   it("20 · sem horário cadastrado, o painel diz fechado", async () => {
     // Ausência de dado não vira promessa de atendimento.
     expect((await painel()).operacao.abertoAgora).toBe(false);
+  });
+});
+
+// ============================================================
+describe("fiado nao conta como pedido operacional", () => {
+  /*
+   * A REGRA: um pedido com pagamento em aberto já foi feito e já saiu do
+   * estoque. O que falta nele é dinheiro, não trabalho — contá-lo na barra de
+   * operação anuncia uma fila que a cozinha não tem.
+   *
+   * É a mesma regra do Kanban, aplicada à outra tela que mostra pedidos.
+   *
+   * O AUTOR é fixo: quem abriu a conta não muda nada aqui, e o que se mede é
+   * a classificação do pedido nos indicadores.
+   */
+  const AUTOR = { id: "adm-1", name: "Maria do Balcão", email: "maria@loja.com" };
+
+  it("21 · pedido OPEN sai de Pedidos hoje e de Recebidos", async () => {
+    const normal = await pedido("RECEIVED");
+    const fiado = await pedido("RECEIVED");
+
+    const antes = await painel();
+    expect(antes.operacao.pedidosHoje).toBe(2);
+    expect(antes.byStatus.received).toBe(2);
+
+    await RecebimentosService.abrirFiado(storeId, fiado.id, AUTOR);
+
+    const depois = await painel();
+    expect(depois.operacao.pedidosHoje).toBe(1); // só o normal
+    expect(depois.byStatus.received).toBe(1);
+
+    // O pedido continua no banco, inteiro — só mudou de classificação.
+    const noBanco = await prisma.order.findFirstOrThrow({ where: { id: fiado.id } });
+    expect(noBanco.paymentStatus).toBe("OPEN");
+    expect(noBanco.status).toBe("RECEIVED");
+    expect(normal.id).toBeTruthy();
+  });
+
+  it("22 · pedido OPEN em preparo não conta em Em preparo", async () => {
+    const p = await pedido("PREPARING");
+    await RecebimentosService.abrirFiado(storeId, p.id, AUTOR);
+
+    const d = await painel();
+    expect(d.byStatus.preparing).toBe(0);
+    expect(d.operacao.emPreparo).toBe(0);
+    expect(d.operacao.pedidosHoje).toBe(0);
+  });
+
+  it("23 · pedido OPEN não aparece em Pedidos recentes", async () => {
+    const normal = await pedido("RECEIVED");
+    const fiado = await pedido("RECEIVED");
+    await RecebimentosService.abrirFiado(storeId, fiado.id, AUTOR);
+
+    const d = await painel();
+    const ids = d.pedidosRecentes.map((r: any) => r.id);
+    expect(ids).toContain(normal.id);
+    expect(ids).not.toContain(fiado.id);
+  });
+
+  it("24 · o card mostra o saldo REAL, não o total do pedido", async () => {
+    /*
+     * O valor sai de `pagamentosEmAberto`, a mesma função da tela de
+     * recebimentos: total − refund − pagamentos não estornados. Um pagamento
+     * parcial precisa reduzir o card, e não só a tela.
+     */
+    const p = await pedido("RECEIVED");
+    await RecebimentosService.abrirFiado(storeId, p.id, AUTOR);
+
+    let d = await painel();
+    expect(d.operacao.pagamentosEmAberto).toBe(1);
+    expect(d.operacao.valorEmAberto).toBeCloseTo(50, 2);
+
+    await RecebimentosService.receberPagamento(
+      storeId, p.id, { amount: 10, method: "CASH" }, AUTOR,
+    );
+
+    d = await painel();
+    expect(d.operacao.pagamentosEmAberto).toBe(1); // continua uma conta
+    expect(d.operacao.valorEmAberto).toBeCloseTo(40, 2); // com saldo menor
+  });
+
+  it("25 · ao quitar, some do card e volta aos indicadores", async () => {
+    const p = await pedido("PREPARING");
+    await RecebimentosService.abrirFiado(storeId, p.id, AUTOR);
+
+    let d = await painel();
+    expect(d.operacao.pagamentosEmAberto).toBe(1);
+    expect(d.operacao.pedidosHoje).toBe(0);
+
+    await RecebimentosService.receberPagamento(
+      storeId, p.id, { amount: 50, method: "PIX" }, AUTOR,
+    );
+
+    d = await painel();
+    expect(d.operacao.pagamentosEmAberto).toBe(0);
+    expect(d.operacao.valorEmAberto).toBe(0);
+    // Quitado, volta a ser um pedido como qualquer outro.
+    expect(d.operacao.pedidosHoje).toBe(1);
+    expect(d.byStatus.completed).toBe(1);
+    expect(d.pedidosRecentes.map((r: any) => r.id)).toContain(p.id);
+  });
+
+  it("26 · pedido normal continua contando, sem mudança nenhuma", async () => {
+    const p = await pedido("RECEIVED");
+
+    const d = await painel();
+    expect(d.operacao.pedidosHoje).toBe(1);
+    expect(d.byStatus.received).toBe(1);
+    expect(d.operacao.pagamentosEmAberto).toBe(0);
+    expect(d.operacao.valorEmAberto).toBe(0);
+    expect(d.pedidosRecentes.map((r: any) => r.id)).toContain(p.id);
   });
 });

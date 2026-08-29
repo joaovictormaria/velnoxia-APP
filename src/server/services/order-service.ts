@@ -853,7 +853,13 @@ export async function transitionOrderStatus(
   storeId: string,
   orderId: string,
   status: OrderStatus,
-  author: { authorType: StatusAuthorType; authorName?: string; note?: string },
+  author: {
+    authorType: StatusAuthorType;
+    /** Quem agiu. Opcional: a varredura de expiração é SYSTEM e não tem id. */
+    authorId?: string;
+    authorName?: string;
+    note?: string;
+  },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   // storeId is part of the lookup: an order id from another store must simply
   // not be found, not be moved.
@@ -920,7 +926,20 @@ export async function transitionOrderStatus(
          * esta exceção, todo pedido de funcionário se quitaria sozinho ao ser
          * concluído e o total a descontar seria sempre zero.
          */
-        ...(status === "COMPLETED" && order.paymentMethod !== "PAYROLL"
+        /*
+         * E menos a VENDA A PRAZO, pelo mesmo motivo do PAYROLL.
+         *
+         * `OPEN` é a decisão de alguém — está assinada em `openedById` — de
+         * que o cliente paga outro dia. Concluir o pedido quitaria essa
+         * decisão sozinho, e a dívida sumiria do relatório de contas a receber
+         * no instante em que a comida saísse da cozinha.
+         *
+         * Quem tira um pedido de OPEN é o recebimento do dinheiro, em
+         * `RecebimentosService.receberPagamento`, e só quando o saldo zera.
+         */
+        ...(status === "COMPLETED" &&
+        order.paymentMethod !== "PAYROLL" &&
+        order.paymentStatus !== "OPEN"
           ? { paymentStatus: "PAID" as const }
           : {}),
         // Se cancelando, registrar cancelledAt e refund se foi pago
@@ -948,6 +967,43 @@ export async function transitionOrderStatus(
         authorType: author.authorType,
         authorName: author.authorName ?? null,
         note: author.note ?? null,
+      },
+    }),
+
+    /*
+     * CANCELAR ESTORNA O DINHEIRO RECEBIDO — e nunca o apaga.
+     *
+     * Um pedido cancelado que já tinha recebimento continuava somando na série
+     * de recebimentos: o `refund` do pedido dizia que o dinheiro voltou, e as
+     * linhas de OrderPayment continuavam dizendo que tinha entrado. O mesmo
+     * valor aparecia dos dois lados.
+     *
+     * `updateMany` com `reversedAt: null` no filtro é IDEMPOTENTE por
+     * construção: a segunda passagem não encontra nada para marcar. E a guarda
+     * de `transitionOrderStatus` (`if (order.status === status) return ok`)
+     * já impede que um segundo cancelamento chegue até aqui.
+     *
+     * DENTRO DA MESMA TRANSAÇÃO do update de status: ou o pedido é cancelado e
+     * o dinheiro é estornado, ou nenhum dos dois acontece. Um cancelamento com
+     * estorno pela metade seria pior que nenhum.
+     *
+     * NÃO TOCA ESTOQUE. Quem trata o material do pedido cancelado é o
+     * `OrderInventoryHandler`, pelo caminho de sempre — reserva revertida,
+     * consumo virando perda. Aqui só o dinheiro.
+     *
+     * Nas transições que não são cancelamento o `where` não casa com nada e o
+     * comando é um no-op.
+     */
+    prisma.orderPayment.updateMany({
+      where:
+        status === "CANCELLED"
+          ? { orderId, storeId, reversedAt: null }
+          : // Um filtro impossível: mantém o array com forma fixa sem tocar em linha alguma.
+            { id: "__nenhum__" },
+      data: {
+        reversedAt: new Date(),
+        reversedById: author.authorId ?? null,
+        reversalReason: "Pedido cancelado",
       },
     }),
   ]);

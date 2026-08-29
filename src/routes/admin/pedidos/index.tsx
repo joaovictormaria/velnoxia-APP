@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Bike,
   CalendarDays,
@@ -10,6 +10,7 @@ import {
   Search,
   ShoppingBag,
   AlertTriangle,
+  HandCoins,
 } from "lucide-react";
 import type { OrderStatus } from "@prisma/client";
 import { KanbanBoard, type KanbanOrder } from "@/components/admin/orders/KanbanBoard";
@@ -18,8 +19,10 @@ import {
   DispatchDialog,
   type DispatchTarget,
 } from "@/components/admin/orders/DispatchDialog";
+import { ConfirmDialog } from "@/components/admin/comum/ConfirmDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
 import { listKanbanOrdersFn, listMesasAbertasFn, updateOrderStatusFn, confirmPaymentFn } from "@/server/functions/orders.fn";
+import { abrirFiadoFn, getPagamentosEmAbertoFn } from "@/server/functions/recebimentos.fn";
 import type { KanbanResponse, MesasAbertasResponse } from "@/types/api-responses";
 
 export const Route = createFileRoute("/admin/pedidos/")({
@@ -43,6 +46,23 @@ function KanbanPage() {
   // Pedido cuja saída está sendo decidida — a escolha do entregador é um passo
   // próprio, não um clique que já muda o status.
   const [dispatching, setDispatching] = useState<DispatchTarget | null>(null);
+  /*
+   * O pedido esperando confirmação de "pagamento outro dia". O pedido inteiro,
+   * e não só o id, porque o diálogo mostra cliente e valor — e é a existência
+   * dele que abre o diálogo, sem um segundo booleano para ficar fora de sincronia.
+   */
+  const [fiadoPendente, setFiadoPendente] = useState<KanbanOrder | null>(null);
+  /** Falha do fiado. Mora à parte do `error` da página: aparece dentro do diálogo. */
+  const [erroDoFiado, setErroDoFiado] = useState<string | null>(null);
+  /*
+   * O Radix segura o diálogo montado durante a animação de saída. Ler
+   * `fiadoPendente` direto deixaria o nome e o valor sumirem NA FRENTE da
+   * pessoa nesses ~200ms, com a caixa âmbar vazia esvaindo na tela. Esta cópia
+   * só anda para frente, então o conteúdo continua inteiro até o fim do fade.
+   */
+  const ultimoFiado = useRef<KanbanOrder | null>(null);
+  if (fiadoPendente) ultimoFiado.current = fiadoPendente;
+  const fiadoExibido = fiadoPendente ?? ultimoFiado.current;
 
   const { data, isPending } = useQuery({
     queryKey: ["orders", "kanban", date, search],
@@ -143,6 +163,49 @@ function KanbanPage() {
     },
   });
 
+  /**
+   * VENDA A PRAZO — o fiado do cliente da casa.
+   *
+   * Não passa por `confirmPaymentFn`: aquela função empurra o status do pedido,
+   * e PREPARING é onde a reserva vira consumo. Aqui só o pagamento muda; o
+   * pedido segue o fluxo dele e o estoque baixa na hora de sempre.
+   */
+  const abrirFiado = useMutation({
+    mutationFn: (orderId: string) => abrirFiadoFn({ data: { orderId } }),
+    onSuccess: async (res) => {
+      if (!res.ok) {
+        /*
+         * A recusa fica NO DIÁLOGO, que continua aberto. Antes ela virava um
+         * aviso no topo da página enquanto o confirm nativo já tinha sumido —
+         * a pessoa lia o motivo longe da decisão e sem como tentar de novo.
+         */
+        setErroDoFiado(res.error || "Erro ao registrar pagamento em aberto");
+        return;
+      }
+      setError(null);
+      setErroDoFiado(null);
+      // Só o sucesso fecha.
+      setFiadoPendente(null);
+      await queryClient.invalidateQueries({ queryKey: ["orders", "kanban"] });
+      await queryClient.invalidateQueries({ queryKey: ["mesas", "abertas"] });
+      queryClient.invalidateQueries({ queryKey: ["pagamentos-em-aberto"] });
+    },
+    onError: () => setErroDoFiado("Erro ao registrar pagamento em aberto"),
+  });
+
+  /*
+   * A confirmação nomeia o cliente e o valor. Deixar de cobrar é uma decisão
+   * que fica assinada em `openedById`, e quem assina precisa ver o que está
+   * assinando antes — não depois, no relatório de inadimplência.
+   *
+   * Isto aqui só ABRE o diálogo. A operação continua sendo a mesma
+   * `abrirFiado.mutate(id)` de sempre, disparada na confirmação.
+   */
+  function pedirFiado(pedido: KanbanOrder) {
+    setErroDoFiado(null);
+    setFiadoPendente(pedido);
+  }
+
   function handleAdvance(order: KanbanOrder, status: OrderStatus) {
     advance.mutate({ id: order.id, status });
   }
@@ -181,6 +244,7 @@ function KanbanPage() {
             />
           </div>
 
+          <IndicadorDeFiado />
           <NotificationBell />
         </div>
       </header>
@@ -226,6 +290,7 @@ function KanbanPage() {
             })
           }
           onConfirmPayment={(orderId) => confirmarPagamento.mutate(orderId)}
+          onAbrirFiado={pedirFiado}
         />
       )}
 
@@ -296,6 +361,62 @@ function KanbanPage() {
       {dispatching && (
         <DispatchDialog order={dispatching} onClose={() => setDispatching(null)} />
       )}
+
+      {/*
+        A confirmação do fiado. Substitui o `window.confirm()` que anunciava
+        "localhost:5173 diz" — mesma pergunta, mesma operação depois do OK.
+
+        Fica montado sempre: o Radix precisa da transição de `open` para animar
+        a saída, e desmontar no clique cortaria isso. Sem pedido pendente ele
+        não renderiza nada no DOM.
+      */}
+      <ConfirmDialog
+        open={fiadoPendente !== null}
+        onOpenChange={(aberto) => {
+          if (aberto) return;
+          setFiadoPendente(null);
+          setErroDoFiado(null);
+        }}
+        icone={HandCoins}
+        variante="atencao"
+        titulo="Pagamento outro dia"
+        descricao="O pedido entra na fila normalmente e o valor fica registrado como pagamento em aberto até o cliente quitar."
+        rotuloConfirmar="Registrar em aberto"
+        carregando={abrirFiado.isPending}
+        erro={erroDoFiado}
+        onConfirm={() => {
+          // A MESMA chamada de antes. O diálogo não sabe o que ela faz.
+          if (fiadoPendente) abrirFiado.mutate(fiadoPendente.id);
+        }}
+      >
+        {/*
+          Quem e quanto, destacados. É o que a pessoa está assinando — fica em
+          `openedById` e reaparece na tela de recebimentos.
+        */}
+        <dl className="flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="min-w-0">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+              Cliente
+            </dt>
+            <dd className="truncate text-sm font-medium text-neutral-900">
+              {fiadoExibido?.customerName}
+            </dd>
+          </div>
+          <div className="shrink-0 text-right">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+              Ficará em aberto
+            </dt>
+            <dd className="font-display text-xl font-bold tabular-nums text-amber-900">
+              {fiadoExibido
+                ? new Intl.NumberFormat("pt-BR", {
+                    style: "currency",
+                    currency: "BRL",
+                  }).format(Number(fiadoExibido.total))
+                : null}
+            </dd>
+          </div>
+        </dl>
+      </ConfirmDialog>
     </div>
   );
 }
@@ -392,5 +513,62 @@ function Metric({
         <p className="text-2xl font-bold text-neutral-900">{value}</p>
       </div>
     </div>
+  );
+}
+
+/**
+ * O AVISO DE CONTAS EM ABERTO — um indicador, não uma notificação.
+ *
+ * Dívida em aberto é um ESTADO, não um evento. Gravar uma Notification por dia
+ * empilharia o mesmo aviso para a mesma conta a cada manhã, e alguém teria de
+ * limpar a fila à mão. Calculado na hora, o número some sozinho quando o
+ * cliente paga — e o histórico do que foi pago fica em OrderPayment, intacto.
+ *
+ * Só aparece quando há o que cobrar: um selo permanente dizendo "0 em aberto"
+ * vira moldura e ninguém lê no dia em que houver um.
+ */
+function IndicadorDeFiado() {
+  const { data } = useQuery({
+    queryKey: ["pagamentos-em-aberto"],
+    queryFn: async () => getPagamentosEmAbertoFn({ data: {} }),
+    refetchInterval: 60_000,
+  });
+  const quantidade = data?.quantidade ?? 0;
+  if (quantidade === 0) return null;
+
+  const dinheiro = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  /*
+   * O RESUMO NO HOVER, com os mais antigos primeiro.
+   *
+   * `title` nativo, e não um Popover: os componentes de tooltip do projeto são
+   * stubs do shadcn que nada usa, e ligar um deles por causa de três linhas de
+   * texto custaria mais do que entrega. O navegador já sabe fazer isso.
+   *
+   * A lista vem ordenada por `openedAt` ascendente pelo serviço — quem espera
+   * há mais tempo aparece antes, que é a ordem em que se cobra.
+   */
+  const resumo = [
+    `${quantidade} pagamento(s) em aberto · ${dinheiro(data?.total ?? 0)}`,
+    "",
+    ...((data?.linhas ?? []) as any[])
+      .slice(0, 5)
+      .map((l) => `${l.cliente} — ${dinheiro(l.saldo)} — ${l.diasEmAberto} dia(s)`),
+    ...(quantidade > 5 ? [`e mais ${quantidade - 5}...`] : []),
+  ].join("\n");
+
+  return (
+    <Link
+      to="/admin/relatorios/recebimentos"
+      className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-800 transition-colors hover:border-amber-500"
+      title={resumo}
+    >
+      <HandCoins className="size-4" />
+      {quantidade} em aberto
+      <span className="tabular-nums font-bold">
+        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(data?.total ?? 0)}
+      </span>
+    </Link>
   );
 }

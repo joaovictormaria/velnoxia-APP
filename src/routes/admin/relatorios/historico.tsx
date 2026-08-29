@@ -325,6 +325,8 @@ function TransactionHistoryPage() {
                       className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
                         transaction.paymentStatus === "PAID"
                           ? "bg-emerald-100 text-emerald-700"
+                          : transaction.paymentStatus === "OPEN"
+                          ? "bg-amber-100 text-amber-800"
                           : transaction.paymentStatus === "PENDING"
                             ? "bg-amber-100 text-amber-700"
                             : "bg-red-100 text-red-700"
@@ -332,7 +334,9 @@ function TransactionHistoryPage() {
                     >
                       {transaction.paymentStatus === "PAID"
                         ? "Pago"
-                        : transaction.paymentStatus === "PENDING"
+                        : transaction.paymentStatus === "OPEN"
+                          ? "Em aberto"
+                          : transaction.paymentStatus === "PENDING"
                           ? "Pendente"
                           : transaction.paymentStatus}
                     </span>

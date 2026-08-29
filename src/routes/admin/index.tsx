@@ -159,6 +159,8 @@ function DashboardPage() {
            */}
           <BarraDeOperacao
             pedidosHoje={data.operacao.pedidosHoje}
+            pagamentosEmAberto={data.operacao.pagamentosEmAberto ?? 0}
+            valorEmAberto={data.operacao.valorEmAberto ?? 0}
             recebidos={data.byStatus.received}
             emPreparo={data.operacao.emPreparo}
             esgotados={data.operacao.produtosEsgotados}

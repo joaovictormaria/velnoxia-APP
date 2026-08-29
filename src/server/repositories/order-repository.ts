@@ -83,6 +83,23 @@ export async function listKanbanOrders(
   const where = {
     storeId,
     createdAt: { gte: from, lte: to },
+    /*
+     * FIADO NÃO APARECE NO KANBAN — em coluna nenhuma.
+     *
+     * O quadro é a fila de trabalho. Um pedido com pagamento em aberto tem
+     * pendência FINANCEIRA, e financeiro tem tela própria: enquanto houver
+     * saldo, ele vive em "Pagamentos em aberto" e no indicador do topo.
+     *
+     * NO WHERE BASE, e não por coluna. É o que garante que RECEIVED,
+     * PREPARING, OUT_FOR_DELIVERY e COMPLETED sumam pela mesma regra — e que
+     * a LISTA e o CONTADOR de cada coluna concordem, já que os dois partem
+     * daqui.
+     *
+     * Some do quadro, não do banco: o pedido continua inteiro, com histórico,
+     * estoque consumido e receita reconhecida. Volta a aparecer quando o
+     * cliente paga.
+     */
+    paymentStatus: { not: "OPEN" as const },
     ...(search
       ? {
           OR: [
@@ -96,9 +113,13 @@ export async function listKanbanOrders(
 
   const columns = await Promise.all(
     KANBAN_STATUSES.map(async (status) => {
+      // O recorte de fiado já mora no `where` base, acima: aqui cada coluna
+      // só acrescenta o próprio status.
+      const recorte = { ...where, status };
+
       const [ordersRaw, total] = await Promise.all([
         prisma.order.findMany({
-          where: { ...where, status },
+          where: recorte,
           orderBy: { createdAt: ordemDaColuna(status) },
           take: perColumn,
           select: {
@@ -127,7 +148,7 @@ export async function listKanbanOrders(
             table: { select: { number: true } },
           },
         }),
-        prisma.order.count({ where: { ...where, status } }),
+        prisma.order.count({ where: recorte }),
       ]);
       const orders = ordersRaw.map((order) => convertOrderForClient(order));
       return { status, orders, total };
@@ -376,7 +397,14 @@ export async function getKanbanMetrics(storeId: string, date?: string) {
  */
 export async function pedidosRecentes(storeId: string, limite = 5) {
   const pedidos = await prisma.order.findMany({
-    where: { storeId, deletedAt: null, status: { not: "CANCELLED" } },
+    where: {
+      storeId,
+      deletedAt: null,
+      status: { not: "CANCELLED" },
+      // Mesma regra da barra de operação: fiado não é pedido operacional, e
+      // listá-lo aqui o faria parecer trabalho pendente da cozinha.
+      paymentStatus: { not: "OPEN" as const },
+    },
     orderBy: { createdAt: "desc" },
     take: limite,
     select: {

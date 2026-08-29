@@ -92,8 +92,19 @@ enum PaymentMethod {
 }
 
 enum PaymentStatus {
+  /// Ainda não decidido: o pagamento normal, esperando confirmação.
   PENDING
+  /// Quitado. Saldo zero.
   PAID
+  /// VENDA A PRAZO — o fiado do cliente da casa.
+  ///
+  /// Não é o mesmo que PENDING, e a diferença é de intenção: PENDING é um
+  /// pagamento que ainda vai acontecer agora; OPEN é uma decisão de deixar
+  /// para depois, tomada por alguém que assinou embaixo (`openedById`).
+  ///
+  /// Concluir o pedido NÃO quita um OPEN. É a mesma regra que o PAYROLL já
+  /// seguia: entregue e não pago, de propósito.
+  OPEN
 }
 
 enum OrderSource {
@@ -153,7 +164,6 @@ enum StoreStatus {
 
 /**
  * Qual documento identifica o estabelecimento.
- *
  * Deriva do tamanho de `Store.document` (11 digitos = CPF, 14 = CNPJ), mas
  * fica gravado para que uma consulta possa filtrar por tipo sem contar
  * caractere. Um CHECK no banco impede que os dois se contradigam.
@@ -166,12 +176,12 @@ enum DocumentType {
 /// Tenant root. Every customer-facing and admin-facing record hangs off a
 /// Store, and every query must be scoped by storeId — there is no global view.
 model Store {
-  id           String      @id @default(cuid())
+  id           String        @id @default(cuid())
   /// Drives the starter catalog and the storefront copy (pizzaria, hamburgueria...).
-  businessType String      @default("pizzaria")
+  businessType String        @default("pizzaria")
   /// Public URL segment: velnox.app/<slug>. Checked against RESERVED_SLUGS on
   /// signup so a store can never shadow a real route (/admin, /criar-site...).
-  slug         String      @unique
+  slug         String        @unique
   name         String
   /// CPF ou CNPJ do estabelecimento, somente digitos: sem ponto, barra ou
   /// traco. A mascara existe so na interface — guardar formatado quebraria a
@@ -182,7 +192,7 @@ model Store {
   /// exige o documento, e a migration seguinte fecha a coluna como NOT NULL.
   document     String?       @unique @db.VarChar(14)
   documentType DocumentType?
-  status       StoreStatus @default(TRIAL)
+  status       StoreStatus   @default(TRIAL)
   trialEndsAt  DateTime?
 
   /// O cliente no Stripe. Criado na primeira tentativa de assinar e reusado
@@ -211,6 +221,7 @@ model Store {
   coupons              Coupon[]
   customers            Customer[]
   orders               Order[]
+  orderPayments        OrderPayment[]
   reviews              Review[]
   posts                Post[]
   courierInvites       CourierInvite[]
@@ -235,30 +246,30 @@ model Store {
 /// Uma sessão por mesa, com PIN de 4 dígitos para múltiplos dispositivos.
 /// Auto-expira após 24h de inatividade.
 model TableSession {
-  id        String                @id @default(cuid())
-  storeId   String
-  store     Store                 @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  tableId   String
-  table     Table                 @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  tableId String
+  table   Table  @relation(fields: [tableId], references: [id], onDelete: Cascade)
 
   /// PIN de 4 dígitos, sempre armazenado em hash (nunca texto puro)
-  pinHash   String
+  pinHash String
 
   /// Estado da sessão
-  status    TableSessionStatus    @default(OPEN)
+  status TableSessionStatus @default(OPEN)
 
   /// Rastreabilidade
-  openedAt  DateTime              @default(now())
+  openedAt  DateTime  @default(now())
   paidAt    DateTime?
   closedAt  DateTime?
   expiresAt DateTime
 
-  createdAt DateTime              @default(now())
-  updatedAt DateTime              @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   /// Relações
-  devices   SessionDevice[]
-  orders    Order[]
+  devices SessionDevice[]
+  orders  Order[]
 
   /// Garante apenas uma sessão OPEN por mesa (concorrência)
   @@unique([tableId, status])
@@ -269,25 +280,25 @@ model TableSession {
 /// Dispositivos autorizados numa sessão de mesa.
 /// O primeiro dispositivo entra automaticamente; os demais precisam do PIN.
 model SessionDevice {
-  id                String    @id @default(cuid())
-  sessionId         String
-  session           TableSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id        String       @id @default(cuid())
+  sessionId String
+  session   TableSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   /// Token hash do dispositivo (nunca texto puro)
-  deviceTokenHash   String    @unique
+  deviceTokenHash String @unique
 
   /// Primeiro dispositivo entra sem PIN
-  requiresPin       Boolean   @default(true)
+  requiresPin Boolean @default(true)
 
   /// Rastreabilidade
-  authorizedAt      DateTime  @default(now())
-  lastSeenAt        DateTime  @updatedAt
-  revokedAt         DateTime?
+  authorizedAt DateTime  @default(now())
+  lastSeenAt   DateTime  @updatedAt
+  revokedAt    DateTime?
 
-  createdAt         DateTime  @default(now())
+  createdAt DateTime @default(now())
 
   /// Relações
-  orders            Order[]
+  orders Order[]
 
   @@unique([sessionId, deviceTokenHash])
   @@index([sessionId, revokedAt])
@@ -357,9 +368,9 @@ model StoreSettings {
   addressCity              String?
   addressState             String?
   addressZipCode           String?
-  deliveryFee              Decimal         @db.Decimal(10, 2) @default(6)
+  deliveryFee              Decimal         @default(6) @db.Decimal(10, 2)
   freeDeliveryMinOrder     Decimal?        @db.Decimal(10, 2)
-  minOrderValue            Decimal         @db.Decimal(10, 2) @default(0)
+  minOrderValue            Decimal         @default(0) @db.Decimal(10, 2)
   estimatedDeliveryMinMin  Int             @default(35)
   estimatedDeliveryMinMax  Int             @default(55)
   estimatedPickupMinMin    Int             @default(15)
@@ -538,7 +549,7 @@ model OptionItem {
   group       OptionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   name        String
   /// Acréscimo. Zero nas escolhas que não custam, como o sabor.
-  price       Decimal     @db.Decimal(10, 2) @default(0)
+  price       Decimal     @default(0) @db.Decimal(10, 2)
   isAvailable Boolean     @default(true)
   sortOrder   Int         @default(0)
 
@@ -563,14 +574,14 @@ model ProductSize {
 }
 
 model Extra {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name      String
-  price     Decimal  @db.Decimal(10, 2)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  price     Decimal   @db.Decimal(10, 2)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   deletedBy String?
 
@@ -640,22 +651,22 @@ model Coupon {
 /// a link to a product: most of these are combos and weekday deals that do not
 /// exist as a single catalog item.
 model Promotion {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   storeId       String
-  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   /// Small line above the title ("Oferta da semana", "Toda sexta-feira").
   eyebrow       String
   title         String
   description   String
   /// Shown as a badge; free text so "-20%" and "Leve 3 pague 2" both fit.
   discount      String?
-  price         Decimal? @db.Decimal(10, 2)
-  originalPrice Decimal? @db.Decimal(10, 2)
+  price         Decimal?  @db.Decimal(10, 2)
+  originalPrice Decimal?  @db.Decimal(10, 2)
   imageUrl      String?
-  sortOrder     Int      @default(0)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
   deletedBy     String?
 
@@ -666,16 +677,16 @@ model Promotion {
 // ---------- Clientes ----------
 
 model Customer {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name      String
   /// Unique per store, not globally: the same person can order from several
   /// lanchonetes and each keeps its own customer record and history.
   phone     String
   email     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   deletedBy String?
 
@@ -747,7 +758,7 @@ model EmployeeBenefitPlan {
   store        Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name         String
   defaultType  EmployeeBenefitType @default(NONE)
-  defaultValue Decimal             @db.Decimal(10, 2) @default(0)
+  defaultValue Decimal             @default(0) @db.Decimal(10, 2)
   limitMode    EmployeeLimitMode   @default(NONE)
   /// Itens por dia ou reais por dia, conforme o modo. Ignorado em NONE e em
   /// PER_CATEGORY, onde o número está em cada exceção.
@@ -780,7 +791,7 @@ model EmployeeBenefitRule {
   productId  String?
   product    Product?            @relation(fields: [productId], references: [id], onDelete: Cascade)
   type       EmployeeBenefitType
-  value      Decimal             @db.Decimal(10, 2) @default(0)
+  value      Decimal             @default(0) @db.Decimal(10, 2)
   /// Quantas unidades por dia, quando o plano conta a cota por categoria.
   dailyLimit Int?
 
@@ -832,7 +843,7 @@ model Order {
   /// Quanto do `discount` veio do benefício. Redundante de propósito: o
   /// relatório de pessoal precisa separar isto de um desconto de cupom, e os
   /// dois moram no mesmo campo de total.
-  employeeDiscount     Decimal   @db.Decimal(10, 2) @default(0)
+  employeeDiscount     Decimal   @default(0) @db.Decimal(10, 2)
   /// Por qual regra, em português, para a tela do pedido explicar sem recalcular
   /// nada: "Plano Cozinha — 30%; 2 itens fora da cota".
   employeeBenefitNote  String?
@@ -850,14 +861,37 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
 
   subtotal    Decimal
-  deliveryFee Decimal @db.Decimal(10, 2) @default(0)
-  discount    Decimal @db.Decimal(10, 2) @default(0)
+  deliveryFee Decimal @default(0) @db.Decimal(10, 2)
+  discount    Decimal @default(0) @db.Decimal(10, 2)
   total       Decimal
 
   /// Valor reembolsado se pedido foi cancelado após pagamento
-  refund    Decimal? @db.Decimal(10, 2)
+  refund     Decimal?  @db.Decimal(10, 2)
   /// Data do reembolso (se aplicável)
   refundedAt DateTime?
+
+  // ---------- VENDA A PRAZO (fiado) ----------
+  //
+  // O PEDIDO É A CONTA A RECEBER. Não existe modelo `Receivable`: ele copiaria
+  // valor, cliente e data de um Order que já tem os três, e criaria um segundo
+  // lugar para o mesmo número divergir.
+  //
+  // NENHUM CAMPO DE SALDO. O saldo é derivado —
+  //   total − refund − Σ(payments não estornados)
+  // — e por isso não pode dessincronizar.
+
+  /// Vencimento combinado, quando houver. Nulo é o padrão: fiado sem prazo.
+  paymentDueAt DateTime?
+
+  /// Quem autorizou a venda a prazo. O nome vai em snapshot ao lado porque a
+  /// pessoa pode sair da loja, e a dívida continua precisando de um responsável.
+  openedById   String?
+  openedByName String?
+  openedAt     DateTime?
+  openNote     String?
+
+  /// O dinheiro que efetivamente entrou por este pedido, em uma ou mais vezes.
+  payments OrderPayment[]
 
   couponId String?
   coupon   Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
@@ -896,10 +930,10 @@ model Order {
   estimatedDeliveryAt DateTime?
   autoPrintRequested  Boolean   @default(false)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-  deletedBy String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  deletedBy   String?
   /// Data de cancelamento (independente de deletedAt para auditoria)
   cancelledAt DateTime?
 
@@ -922,6 +956,63 @@ model Order {
   @@index([deletedAt])
 }
 
+/// O DINHEIRO QUE ENTROU — separado da VENDA que o originou.
+///
+/// A venda pertence à data do pedido; o recebimento, à data em que o dinheiro
+/// chegou. Um pedido de 28/08 pago em 31/08 continua sendo venda de 28/08, e
+/// `paidAt` é o que coloca os R$ no caixa de 31/08. Nenhuma data histórica do
+/// pedido é reescrita para isso — é essa separação que a tabela existe para
+/// tornar possível.
+///
+/// UMA LINHA POR RECEBIMENTO, e não uma por pedido: é o que permite pagamento
+/// parcial sem nenhum campo novo. Três parcelas são três linhas.
+///
+/// ESTORNO NÃO APAGA. `reversedAt` tira a linha do saldo e deixa o rastro de
+/// que o dinheiro entrou e voltou — apagar esconderia uma movimentação real.
+model OrderPayment {
+  id String @id @default(cuid())
+
+  /// Sempre a loja da SESSÃO, nunca a que o cliente mandar. Guardado aqui
+  /// também — e não só via Order — porque os relatórios de recebimento filtram
+  /// por loja e data sem passar pelo pedido.
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// Sempre positivo. Estorno é `reversedAt`, nunca valor negativo: valor
+  /// negativo somaria certo e leria errado em toda consulta que esquecesse o
+  /// sinal.
+  amount Decimal       @db.Decimal(10, 2)
+  method PaymentMethod
+
+  /// A DATA REAL DO DINHEIRO. É ela que define a competência do recebimento —
+  /// nunca o `createdAt` do pedido, e nunca o `createdAt` desta linha.
+  paidAt DateTime @default(now())
+
+  /// Quem recebeu, para a conferência de caixa ter a quem perguntar.
+  receivedById   String?
+  receivedByName String?
+  note           String?
+
+  reversedAt     DateTime?
+  reversedById   String?
+  reversalReason String?
+
+  /// A trava contra o clique duplo e a chamada concorrente.
+  /// `store#RECEBIMENTO#{orderId}#{sequencia}` — dois cliques disputam o
+  /// índice e o segundo perde, em vez de gravar o mesmo dinheiro duas vezes.
+  idempotencyKey String @unique
+
+  createdAt DateTime @default(now())
+
+  /// A série de recebimentos por loja e data: é a consulta do relatório.
+  @@index([storeId, paidAt])
+  @@index([orderId])
+  @@index([storeId, reversedAt])
+}
+
 model OrderItem {
   id      String @id @default(cuid())
   orderId String
@@ -939,17 +1030,17 @@ model OrderItem {
   unitPrice Decimal
   /// Custo unitário capturado no momento da venda (snapshot para auditoria)
   unitCost  Decimal?
-  quantity  Int     @default(1)
+  quantity  Int      @default(1)
   note      String?
 
   /// Quanto o benefício do funcionário tirou desta linha, no total (já
   /// multiplicado pelas unidades que entraram na cota).
-  employeeDiscount Decimal @db.Decimal(10, 2) @default(0)
+  employeeDiscount Decimal @default(0) @db.Decimal(10, 2)
   /// Quantas unidades desta linha couberam na cota do dia. Menor que
   /// `quantity` quando a cota acabou no meio da linha — é o que permite dizer
   /// "dois com desconto, o terceiro cheio" em vez de tratar a linha inteira
   /// como beneficiada ou não.
-  benefitQuantity  Int   @default(0)
+  benefitQuantity  Int     @default(0)
 
   /// A versao da ficha tecnica usada por ESTE item, congelada quando o pedido
   /// entrou. Reserva, consumo e reversao leem daqui — nunca da composicao
@@ -983,7 +1074,7 @@ model OrderItemExtra {
   /// "Sabor: Chocolate" e não só "Chocolate".
   groupNameSnapshot String?
   nameSnapshot      String
-  priceSnapshot     Decimal  @db.Decimal(10, 2)
+  priceSnapshot     Decimal     @db.Decimal(10, 2)
 }
 
 model OrderStatusHistory {
@@ -1199,8 +1290,8 @@ model InventoryUnit {
   conversionsTo    InventoryUnitConversion[] @relation("to")
   movementUnits    InventoryMovement[]
   compositionUnits CompositionItem[]
-  yieldUnits       ProductComposition[] @relation("UnidadeDeRendimento")
-  productionUnits  ProductionRun[]      @relation("UnidadeDeProducao")
+  yieldUnits       ProductComposition[]      @relation("UnidadeDeRendimento")
+  productionUnits  ProductionRun[]           @relation("UnidadeDeProducao")
 
   @@index([system])
 }
@@ -1258,7 +1349,7 @@ model InventoryItem {
   purchasePackLabel String?
 
   /// Tamanho do conteúdo (ex: 500g em cada pote)
-  contentSize Decimal?    @db.Decimal(15, 4)
+  contentSize Decimal? @db.Decimal(15, 4)
   /// Unidade do conteúdo (ex: "g", "ml")
   contentUnit String?
 
@@ -1294,7 +1385,7 @@ model InventoryItem {
 
   movements    InventoryMovement[]
   compositions CompositionItem[]
-  products     Product[]          @relation("ProductInventory")
+  products     Product[]           @relation("ProductInventory")
 
   /// As fichas técnicas que produzem ESTE item — só existem quando ele é um
   /// preparado (`itemType = "PREPARED"`). Um insumo comprado não tem receita,
@@ -1409,29 +1500,25 @@ model ProductComposition {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items     CompositionItem[]
-  movements InventoryMovement[]
+  items      CompositionItem[]
+  movements  InventoryMovement[]
   orderItems OrderItem[]
 
   /// As corridas de produção feitas com ESTA versão da receita.
   productionRuns ProductionRun[]
 
-  /*
+  /**
    * Dois uniques comuns, não parciais — e isso basta.
-   *
    * A versão anterior do projeto pedia índices únicos PARCIAIS, com o
    * argumento de que `UNIQUE(productId, version)` não restringe nada quando
    * `productId` é nulo (em Postgres, NULLs são todos distintos entre si).
    * O argumento está certo, mas a conclusão não: o que faltava era o SEGUNDO
    * unique, não a parcialidade.
-   *
    * Como o CHECK garante exatamente um dono não nulo por linha, cada linha é
    * restringida por exatamente um dos dois uniques, e o lado nulo vira
    * inofensivo:
-   *
-   *   ficha de produto   ('p1', NULL, 1)  → o 1º unique morde, o 2º ignora
-   *   ficha de preparado (NULL, 'i1', 1)  → o 2º unique morde, o 1º ignora
-   *
+   * ficha de produto   ('p1', NULL, 1)  → o 1º unique morde, o 2º ignora
+   * ficha de preparado (NULL, 'i1', 1)  → o 2º unique morde, o 1º ignora
    * A vantagem prática é grande: o Prisma expressa `@@unique`, mas não
    * expressa índice parcial. Ficando dentro do que ele expressa, não se cria
    * um índice invisível ao schema — que o `migrate dev` proporia derrubar na
@@ -1580,12 +1667,12 @@ model Table {
   /// Dados do QRCode em base64 para exibição/download
   qrcodeData String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
   deletedBy String?
 
-  orders Order[]
+  orders   Order[]
   sessions TableSession[]
 
   /// Índices para queries comuns
@@ -1601,38 +1688,38 @@ model Table {
 /// Imutável: nunca é editado ou deletado.
 /// Permite compliance (LGPD, PCI), forensics, e debugging.
 model AuditLog {
-  id        String   @id @default(cuid())
-  storeId   String
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   /// Quem fez (admin, sistema, webhook)
   userId    String?
   userEmail String?
   /// Sistema automático (ex: webhook de Stripe)
-  isSystem  Boolean  @default(false)
+  isSystem  Boolean @default(false)
 
   /// IP do cliente (para forensics)
   ipAddress String?
 
   /// Ação: CREATE, UPDATE, DELETE, EXPORT, IMPORT, REFUND, etc
-  action    String
+  action String
 
   /// Qual tabela foi afetada (Product, Order, Employee, etc)
-  resource  String
+  resource String
 
   /// ID do recurso (ex: product-123, order-456)
   resourceId String
 
   /// Estado anterior (JSON stringificado)
-  oldValue  String?
+  oldValue String?
   /// Estado novo (JSON stringificado)
-  newValue  String?
+  newValue String?
 
   /// Motivo/contexto da mudança (livre)
-  reason    String?
+  reason String?
 
   /// Status: SUCCESS, FAILED, PENDING
-  status    String   @default("SUCCESS")
+  status String @default("SUCCESS")
 
   /// Mensagem de erro se falhou
   errorMessage String?
@@ -1652,33 +1739,33 @@ model AuditLog {
 /// Imutável: rastreia todos os webhooks recebidos
 /// Garante idempotência: mesmo webhook não é processado duas vezes
 model PaymentWebhookEvent {
-  id            String   @id @default(cuid())
+  id String @id @default(cuid())
 
   /// ID único do webhook (para idempotência)
-  webhookId     String   @unique
+  webhookId String @unique
   /// Provedor (STRIPE, PIX, MANUAL, etc)
-  provider      String
+  provider  String
   /// Tipo de evento (payment.confirmed, payment.failed, etc)
-  eventType     String
+  eventType String
 
   /// ID do pedido (se conhecemos)
-  orderId       String?
-  order         Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   /// Payload do webhook (JSON)
-  payload       String   @db.Text
+  payload String @db.Text
 
   /// Status do processamento
-  status        String   @default("PENDING") // PENDING, PROCESSED, FAILED
+  status       String  @default("PENDING") // PENDING, PROCESSED, FAILED
   /// Se falhou, a razão
-  errorMessage  String?
+  errorMessage String?
 
   /// Quando foi recebido
-  receivedAt    DateTime @default(now())
+  receivedAt  DateTime  @default(now())
   /// Quando foi processado
-  processedAt   DateTime?
+  processedAt DateTime?
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([webhookId])
   @@index([orderId])
@@ -1689,22 +1776,22 @@ model PaymentWebhookEvent {
 /// Webhook de billing (assinatura da loja)
 /// Complementa o PaymentWebhookEvent com eventos de assinatura
 model StripeWebhookEvent {
-  id            String   @id @default(cuid())
+  id String @id @default(cuid())
 
   /// ID único do evento Stripe
-  eventId       String   @unique
+  eventId   String @unique
   /// Tipo de evento (checkout.session.completed, invoice.payment_succeeded, etc)
-  eventType     String
+  eventType String
 
   /// ID da loja (se aplicável)
-  storeId       String?
+  storeId String?
   /// Payload do webhook (JSON)
-  payload       String?  @db.Text
+  payload String? @db.Text
 
   /// Quando foi processado
-  processedAt   DateTime @default(now())
+  processedAt DateTime @default(now())
 
-  createdAt     DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([eventId])
   @@index([storeId])

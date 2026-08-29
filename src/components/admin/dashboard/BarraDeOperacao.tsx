@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ChefHat, PackageX, ShoppingBag, Inbox, type LucideIcon } from "lucide-react";
+import { ChefHat, HandCoins, PackageX, ShoppingBag, Inbox, type LucideIcon } from "lucide-react";
 import { useContagemAnimada } from "@/hooks/use-contagem-animada";
 
 /**
@@ -21,21 +21,47 @@ type Celula = {
   rotulo: string;
   valor: number;
   icone: LucideIcon;
-  para: "/admin/pedidos" | "/admin/estoque";
+  para: "/admin/pedidos" | "/admin/estoque" | "/admin/relatorios/recebimentos";
   /** Pinta a célula enquanto houver alguém esperando. Só "Recebidos" usa. */
   alarme?: boolean;
+  /**
+   * Uma linha menor ACIMA do número, entre o rótulo e ele.
+   *
+   * Só "Pagamentos em aberto" usa: ali a contagem sozinha não decide nada —
+   * "1 em aberto" pode ser R$ 5 ou R$ 500, e é o valor que diz se vale ligar
+   * para o cliente hoje. Fica acima, e não abaixo, para que o número grande
+   * continue sendo a última coisa da célula, como nas outras quatro.
+   */
+  sobrelinha?: string;
+  /**
+   * O nome desta célula para o tutorial guiado, quando ela for alvo de algum.
+   *
+   * Vira `data-tour="..."` no link. É um atributo explícito de propósito: o
+   * tour precisa de uma âncora que sobreviva a mudanças de cor, de ordem e de
+   * texto — e nenhuma classe visual daqui sobrevive a isso.
+   */
+  tour?: string;
 };
+
+const dinheiro = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
 
 export function BarraDeOperacao({
   pedidosHoje,
   recebidos,
   emPreparo,
   esgotados,
+  pagamentosEmAberto,
+  valorEmAberto,
 }: {
   pedidosHoje: number;
   recebidos: number;
   emPreparo: number;
   esgotados: number;
+  pagamentosEmAberto: number;
+  valorEmAberto: number;
 }) {
   const celulas: Celula[] = [
     {
@@ -66,6 +92,23 @@ export function BarraDeOperacao({
       icone: ChefHat,
       para: "/admin/pedidos",
     },
+    /*
+     * O ÚNICO CARD EM DINHEIRO desta barra, e ele não é faturamento: é
+     * cobrança pendente. Fica aqui, e não em Relatórios, porque quem abre o
+     * painel de manhã precisa ver quem ainda deve antes de o dia começar.
+     *
+     * O pedido fiado saiu dos três contadores à esquerda — não é trabalho da
+     * cozinha. Este card é para onde ele foi.
+     */
+    {
+      chave: "aberto",
+      rotulo: "A receber",
+      valor: pagamentosEmAberto,
+      sobrelinha: dinheiro.format(valorEmAberto),
+      icone: HandCoins,
+      para: "/admin/relatorios/recebimentos",
+      tour: "a-receber",
+    },
     {
       chave: "esgotados",
       rotulo: "Esgotados",
@@ -81,7 +124,7 @@ export function BarraDeOperacao({
      * qualquer quebra de coluna, sem a borda dupla que `border-l` por célula
      * produz quando a grade passa de quatro colunas para duas no celular.
      */
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-200 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-200 lg:grid-cols-5">
       {celulas.map((c, indice) => (
         <Celula key={c.chave} {...c} indice={indice} />
       ))}
@@ -95,6 +138,8 @@ function Celula({
   icone: Icone,
   para,
   alarme,
+  sobrelinha,
+  tour,
   indice,
 }: Celula & { indice: number }) {
   const contado = useContagemAnimada(valor);
@@ -102,6 +147,9 @@ function Celula({
   return (
     <Link
       to={para}
+      /* Âncora do tutorial. Sem `tour`, o atributo não é emitido e o HTML
+         desta célula fica exatamente como sempre foi. */
+      data-tour={tour}
       className={
         "group animate-entrada-suave relative flex flex-col justify-between gap-3 bg-white p-5 transition-colors duration-200 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[#E11D2E] sm:p-6 " +
         (alarme ? "" : "hover:bg-neutral-50")
@@ -134,6 +182,16 @@ function Celula({
           }
         />
       </div>
+      {/*
+        Discreta de propósito: pequena e em tom secundário, ela informa sem
+        disputar com o número. Sem `sobrelinha` nada é renderizado, e as
+        outras quatro células ficam idênticas ao que sempre foram.
+      */}
+      {sobrelinha && (
+        <span className="relative mb-1 block text-sm font-medium tabular-nums text-neutral-500">
+          {sobrelinha}
+        </span>
+      )}
       {/*
        * Space Grotesk, e não a fonte de corpo. É a face de display do painel,
        * já no tema, e é o que separa um número informado de um número exibido.

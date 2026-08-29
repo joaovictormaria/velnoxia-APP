@@ -287,7 +287,11 @@ function OrderDetailPage() {
                     : "bg-amber-50 text-amber-700"
                 }`}
               >
-                {order.paymentStatus === "PAID" ? "Pago" : "Pendente"}
+                {order.paymentStatus === "PAID"
+                  ? "Pago"
+                  : order.paymentStatus === "OPEN"
+                    ? "Em aberto"
+                    : "Pendente"}
               </span>
             </div>
           </Card>
