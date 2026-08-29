@@ -1,16 +1,25 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { criarPersistencia, type ArmazenamentoSimples } from "../persistencia";
+import type { Estado, Registro } from "../tipos";
 
 /**
- * A CAMADA QUE GUARDA O ESTADO, testada sem navegador.
+ * O ADAPTADOR, testado sem navegador e sem banco.
  *
- * `criarPersistencia` recebe de onde tirar o armazenamento, em vez de alcançar
- * `window` por dentro. É o que permite exercitar aqui tanto o caminho feliz
- * quanto o armazenamento que EXPLODE — o caso da aba anônima, que é justamente
- * o que não dá para reproduzir num teste de navegador comum.
+ * Depois da migração para o servidor, o que sobrou aqui para testar é
+ * exatamente o que o adaptador ainda decide sozinho:
+ *
+ *   1. que a identidade NÃO atravessa a assinatura — `marcar` recebe dois
+ *      argumentos, não três, e é isso que impede o chamador de escolher em
+ *      nome de quem gravar;
+ *   2. que uma falha de rede degrada para "a novidade reaparece", nunca para
+ *      "o painel quebra" nem para "some para sempre";
+ *   3. que o adiamento continua sendo de aba, e nunca vai ao servidor.
+ *
+ * Quem já viu o quê passou a ser assunto do banco, e é testado contra o
+ * Postgres em `src/server/services/__tests__/novidades.test.ts`.
  */
 
-/** Um `Storage` de mentira: o módulo só usa estes cinco membros. */
+/** Um `sessionStorage` de mentira: o módulo só usa estes cinco membros. */
 function armazenamentoFalso(): ArmazenamentoSimples & { dados: Map<string, string> } {
   const dados = new Map<string, string>();
   return {
@@ -25,7 +34,7 @@ function armazenamentoFalso(): ArmazenamentoSimples & { dados: Map<string, strin
   };
 }
 
-/** Um que falha em tudo, como o `localStorage` de uma aba anônima. */
+/** Um que falha em tudo, como o de uma aba anônima. */
 const armazenamentoQueExplode: ArmazenamentoSimples = {
   getItem: () => {
     throw new Error("SecurityError");
@@ -45,115 +54,114 @@ const armazenamentoQueExplode: ArmazenamentoSimples = {
 };
 
 describe("persistência de novidades", () => {
-  let local: ReturnType<typeof armazenamentoFalso>;
   let sessao: ReturnType<typeof armazenamentoFalso>;
+  // Os tipos vão no `vi.fn<...>()`: sem eles o mock infere uma assinatura
+  // genérica que não encaixa no parâmetro de `criarPersistencia`.
+  let servidor: {
+    ler: ReturnType<typeof vi.fn<() => Promise<Registro[]>>>;
+    marcar: ReturnType<typeof vi.fn<(novidadeId: string, estado: Estado) => Promise<void>>>;
+  };
   let p: ReturnType<typeof criarPersistencia>;
 
   beforeEach(() => {
-    local = armazenamentoFalso();
     sessao = armazenamentoFalso();
-    p = criarPersistencia(
-      () => local,
-      () => sessao,
-    );
+    servidor = {
+      ler: vi.fn<() => Promise<Registro[]>>(async () => []),
+      marcar: vi.fn<(novidadeId: string, estado: Estado) => Promise<void>>(async () => {}),
+    };
+    p = criarPersistencia(() => sessao, servidor);
   });
 
-  it("01 · marca CONCLUIDA e lê de volta", async () => {
-    await p.marcar("u1", "n1", "CONCLUIDA");
-    expect(await p.ler("u1")).toEqual([{ novidadeId: "n1", estado: "CONCLUIDA" }]);
+  it("01 · ler devolve o que o servidor respondeu", async () => {
+    servidor.ler.mockResolvedValueOnce([
+      { novidadeId: "n1", estado: "CONCLUIDA" },
+    ] satisfies Registro[]);
+    expect(await p.ler()).toEqual([{ novidadeId: "n1", estado: "CONCLUIDA" }]);
   });
 
-  it("02 · marca DISPENSADA e lê de volta", async () => {
-    await p.marcar("u1", "n1", "DISPENSADA");
-    expect(await p.ler("u1")).toEqual([{ novidadeId: "n1", estado: "DISPENSADA" }]);
+  it("02 · ler NÃO envia argumento nenhum — não há o que pedir", async () => {
+    await p.ler();
+    expect(servidor.ler).toHaveBeenCalledWith();
   });
 
-  it("03 · marcar de novo ATUALIZA, não duplica", async () => {
-    await p.marcar("u1", "n1", "DISPENSADA");
-    await p.marcar("u1", "n1", "CONCLUIDA");
-    const registros = await p.ler("u1");
-    expect(registros).toHaveLength(1);
-    expect(registros[0].estado).toBe("CONCLUIDA");
+  it("03 · marcar envia SOMENTE novidadeId e estado", async () => {
+    await p.marcar("n1", "CONCLUIDA");
+    /*
+     * A asserção central desta suíte. Se um dia alguém acrescentar um terceiro
+     * argumento com o usuário, este teste cai — e é justamente esse argumento
+     * que abriria a porta para gravar em nome de outra pessoa.
+     */
+    expect(servidor.marcar).toHaveBeenCalledWith("n1", "CONCLUIDA");
+    expect(servidor.marcar.mock.calls[0]).toHaveLength(2);
   });
 
-  it("04 · usuários no MESMO navegador têm estados independentes", async () => {
-    // O caso real: o dono e o gerente usando o mesmo PC do balcão.
-    await p.marcar("dono", "n1", "CONCLUIDA");
-    expect(await p.ler("dono")).toHaveLength(1);
-    expect(await p.ler("gerente")).toEqual([]);
+  it("04 · marcar DISPENSADA chega ao servidor como tal", async () => {
+    await p.marcar("n1", "DISPENSADA");
+    expect(servidor.marcar).toHaveBeenCalledWith("n1", "DISPENSADA");
   });
 
-  it("05 · novidades diferentes do mesmo usuário não se atropelam", async () => {
-    await p.marcar("u1", "n1", "CONCLUIDA");
-    await p.marcar("u1", "n2", "DISPENSADA");
-    const registros = await p.ler("u1");
-    expect(registros).toHaveLength(2);
-    expect(registros.find((r) => r.novidadeId === "n1")?.estado).toBe("CONCLUIDA");
-    expect(registros.find((r) => r.novidadeId === "n2")?.estado).toBe("DISPENSADA");
+  it("05 · servidor fora do ar na leitura → lista vazia, sem lançar", async () => {
+    servidor.ler.mockRejectedValueOnce(new Error("network"));
+    /*
+     * Vazio faz a novidade REAPARECER. O oposto — inventar que já foi vista —
+     * esconderia o aviso para sempre por causa de uma falha momentânea.
+     */
+    await expect(p.ler()).resolves.toEqual([]);
   });
 
-  it("06 · um id com dois-pontos sobrevive ao formato da chave", async () => {
-    // A chave é `prefixo:usuario:id`. Se o id fosse recortado por split(':'),
-    // um id assim voltaria truncado — e a novidade reapareceria para sempre.
-    await p.marcar("u1", "recurso:2026:v2", "CONCLUIDA");
-    expect(await p.ler("u1")).toEqual([{ novidadeId: "recurso:2026:v2", estado: "CONCLUIDA" }]);
+  it("06 · servidor fora do ar na gravação → não derruba o painel", async () => {
+    servidor.marcar.mockRejectedValueOnce(new Error("500"));
+    await expect(p.marcar("n1", "CONCLUIDA")).resolves.toBeUndefined();
   });
 
-  it("07 · valor irreconhecível no armazenamento é ignorado, não quebra a leitura", async () => {
-    await p.marcar("u1", "bom", "CONCLUIDA");
-    local.dados.set("velnox:novidade:u1:estranho", "LIXO");
-    const registros = await p.ler("u1");
-    expect(registros).toEqual([{ novidadeId: "bom", estado: "CONCLUIDA" }]);
+  it("07 · adiar é de ABA e nunca vai ao servidor", () => {
+    p.adiarNaSessao("n1");
+    expect(p.adiadasNaSessao()).toEqual(["n1"]);
+    // O ponto do adiamento: nenhuma chamada de rede acontece.
+    expect(servidor.marcar).not.toHaveBeenCalled();
   });
 
-  it("08 · chaves de outros sistemas no mesmo domínio são ignoradas", async () => {
-    local.dados.set("velnox-painel-menu-recolhido", "1");
-    local.dados.set("velnoxia:seen-orders", "[]");
-    await p.marcar("u1", "n1", "CONCLUIDA");
-    expect(await p.ler("u1")).toHaveLength(1);
+  it("08 · id com dois-pontos sobrevive ao formato da chave de sessão", () => {
+    // A chave é `prefixo:id`. Recortada por split(':'), voltaria truncada.
+    p.adiarNaSessao("recurso:2026:v2");
+    expect(p.adiadasNaSessao()).toEqual(["recurso:2026:v2"]);
   });
 
-  it("09 · adiamento de sessão é por usuário e não vaza para o permanente", () => {
-    p.adiarNaSessao("u1", "n1");
-    expect(p.adiadasNaSessao("u1")).toEqual(["n1"]);
-    expect(p.adiadasNaSessao("u2")).toEqual([]);
-    // O ponto do adiamento: NADA é gravado no armazenamento permanente.
-    expect(local.dados.size).toBe(0);
+  it("09 · chaves de outros sistemas na mesma aba são ignoradas", () => {
+    sessao.dados.set("velnoxia:seen-orders", "[]");
+    sessao.dados.set("velnox:intro-seen", "1");
+    p.adiarNaSessao("n1");
+    expect(p.adiadasNaSessao()).toEqual(["n1"]);
   });
 
-  it("10 · armazenamento que EXPLODE não derruba nada — degrada em silêncio", async () => {
-    const seguro = criarPersistencia(
-      () => armazenamentoQueExplode,
-      () => armazenamentoQueExplode,
-    );
-    await expect(seguro.marcar("u1", "n1", "CONCLUIDA")).resolves.toBeUndefined();
-    // Sem estado gravado, a novidade reaparece — que é o pior caso aceitável.
-    expect(await seguro.ler("u1")).toEqual([]);
-    expect(() => seguro.adiarNaSessao("u1", "n1")).not.toThrow();
-    expect(seguro.adiadasNaSessao("u1")).toEqual([]);
+  it("10 · sessionStorage que EXPLODE não derruba nada", () => {
+    const seguro = criarPersistencia(() => armazenamentoQueExplode, servidor);
+    expect(() => seguro.adiarNaSessao("n1")).not.toThrow();
+    expect(seguro.adiadasNaSessao()).toEqual([]);
   });
 
-  it("11 · armazenamento ausente (SSR) não quebra", async () => {
-    const semJanela = criarPersistencia(
-      () => null,
-      () => null,
-    );
-    expect(await semJanela.ler("u1")).toEqual([]);
-    await expect(semJanela.marcar("u1", "n1", "CONCLUIDA")).resolves.toBeUndefined();
-    expect(semJanela.adiadasNaSessao("u1")).toEqual([]);
+  it("11 · sem window (SSR) o adiamento é no-op", () => {
+    const semJanela = criarPersistencia(() => null, servidor);
+    expect(() => semJanela.adiarNaSessao("n1")).not.toThrow();
+    expect(semJanela.adiadasNaSessao()).toEqual([]);
   });
 
-  it("12 · até o ACESSO ao armazenamento pode lançar, e isso é tratado", async () => {
-    // Em aba anônima, `window.localStorage` explode antes de qualquer getItem.
-    const acessoProibido = criarPersistencia(
-      () => {
-        throw new Error("SecurityError");
-      },
-      () => {
-        throw new Error("SecurityError");
-      },
-    );
-    expect(await acessoProibido.ler("u1")).toEqual([]);
-    expect(acessoProibido.adiadasNaSessao("u1")).toEqual([]);
+  it("12 · até o ACESSO ao armazenamento pode lançar, e isso é tratado", () => {
+    // Em aba anônima, `window.sessionStorage` explode antes de qualquer getItem.
+    const acessoProibido = criarPersistencia(() => {
+      throw new Error("SecurityError");
+    }, servidor);
+    expect(acessoProibido.adiadasNaSessao()).toEqual([]);
+  });
+
+  it("13 · o adaptador não escreve NADA de permanente no navegador", async () => {
+    await p.marcar("n1", "CONCLUIDA");
+    await p.ler();
+    /*
+     * A prova de que o `localStorage` deixou de ser fonte de verdade: depois de
+     * concluir e reler, o único armazenamento local tocado é o de sessão — e
+     * mesmo ele, só pelo adiamento, que não aconteceu aqui.
+     */
+    expect(sessao.dados.size).toBe(0);
   });
 });

@@ -151,7 +151,9 @@ function AdminLayout() {
        * Com o catálogo sem nenhuma novidade publicada, este componente devolve
        * `null` antes de montar hook algum.
        */}
-      <CentralDeNovidades adminUserId={admin.id} papel={admin.role} />
+      {/* Só o papel: a identidade não atravessa mais o componente — ela sai
+          de `requireAdminSession()` no servidor. */}
+      <CentralDeNovidades papel={admin.role} />
     </div>
   );
 }

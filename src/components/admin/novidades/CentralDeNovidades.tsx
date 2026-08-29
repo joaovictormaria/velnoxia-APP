@@ -31,11 +31,16 @@ const HA_PUBLICADA = haNovidadePublicada(CATALOGO);
 
 type Props = {
   /**
-   * Vem da sessão, pelo contexto da rota do admin. Nunca é digitado, nunca
-   * chega do cliente, e é ele que separa o estado do dono do estado do
-   * gerente no mesmo computador do balcão.
+   * O papel decide QUAIS novidades se aplicam a esta pessoa — e só isso.
+   *
+   * NÃO existe mais um `adminUserId` aqui. A identidade deixou de atravessar o
+   * componente quando a persistência foi para o banco: agora ela sai de
+   * `requireAdminSession()` no servidor, e nada que o navegador diga sobre
+   * quem é o usuário chega a ser considerado.
+   *
+   * O servidor refaz esta mesma checagem de papel antes de gravar. A daqui é
+   * para não desenhar o que não se aplica; a de lá é a que vale.
    */
-  adminUserId: string;
   papel: Papel;
 };
 
@@ -46,7 +51,7 @@ export function CentralDeNovidades(props: Props) {
   return <CentralAtiva {...props} />;
 }
 
-function CentralAtiva({ adminUserId, papel }: Props) {
+function CentralAtiva({ papel }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   /** `null` = ainda não lido. Distingue "não sei" de "não há nada". */
@@ -55,17 +60,18 @@ function CentralAtiva({ adminUserId, papel }: Props) {
   const [tourAtivo, setTourAtivo] = useState(false);
 
   const carregar = useCallback(async () => {
-    const registros = await persistencia.ler(adminUserId);
-    setDados({ registros, adiadas: persistencia.adiadasNaSessao(adminUserId) });
-  }, [adminUserId]);
+    const registros = await persistencia.ler();
+    setDados({ registros, adiadas: persistencia.adiadasNaSessao() });
+  }, []);
 
   /*
    * Lido DEPOIS da montagem, nunca durante a renderização.
    *
-   * O painel é servido por SSR, e no servidor não existe `localStorage`. Ler
-   * durante o render faria o HTML do servidor divergir do que o navegador
-   * monta — o React acusaria a divergência e a hidratação quebraria. É a mesma
-   * razão pela qual o `AdminSidebar` lê a preferência de menu num efeito.
+   * O painel é servido por SSR, e este `carregar` faz uma chamada ao servidor
+   * e lê o `sessionStorage` — nenhum dos dois existe durante a renderização no
+   * servidor. Fazê-lo no render faria o HTML do servidor divergir do que o
+   * navegador monta, e o React acusaria a divergência. É a mesma razão pela
+   * qual o `AdminSidebar` lê a preferência de menu num efeito.
    */
   useEffect(() => {
     void carregar();
@@ -112,27 +118,27 @@ function CentralAtiva({ adminUserId, papel }: Props) {
   const noPainelInicial = pathname === "/admin" || pathname === "/admin/";
 
   const encerrarModal = useCallback(() => {
-    if (novidade) persistencia.adiarNaSessao(adminUserId, novidade.id);
+    if (novidade) persistencia.adiarNaSessao(novidade.id);
     setModalAberto(false);
     // Recarrega para o adiamento entrar na conta e a novidade sumir da
     // seleção — sem isto, ela reabriria ao voltar para o painel inicial.
     void carregar();
-  }, [novidade, adminUserId, carregar]);
+  }, [novidade, carregar]);
 
   const concluir = useCallback(async () => {
     if (!novidade) return;
     setTourAtivo(false);
     setModalAberto(false);
-    await persistencia.marcar(adminUserId, novidade.id, "CONCLUIDA");
+    await persistencia.marcar(novidade.id, "CONCLUIDA");
     await carregar();
-  }, [novidade, adminUserId, carregar]);
+  }, [novidade, carregar]);
 
   const dispensar = useCallback(async () => {
     if (!novidade) return;
     setModalAberto(false);
-    await persistencia.marcar(adminUserId, novidade.id, "DISPENSADA");
+    await persistencia.marcar(novidade.id, "DISPENSADA");
     await carregar();
-  }, [novidade, adminUserId, carregar]);
+  }, [novidade, carregar]);
 
   /*
    * Sair do tour — ESC, X ou "Pular tutorial".
@@ -143,9 +149,9 @@ function CentralAtiva({ adminUserId, papel }: Props) {
    */
   const sairDoTour = useCallback(() => {
     setTourAtivo(false);
-    if (novidade) persistencia.adiarNaSessao(adminUserId, novidade.id);
+    if (novidade) persistencia.adiarNaSessao(novidade.id);
     void carregar();
-  }, [novidade, adminUserId, carregar]);
+  }, [novidade, carregar]);
 
   if (!novidade) return null;
 

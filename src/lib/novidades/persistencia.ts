@@ -1,31 +1,47 @@
+import {
+  listarEstadoDasNovidadesFn,
+  marcarNovidadeFn,
+} from "@/server/functions/novidades.fn";
 import type { Estado, Registro } from "./tipos";
 
 /**
  * ONDE FICA GUARDADO QUEM JÁ VIU O QUÊ — e o único arquivo do sistema que
  * sabe disso.
  *
- * A Central, o modal e o tour recebem e devolvem `Registro[]`. Nenhum deles
- * conhece o nome de uma chave, o `localStorage` ou o `sessionStorage`. Essa
- * regra não é estética: a Fase 2 troca este arquivo por uma server function
- * com Prisma, e é ela que garante que a troca seja UM arquivo em vez de uma
- * caçada por `localStorage.getItem` espalhado pelos componentes.
+ * ─── O QUE MUDOU, E POR QUÊ ────────────────────────────────────────────────
  *
- * POR QUE `ler` E `marcar` SÃO ASSÍNCRONOS mesmo lendo memória local.
- * Uma assinatura síncrona não tem como ser servida por um `fetch` depois — o
- * dia da migração viraria uma mudança de tipo em cascata por toda a Central.
- * Async agora custa dois `await` e compra a troca de graça.
+ * Isto morava no `localStorage`. O defeito era visível: o dono concluía o
+ * tutorial no PC do balcão e o via de novo no celular, porque cada navegador
+ * tinha a própria memória — e limpar o cache trazia tudo de volta. A fonte de
+ * verdade passou a ser o servidor.
  *
- * POR QUE `adiarNaSessao` NÃO é assíncrono, e nunca vai ser: "fechei este
- * modal nesta aba" é estado do navegador por definição. Nunca vai para o
- * servidor, então prometer uma Promise ali seria mentir sobre o futuro.
+ * NÃO HÁ FALLBACK PARA O `localStorage`, e a ausência é deliberada. "Se o
+ * banco não souber, pergunta ao navegador" manteria o armazenamento local como
+ * fonte de verdade parcial — e o bug de "vejo no PC mas não no celular"
+ * continuaria, agora mais difícil de diagnosticar. O código não lê mais aquelas
+ * chaves; elas ficam órfãs no navegador de quem as tem e não decidem nada.
  *
- * ⚠️ TODO ACESSO É PROTEGIDO. `localStorage` não some no modo anônimo — ele
- * LANÇA, e também lança com a cota estourada ou com cookies de terceiros
- * bloqueados. Uma exceção não capturada aqui derrubaria o painel inteiro por
- * causa de um aviso de novidade. Falhou, o pior caso é a novidade reaparecer.
+ * ─── POR QUE `adminUserId` SUMIU DA ASSINATURA ─────────────────────────────
+ *
+ * Antes era `marcar(adminUserId, novidadeId, estado)` — o usuário era só uma
+ * chave de armazenamento, e passá-lo era inofensivo. Agora ele é a IDENTIDADE,
+ * e um parâmetro seria um convite: quem chama escolheria em nome de quem
+ * gravar.
+ *
+ * A server function não tem campo para isso. O usuário sai de
+ * `requireAdminSession()`, do lado do servidor, e a única coisa que atravessa
+ * o fio é `{ novidadeId, estado }`. Não é uma checagem que pode ser esquecida
+ * — é uma informação que não existe no caminho.
+ *
+ * ─── O QUE CONTINUA NO NAVEGADOR ───────────────────────────────────────────
+ *
+ * Só o adiamento de sessão: "fechei este modal nesta aba". Ele é estado de aba
+ * por definição, some ao fechá-la, e nunca vai ao servidor — prometer uma
+ * Promise ali seria mentir sobre o futuro. CONCLUIDA e DISPENSADA, que são
+ * decisões, vivem no banco.
  */
 
-/** O mínimo que este módulo usa. Um `Storage` de verdade satisfaz; um falso de teste também. */
+/** O mínimo que este módulo usa do `sessionStorage`. Um falso de teste serve. */
 export type ArmazenamentoSimples = {
   getItem(chave: string): string | null;
   setItem(chave: string, valor: string): void;
@@ -35,113 +51,67 @@ export type ArmazenamentoSimples = {
 };
 
 export type Persistencia = {
-  /** Tudo que este usuário já concluiu ou dispensou. */
-  ler(adminUserId: string): Promise<Registro[]>;
-  /** Grava a decisão. Repetir a mesma não cria uma segunda linha. */
-  marcar(adminUserId: string, novidadeId: string, estado: Estado): Promise<void>;
+  /** Tudo que o usuário da SESSÃO já concluiu ou dispensou. */
+  ler(): Promise<Registro[]>;
+  /** Grava a decisão para o usuário da SESSÃO. */
+  marcar(novidadeId: string, estado: Estado): Promise<void>;
   /** "Fechei o modal" — vale só nesta aba, some ao fechá-la. */
-  adiarNaSessao(adminUserId: string, novidadeId: string): void;
-  adiadasNaSessao(adminUserId: string): string[];
+  adiarNaSessao(novidadeId: string): void;
+  adiadasNaSessao(): string[];
 };
 
-const PREFIXO = "velnox:novidade";
 const PREFIXO_SESSAO = "velnox:novidade-adiada";
 
 /**
- * O usuário entra na CHAVE, e não no valor.
- *
- * É o que torna o estado de dois usuários no mesmo computador — o dono e o
- * gerente, no PC do balcão — independente sem nenhuma lógica de comparação:
- * eles simplesmente não escrevem no mesmo lugar.
- */
-function chave(adminUserId: string, novidadeId: string): string {
-  return `${PREFIXO}:${adminUserId}:${novidadeId}`;
-}
-
-function prefixoDoUsuario(adminUserId: string): string {
-  return `${PREFIXO}:${adminUserId}:`;
-}
-
-const ESTADOS_VALIDOS = new Set<string>(["CONCLUIDA", "DISPENSADA"]);
-
-/**
- * Constrói a persistência sobre um armazenamento qualquer.
- *
- * Recebe os dois por parâmetro em vez de alcançar `window` lá dentro: é o que
- * permite testar tudo — inclusive o armazenamento que explode — no ambiente
- * `node` da suíte, sem jsdom e sem dependência nova.
- *
- * Os parâmetros são funções, e não os objetos direto, porque no servidor
- * `window` não existe: resolver na chamada evita quebrar na importação do
- * módulo durante o SSR.
+ * O adiamento NÃO leva o usuário na chave, e não precisa: `sessionStorage` é
+ * por aba, e uma aba tem uma sessão só. Se outra pessoa entrar, ela abre a
+ * própria aba — e o que vale para valer está no banco de qualquer forma.
  */
 export function criarPersistencia(
-  obterLocal: () => ArmazenamentoSimples | null,
   obterSessao: () => ArmazenamentoSimples | null,
+  servidor: {
+    ler: () => Promise<Registro[]>;
+    marcar: (novidadeId: string, estado: Estado) => Promise<void>;
+  },
 ): Persistencia {
   return {
-    async ler(adminUserId) {
-      const loja = tentar(obterLocal);
-      if (!loja) return [];
-
-      const registros: Registro[] = [];
-      const prefixo = prefixoDoUsuario(adminUserId);
-
+    async ler() {
       try {
-        /*
-         * Varre as chaves em vez de manter um índice numa chave própria. Um
-         * índice pode discordar do que existe de fato — e a divergência só
-         * aparece depois, como uma novidade que volta ou some sem motivo.
-         * Aqui a lista É o estado.
-         */
-        for (let i = 0; i < loja.length; i++) {
-          const k = loja.key(i);
-          if (!k || !k.startsWith(prefixo)) continue;
-
-          const estado = loja.getItem(k);
-          // Um valor que não reconhecemos é ignorado, não é erro: pode ser de
-          // uma versão futura, e nesse caso a novidade voltar é melhor do que
-          // a leitura inteira falhar.
-          if (!estado || !ESTADOS_VALIDOS.has(estado)) continue;
-
-          registros.push({
-            novidadeId: k.slice(prefixo.length),
-            estado: estado as Estado,
-          });
-        }
+        return await servidor.ler();
       } catch {
+        /*
+         * Rede fora, sessão caída, servidor de pé mas com erro: devolver vazio
+         * faz a novidade REAPARECER, que é o pior caso aceitável — o oposto,
+         * inventar que já foi vista, esconderia o aviso para sempre por causa
+         * de uma falha momentânea.
+         */
         return [];
       }
-
-      return registros;
     },
 
-    async marcar(adminUserId, novidadeId, estado) {
-      const loja = tentar(obterLocal);
-      if (!loja) return;
+    async marcar(novidadeId, estado) {
       try {
-        // Uma chave por par usuário+novidade: gravar de novo SUBSTITUI, então
-        // duplicata não existe por construção, sem checar antes.
-        loja.setItem(chave(adminUserId, novidadeId), estado);
+        await servidor.marcar(novidadeId, estado);
       } catch {
-        /* Cota estourada ou escrita bloqueada. A novidade reaparece. Tudo bem. */
+        // A gravação não vingou. A novidade volta na próxima sessão, e é
+        // melhor assim do que derrubar o painel por causa de um aviso.
       }
     },
 
-    adiarNaSessao(adminUserId, novidadeId) {
+    adiarNaSessao(novidadeId) {
       const sessao = tentar(obterSessao);
       if (!sessao) return;
       try {
-        sessao.setItem(`${PREFIXO_SESSAO}:${adminUserId}:${novidadeId}`, "1");
+        sessao.setItem(`${PREFIXO_SESSAO}:${novidadeId}`, "1");
       } catch {
         /* Sem adiamento, o modal pode reabrir ao trocar de rota. Não é erro. */
       }
     },
 
-    adiadasNaSessao(adminUserId) {
+    adiadasNaSessao() {
       const sessao = tentar(obterSessao);
       if (!sessao) return [];
-      const prefixo = `${PREFIXO_SESSAO}:${adminUserId}:`;
+      const prefixo = `${PREFIXO_SESSAO}:`;
       const ids: string[] = [];
       try {
         for (let i = 0; i < sessao.length; i++) {
@@ -157,9 +127,9 @@ export function criarPersistencia(
 }
 
 /**
- * Só o ACESSO ao armazenamento já pode lançar — em aba anônima, `window.
- * localStorage` explode antes de qualquer `getItem`. Por isso o próprio
- * `obter` vem embrulhado.
+ * Só o ACESSO ao armazenamento já pode lançar — em aba anônima,
+ * `window.sessionStorage` explode antes de qualquer `getItem`. Por isso o
+ * próprio `obter` vem embrulhado.
  */
 function tentar(obter: () => ArmazenamentoSimples | null): ArmazenamentoSimples | null {
   try {
@@ -169,8 +139,13 @@ function tentar(obter: () => ArmazenamentoSimples | null): ArmazenamentoSimples 
   }
 }
 
-/** A instância que o painel usa. No servidor, `window` não existe e tudo vira no-op. */
+/** A instância que o painel usa. No servidor, `window` não existe. */
 export const persistencia: Persistencia = criarPersistencia(
-  () => (typeof window === "undefined" ? null : window.localStorage),
   () => (typeof window === "undefined" ? null : window.sessionStorage),
+  {
+    ler: () => listarEstadoDasNovidadesFn(),
+    marcar: async (novidadeId, estado) => {
+      await marcarNovidadeFn({ data: { novidadeId, estado } });
+    },
+  },
 );

@@ -330,7 +330,57 @@ model AdminUser {
 
   respondedReviews Review[]             @relation("ReviewRespondedBy")
   passwordResets   PasswordResetToken[]
+  novidades        AdminUserAnnouncement[]
 
+  @@index([storeId])
+}
+
+/// Enum de ESTADO, e não dois booleanos.
+///
+/// Com `concluida` e `dispensada` separados existiria o estado
+/// `concluida=true, dispensada=true`, que não quer dizer nada. Aqui esse
+/// estado é irrepresentável.
+///
+/// "Fechei o modal" não está aqui de propósito: adiar vale só para a aba
+/// atual, vive no `sessionStorage` e não merece memória permanente.
+enum EstadoDaNovidade {
+  CONCLUIDA
+  DISPENSADA
+}
+
+/// QUEM JÁ VIU QUAL NOVIDADE.
+///
+/// Antes isto morava no `localStorage`, e por isso o dono que concluía o
+/// tutorial no PC do balcão o via de novo no celular. A fonte de verdade passa
+/// a ser o servidor.
+///
+/// `novidadeId` é String LIVRE, nunca enum do Prisma. É o que garante que
+/// lançar a novidade nº 50 continue sendo editar `catalogo.ts` — sem migration,
+/// sem deploy de banco. O preço é não ter integridade referencial sobre esse
+/// campo, e ele é barato: um id órfão (novidade despublicada, ou renomeada por
+/// engano) é simplesmente ignorado pela seleção, nunca um erro.
+///
+/// `storeId` é gravado para auditoria e limpeza por tenant, e NUNCA entra na
+/// busca: o recorte é por `adminUserId`, que já é único no sistema inteiro.
+/// Filtrar por loja além disso não acrescentaria isolamento e criaria um
+/// segundo lugar de onde o recorte poderia divergir.
+model AdminUserAnnouncement {
+  id          String    @id @default(cuid())
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  storeId    String
+  novidadeId String
+  estado     EstadoDaNovidade
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// A trava contra duplicata, e ela é DO BANCO — não da aplicação.
+  /// Dois cliques simultâneos disputam este índice; o segundo atualiza a linha
+  /// do primeiro em vez de inserir outra. É a mesma técnica do
+  /// `OrderPayment.idempotencyKey`.
+  @@unique([adminUserId, novidadeId])
   @@index([storeId])
 }
 
