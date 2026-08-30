@@ -14,6 +14,7 @@ import {
   listCategoriesFn,
   saveCategoryFn,
 } from "@/server/functions/categories.fn";
+import { AvisoDeLimpezaInicial } from "@/components/admin/cardapio/AvisoDeLimpezaInicial";
 
 export const Route = createFileRoute("/admin/cardapio/categorias")({
   component: CategoriesPage,
@@ -118,6 +119,8 @@ function CategoriesPage() {
 
   return (
     <div className="space-y-6">
+      <AvisoDeLimpezaInicial />
+
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold text-neutral-900">Categorias</h1>
         <button

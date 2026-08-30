@@ -6,6 +6,7 @@ import { deleteExtraFn, listExtrasFn, saveExtraFn } from "@/server/functions/ext
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { ExtrasDaPrevia } from "@/components/admin/preview/ExtrasDaPrevia";
 import { aplicarRascunhoDeExtra } from "@/lib/previa/aplicar-rascunho";
+import { AvisoDeLimpezaInicial } from "@/components/admin/cardapio/AvisoDeLimpezaInicial";
 
 export const Route = createFileRoute("/admin/cardapio/extras")({
   component: ExtrasPage,
@@ -194,6 +195,8 @@ function ExtrasPage() {
 
   return (
     <div className="space-y-6">
+      <AvisoDeLimpezaInicial />
+
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-neutral-900">Extras / Adicionais</h1>

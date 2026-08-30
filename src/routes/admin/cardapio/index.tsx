@@ -11,6 +11,7 @@ import {
 import { ProductForm, type ProductFormValues } from "@/components/admin/products/ProductForm";
 import { getControleDeEstoqueFn } from "@/server/functions/settings.fn";
 import type { ProductsWithCategoriesResponse, ProductDetailResponse } from "@/types/api-responses";
+import { AvisoDeLimpezaInicial } from "@/components/admin/cardapio/AvisoDeLimpezaInicial";
 
 export const Route = createFileRoute("/admin/cardapio/")({
   component: ProductsPage,
@@ -216,6 +217,8 @@ function ProductsPage() {
       )}
 
       <div className="space-y-6">
+      <AvisoDeLimpezaInicial />
+
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-bold text-neutral-900">Cardápio - Lista de Produtos</h1>
       </header>
