@@ -866,8 +866,38 @@ function ControleDeEstoque() {
     mutationFn: (ativo: boolean) =>
       salvarControleDeEstoqueFn({ data: { ativo } }),
     onSuccess: async (r: any) => {
-      setErro(r?.ok ? null : (r?.error ?? "Não foi possível salvar."));
+      /*
+       * O DESFECHO AQUI, O MOTIVO NO BLOCO DE BAIXO.
+       *
+       * A recusa do servidor vem com o texto longo — "alguns produtos ainda não
+       * têm ficha técnica nem item de estoque vinculado..." — e mostrá-lo aqui
+       * dizia em vermelho exatamente o que o bloco de pendências logo abaixo já
+       * diz, com a lista dos produtos junto. Duas mensagens, o mesmo fato, uma
+       * delas pintada de alarme: o dono lia como se duas coisas tivessem dado
+       * errado, quando a recusa é o comportamento correto.
+       *
+       * Só a mensagem encolhe. A regra, a recusa e o texto do servidor seguem
+       * intactos — quem chamar a server function direto continua recebendo a
+       * explicação completa.
+       */
+      setErro(
+        r?.ok
+          ? null
+          : r?.pendentes?.length
+            ? "Não foi possível ligar o controle de estoque."
+            : (r?.error ?? "Não foi possível salvar."),
+      );
       await queryClient.invalidateQueries({ queryKey: ["controle-de-estoque"] });
+      /*
+       * DESCONGELA A LISTA. Sem isto, `salvar.data.ok === false` continuava
+       * verdadeiro para sempre — o `useMutation` guarda o último resultado — e
+       * as pendências passavam a vir da mutação em vez da consulta. Corrigir um
+       * produto e voltar sem trocar de aba mostrava a lista velha.
+       *
+       * Depois do `await` acima a consulta já foi refeita, então zerar aqui faz
+       * a lista voltar para a fonte atual, e não para uma vazia.
+       */
+      salvar.reset();
     },
     onError: (e: Error) => setErro(e.message),
   });
@@ -878,13 +908,17 @@ function ControleDeEstoque() {
 
   const ativo = estado.data.ativo;
   /*
-   * A recusa mais recente manda, quando existe: a lista da consulta pode ter
-   * envelhecido entre carregar a tela e clicar em ligar.
+   * SEMPRE DA CONSULTA, e nunca do último resultado da mutação.
+   *
+   * A lista vinha da mutação quando a recusa era a mais recente, para não
+   * exibir uma consulta envelhecida. Mas `salvar.data` não envelhece nunca — o
+   * `useMutation` o guarda indefinidamente — então a "mais recente" virava a
+   * eterna, e as pendências congelavam na foto do clique.
+   *
+   * O `invalidateQueries` do `onSuccess` é aguardado antes do `reset`, então a
+   * consulta aqui já está atualizada quando esta linha roda.
    */
-  const pendentes =
-    (salvar.data as any)?.ok === false
-      ? (salvar.data as any).pendentes
-      : estado.data.pendentes;
+  const pendentes = estado.data.pendentes;
 
   return (
     <div className="space-y-5">
@@ -942,7 +976,16 @@ function ControleDeEstoque() {
             </p>
           </div>
         ) : (
-          <details className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+          <details
+            /*
+             * Aberto quando a ativação acabou de ser recusada: o desfecho acima
+             * diz que não deu, e o motivo tem de estar à vista sem exigir um
+             * segundo clique justamente no momento em que ele é procurado.
+             * Fechado no resto do tempo, que é o comportamento da UX-3.
+             */
+            open={Boolean(erro)}
+            className="rounded-xl border border-neutral-200 bg-neutral-50 p-4"
+          >
             <summary className="cursor-pointer text-sm text-neutral-700 marker:text-neutral-400">
               Para ligar o controle de estoque,{" "}
               {pendentes.length === 1
