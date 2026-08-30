@@ -248,6 +248,31 @@ export async function criarContaDeLoja(
                 description: catalog.description,
                 whatsappNumber: data.whatsappNumber,
                 openingHours: { create: WEEKDAYS.map((weekday) => ({ weekday })) },
+                /*
+                 * O ESTOQUE NASCE LIGADO, e a mudança acompanha o catálogo
+                 * vazio — as duas só fazem sentido juntas.
+                 *
+                 * Enquanto a loja nova vinha com vinte produtos que ninguém
+                 * cadastrou, ligar o controle produzia vinte pendências no
+                 * primeiro login: cada produto fictício exigindo receita ou
+                 * item de estoque para uma mercadoria que talvez nem exista na
+                 * casa. Desligado era o único default suportável, e o custo era
+                 * que o controle ficava escondido atrás de uma configuração que
+                 * o dono nunca ia procurar.
+                 *
+                 * Sem produtos, não há pendência nenhuma: a loja abre com o
+                 * estoque ativo e vazio, e cada produto é classificado no
+                 * momento em que é cadastrado — que é quando o dono sabe a
+                 * resposta.
+                 *
+                 * Continua sendo reversível num clique nas Configurações. Isto
+                 * é um default, não uma obrigação.
+                 *
+                 * SÓ VALE PARA LOJA NOVA. Nenhuma loja existente é tocada: a
+                 * coluna mantém o default `false` do banco para quem já está
+                 * cadastrado.
+                 */
+                inventoryControlEnabled: true,
               },
             },
           },

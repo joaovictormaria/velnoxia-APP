@@ -27,6 +27,8 @@ export class CompositionService {
   ) {
     // productId é apenas um identificador para a receita, não precisa validar se existe na tabela Product
 
+    await this.recusarEmbalagemComoInsumo(storeId, data.items);
+
     // Validate all items and units exist
     for (const item of data.items) {
       const inventoryItem = await inventoryItemRepository.findById(
@@ -130,6 +132,8 @@ export class CompositionService {
 
     // If items provided, replace all
     if (data.items) {
+      await this.recusarEmbalagemComoInsumo(storeId, data.items);
+
       // Validate all items
       for (const item of data.items) {
         const invItem = await inventoryItemRepository.findById(
@@ -506,6 +510,51 @@ export class CompositionService {
 
   // ---------------- privados, compartilhados ----------------
 
+  /**
+   * Embalagem não é ingrediente, e o servidor é quem garante isso.
+   *
+   * A caixa de pizza é item de estoque comprado pronto. Dentro da ficha técnica
+   * ela produziria três erros de uma vez: o custo dela viraria custo de
+   * PRODUÇÃO (a corrida de produção de um preparado passaria a consumir caixa,
+   * quando a caixa só é usada na venda), a lista de ingredientes deixaria de
+   * significar comida, e um produto de REVENDA — que não tem ficha nenhuma —
+   * continuaria sem ter onde declarar o copo dele.
+   *
+   * O lugar da embalagem é `ProductPackaging`, que baixa junto com a venda para
+   * os três tipos de produto.
+   *
+   * VALE PARA AS DUAS RECEITAS: a de produto e a de preparado. Eram dois
+   * caminhos de validação diferentes neste arquivo, e cobrir só um deixaria a
+   * porta aberta pelo outro.
+   *
+   * UMA CONSULTA, com `in` — não uma por linha. Uma ficha de dez ingredientes
+   * não deve custar dez viagens ao banco para descobrir que nenhuma delas é
+   * embalagem.
+   */
+  private static async recusarEmbalagemComoInsumo(
+    storeId: string,
+    items: Array<{ inventoryItemId: string }>,
+  ) {
+    if (items.length === 0) return;
+    const embalagens = await prisma.inventoryItem.findMany({
+      where: {
+        storeId,
+        id: { in: items.map((i) => i.inventoryItemId) },
+        itemType: "PACKAGING",
+      },
+      select: { name: true },
+    });
+    if (embalagens.length > 0) {
+      const nomes = embalagens.map((e) => `"${e.name}"`).join(", ");
+      throw new Error(
+        `${nomes} ${embalagens.length === 1 ? "é uma embalagem" : "são embalagens"} ` +
+          `e não pode entrar na receita. Embalagem é configurada na seção ` +
+          `Embalagem do produto, e baixa junto com a venda.`,
+      );
+    }
+  }
+
+
   private static async preparadoValidado(storeId: string, inventoryItemId: string) {
     const item = await prisma.inventoryItem.findFirst({
       where: { id: inventoryItemId, storeId },
@@ -524,6 +573,7 @@ export class CompositionService {
     storeId: string,
     items: Array<{ inventoryItemId: string; unitId: string }>,
   ) {
+    await this.recusarEmbalagemComoInsumo(storeId, items);
     for (const item of items) {
       const insumo = await prisma.inventoryItem.findFirst({
         where: { id: item.inventoryItemId, storeId },

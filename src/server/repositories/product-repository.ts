@@ -34,6 +34,15 @@ export type ProductInput = {
    */
   controlaEstoque: boolean;
   /**
+   * Como este produto controla o estoque.
+   *
+   * `undefined` não mexe na classificação; `null` a devolve ao estado "não
+   * escolhido". Quem decide se a classificação é válida é
+   * `@/server/inventory/guarda-de-receita` — o repositório grava o que
+   * mandaram e não conhece sessão nem configuração de loja.
+   */
+  tipoDeControle?: "NAO_CONTROLA" | "REVENDA" | "PRODUCAO" | null;
+  /**
    * O item de estoque que este produto consome ao ser vendido.
    *
    * PASSOU A VIAJAR COM O PRODUTO, e isso é o que torna a operação atômica.
@@ -77,6 +86,25 @@ export function listProducts(
     orderBy: [{ category: { sortOrder: "asc" } }, { sortOrder: "asc" }],
     include: {
       category: { select: { id: true, name: true } },
+      /*
+       * A FICHA VEM SÓ COMO "EXISTE OU NÃO", e é o mínimo que a listagem
+       * precisa: sem isto ela não tem como distinguir um produto de PRODUÇÃO
+       * já configurado de um que ficou pela metade, e o selo "Configuração
+       * pendente" mentiria para um dos dois.
+       *
+       * `take: 1` e só o `id`: a pergunta é de existência. Trazer as linhas da
+       * receita de todo produto do cardápio para responder "tem?" seria pagar
+       * uma consulta grande por um booleano.
+       *
+       * O filtro repete as MESMAS três condições da guarda — ativa, com pelo
+       * menos uma linha, da mesma loja. Divergir aqui faria a tela dizer uma
+       * coisa e o servidor recusar outra.
+       */
+      productCompositions: {
+        where: { storeId, isActive: true, items: { some: {} } },
+        select: { id: true },
+        take: 1,
+      },
       // O nome do tamanho vem junto: a listagem mostra "Brotinho, Grande" e
       // não teria como saber disso só com o id.
       sizes: {

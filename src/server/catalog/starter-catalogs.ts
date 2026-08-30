@@ -342,8 +342,48 @@ export const STARTER_CATALOGS: Record<string, StarterCatalog> = {
 
 export const DEFAULT_BUSINESS_TYPE = "pizzaria";
 
+/**
+ * O que a loja nova recebe: a ESTRUTURA do ramo, sem o conteúdo de negócio.
+ *
+ * A LOJA NASCIA COM VINTE PRODUTOS QUE NINGUÉM PEDIU. Eles existiam para a
+ * vitrine não abrir vazia, e o preço disso só apareceu quando o controle de
+ * estoque entrou: cada produto fictício virava uma pendência exigindo receita
+ * ou item de estoque para uma mercadoria que talvez nem exista na casa. O dono
+ * começava apagando um cardápio que não era dele — e apagar é mais trabalho
+ * que cadastrar, porque exige ler cada linha para decidir.
+ *
+ * O QUE FICA, e por que cada coisa fica:
+ *
+ *   label                 é a opção no seletor de ramo, em duas telas
+ *   tagline, description  vão para StoreSettings e aparecem na vitrine; sem
+ *                         elas o rodapé e o cabeçalho nascem em branco
+ *   categories            a estrutura do cardápio, que o dono preenche
+ *   category.sizes        os tamanhos são da CATEGORIA, não do produto — é o
+ *                         que faz meia a meia casar "Grande" com "Grande"
+ *
+ * O QUE SAI: produtos, extras e promoções. São dados de NEGÓCIO — o que a casa
+ * vende, por quanto, e o que ela está anunciando. Nada disso o sistema tem como
+ * adivinhar, e errar aqui custa mais caro que deixar em branco.
+ *
+ * ESVAZIAR NO PONTO DE USO, e não apagar os menus, é deliberado. Os cardápios
+ * de referência continuam no repositório, intactos: reverter esta decisão é
+ * apagar esta função, não reescrever 161 produtos a partir do histórico. E a
+ * chave de cada ramo continua existindo — ela é o enum `businessType` de dois
+ * validadores Zod e de dois seletores, e removê-la quebraria o cadastro.
+ */
+function semCardapioInicial(catalogo: StarterCatalog): StarterCatalog {
+  return {
+    ...catalogo,
+    categories: catalogo.categories.map((c) => ({ ...c, products: [] })),
+    extras: [],
+    promotions: [],
+  };
+}
+
 export function getStarterCatalog(businessType: string): StarterCatalog {
-  return STARTER_CATALOGS[businessType] ?? STARTER_CATALOGS[DEFAULT_BUSINESS_TYPE];
+  return semCardapioInicial(
+    STARTER_CATALOGS[businessType] ?? STARTER_CATALOGS[DEFAULT_BUSINESS_TYPE],
+  );
 }
 
 /** Options for the signup selector, in the order they should appear. */

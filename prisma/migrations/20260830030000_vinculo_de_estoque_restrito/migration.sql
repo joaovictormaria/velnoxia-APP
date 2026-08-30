@@ -1,0 +1,77 @@
+-- O VINCULO DE ESTOQUE DEIXA DE SUMIR EM SILENCIO
+--
+-- `Product.inventoryItemId` nasceu com ON DELETE SET NULL. A consequencia so
+-- fica obvia depois de escrita: apagar um item de estoque APAGAVA O VINCULO de
+-- todo produto que apontava para ele, sem erro, sem aviso e sem passar por
+-- guarda nenhuma. Um produto de REVENDA ativo virava um produto ativo sem
+-- origem — vendido normalmente, descendo saldo nenhum — e o dono so descobriria
+-- pelo inventario do mes seguinte.
+--
+-- E o caminho mais barato de furar a regra desta fase inteira: configura-se o
+-- produto para passar na validacao, apaga-se o item em seguida, e o produto
+-- continua ativo sem nada por tras.
+--
+-- RESTRICT e a mesma disciplina que o resto do modulo ja aplica onde o dado
+-- importa: `InventoryMovement.itemId`, `CompositionItem.inventoryItemId` e
+-- `ProductionRun.compositionId` sao todos Restrict. O item de estoque em uso
+-- nao cai; quem quiser apaga-lo desvincula o produto antes, de proposito, e a
+-- recusa e a informacao.
+--
+-- NAO E DESTRUTIVO. O DROP e de uma CONSTRAINT, nao de dados: nenhuma linha,
+-- coluna ou tabela e removida, e o par DROP + ADD deixa a mesma FK apontando
+-- para o mesmo lugar, mudando so o comportamento no delete do lado referenciado.
+-- Nenhum UPDATE, DELETE ou TRUNCATE.
+--
+-- IF EXISTS no DROP, e a razao e concreta: ha ambiente onde as foreign keys nao
+-- foram criadas. Sem o IF EXISTS a migration falharia ali no primeiro comando,
+-- antes de conseguir criar a FK que esta faltando — que e justamente o que ela
+-- deveria fazer nesse ambiente.
+--
+-- NOT VALID NO ADD, E ISTO NAO E CAUTELA VAZIA: FOI MEDIDO.
+--
+-- Num ambiente sem foreign keys, orfaos se acumulam — um "Product" apontando
+-- para um "InventoryItem" que nao existe mais e exatamente o que a ausencia da
+-- FK permite. Um ADD CONSTRAINT comum VARRE as linhas existentes, entao basta
+-- UM orfao para a migration inteira falhar. Reproduzido num banco descartavel:
+--
+--   ERROR: insert or update on table "Product" violates foreign key constraint
+--   DETAIL: Key (inventoryItemId)=(item_que_nao_existe) is not present ...
+--
+-- E o desfecho seria o pior possivel: o deploy quebra por causa de um dado
+-- antigo, e a protecao que esta migration existe para criar nao chega a existir.
+--
+-- NOT VALID NAO ENFRAQUECE A PROTECAO. Tambem medido, no mesmo banco, com a
+-- constraint ja marcada NOT VALID:
+--
+--   DELETE de um item EM USO      → RECUSADO (e o objetivo desta migration)
+--   UPDATE para um id inexistente → RECUSADO
+--   linha antiga ja orfa          → fica onde esta, visivel, sem travar nada
+--
+-- A razao e que NOT VALID so dispensa a varredura retroativa; os gatilhos das
+-- duas pontas — o que checa a insercao e o que aplica o ON DELETE — ficam
+-- ativos do mesmo jeito.
+--
+-- A validacao retroativa e uma decisao separada, e so depois de conferir se ha
+-- orfao a limpar:
+--
+--   SELECT p.id FROM "Product" p
+--    WHERE p."inventoryItemId" IS NOT NULL
+--      AND NOT EXISTS (SELECT 1 FROM "InventoryItem" i WHERE i.id = p."inventoryItemId");
+--
+--   ALTER TABLE "Product" VALIDATE CONSTRAINT "Product_inventoryItemId_fkey";
+--
+-- IMPACTO NOS REGISTROS EXISTENTES: nenhum. Nenhuma linha e lida ou reescrita.
+-- O que muda e o futuro: um DELETE em `InventoryItem` que antes silenciava
+-- agora e recusado com violacao de chave estrangeira.
+--
+-- ROLLBACK:
+--   ALTER TABLE "Product" DROP CONSTRAINT "Product_inventoryItemId_fkey";
+--   ALTER TABLE "Product" ADD CONSTRAINT "Product_inventoryItemId_fkey"
+--     FOREIGN KEY ("inventoryItemId") REFERENCES "InventoryItem"("id")
+--     ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- DropForeignKey
+ALTER TABLE "Product" DROP CONSTRAINT IF EXISTS "Product_inventoryItemId_fkey";
+
+-- AddForeignKey
+ALTER TABLE "Product" ADD CONSTRAINT "Product_inventoryItemId_fkey" FOREIGN KEY ("inventoryItemId") REFERENCES "InventoryItem"("id") ON DELETE RESTRICT ON UPDATE CASCADE NOT VALID;

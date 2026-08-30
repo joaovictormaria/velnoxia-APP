@@ -233,6 +233,7 @@ model Store {
   inventoryMovements   InventoryMovement[]   @relation("InventoryMovements")
   productCompositions  ProductComposition[]  @relation("ProductCompositions")
   productionRuns       ProductionRun[]       @relation("ProductionRuns")
+  productPackagings    ProductPackaging[]    @relation("ProductPackagings")
   tables               Table[]
   tableSessions        TableSession[]
   auditLogs            AuditLog[]
@@ -513,6 +514,35 @@ model Category {
   @@index([deletedAt])
 }
 
+/// Como um produto do cardápio se comporta em relação ao estoque.
+///
+/// SUBSTITUI UMA HEURÍSTICA. Antes o motor deduzia o comportamento a partir do
+/// que encontrava: "tem ficha com ingrediente? baixa ingredientes; senão tem
+/// vínculo? baixa uma unidade; senão, silêncio". A dedução errava nos dois
+/// sentidos — uma Coca com ficha criada por engano deixava de baixar a lata, e
+/// um produto sem nenhum dos dois passava despercebido — e nenhuma tela
+/// conseguia dizer ao dono o que estava configurado, porque não havia o que ler.
+enum TipoDeControleDeEstoque {
+  /// Não participa do controle: a venda não desce saldo do produto.
+  /// A EMBALAGEM AINDA DESCE, quando configurada — ela é do pedido e não do
+  /// produto, e a sacola sai da prateleira do mesmo jeito.
+  NAO_CONTROLA
+
+  /// Comprado pronto e vendido como veio. Exige item de estoque vinculado; a
+  /// venda de N unidades baixa N do item. Não tem receita, e o servidor recusa
+  /// criar uma.
+  REVENDA
+
+  /// Preparado pela casa. Tem EXATAMENTE UMA origem, nunca as duas:
+  ///
+  ///   ficha própria        a venda baixa os ingredientes da receita
+  ///   preparado vinculado  a venda baixa 1 unidade do item PREPARED, e os
+  ///                        ingredientes NÃO descem de novo — já saíram na
+  ///                        corrida de produção que fez o lote
+  PRODUCAO
+}
+
+
 model Product {
   id                   String               @id @default(cuid())
   storeId              String
@@ -524,7 +554,7 @@ model Product {
   category             Category             @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   /// Linkagem para estoque: qual InventoryItem este produto usa
   inventoryItemId      String?
-  inventoryItem        InventoryItem?       @relation("ProductInventory", fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  inventoryItem        InventoryItem?       @relation("ProductInventory", fields: [inventoryItemId], references: [id], onDelete: Restrict)
   basePrice            Decimal              @db.Decimal(10, 2)
   imageUrl             String?
   tag                  String?
@@ -548,6 +578,17 @@ model Product {
   /// para conseguir ligar o controle.
   controlaEstoque      Boolean              @default(true)
 
+  /// Como este produto controla o estoque. Ver `TipoDeControleDeEstoque`.
+  ///
+  /// NULO = o dono ainda não escolheu, e não é o mesmo que `NAO_CONTROLA`:
+  /// nulo cai no comportamento legado e aparece como "Configuração pendente";
+  /// `NAO_CONTROLA` é a escolha explícita de não controlar.
+  ///
+  /// SEM DEFAULT, de propósito. Um default faria toda linha existente nascer
+  /// classificada por um palpite, e faria o produto criado por efeito colateral
+  /// da ficha técnica herdar uma classificação que ninguém pediu.
+  tipoDeControle       TipoDeControleDeEstoque?
+
   allowHalfAndHalf     Boolean              @default(false)
   halfPizzaPricingRule HalfPizzaPricingRule @default(HIGHEST_PRICE)
   sortOrder            Int                  @default(0)
@@ -564,6 +605,7 @@ model Product {
   employeeBenefitRules EmployeeBenefitRule[]
   extraScopes          ExtraScope[]
   productCompositions  ProductComposition[]
+  embalagens           ProductPackaging[]
 
   @@unique([storeId, slug])
   @@index([categoryId, isActive, deletedAt])
@@ -1379,6 +1421,7 @@ model InventoryUnit {
   movementUnits    InventoryMovement[]
   compositionUnits CompositionItem[]
   yieldUnits       ProductComposition[]      @relation("UnidadeDeRendimento")
+  packagingUnits   ProductPackaging[]        @relation("UnidadeDeEmbalagem")
   productionUnits  ProductionRun[]           @relation("UnidadeDeProducao")
 
   @@index([system])
@@ -1474,6 +1517,7 @@ model InventoryItem {
   movements    InventoryMovement[]
   compositions CompositionItem[]
   products     Product[]           @relation("ProductInventory")
+  embalagemDe  ProductPackaging[]  @relation("ItemDeEmbalagem")
 
   /// As fichas técnicas que produzem ESTE item — só existem quando ele é um
   /// preparado (`itemType = "PREPARED"`). Um insumo comprado não tem receita,
@@ -1731,6 +1775,58 @@ model ProductionRun {
 
 /// Mesa do restaurante para comer no local (dine-in).
 /// Cada mesa tem um QRCode único e permanente que nunca muda.
+/// A embalagem que sai junto com um produto vendido.
+///
+/// TABELA PRÓPRIA, E NÃO UMA LINHA NA RECEITA. A caixa de pizza é item de
+/// estoque comprado pronto, não ingrediente — pô-la na ficha técnica faria o
+/// custo da receita virar custo de produção da pizza, e faria a corrida de
+/// produção de um preparado consumir caixa. Pior: um produto de REVENDA não
+/// tem ficha nenhuma, então o copo do refrigerante não teria onde morar.
+///
+/// VALE PARA OS TRÊS TIPOS, inclusive `NAO_CONTROLA`. Não controlar o produto
+/// é não descer o produto; a sacola sai da prateleira do mesmo jeito, e recusar
+/// registrá-la seria criar uma exceção sem razão física.
+///
+/// O CONSUMO É NA VENDA, nunca na produção. A pizza é encaixotada quando sai
+/// para o cliente, não quando a massa é feita — por isso `ProductionRun` não
+/// conhece esta tabela.
+model ProductPackaging {
+  id String @id @default(cuid())
+
+  /// Recorte por loja repetido, como em `ProductComposition`. O produto já
+  /// carrega a loja, mas a convenção é do código que grava, não constraint do
+  /// banco: repetir custa nada e fecha a porta de servir um produto da loja A
+  /// com uma embalagem da loja B.
+  storeId String
+  store   Store  @relation("ProductPackagings", fields: [storeId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  /// SEMPRE um item `itemType = "PACKAGING"`. Quem cobra é o servidor — o
+  /// banco não expressa "FK apontando só para linhas com certo valor".
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation("ItemDeEmbalagem", fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  /// Quantas embalagens por unidade vendida. Uma caixa por pizza é 1; dois
+  /// guardanapos por lanche são 2. Decimal porque a unidade pode ser contínua
+  /// — 0,4 m de filme plástico por marmita.
+  quantity Decimal       @db.Decimal(15, 4)
+  unitId   String
+  unit     InventoryUnit @relation("UnidadeDeEmbalagem", fields: [unitId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Uma linha por par produto+item. Duas caixas do MESMO tipo são
+  /// `quantity = 2`, não duas linhas — sem isto a soma do motor dependeria de
+  /// quantas vezes alguém clicou em adicionar.
+  @@unique([productId, inventoryItemId])
+  @@index([storeId])
+  @@index([productId])
+  @@index([inventoryItemId])
+}
+
 model Table {
   /// QR Token permanente: identificador único, não previsível, nunca muda.
   /// Gerado como UUID v4 aleatório no cliente ou cuid no servidor.

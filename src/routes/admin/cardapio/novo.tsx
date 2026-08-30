@@ -18,6 +18,15 @@ const EMPTY: ProductFormValues = {
   isActive: true,
   // Regra, não exceção: produto novo nasce participando do estoque.
   controlaEstoque: true,
+  /*
+   * SEM ESCOLHA PRÉVIA, de propósito.
+   *
+   * Um default aqui responderia a pergunta pelo dono — e a resposta errada
+   * seria invisível, porque o rádio já viria marcado. Nulo faz a tela pedir a
+   * escolha, que é o único momento em que ela é barata: quem está cadastrando
+   * a Coca-Cola sabe agora que ela é revenda.
+   */
+  tipoDeControle: null,
   allowHalfAndHalf: false,
   halfPizzaPricingRule: "HIGHEST_PRICE",
   sortOrder: 0,
