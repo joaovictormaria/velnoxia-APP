@@ -35,6 +35,15 @@ function EditProductPage() {
      * um produto virar exceção sozinho, sem ninguém ter pedido.
      */
     controlaEstoque: (p as any).controlaEstoque ?? true,
+    /*
+     * NULO É O ESTADO CERTO POR OMISSÃO, e é o oposto do `?? true` acima.
+     *
+     * `controlaEstoque` tem uma regra e uma exceção, então omitir cai na regra.
+     * O tipo de controle não tem padrão nenhum: nulo significa "o dono ainda
+     * não escolheu", e inventar uma escolha por ele é justamente o backfill
+     * automático que esta fase recusou fazer no banco.
+     */
+    tipoDeControle: p.tipoDeControle ?? null,
     allowHalfAndHalf: p.allowHalfAndHalf,
     halfPizzaPricingRule: p.halfPizzaPricingRule,
     sortOrder: p.sortOrder,

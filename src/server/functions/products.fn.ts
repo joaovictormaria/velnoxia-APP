@@ -13,8 +13,8 @@ import {
 } from "../repositories/product-repository";
 import { listActiveCategories } from "../repositories/category-repository";
 import {
-  exigirVinculoDeEstoque,
-  nasceInativoPorFaltaDeVinculo,
+  exigirConfiguracaoDeEstoque,
+  avaliarCriacaoDeProduto,
 } from "../inventory/guarda-de-receita";
 import { optionGroupsSchema } from "../validation/option-group-schema";
 import { convertProductForServal, convertProductsForServal } from "../utils/decimal-converter";
@@ -47,6 +47,20 @@ const productSchema = z.object({
    * mandar um JSON sem ele.
    */
   controlaEstoque: z.boolean().default(true),
+  /**
+   * Como este produto controla o estoque.
+   *
+   * `.nullish()` e NÃO `.default(...)`: um payload sem o campo tem de
+   * significar "não mexe na classificação", e não "reclassifique para X". Um
+   * default aqui faria toda edição de preço regravar o tipo do produto.
+   *
+   * O valor é só uma string até a guarda julgá-lo. O Zod não sabe se o item
+   * vinculado é da loja, nem se existe ficha — quem sabe é
+   * `exigirConfiguracaoDeEstoque`, com o `storeId` da sessão.
+   */
+  tipoDeControle: z
+    .enum(["NAO_CONTROLA", "REVENDA", "PRODUCAO"])
+    .nullish(),
   /**
    * O item de estoque que o produto consome, gravado JUNTO com o produto.
    *
@@ -144,12 +158,15 @@ export const saveProductFn = createServerFn({ method: "POST" })
      */
     if (data.id) {
       const product = await prisma.$transaction(async (tx) => {
-        await exigirVinculoDeEstoque(
+        await exigirConfiguracaoDeEstoque(
           storeId,
           data.id!,
           {
             isActive: data.data.isActive,
             controlaEstoque: data.data.controlaEstoque,
+            ...(data.data.tipoDeControle !== undefined
+              ? { tipoDeControle: data.data.tipoDeControle }
+              : {}),
             ...(vinculoProposto !== undefined
               ? { inventoryItemId: vinculoProposto }
               : {}),
@@ -161,13 +178,29 @@ export const saveProductFn = createServerFn({ method: "POST" })
       return { ok: true as const, product: convertProductForServal(product) };
     }
 
-    const nasceInativo = await nasceInativoPorFaltaDeVinculo(storeId, {
-      isActive: data.data.isActive,
-      controlaEstoque: data.data.controlaEstoque,
-    });
-    const product = await createProduct(storeId, {
-      ...data.data,
-      isActive: nasceInativo ? false : data.data.isActive,
+    /*
+     * A CRIAÇÃO TAMBÉM É UMA TRANSAÇÃO SÓ, e agora ela precisa ser: a avaliação
+     * lê o item de estoque para conferir o tipo dele, e a gravação escreve o
+     * produto que aponta para esse item. Fora de uma transação, entre uma coisa
+     * e a outra caberia trocar o tipo do item — ou apagá-lo.
+     */
+    const { product, nasceInativo } = await prisma.$transaction(async (tx) => {
+      const { nasceInativo } = await avaliarCriacaoDeProduto(
+        storeId,
+        {
+          isActive: data.data.isActive,
+          controlaEstoque: data.data.controlaEstoque,
+          tipoDeControle: data.data.tipoDeControle ?? null,
+          inventoryItemId: vinculoProposto ?? null,
+        },
+        tx,
+      );
+      const product = await createProduct(
+        storeId,
+        { ...data.data, isActive: nasceInativo ? false : data.data.isActive },
+        tx,
+      );
+      return { product, nasceInativo };
     });
     return {
       ok: true as const,
@@ -198,7 +231,7 @@ export const setProductActiveFn = createServerFn({ method: "POST" })
      * Desativar nunca é recusado — `produtoExigeVinculo` só cobra de produto
      * ativo, então `isActive: false` passa sempre.
      */
-    await exigirVinculoDeEstoque(storeId, data.id, { isActive: data.isActive });
+    await exigirConfiguracaoDeEstoque(storeId, data.id, { isActive: data.isActive });
     await setProductActive(storeId, data.id, data.isActive);
     return { ok: true as const };
   });

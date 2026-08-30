@@ -24,6 +24,12 @@ import { prisma } from "@/server/db/client";
 import {
   produtoEstaIrregular,
   MOTIVO_SEM_VINCULO_DE_ESTOQUE,
+  motivoDeConfiguracaoInvalida,
+  tipoDeControleExigido,
+  MOTIVOS,
+  type MotivoDeRecusa,
+  type TipoDeControleOuNulo,
+  type TipoDeItem,
 } from "@/lib/regra-de-estoque";
 
 /** Prisma normal ou o cliente de uma transação do chamador. */
@@ -242,4 +248,271 @@ export async function produtosPendentesDeVinculo(
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+}
+
+/* ------------------------------------------------------------------------- *
+ * A COBRANÇA DO TIPO DE CONTROLE.
+ *
+ * Mesmo contrato do resto do arquivo: `storeId` é o primeiro argumento, vem de
+ * `requireAdminSession()` no chamador, e nenhuma consulta daqui roda sem o
+ * recorte por loja. É o que impede um produto da loja A ser satisfeito por um
+ * item da loja B.
+ * ------------------------------------------------------------------------- */
+
+/**
+ * A recusa por configuração inválida, com o motivo dentro.
+ *
+ * Classe própria pelo mesmo motivo de `ErroDeVinculoDeEstoque`: a tela precisa
+ * distinguir "faltou o item de estoque" de "esta receita não pode existir" para
+ * oferecer a saída certa. O `motivo` viaja junto para que ela não precise
+ * comparar strings de mensagem.
+ */
+export class ErroDeConfiguracaoDeEstoque extends Error {
+  readonly codigo = "CONFIGURACAO_DE_ESTOQUE_INVALIDA" as const;
+  readonly motivo: MotivoDeRecusa;
+
+  constructor(motivo: MotivoDeRecusa) {
+    super(MOTIVOS[motivo]);
+    this.name = "ErroDeConfiguracaoDeEstoque";
+    this.motivo = motivo;
+  }
+}
+
+/** O item de estoque é desta loja, e o que ele é. Nulo se não for dela. */
+export async function tipoDoItemDaLoja(
+  storeId: string,
+  inventoryItemId: string,
+  db: Db = prisma,
+): Promise<TipoDeItem | null> {
+  const item = await db.inventoryItem.findFirst({
+    where: { id: inventoryItemId, storeId },
+    select: { itemType: true },
+  });
+  /*
+   * O `itemType` é TEXT no banco (o CHECK vale para o que entra daqui em
+   * diante, não para o que já estava lá). Um valor fora dos quatro vira null,
+   * e null nunca satisfaz regra nenhuma — que é o desfecho certo: um item que
+   * o sistema não sabe classificar não deve autorizar baixa de saldo.
+   */
+  const tipo = item?.itemType as TipoDeItem | undefined;
+  if (!tipo) return null;
+  return ["INGREDIENT", "RESALE", "PREPARED", "PACKAGING"].includes(tipo)
+    ? tipo
+    : null;
+}
+
+/**
+ * O que se pretende gravar, para a guarda julgar o RESULTADO e não o presente.
+ *
+ * Mesma razão de `AlteracaoProposta`: sem isto a guarda leria o estado antigo e
+ * aprovaria a alteração que o quebra.
+ */
+export type ConfiguracaoProposta = AlteracaoProposta & {
+  tipoDeControle?: TipoDeControleOuNulo;
+};
+
+/**
+ * Recusa a alteração se ela deixaria o produto com uma configuração que o motor
+ * não sabe executar.
+ *
+ * DUAS REGRAS, E ELAS NÃO SE SUBSTITUEM:
+ *
+ *   tipo nulo    cai em `exigirVinculoDeEstoque`, a regra legada, intacta. É o
+ *                que preserva o comportamento de todo produto anterior a esta
+ *                fase, byte a byte.
+ *   tipo escolhido cobra a regra nova, que é mais estrita — e por isso a antiga
+ *                não precisa rodar junto: "REVENDA com item RESALE" já implica
+ *                "tem de onde tirar o que vende".
+ *
+ * Produto inexistente na loja da sessão é silêncio, não recusa: quem trata "não
+ * é seu" é o chamador, com a mensagem dele. A guarda não decide posse.
+ */
+export async function exigirConfiguracaoDeEstoque(
+  storeId: string,
+  productId: string,
+  proposta: ConfiguracaoProposta = {},
+  db: Db = prisma,
+): Promise<void> {
+  if (!(await controleDeEstoqueAtivo(storeId, db))) return;
+
+  const produto = await db.product.findFirst({
+    where: { id: productId, storeId },
+    select: {
+      isActive: true,
+      controlaEstoque: true,
+      inventoryItemId: true,
+      tipoDeControle: true,
+      deletedAt: true,
+      productCompositions: {
+        where: {
+          storeId,
+          isActive: true,
+          items: { some: {} },
+          ...(proposta.ignorarComposicaoId
+            ? { id: { not: proposta.ignorarComposicaoId } }
+            : {}),
+        },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+  if (!produto) return;
+
+  const tipo =
+    proposta.tipoDeControle !== undefined
+      ? proposta.tipoDeControle
+      : (produto.tipoDeControle as TipoDeControleOuNulo);
+
+  // Produto legado: a regra antiga, sem uma linha de diferença.
+  if (tipo === null) {
+    return exigirVinculoDeEstoque(storeId, productId, proposta, db);
+  }
+
+  const alvo = {
+    isActive:
+      proposta.isActive ?? (produto.isActive && produto.deletedAt === null),
+    controlaEstoque: proposta.controlaEstoque ?? produto.controlaEstoque,
+  };
+  if (!tipoDeControleExigido(true, alvo)) return;
+
+  const inventoryItemId =
+    proposta.inventoryItemId !== undefined
+      ? proposta.inventoryItemId
+      : produto.inventoryItemId;
+
+  /*
+   * O tipo do item é lido AGORA, contra a loja da sessão, e nunca aceito do
+   * payload. É o ponto exato onde uma tentativa cross-tenant morre: um id de
+   * item da loja vizinha não é encontrado, `tipoDoItemDaLoja` devolve null, e
+   * null não satisfaz REVENDA nem PRODUÇÃO.
+   */
+  const itemVinculadoTipo = inventoryItemId
+    ? await tipoDoItemDaLoja(storeId, inventoryItemId, db)
+    : null;
+
+  const motivo = motivoDeConfiguracaoInvalida(tipo, {
+    temFichaComIngrediente:
+      proposta.temFichaComIngrediente ??
+      produto.productCompositions.length > 0,
+    inventoryItemId,
+    itemVinculadoTipo,
+  });
+
+  if (motivo) throw new ErroDeConfiguracaoDeEstoque(motivo);
+}
+
+/**
+ * Este produto recusa ficha técnica?
+ *
+ * Pergunta separada porque quem precisa dela — as quatro portas de
+ * `composition.fn.ts` — não está gravando produto nenhum: está criando,
+ * ativando ou apagando uma receita, e precisa saber se o dono dela aceita uma.
+ *
+ * Vale mesmo com o controle de estoque DESLIGADO. É a única regra desta fase
+ * que não depende dele, e de propósito: uma receita para Coca-Cola é errada
+ * enquanto o dono a monta, não só quando ele liga o controle — e permitir criá-
+ * la agora para recusá-la depois transformaria o "ligar" numa lista de
+ * consertos.
+ */
+export async function recusaFichaTecnica(
+  storeId: string,
+  productId: string,
+  db: Db = prisma,
+): Promise<boolean> {
+  const produto = await db.product.findFirst({
+    where: { id: productId, storeId },
+    select: { tipoDeControle: true },
+  });
+  return produto?.tipoDeControle === "REVENDA";
+}
+
+/**
+ * Os produtos que ainda não foram classificados.
+ *
+ * SÃO OUTRA COISA que `produtosPendentesDeVinculo`, e as duas listas convivem:
+ * aquela pergunta "tem de onde tirar o que vende?" (regra legada, para quem tem
+ * tipo nulo); esta pergunta "o dono já disse como este produto funciona?".
+ *
+ * Com `tipoDeControle` nulo em toda linha existente, esta lista começa igual à
+ * de lá, e as duas divergem à medida que os produtos forem sendo classificados.
+ */
+export async function produtosSemTipoDeControle(
+  storeId: string,
+  db: Db = prisma,
+): Promise<Array<{ id: string; name: string }>> {
+  return db.product.findMany({
+    where: {
+      storeId,
+      isActive: true,
+      controlaEstoque: true,
+      deletedAt: null,
+      tipoDeControle: null,
+    },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+/**
+ * O que fazer com um produto que ainda não existe.
+ *
+ * A CRIAÇÃO TEM UM LIMITE FÍSICO: uma ficha técnica é FK para o produto, então
+ * não pode precedê-lo. Quem escolhe PRODUÇÃO com receita própria não tem como
+ * entregar a receita nesta chamada — ela é montada depois, na aba Estoque.
+ *
+ * Daí a assimetria deliberada entre os motivos:
+ *
+ *   PRODUCAO_SEM_ORIGEM   é o único impossível de satisfazer agora. O produto
+ *                         é gravado INATIVO e a tela avisa — decisão do João,
+ *                         29/08/2026, mantida.
+ *   qualquer outro motivo é satisfazível nesta mesma tela: escolher o item,
+ *                         trocar por um item compatível, limpar a configuração.
+ *                         Recusar é o certo — gravar inativo esconderia um erro
+ *                         que o dono conserta em dois cliques.
+ *
+ * Tipo nulo cai no caminho legado, intacto: produto criado por um caminho que
+ * não pergunta o tipo (a ficha técnica cria produto por efeito colateral)
+ * continua se comportando como antes desta fase.
+ */
+export async function avaliarCriacaoDeProduto(
+  storeId: string,
+  proposto: {
+    isActive: boolean;
+    controlaEstoque: boolean;
+    tipoDeControle?: TipoDeControleOuNulo;
+    inventoryItemId?: string | null;
+  },
+  db: Db = prisma,
+): Promise<{ nasceInativo: boolean }> {
+  if (!(await controleDeEstoqueAtivo(storeId, db))) return { nasceInativo: false };
+
+  const tipo = proposto.tipoDeControle ?? null;
+  if (tipo === null) {
+    return {
+      nasceInativo: await nasceInativoPorFaltaDeVinculo(
+        storeId,
+        { isActive: proposto.isActive, controlaEstoque: proposto.controlaEstoque },
+        db,
+      ),
+    };
+  }
+
+  if (!tipoDeControleExigido(true, proposto)) return { nasceInativo: false };
+
+  const inventoryItemId = proposto.inventoryItemId ?? null;
+  const itemVinculadoTipo = inventoryItemId
+    ? await tipoDoItemDaLoja(storeId, inventoryItemId, db)
+    : null;
+
+  const motivo = motivoDeConfiguracaoInvalida(tipo, {
+    // Produto novo nunca tem ficha: ela é FK para ele e não pode precedê-lo.
+    temFichaComIngrediente: false,
+    inventoryItemId,
+    itemVinculadoTipo,
+  });
+
+  if (motivo === null) return { nasceInativo: false };
+  if (motivo === "PRODUCAO_SEM_ORIGEM") return { nasceInativo: true };
+  throw new ErroDeConfiguracaoDeEstoque(motivo);
 }

@@ -9,6 +9,7 @@ import {
   setProductActiveFn,
 } from "@/server/functions/products.fn";
 import { ProductForm, type ProductFormValues } from "@/components/admin/products/ProductForm";
+import { getControleDeEstoqueFn } from "@/server/functions/settings.fn";
 import type { ProductsWithCategoriesResponse, ProductDetailResponse } from "@/types/api-responses";
 
 export const Route = createFileRoute("/admin/cardapio/")({
@@ -76,6 +77,16 @@ function ProductsPage() {
    */
   const [erro, setErro] = useState<string | null>(null);
 
+  /*
+   * A loja liga o controle de estoque? Vem do SERVIDOR, e não de um palpite da
+   * tela — é o mesmo dado que a guarda consulta para recusar.
+   */
+  const controleDeEstoque = useQuery({
+    queryKey: ["controle-de-estoque"],
+    queryFn: () => getControleDeEstoqueFn(),
+  });
+  const controleAtivo = (controleDeEstoque.data as any)?.ativo ?? false;
+
   const toggleActive = useMutation({
     mutationFn: (vars: { id: string; isActive: boolean }) =>
       setProductActiveFn({ data: vars }),
@@ -98,6 +109,41 @@ function ProductsPage() {
     onSuccess: invalidate,
   });
 
+  /*
+   * O que falta neste produto para o estoque segui-lo, em uma frase.
+   *
+   * SÃO DUAS PENDÊNCIAS DIFERENTES, e chamá-las pelo mesmo nome esconderia a
+   * segunda:
+   *
+   *   sem tipo        o produto é anterior a esta pergunta existir. Não está
+   *                   errado — funciona como sempre funcionou — mas ninguém
+   *                   disse ao sistema como ele deve funcionar.
+   *   tipo sem origem o dono escolheu PRODUÇÃO e ainda não montou a receita.
+   *                   É o estado normal logo depois de criar o produto, que
+   *                   nasce INATIVO justamente por isso — e sem este aviso ele
+   *                   ficaria invisível na vitrine sem dizer por quê.
+   *
+   * Produto inativo TAMBÉM aparece aqui, e é a diferença que importa: o
+   * primeiro caso só vale para produto ativo (um inativo não fura estoque
+   * nenhum), o segundo vale principalmente para o inativo, porque é ele que
+   * está esperando configuração para poder ser ligado.
+   */
+  const pendenciaDeEstoque = (p: any): string | null => {
+    if (!(p.controlaEstoque ?? true)) return null;
+    if (!p.tipoDeControle) {
+      return p.isActive ? "Estoque pendente" : null;
+    }
+    const temFicha = (p.productCompositions?.length ?? 0) > 0;
+    const temItem = Boolean(p.inventoryItemId);
+    if (p.tipoDeControle === "PRODUCAO" && !temFicha && !temItem) {
+      return "Falta a receita";
+    }
+    if (p.tipoDeControle === "REVENDA" && !temItem) {
+      return "Falta o item";
+    }
+    return null;
+  };
+
   const buildProductFormValues = (p: any): ProductFormValues => ({
     name: p.name,
     slug: p.slug,
@@ -109,6 +155,15 @@ function ProductsPage() {
     isActive: p.isActive,
     // `?? true` cai na regra por omissão, nunca na exceção. Ver $productId.tsx.
     controlaEstoque: p.controlaEstoque ?? true,
+    /*
+     * NULO É O ESTADO CERTO POR OMISSÃO, e é o oposto do `?? true` acima.
+     *
+     * `controlaEstoque` tem uma regra e uma exceção, então omitir cai na regra.
+     * O tipo de controle não tem padrão nenhum: nulo significa "o dono ainda
+     * não escolheu", e inventar uma escolha por ele é justamente o backfill
+     * automático que esta fase recusou fazer no banco.
+     */
+    tipoDeControle: p.tipoDeControle ?? null,
     allowHalfAndHalf: p.allowHalfAndHalf,
     halfPizzaPricingRule: p.halfPizzaPricingRule,
     sortOrder: p.sortOrder,
@@ -237,7 +292,22 @@ function ProductsPage() {
                     <div className="h-1 bg-blue-500" />
                     {/* Conteúdo do card */}
                     <div className="p-3">
-                    <div className="flex items-center gap-2">
+                    {/*
+                      `flex-wrap`, e o motivo é aritmético.
+
+                      A linha custa 160px fixos antes do nome: foto (40),
+                      os dois gaps (16) e os botões Editar+Excluir (104). Nos
+                      breakpoints em que a grade abre 4 colunas de categoria, o
+                      card inteiro tem 160px — e sobrava ZERO para o nome, que
+                      desaparecia atrás dos botões. Medido: 0px a 1280, 40px a
+                      1440, contra 150px confortáveis a 820.
+
+                      Com a quebra, os botões descem para a segunda linha
+                      exatamente onde o nome não caberia, e nada muda onde já
+                      cabia — tablet e celular continuam com a linha única de
+                      sempre.
+                    */}
+                    <div className="flex flex-wrap items-center gap-2">
                       {p.imageUrl ? (
                         <img
                           src={p.imageUrl}
@@ -249,10 +319,43 @@ function ProductsPage() {
                           <ImageIcon className="size-4" />
                         </span>
                       )}
-                      <div className="flex-1 min-w-0">
+                      {/*
+                        `basis-24` (96px) é o que faz a quebra acontecer: sem um
+                        piso, o nome continuaria encolhendo até zero em vez de
+                        empurrar os botões para baixo. `min-w-0` fica porque é
+                        ele que permite ao `truncate` cortar um nome longo.
+                      */}
+                      <div className="flex-1 basis-24 min-w-0">
                         <div className="font-medium text-neutral-900 text-xs truncate">
                           {p.name}
                         </div>
+                        {/*
+                          O produto legado, que nunca respondeu à pergunta de
+                          estoque. Não está errado — continua vendendo como
+                          sempre vendeu. O selo existe para que o dono SAIBA
+                          que existe uma resposta a dar, em vez de descobrir
+                          pela diferença no inventário do mês seguinte.
+
+                          Só com o controle ligado: numa loja que não usa
+                          estoque isto seria um aviso sobre um assunto que ela
+                          não tem.
+                        */}
+                        {controleAtivo && pendenciaDeEstoque(p) && (
+                          /*
+                            `block` + `truncate`, e não `inline-block`.
+                            O card desta listagem é estreito, e um `inline-block`
+                            não encolhe: o texto do selo empurrava a coluna,
+                            escondia o nome do produto e passava por baixo dos
+                            botões. O `title` guarda a frase inteira para quem
+                            passar o mouse.
+                          */
+                          <span
+                            title={pendenciaDeEstoque(p)!}
+                            className="mt-0.5 block max-w-full truncate rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                          >
+                            {pendenciaDeEstoque(p)}
+                          </span>
+                        )}
                         <div className="text-sm font-bold text-[#E11D2E]">
                           R$ {Number(p.basePrice).toFixed(2).replace(".", ",")}
                         </div>

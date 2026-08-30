@@ -374,9 +374,37 @@ describe("12. estrutura completa da loja", () => {
     const dias = loja.settings!.openingHours.map((h) => h.weekday);
     expect(new Set(dias).size).toBe(7);
 
+    /*
+     * A ESTRUTURA NASCE, O CARDÁPIO NÃO. A asserção era o contrário até
+     * 30/08/2026 — decisão do João, opção (b): a loja nova recebe categorias e
+     * nenhum produto.
+     *
+     * A loja vinha com dez a vinte e cinco produtos que ninguém pediu, e o
+     * preço disso só apareceu quando o controle de estoque passou a nascer
+     * ligado: cada produto fictício virava uma pendência exigindo receita ou
+     * item de estoque para uma mercadoria que talvez nem exista na casa. O dono
+     * começava apagando um cardápio que não era dele.
+     */
     expect(loja.categories.length).toBeGreaterThan(0);
     const produtos = loja.categories.flatMap((c) => c.products);
-    expect(produtos.length).toBeGreaterThan(0);
+    expect(produtos).toHaveLength(0);
+    expect(loja.extras).toHaveLength(0);
+    expect(loja.promotions).toHaveLength(0);
+
+    /*
+     * Os TAMANHOS ficam, e não são detalhe: eles pertencem à CATEGORIA, e é o
+     * que faz uma pizza meia a meia casar "Grande" com "Grande" entre dois
+     * sabores que o dono ainda vai cadastrar.
+     */
+    expect(loja.categories.some((c) => c.sizes.length > 0)).toBe(true);
+
+    /*
+     * O ESTOQUE NASCE LIGADO. Só faz sentido junto com o cardápio vazio: com
+     * produtos fictícios, ligá-lo produziria uma tela de pendências no primeiro
+     * login. Sem eles, não há pendência nenhuma.
+     */
+    expect(loja.settings!.inventoryControlEnabled).toBe(true);
+
     expect(loja.admins).toHaveLength(1);
     expect(loja.admins[0].role).toBe("OWNER");
     expect(loja.admins[0].name).toBe("Dono de Teste");

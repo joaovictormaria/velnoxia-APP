@@ -4,7 +4,10 @@ import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
 import { prisma } from "../db/client";
 import { STARTER_CATALOGS } from "../catalog/starter-catalogs";
-import { produtosPendentesDeVinculo } from "../inventory/guarda-de-receita";
+import {
+  produtosPendentesDeVinculo,
+  produtosSemTipoDeControle,
+} from "../inventory/guarda-de-receita";
 import {
   addRestaurantPhoto,
   deleteRestaurantPhoto,
@@ -128,16 +131,28 @@ export const saveStoreSettingsFn = createServerFn({ method: "POST" })
 export const getControleDeEstoqueFn = createServerFn({ method: "GET" }).handler(
   async () => {
     const { storeId } = await requireAdminSession();
-    const [settings, pendentes] = await Promise.all([
+    const [settings, pendentes, semTipo] = await Promise.all([
       prisma.storeSettings.findUnique({
         where: { storeId },
         select: { inventoryControlEnabled: true },
       }),
       produtosPendentesDeVinculo(storeId),
+      produtosSemTipoDeControle(storeId),
     ]);
     return {
       ativo: settings?.inventoryControlEnabled ?? false,
       pendentes,
+      /*
+       * OUTRA LISTA, e as duas convivem de propósito.
+       *
+       * `pendentes` responde "tem de onde tirar o que vende?" — a regra legada,
+       * e a única que RECUSA ligar o controle. `semTipo` responde "o dono já
+       * disse como este produto funciona?", e é informativa: um produto legado
+       * com ficha técnica funciona perfeitamente sem ter sido classificado, e
+       * travar a ativação por causa dele transformaria "ligar o estoque" numa
+       * lista de trabalho que não protege nada.
+       */
+      semTipo,
     };
   },
 );

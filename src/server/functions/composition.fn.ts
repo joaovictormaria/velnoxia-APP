@@ -10,6 +10,8 @@ import { productCompositionRepository } from "@/server/repositories";
 import { prisma } from "@/server/db/client";
 import {
   exigirVinculoDeEstoque,
+  exigirConfiguracaoDeEstoque,
+  recusaFichaTecnica,
   nasceInativoPorFaltaDeVinculo,
 } from "@/server/inventory/guarda-de-receita";
 import { numeros } from "./serializar";
@@ -130,6 +132,29 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
       console.log(`âœ… Produto "${productName}" criado com ID: ${product.id}`);
     }
 
+    /*
+     * UM PRODUTO DE REVENDA NÃO TEM RECEITA, e a recusa é aqui — não na tela.
+     *
+     * Uma Coca-Cola com ficha técnica não é só estranha: ela QUEBRA A BAIXA. O
+     * motor, ao ver o tipo REVENDA, segue o item vinculado e ignora a ficha;
+     * mas antes do tipo existir a ficha vencia, e essa é exatamente a
+     * ambiguidade que esta fase existe para acabar. Deixar a ficha ser criada
+     * para depois ignorá-la seria manter no banco um dado que mente sobre o
+     * comportamento do produto.
+     *
+     * Vale mesmo com o controle de estoque DESLIGADO: a receita é errada
+     * enquanto o dono a monta, não só quando ele liga o controle. Permitir agora
+     * para recusar depois transformaria "ligar o estoque" numa lista de
+     * consertos.
+     */
+    if (await recusaFichaTecnica(admin.storeId, product.id)) {
+      throw new Error(
+        `"${product.name}" está marcado como Revenda, e produto de revenda não ` +
+          `tem receita. Se ele é preparado pela casa, mude o tipo para Produção ` +
+          `no cadastro do produto.`,
+      );
+    }
+
     const validated = createProductCompositionSchema.parse({
       productId: product.id,
       items,
@@ -238,7 +263,7 @@ export const adminUpdateComposition = createServerFn({ method: "POST" })
     if (validated.isActive === false) {
       const productId = await produtoDaFicha(admin.storeId, data.compositionId);
       if (productId) {
-        await exigirVinculoDeEstoque(admin.storeId, productId, {
+        await exigirConfiguracaoDeEstoque(admin.storeId, productId, {
           ignorarComposicaoId: data.compositionId,
         });
       }
@@ -276,7 +301,7 @@ export const adminActivateVersion = createServerFn({ method: "POST" })
     });
 
     if (alvo?.productId) {
-      await exigirVinculoDeEstoque(admin.storeId, alvo.productId, {
+      await exigirConfiguracaoDeEstoque(admin.storeId, alvo.productId, {
         temFichaComIngrediente: alvo._count.items > 0,
       });
     }
@@ -299,7 +324,7 @@ export const adminDeleteComposition = createServerFn({ method: "POST" })
      */
     const productId = await produtoDaFicha(admin.storeId, data.compositionId);
     if (productId) {
-      await exigirVinculoDeEstoque(admin.storeId, productId, {
+      await exigirConfiguracaoDeEstoque(admin.storeId, productId, {
         ignorarComposicaoId: data.compositionId,
       });
     }
@@ -334,7 +359,7 @@ export const adminDeleteCompositionVersion = createServerFn({ method: "POST" })
      * vendendo sem descer nada.
      */
     if (composition.productId) {
-      await exigirVinculoDeEstoque(admin.storeId, composition.productId, {
+      await exigirConfiguracaoDeEstoque(admin.storeId, composition.productId, {
         ignorarComposicaoId: data.compositionId,
       });
     }

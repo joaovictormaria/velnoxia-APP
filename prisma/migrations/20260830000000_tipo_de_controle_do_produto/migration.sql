@@ -1,0 +1,55 @@
+-- TIPO DE CONTROLE DE ESTOQUE POR PRODUTO
+--
+-- Troca uma heuristica por uma declaracao. Ate aqui o motor deduzia o
+-- comportamento de um produto a partir do que encontrava no banco:
+--
+--   tem ficha ativa com pelo menos um ingrediente?  baixa os ingredientes
+--   senao, tem inventoryItemId?                     baixa uma unidade
+--   senao                                           silencio
+--
+-- A deducao errava nos dois sentidos. Uma Coca-Cola que ganhasse uma ficha por
+-- engano deixava de baixar a lata, porque a ficha vence o vinculo e o vinculo
+-- era ignorado sem aviso. E um produto sem nenhum dos dois era vendido
+-- normalmente sem descer nada, sem que tela nenhuma pudesse dizer isso ao dono
+-- — nao havia campo para ler.
+--
+-- INTEIRAMENTE ADITIVA. Um tipo novo e uma coluna nova NULLABLE. Nenhuma coluna
+-- e removida ou renomeada, nenhuma linha existente e reescrita, nenhum indice
+-- ou constraint e derrubado. Nao ha UPDATE, nao ha DELETE, nao ha DROP.
+--
+-- NADA AQUI TOCA PEDIDOS, PAGAMENTOS, FIADO, STRIPE OU AUTENTICACAO.
+--
+-- NULL NAO E O MESMO QUE NAO_CONTROLA, e a distincao e o que preserva os dados
+-- existentes:
+--
+--   NULL          o dono ainda nao escolheu. O motor cai no caminho legado,
+--                 byte a byte, e a tela mostra "Configuracao pendente".
+--   NAO_CONTROLA  escolha explicita de nao controlar este produto.
+--
+-- SEM BACKFILL, DE PROPOSITO. Classificar por deducao gravaria como decisao do
+-- dono um palpite do sistema — e o palpite seria errado justamente nos casos
+-- ambiguos que esta migration existe para desfazer. Pior: marcar como
+-- NAO_CONTROLA um produto so porque ele nao tem origem destravaria o
+-- salvarControleDeEstoqueFn, que hoje recusa ligar o controle enquanto houver
+-- produto pendente. O controle nasceria ligado e sem controlar nada.
+--
+-- IMPACTO NOS REGISTROS EXISTENTES: nenhum, e isso e verificavel. Toda linha
+-- fica NULL, o motor le NULL e executa o caminho de sempre, e a lista de
+-- pendencias continua exatamente a mesma de antes.
+--
+-- ROLLBACK:
+--   ALTER TABLE "Product" DROP COLUMN "tipoDeControle";
+--   DROP TYPE "TipoDeControleDeEstoque";
+
+-- CreateEnum
+CREATE TYPE "TipoDeControleDeEstoque" AS ENUM ('NAO_CONTROLA', 'REVENDA', 'PRODUCAO');
+
+-- AlterTable
+--
+-- Sem DEFAULT. Um default faria toda linha existente nascer classificada, o que
+-- e exatamente o backfill que esta migration recusa fazer. E faria o produto
+-- criado por efeito colateral da ficha tecnica (adminCreateComposition cria
+-- produto quando o nome ainda nao existe) herdar uma classificacao que ninguem
+-- pediu.
+ALTER TABLE "Product"
+  ADD COLUMN "tipoDeControle" "TipoDeControleDeEstoque";

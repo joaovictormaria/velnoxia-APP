@@ -114,6 +114,81 @@ export async function insumosDoPedido(
     );
     porItem.set(item.productId ?? "", composicao?.id ?? null);
 
+    /*
+     * O TIPO MANDA, QUANDO ELE EXISTE.
+     *
+     * Antes daqui havia uma dedução: "tem ficha com linha? então ingredientes;
+     * senão tem vínculo? então uma unidade; senão, silêncio". Ela errava nos
+     * dois sentidos — uma Coca com ficha criada por engano parava de baixar a
+     * lata, porque a ficha vencia e o vínculo era ignorado sem aviso.
+     *
+     * O ramo `null` abaixo É AQUELA DEDUÇÃO, intacta. É o que mantém todo
+     * produto anterior a esta fase funcionando byte a byte, sem backfill e sem
+     * classificação automática.
+     */
+    const produto = item.productId
+      ? await db.product.findUnique({
+          where: { id: item.productId },
+          select: {
+            tipoDeControle: true,
+            inventoryItemId: true,
+            inventoryItem: { select: { baseUnitId: true } },
+          },
+        })
+      : null;
+
+    const tipo = produto?.tipoDeControle ?? null;
+
+    /*
+     * A EMBALAGEM É INDEPENDENTE DO TIPO, e roda para os três — inclusive
+     * `NAO_CONTROLA`. Não controlar é não descer o PRODUTO; a caixa e a sacola
+     * saem da prateleira do mesmo jeito. Fica antes do `switch` para que nenhum
+     * `continue` dos ramos abaixo a pule.
+     */
+    if (item.productId) {
+      await somarEmbalagens(db, item.productId, Number(item.quantity), conversoes, acumulado);
+    }
+
+    if (tipo === "NAO_CONTROLA") continue;
+
+    if (tipo === "REVENDA") {
+      /*
+       * A ficha é IGNORADA de propósito, e a guarda já impede que exista uma.
+       * Se uma sobreviver a um caminho não previsto, o motor segue a declaração
+       * do dono em vez de voltar a adivinhar.
+       */
+      if (produto?.inventoryItemId && produto.inventoryItem) {
+        somar(acumulado, {
+          inventoryItemId: produto.inventoryItemId,
+          unitId: produto.inventoryItem.baseUnitId,
+          quantidade: Number(item.quantity),
+        });
+      }
+      continue;
+    }
+
+    if (tipo === "PRODUCAO") {
+      if (composicao && composicao.items.length > 0) {
+        somarIngredientes(composicao, Number(item.quantity), conversoes, acumulado);
+        continue;
+      }
+      /*
+       * A outra forma de produção: o preparado feito em lote. Baixa UMA unidade
+       * do preparado e para aí — os ingredientes já saíram na corrida de
+       * produção que fez o lote, e descê-los de novo tiraria da prateleira um
+       * tomate que não está mais lá.
+       */
+      if (produto?.inventoryItemId && produto.inventoryItem) {
+        somar(acumulado, {
+          inventoryItemId: produto.inventoryItemId,
+          unitId: produto.inventoryItem.baseUnitId,
+          quantidade: Number(item.quantity),
+        });
+      }
+      continue;
+    }
+
+    // tipo === null: a dedução legada, sem uma linha de diferença.
     if (composicao && composicao.items.length > 0) {
       /*
        * UM NÍVEL, E PARA AQUI. Não é omissão — é a regra.
@@ -134,29 +209,12 @@ export async function insumosDoPedido(
        * profundidade da receita — sem recursão dentro de uma transação que
        * segura travas de estoque.
        */
-      for (const ingrediente of composicao.items) {
-        const bruta = Number(ingrediente.quantity) * Number(item.quantity);
-        const naBase = converter(
-          bruta,
-          ingrediente.unitId,
-          ingrediente.inventoryItem,
-          conversoes,
-        );
-        somar(acumulado, {
-          inventoryItemId: ingrediente.inventoryItemId,
-          unitId: ingrediente.inventoryItem.baseUnitId,
-          quantidade: naBase,
-        });
-      }
+      somarIngredientes(composicao, Number(item.quantity), conversoes, acumulado);
       continue;
     }
 
     // Sem ficha: o produto é o próprio item de estoque (bebida, revenda).
     if (!item.productId) continue;
-    const produto = await db.product.findUnique({
-      where: { id: item.productId },
-      select: { inventoryItemId: true, inventoryItem: { select: { baseUnitId: true } } },
-    });
     if (produto?.inventoryItemId && produto.inventoryItem) {
       somar(acumulado, {
         inventoryItemId: produto.inventoryItemId,
@@ -181,4 +239,72 @@ function somar(mapa: Map<string, InsumoNecessario>, novo: InsumoNecessario) {
   const atual = mapa.get(novo.inventoryItemId);
   if (atual) atual.quantidade += novo.quantidade;
   else mapa.set(novo.inventoryItemId, { ...novo });
+}
+
+/**
+ * Soma os ingredientes de uma ficha, já convertidos para a unidade base.
+ *
+ * Extraída do laço para que os dois caminhos que a usam — PRODUÇÃO declarada e
+ * o legado de tipo nulo — sejam literalmente o mesmo código. Duas cópias dessa
+ * conversão em ramos diferentes é como uma delas envelhece sem ninguém notar.
+ */
+function somarIngredientes(
+  composicao: { items: Array<any> },
+  quantidadeDoItem: number,
+  conversoes: MapaDeConversoes,
+  acumulado: Map<string, InsumoNecessario>,
+) {
+  for (const ingrediente of composicao.items) {
+    const bruta = Number(ingrediente.quantity) * quantidadeDoItem;
+    const naBase = converter(
+      bruta,
+      ingrediente.unitId,
+      ingrediente.inventoryItem,
+      conversoes,
+    );
+    somar(acumulado, {
+      inventoryItemId: ingrediente.inventoryItemId,
+      unitId: ingrediente.inventoryItem.baseUnitId,
+      quantidade: naBase,
+    });
+  }
+}
+
+/**
+ * A embalagem que sai junto com o produto vendido.
+ *
+ * MESMO ACUMULADOR DOS INSUMOS, e é isso que a faz herdar o motor inteiro de
+ * graça: soma por item, ordenação anti-deadlock, reserva na criação do pedido,
+ * consumo no preparo, reversão no cancelamento, custo congelado, CMV. Não há
+ * segundo motor, e não há um único caminho novo que a embalagem percorra
+ * sozinha.
+ *
+ * A conversão é a mesma dos ingredientes: a linha pode pedir gramas de filme
+ * plástico enquanto o item é contado em metros.
+ */
+async function somarEmbalagens(
+  db: Prisma.TransactionClient | typeof prisma,
+  productId: string,
+  quantidadeDoItem: number,
+  conversoes: MapaDeConversoes,
+  acumulado: Map<string, InsumoNecessario>,
+) {
+  const embalagens = await db.productPackaging.findMany({
+    where: { productId },
+    include: { inventoryItem: true },
+  });
+  for (const embalagem of embalagens) {
+    const bruta = Number(embalagem.quantity) * quantidadeDoItem;
+    const naBase = converter(
+      bruta,
+      embalagem.unitId,
+      embalagem.inventoryItem,
+      conversoes,
+    );
+    somar(acumulado, {
+      inventoryItemId: embalagem.inventoryItemId,
+      unitId: embalagem.inventoryItem.baseUnitId,
+      quantidade: naBase,
+    });
+  }
 }

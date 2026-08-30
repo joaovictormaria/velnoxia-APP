@@ -16,6 +16,12 @@ import { saveProductFn } from "@/server/functions/products.fn";
 import { adminListarItensParaVinculo } from "@/server/functions/inventory.fn";
 import { getActiveComposition } from "@/server/functions/composition.fn";
 import {
+  listarEmbalagensDoProduto,
+  listarItensDeEmbalagem,
+  salvarEmbalagemDoProduto,
+  removerEmbalagemDoProduto,
+} from "@/server/functions/embalagem.fn";
+import {
   getBusinessTypeFn,
   getControleDeEstoqueFn,
 } from "@/server/functions/settings.fn";
@@ -39,6 +45,14 @@ export type ProductFormValues = {
    * campo viaja no payload e ninguém o consulta.
    */
   controlaEstoque: boolean;
+  /**
+   * Como este produto controla o estoque.
+   *
+   * NULO é um estado real e não um "ainda não carregou": significa que o dono
+   * nunca escolheu. Produto legado abre assim, cai no comportamento antigo e
+   * aparece como "Configuração pendente" até alguém responder.
+   */
+  tipoDeControle: "NAO_CONTROLA" | "REVENDA" | "PRODUCAO" | null;
   allowHalfAndHalf: boolean;
   halfPizzaPricingRule: "HIGHEST_PRICE" | "AVERAGE_PRICE";
   sortOrder: number;
@@ -230,7 +244,19 @@ export function ProductForm({
       saveProductFn({
         data: {
           id: productId,
-          data: { ...values, inventoryItemId: itemDeEstoque || null },
+          data: {
+            ...values,
+            inventoryItemId: itemDeEstoque || null,
+            /*
+             * NÃO CONTROLAR não tem item vinculado, por definição — e o
+             * servidor recusa a combinação. Limpar aqui evita que um item
+             * escolhido antes de trocar para "Não controlar" viaje junto e
+             * derrube o salvamento com uma recusa que o dono não entenderia.
+             */
+            ...(values.tipoDeControle === "NAO_CONTROLA"
+              ? { inventoryItemId: null }
+              : {}),
+          },
         },
       }),
     onSuccess: async (salvo: any) => {
@@ -249,6 +275,16 @@ export function ProductForm({
        * montar a ficha ou vincular o item.
        */
       if (salvo?.nasceuInativo) {
+        /*
+         * O TOGGLE PRECISA CONTAR A MESMA HISTÓRIA QUE O AVISO.
+         *
+         * O servidor gravou o produto INATIVO, e a tela continuava mostrando
+         * "Disponível" ligado — porque `values.isActive` é o que o dono
+         * marcou, não o que foi gravado. A tela dizia duas coisas opostas ao
+         * mesmo tempo: um aviso amarelo explicando que nasceu inativo, e um
+         * botão verde afirmando que está disponível.
+         */
+        set("isActive", false);
         /*
          * DOIS TEXTOS, porque são duas situações diferentes. Quem já escolheu
          * o item de estoque na tela não pode ser mandado configurar a origem
@@ -393,8 +429,12 @@ export function ProductForm({
                     controleAtivo={controleAtivo}
                     controlaEstoque={values.controlaEstoque}
                     setControlaEstoque={(v) => set("controlaEstoque", v)}
+                    tipoDeControle={values.tipoDeControle}
+                    setTipoDeControle={(v) => set("tipoDeControle", v)}
                     temFichaComIngrediente={temFichaComIngrediente}
                     produtoNovo={productId === null}
+                    productId={productId}
+                    instancia="compacto"
                   />
                 </div>
 
@@ -662,8 +702,12 @@ export function ProductForm({
                 controleAtivo={controleAtivo}
                 controlaEstoque={values.controlaEstoque}
                 setControlaEstoque={(v) => set("controlaEstoque", v)}
+                tipoDeControle={values.tipoDeControle}
+                setTipoDeControle={(v) => set("tipoDeControle", v)}
                 temFichaComIngrediente={temFichaComIngrediente}
                 produtoNovo={productId === null}
+                productId={productId}
+                instancia="amplo"
               />
 
               {/* Descrição e Tamanhos disponíveis - lado a lado */}
@@ -849,18 +893,19 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /**
- * Tudo que o produto tem a ver com estoque, num lugar só.
+ * A pergunta que define o comportamento de estoque do produto.
  *
- * COMPONENTE, E NÃO DOIS BLOCOS IGUAIS. O formulário tem dois layouts — um
- * `md:hidden` e um `hidden md:flex` — e a seção de estoque existia apenas no
- * primeiro. No computador, que é onde o dono trabalha, não havia como vincular
- * um item de estoque nem isentar um produto: a regra do servidor era
- * obedecível só pelo celular. Duplicar o bloco resolveria hoje e divergiria na
- * primeira alteração; um componente não tem como divergir de si mesmo.
+ * ELA SUBSTITUIU UM CHECKBOX E UM SELECT SOLTOS. Antes a tela oferecia "item de
+ * estoque vinculado" e "participa do controle de estoque" lado a lado, e a
+ * combinação dos dois — mais a existência de uma ficha técnica montada em OUTRA
+ * tela — é que decidia o que a venda faria. O dono não tinha como saber, olhando
+ * aqui, se a venda ia baixar ingredientes, baixar uma unidade, ou não baixar
+ * nada.
  *
- * A TELA NÃO É A AUTORIDADE. Nada aqui desabilita o botão de salvar — quem
- * recusa é a guarda no servidor. Aqui só se diz o que falta, para o dono não
- * descobrir pelo silêncio.
+ * A TELA NÃO É A AUTORIDADE, e isto não mudou. Nada aqui desabilita o botão de
+ * salvar: quem recusa é a guarda no servidor, com a mensagem dela. O que a tela
+ * faz é dizer o que falta antes de o dono clicar — e esconder o que não importa
+ * para a escolha que ele fez.
  */
 function SecaoDeEstoque({
   itemDeEstoque,
@@ -868,10 +913,14 @@ function SecaoDeEstoque({
   itens,
   rotuloDoTipo,
   controleAtivo,
-  controlaEstoque,
+  controlaEstoque: _controlaEstoque,
   setControlaEstoque,
+  tipoDeControle,
+  setTipoDeControle,
   temFichaComIngrediente,
   produtoNovo,
+  productId,
+  instancia,
 }: {
   itemDeEstoque: string;
   setItemDeEstoque: (v: string) => void;
@@ -880,87 +929,201 @@ function SecaoDeEstoque({
   controleAtivo: boolean;
   controlaEstoque: boolean;
   setControlaEstoque: (v: boolean) => void;
+  tipoDeControle: "NAO_CONTROLA" | "REVENDA" | "PRODUCAO" | null;
+  setTipoDeControle: (v: "NAO_CONTROLA" | "REVENDA" | "PRODUCAO" | null) => void;
   temFichaComIngrediente: boolean;
   produtoNovo: boolean;
-}) {
-  const temOrigem = Boolean(itemDeEstoque) || temFichaComIngrediente;
-  /*
-   * "(opcional)" só é verdade quando não está sendo exigido. Com o controle
-   * ligado e o produto participando, chamar de opcional o que o servidor vai
-   * cobrar é dizer ao dono o contrário do que vai acontecer.
+  productId: string | null;
+  /**
+   * Qual das duas cópias desta seção é esta.
+   *
+   * O formulário RENDERIZA AS DUAS, uma por layout, e esconde uma com CSS. Sem
+   * um nome de grupo por cópia, os seis rádios ficam com o mesmo `name` dentro
+   * do mesmo `<form>` — e o navegador trata isso como UM grupo só, onde apenas
+   * um rádio pode estar marcado. React marca os dois, o DOM desfaz um, e quem
+   * perde é justamente o visível: o dono clicava em "Revenda" e a bolinha não
+   * pintava. O estado mudava, a tela não dizia.
    */
-  const exigido = controleAtivo && controlaEstoque;
+  instancia: string;
+}) {
+  /*
+   * Numa loja que não usa estoque, tudo isto seria uma pergunta a mais sobre um
+   * assunto que ela não tem. A seção inteira desaparece — inclusive a
+   * embalagem, que sem controle não teria o que baixar.
+   */
+  if (!controleAtivo) return null;
+
+  /*
+   * A escolha do dono sobre PRODUÇÃO: a receita deste produto, ou um preparado
+   * feito em lote. Deriva do que já está configurado, e cai na receita quando
+   * não há nada — que é o caso comum.
+   */
+  const itemSelecionado = itens.find((i: any) => i.id === itemDeEstoque);
+  const formaDeProducao =
+    itemSelecionado?.tipo === "PREPARED" ? "PREPARADO" : "RECEITA";
+
+  const OPCOES = [
+    {
+      valor: "NAO_CONTROLA" as const,
+      titulo: "Não controlar estoque",
+      ajuda: "Este produto não entra no controle. Taxa de entrega, couvert, serviço.",
+    },
+    {
+      valor: "REVENDA" as const,
+      titulo: "Revenda",
+      ajuda: "Produto comprado pronto e vendido diretamente.",
+    },
+    {
+      valor: "PRODUCAO" as const,
+      titulo: "Produção",
+      ajuda: "Produto preparado usando ingredientes.",
+    },
+  ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 rounded-xl border border-neutral-200 bg-neutral-50/60 p-4">
       <div>
-        <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
-          Item de estoque vinculado{exigido ? "" : " (opcional)"}
-        </label>
-        <select
-          value={itemDeEstoque}
-          onChange={(e) => setItemDeEstoque(e.target.value)}
-          className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
-        >
-          <option value="">Nenhum item vinculado</option>
-          {itens.map((it: any) => (
-            <option key={it.id} value={it.id}>
-              {it.nome} — {rotuloDoTipo[it.tipo] ?? it.tipo} — {it.unidade} —
-              saldo {it.saldo.toLocaleString("pt-BR")}
-            </option>
+        <h4 className="text-sm font-semibold text-neutral-900">
+          Como este produto controla o estoque?
+        </h4>
+        {tipoDeControle === null &&
+          (produtoNovo ? (
+            /*
+             * PRODUTO NOVO NÃO TEM PASSADO, e dizer que ele "foi cadastrado
+             * antes desta pergunta existir" seria falar de um produto que ainda
+             * não existe. Quem está criando a Coca-Cola agora precisa de uma
+             * instrução, não de um aviso sobre legado.
+             */
+            <p className="mt-1 text-xs text-neutral-500">
+              Escolha uma opção para o estoque acompanhar este produto.
+            </p>
+          ) : (
+            /*
+             * O selo do produto LEGADO. Ele não está errado — está sem
+             * resposta, e continua funcionando como sempre funcionou até
+             * alguém responder. Dizer isso é o que impede o dono de achar que
+             * algo quebrou.
+             */
+            <p className="mt-1 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+              <strong>Configuração pendente.</strong> Este produto foi
+              cadastrado antes desta pergunta existir e continua funcionando
+              como antes. Escolha uma opção para o estoque passar a segui-lo
+              com precisão.
+            </p>
           ))}
-        </select>
-        {itemDeEstoque ? (
-          <p className="text-xs text-neutral-600 mt-1">
-            Cada venda deste produto reserva <strong>1 unidade</strong> desse
-            item. Se ele for um preparado, os ingredientes da receita{" "}
-            <strong>não</strong> são baixados de novo — já saíram na produção.
-          </p>
-        ) : (
-          <p className="text-xs text-neutral-600 mt-1">
-            Deixe em branco se este produto não sai do estoque. Preparados e
-            itens de revenda aparecem no topo da lista.
-          </p>
-        )}
       </div>
 
-      {/*
-        Numa loja que não usa estoque isto seria uma pergunta a mais sobre um
-        assunto que ela não tem — e a maioria das lojas não tem.
-      */}
-      {controleAtivo && (
-        <div className="rounded-lg border border-neutral-200 p-3">
-          <label className="flex cursor-pointer items-start gap-2">
+      <div className="space-y-1.5">
+        {OPCOES.map((o) => (
+          <label
+            key={o.valor}
+            className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 transition-colors ${
+              tipoDeControle === o.valor
+                ? "border-[#E11D2E] bg-white"
+                : "border-neutral-200 bg-white/60 hover:border-neutral-300"
+            }`}
+          >
             <input
-              type="checkbox"
-              checked={controlaEstoque}
-              onChange={(e) => setControlaEstoque(e.target.checked)}
+              type="radio"
+              name={`tipoDeControle-${instancia}`}
+              checked={tipoDeControle === o.valor}
+              onChange={() => {
+                setTipoDeControle(o.valor);
+                /*
+                 * Trocar para "Não controlar" limpa o vínculo na hora. Sem
+                 * isto, o item escolhido para uma REVENDA continuaria no
+                 * payload e o servidor recusaria por uma combinação que a tela
+                 * já não mostra — uma recusa impossível de entender.
+                 */
+                if (o.valor === "NAO_CONTROLA") setItemDeEstoque("");
+                /*
+                 * `controlaEstoque` é o campo antigo, e continua existindo: ele
+                 * é a exceção que o dono já marcou em taxa de entrega e couvert.
+                 * Mantê-lo em sincronia com a escolha nova evita que as duas
+                 * regras digam coisas diferentes sobre o mesmo produto.
+                 */
+                setControlaEstoque(o.valor !== "NAO_CONTROLA");
+              }}
               className="mt-0.5 size-4 accent-[#E11D2E]"
             />
-            <span className="text-sm text-neutral-700">
-              Participa do controle de estoque
+            <span className="text-sm text-neutral-800">
+              {o.titulo}
+              <span className="block text-xs text-neutral-500">{o.ajuda}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+
+      {/* ───── REVENDA: só o item de estoque ───── */}
+      {tipoDeControle === "REVENDA" && (
+        <div className="rounded-lg border border-neutral-200 bg-white p-3">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-neutral-700">
+            Item de estoque
+          </label>
+          <select
+            value={itemDeEstoque}
+            onChange={(e) => setItemDeEstoque(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+          >
+            <option value="">Escolha o item</option>
+            {itens
+              /*
+               * Só o que pode ser revendido. Preparado tem casa própria — é a
+               * segunda forma de PRODUÇÃO — e embalagem nunca é vendida como
+               * veio. Ingrediente fica porque vender farinha a quilo é
+               * legítimo, ainda que raro.
+               */
+              .filter((i: any) => i.tipo === "RESALE" || i.tipo === "INGREDIENT")
+              .map((i: any) => (
+                <option key={i.id} value={i.id}>
+                  {i.nome} — {rotuloDoTipo[i.tipo] ?? i.tipo} — {i.unidade} —
+                  saldo {i.saldo.toLocaleString("pt-BR")}
+                </option>
+              ))}
+          </select>
+          {itemDeEstoque ? (
+            <p className="mt-1.5 text-xs font-medium text-emerald-700">
+              ✓ Cada unidade vendida baixa 1 deste item.
+            </p>
+          ) : (
+            <p className="mt-1.5 text-xs text-amber-800">
+              Obrigatório: escolha o item que sai da prateleira quando este
+              produto é vendido.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ───── PRODUÇÃO: receita própria OU preparado ───── */}
+      {tipoDeControle === "PRODUCAO" && (
+        <div className="space-y-2 rounded-lg border border-neutral-200 bg-white p-3">
+          <label className="flex cursor-pointer items-start gap-2">
+            <input
+              type="radio"
+              name={`formaDeProducao-${instancia}`}
+              checked={formaDeProducao === "RECEITA"}
+              onChange={() => setItemDeEstoque("")}
+              className="mt-0.5 size-4 accent-[#E11D2E]"
+            />
+            <span className="text-sm text-neutral-800">
+              Tenho a receita deste produto
               <span className="block text-xs text-neutral-500">
-                Desmarque para o que ocupa uma linha do cardápio sem sair da
-                prateleira: taxa de entrega, couvert, serviço.
+                A venda baixa os ingredientes da receita.
               </span>
             </span>
           </label>
 
-          {controlaEstoque &&
-            (temOrigem ? (
-              <p className="mt-3 text-xs font-medium text-emerald-700">
-                {itemDeEstoque
-                  ? "✓ Item de estoque vinculado"
-                  : "✓ Receita cadastrada"}
+          {formaDeProducao === "RECEITA" &&
+            (temFichaComIngrediente ? (
+              <p className="text-xs font-medium text-emerald-700">
+                ✓ Receita cadastrada
               </p>
             ) : (
-              <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 <p>
-                  Este produto precisa de uma <strong>receita</strong> ou de um{" "}
-                  <strong>item de estoque vinculado</strong> para participar do
-                  controle de estoque.
+                  Obrigatório: uma receita com pelo menos um ingrediente.
                   {produtoNovo &&
-                    " Ele será criado inativo; ative-o depois de configurar."}
+                    " O produto será criado inativo — a receita só pode ser montada depois que ele existir."}
                 </p>
                 {/*
                   A receita é montada na aba Estoque, e sem este link o dono não
@@ -975,8 +1138,206 @@ function SecaoDeEstoque({
                 </Link>
               </div>
             ))}
+
+          <label className="flex cursor-pointer items-start gap-2 border-t border-neutral-100 pt-2">
+            <input
+              type="radio"
+              name={`formaDeProducao-${instancia}`}
+              checked={formaDeProducao === "PREPARADO"}
+              onChange={() => {
+                const primeiro = itens.find((i: any) => i.tipo === "PREPARED");
+                if (primeiro) setItemDeEstoque(primeiro.id);
+              }}
+              className="mt-0.5 size-4 accent-[#E11D2E]"
+            />
+            <span className="text-sm text-neutral-800">
+              É um preparado que produzo em lote
+              <span className="block text-xs text-neutral-500">
+                A venda baixa 1 unidade do preparado. Os ingredientes não descem
+                de novo — já saíram na produção do lote.
+              </span>
+            </span>
+          </label>
+
+          {formaDeProducao === "PREPARADO" && (
+            <select
+              value={itemDeEstoque}
+              onChange={(e) => setItemDeEstoque(e.target.value)}
+              className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+            >
+              <option value="">Escolha o preparado</option>
+              {itens
+                .filter((i: any) => i.tipo === "PREPARED")
+                .map((i: any) => (
+                  <option key={i.id} value={i.id}>
+                    {i.nome} — {i.unidade} — saldo{" "}
+                    {i.saldo.toLocaleString("pt-BR")}
+                  </option>
+                ))}
+            </select>
+          )}
         </div>
       )}
+
+      {/*
+        A EMBALAGEM É INDEPENDENTE DO TIPO, e aparece para os três — inclusive
+        "Não controlar". Não controlar é não descer o PRODUTO; a sacola sai da
+        prateleira do mesmo jeito.
+
+        Só depois de o produto existir: a linha é FK para ele.
+      */}
+      {tipoDeControle !== null && productId && (
+        <EmbalagemDoProduto productId={productId} />
+      )}
+      {tipoDeControle !== null && !productId && (
+        <p className="text-xs text-neutral-500">
+          A embalagem pode ser configurada depois de salvar o produto.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A embalagem que sai junto com o produto vendido.
+ *
+ * FORA DA RECEITA, e a separação é o ponto: a caixa de pizza é comprada pronta,
+ * não é ingrediente. Dentro da ficha técnica ela faria a corrida de produção de
+ * um preparado consumir caixa — a caixa é usada na venda, não quando a massa é
+ * feita — e um produto de REVENDA, que não tem ficha nenhuma, ficaria sem lugar
+ * para declarar o copo dele.
+ */
+function EmbalagemDoProduto({ productId }: { productId: string }) {
+  const queryClient = useQueryClient();
+  const [novoItem, setNovoItem] = useState("");
+  const [novaQtd, setNovaQtd] = useState("1");
+  const [erro, setErro] = useState<string | null>(null);
+
+  const embalagens = useQuery({
+    queryKey: ["embalagens", productId],
+    queryFn: () => listarEmbalagensDoProduto({ data: { productId } } as any),
+  });
+  const disponiveis = useQuery({
+    queryKey: ["itens-de-embalagem"],
+    queryFn: () => listarItensDeEmbalagem(),
+  });
+
+  const recarregar = () =>
+    queryClient.invalidateQueries({ queryKey: ["embalagens", productId] });
+
+  const adicionar = useMutation({
+    mutationFn: () => {
+      const item = (disponiveis.data ?? []).find((i: any) => i.id === novoItem);
+      if (!item) throw new Error("Escolha a embalagem.");
+      return salvarEmbalagemDoProduto({
+        data: {
+          productId,
+          inventoryItemId: item.id,
+          quantity: Number(novaQtd),
+          unitId: item.baseUnitId,
+        },
+      } as any);
+    },
+    onSuccess: async () => {
+      setNovoItem("");
+      setNovaQtd("1");
+      setErro(null);
+      await recarregar();
+    },
+    onError: (e: any) => setErro(e?.message ?? "Não foi possível adicionar."),
+  });
+
+  const remover = useMutation({
+    mutationFn: (id: string) => removerEmbalagemDoProduto({ data: { id } } as any),
+    onSuccess: recarregar,
+  });
+
+  const lista: any[] = embalagens.data ?? [];
+  const opcoes = (disponiveis.data ?? []).filter(
+    (i: any) => !lista.some((l: any) => l.inventoryItemId === i.id),
+  );
+
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white p-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
+        Embalagem{" "}
+        <span className="normal-case text-neutral-400">(opcional)</span>
+      </p>
+      <p className="mt-0.5 text-xs text-neutral-500">
+        Baixa junto com a venda. Não entra na receita.
+      </p>
+
+      {lista.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {lista.map((l: any) => (
+            <li
+              key={l.id}
+              className="flex items-center justify-between gap-2 rounded-md bg-neutral-50 px-2.5 py-1.5 text-sm"
+            >
+              <span className="text-neutral-800">
+                {l.quantidade.toLocaleString("pt-BR")} {l.unidade} — {l.nome}
+                <span className="ml-1 text-xs text-neutral-500">
+                  (saldo {l.saldo.toLocaleString("pt-BR")})
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => remover.mutate(l.id)}
+                className="text-xs text-neutral-500 underline underline-offset-2 hover:text-red-600"
+              >
+                remover
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {opcoes.length > 0 ? (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <select
+            value={novoItem}
+            onChange={(e) => setNovoItem(e.target.value)}
+            className="min-w-[10rem] flex-1 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm"
+          >
+            <option value="">Adicionar embalagem…</option>
+            {opcoes.map((i: any) => (
+              <option key={i.id} value={i.id}>
+                {i.nome} — {i.unidade}
+              </option>
+            ))}
+          </select>
+          <input
+            type="number"
+            min="0"
+            step="any"
+            value={novaQtd}
+            onChange={(e) => setNovaQtd(e.target.value)}
+            className="w-20 rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm"
+          />
+          <button
+            type="button"
+            disabled={!novoItem || adicionar.isPending}
+            onClick={() => adicionar.mutate()}
+            className="rounded-lg bg-neutral-900 px-3 py-1.5 text-sm text-white disabled:opacity-40"
+          >
+            Adicionar
+          </button>
+        </div>
+      ) : (
+        lista.length === 0 && (
+          <p className="mt-2 text-xs text-neutral-500">
+            Nenhum item de embalagem cadastrado no estoque.{" "}
+            <Link
+              to="/admin/estoque"
+              className="font-medium underline underline-offset-2"
+            >
+              Cadastrar
+            </Link>
+          </p>
+        )
+      )}
+
+      {erro && <p className="mt-1.5 text-xs text-red-600">{erro}</p>}
     </div>
   );
 }
