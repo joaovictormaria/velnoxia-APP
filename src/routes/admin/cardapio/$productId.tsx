@@ -29,6 +29,12 @@ function EditProductPage() {
     imageUrl: p.imageUrl,
     tag: p.tag,
     isActive: p.isActive,
+    /*
+     * `?? true` cobre o produto lido por um caminho que ainda não devolve a
+     * coluna. Cair na REGRA por omissão é o padrão seguro: o contrário faria
+     * um produto virar exceção sozinho, sem ninguém ter pedido.
+     */
+    controlaEstoque: (p as any).controlaEstoque ?? true,
     allowHalfAndHalf: p.allowHalfAndHalf,
     halfPizzaPricingRule: p.halfPizzaPricingRule,
     sortOrder: p.sortOrder,

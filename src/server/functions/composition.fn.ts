@@ -8,6 +8,10 @@ import {
 } from "@/lib/estoque-schemas";
 import { productCompositionRepository } from "@/server/repositories";
 import { prisma } from "@/server/db/client";
+import {
+  exigirVinculoDeEstoque,
+  nasceInativoPorFaltaDeVinculo,
+} from "@/server/inventory/guarda-de-receita";
 import { numeros } from "./serializar";
 
 /**
@@ -23,6 +27,9 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
     const categoryIdOrName = data?.categoryId;
 
     console.log("ðŸ” [adminCreateComposition] Recebeu", items.length, "itens para produto:", productName, "categoria:", categoryIdOrName);
+
+    /** O produto nasceu nesta chamada E nasceu inativo? A tela precisa dizer. */
+    let produtoCriadoAgoraInativo = false;
 
     // Buscar ou criar o produto pelo nome
     let product = await prisma.product.findFirst({
@@ -90,6 +97,21 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
         counter++;
       }
 
+      /*
+       * ESTE CAMINHO CRIA PRODUTO POR EFEITO COLATERAL, e por isso ele também
+       * é uma porta da regra de estoque. Sem a mesma disciplina do
+       * `saveProductFn`, montar uma ficha técnica com um nome de produto que
+       * ainda não existe seria a forma de fazer nascer produto ativo sem
+       * passar por guarda nenhuma.
+       *
+       * Nasce inativo pelo mesmo motivo de lá: a ficha ainda não existe neste
+       * ponto — ela é criada logo abaixo, e precisa deste produto para existir.
+       */
+      const nasceInativo = await nasceInativoPorFaltaDeVinculo(admin.storeId, {
+        isActive: true,
+        controlaEstoque: true,
+      });
+
       // Criar novo produto
       product = await prisma.product.create({
         data: {
@@ -100,8 +122,10 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
           description: `Produto ${productName} criado automaticamente`,
           basePrice: 0,
           sortOrder: 0,
+          isActive: !nasceInativo,
         },
       });
+      produtoCriadoAgoraInativo = nasceInativo;
 
       console.log(`âœ… Produto "${productName}" criado com ID: ${product.id}`);
     }
@@ -112,8 +136,48 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
       isActive: data?.isActive !== false,
     });
 
-    return numeros(await CompositionService.createComposition(admin.storeId, product.id, validated));
+    const composicao = await CompositionService.createComposition(
+      admin.storeId,
+      product.id,
+      validated,
+    );
+
+    /*
+     * O produto pode ter NASCIDO AQUI, e inativo, sem que ninguém tenha pedido
+     * um produto. Quem digita um nome novo neste campo está montando uma
+     * receita, não cadastrando item de cardápio — e saía daqui achando que
+     * terminou, com um produto invisível e de preço zero no cardápio.
+     *
+     * `produtoCriadoInativo` é acrescentado ao retorno, não o substitui: nada
+     * hoje lê os campos da composição devolvida, mas trocar a forma do retorno
+     * por um objeto novo quebraria quem viesse a ler.
+     */
+    return {
+      ...(numeros(composicao) as any),
+      produtoCriadoInativo: produtoCriadoAgoraInativo,
+      produtoCriadoNome: produtoCriadoAgoraInativo ? product.name : null,
+    };
   });
+
+/**
+ * De qual produto é esta ficha, recortado pela loja da sessão.
+ *
+ * `storeId` entra no `findFirst` e não numa conferência posterior: assim uma
+ * ficha de outra loja não é encontrada, em vez de ser encontrada e depois
+ * recusada. A diferença importa porque a segunda forma já vazou a existência
+ * do registro antes de recusar.
+ *
+ * Devolve `null` para ficha de PREPARADO, que tem `productId` nulo — a regra
+ * de vínculo é sobre produto de cardápio, e preparado tem disciplina própria
+ * (rendimento obrigatório) em `criarReceitaDePreparado`.
+ */
+async function produtoDaFicha(storeId: string, compositionId: string) {
+  const ficha = await prisma.productComposition.findFirst({
+    where: { id: compositionId, storeId },
+    select: { productId: true },
+  });
+  return ficha?.productId ?? null;
+}
 
 /**
  * Admin only: Update a recipe (only if not yet used)
@@ -163,6 +227,23 @@ export const adminUpdateComposition = createServerFn({ method: "POST" })
 
     const validated = updateProductCompositionSchema.parse(updateData);
 
+    /*
+     * DESATIVAR a ficha é removê-la do estoque na prática: `resolverComposicao`
+     * só olha `isActive`. Se era a última do produto, o produto volta a ser
+     * vendido sem descer saldo.
+     *
+     * Trocar os itens não precisa de guarda: `updateProductCompositionSchema`
+     * exige `items.min(1)`, então a ficha não tem como ficar vazia por aqui.
+     */
+    if (validated.isActive === false) {
+      const productId = await produtoDaFicha(admin.storeId, data.compositionId);
+      if (productId) {
+        await exigirVinculoDeEstoque(admin.storeId, productId, {
+          ignorarComposicaoId: data.compositionId,
+        });
+      }
+    }
+
     const result = await CompositionService.updateComposition(
       admin.storeId,
       data.compositionId,
@@ -180,6 +261,26 @@ export const adminActivateVersion = createServerFn({ method: "POST" })
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
 
+    /*
+     * Ativar uma versão DESATIVA todas as outras do mesmo dono, na mesma
+     * transação. O resultado, então, é simples de descrever: a única ficha
+     * ativa passa a ser esta. Se ela não tem item nenhum, o produto fica sem
+     * receita — publicar uma v4 vazia apagaria na prática a v3 que funcionava.
+     *
+     * `ignorarComposicaoId` não serviria aqui: ele exclui uma ficha do
+     * cálculo, mas não sabe que as demais estão prestes a cair.
+     */
+    const alvo = await prisma.productComposition.findFirst({
+      where: { id: data.compositionId, storeId: admin.storeId },
+      select: { productId: true, _count: { select: { items: true } } },
+    });
+
+    if (alvo?.productId) {
+      await exigirVinculoDeEstoque(admin.storeId, alvo.productId, {
+        temFichaComIngrediente: alvo._count.items > 0,
+      });
+    }
+
     return numeros(await CompositionService.activateVersion(admin.storeId, data.compositionId));
   });
 
@@ -190,6 +291,18 @@ export const adminDeleteComposition = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
     const admin = await requireAdminSession();
     const data = context?.data?.data || context?.data;
+
+    /*
+     * "Delete" aqui é desativação (`deleteComposition` chama `deactivate`),
+     * e o efeito sobre o estoque é o mesmo de apagar: a ficha deixa de ser
+     * resolvida. Se era a última do produto, o produto fica sem origem.
+     */
+    const productId = await produtoDaFicha(admin.storeId, data.compositionId);
+    if (productId) {
+      await exigirVinculoDeEstoque(admin.storeId, productId, {
+        ignorarComposicaoId: data.compositionId,
+      });
+    }
 
     return numeros(await CompositionService.deleteComposition(admin.storeId, data.compositionId));
   });
@@ -212,6 +325,18 @@ export const adminDeleteCompositionVersion = createServerFn({ method: "POST" })
 
     if (composition.storeId !== admin.storeId) {
       throw new Error("NÃ£o autorizado");
+    }
+
+    /*
+     * O único caminho que APAGA a ficha de verdade. Sem guarda, era o desvio
+     * mais direto de todos: monta-se a receita para conseguir ativar o
+     * produto, apaga-se a receita em seguida, e o produto continua ativo
+     * vendendo sem descer nada.
+     */
+    if (composition.productId) {
+      await exigirVinculoDeEstoque(admin.storeId, composition.productId, {
+        ignorarComposicaoId: data.compositionId,
+      });
     }
 
     await prisma.compositionItem.deleteMany({
@@ -290,11 +415,23 @@ export const adminGetAllProducts = createServerFn({ method: "POST" })
   .handler(async () => {
     const admin = await requireAdminSession();
 
+    /*
+     * `deletedAt: null` e `isActive` são desta correção, e os dois pelo mesmo
+     * motivo: esta lista é onde o dono procura o produto para montar a receita.
+     *
+     * Produto na lixeira aparecia aqui e podia receber ficha técnica — trabalho
+     * jogado fora num produto que não existe mais para o cardápio.
+     *
+     * E o produto que MAIS chega a esta tela é justamente o que nasceu inativo
+     * por falta de origem de estoque. Sem `isActive`, ele se confundia com os
+     * demais e o dono não tinha como saber que ainda faltava ativá-lo.
+     */
     const products = await prisma.product.findMany({
-      where: { storeId: admin.storeId },
+      where: { storeId: admin.storeId, deletedAt: null },
       select: {
         id: true,
         name: true,
+        isActive: true,
       },
       orderBy: { name: "asc" },
     });

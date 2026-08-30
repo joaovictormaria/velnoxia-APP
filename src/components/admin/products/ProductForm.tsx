@@ -7,12 +7,18 @@ import {
   OptionGroupEditor,
   type GrupoRascunho,
 } from "@/components/admin/menu/OptionGroupEditor";
-import {
-  saveProductFn,
-  adminLinkProductToInventory,
-} from "@/server/functions/products.fn";
+/*
+ * `adminLinkProductToInventory` saiu daqui: o vínculo agora viaja dentro de
+ * `saveProductFn`, gravado pelo mesmo comando que grava o produto. A função
+ * continua existindo e guardada, para quem vincula de fora do formulário.
+ */
+import { saveProductFn } from "@/server/functions/products.fn";
 import { adminListarItensParaVinculo } from "@/server/functions/inventory.fn";
-import { getBusinessTypeFn } from "@/server/functions/settings.fn";
+import { getActiveComposition } from "@/server/functions/composition.fn";
+import {
+  getBusinessTypeFn,
+  getControleDeEstoqueFn,
+} from "@/server/functions/settings.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { CardsDoCardapio } from "@/components/admin/preview/CardsDoCardapio";
 import { aplicarRascunhoDeProduto } from "@/lib/previa/aplicar-rascunho";
@@ -26,6 +32,13 @@ export type ProductFormValues = {
   imageUrl: string | null;
   tag: string | null;
   isActive: boolean;
+  /**
+   * Se o produto participa do controle de estoque da loja.
+   *
+   * Só significa algo quando a loja ligou o controle. Com ele desligado o
+   * campo viaja no payload e ninguém o consulta.
+   */
+  controlaEstoque: boolean;
   allowHalfAndHalf: boolean;
   halfPizzaPricingRule: "HIGHEST_PRICE" | "AVERAGE_PRICE";
   sortOrder: number;
@@ -87,6 +100,8 @@ export function ProductForm({
    */
   const enderecoSegueONome = productId === null;
   const [error, setError] = useState<string | null>(null);
+  /** Salvou, mas o servidor mudou algo que o dono precisa saber. Não é erro. */
+  const [aviso, setAviso] = useState<string | null>(null);
   /** Onde a prévia deve olhar. Muda quando um campo recebe o cursor. */
   const [foco, setFoco] = useState<string | null>(null);
 
@@ -162,6 +177,31 @@ export function ProductForm({
     queryFn: () => adminListarItensParaVinculo(),
   });
 
+  /*
+   * A loja liga o controle de estoque? Vem do SERVIDOR, e não de um palpite
+   * do formulário — é o mesmo dado que a guarda consulta para recusar.
+   */
+  const controleDeEstoque = useQuery({
+    queryKey: ["controle-de-estoque"],
+    queryFn: () => getControleDeEstoqueFn(),
+  });
+  const controleAtivo = controleDeEstoque.data?.ativo ?? false;
+
+  /*
+   * A ficha ativa deste produto, só para o selo dizer a verdade.
+   *
+   * Produto novo não tem id, então não há o que perguntar — e não haveria
+   * ficha mesmo: ela é FK para o produto e não pode precedê-lo.
+   */
+  const fichaAtiva = useQuery({
+    queryKey: ["ficha-ativa", productId],
+    enabled: Boolean(productId) && controleAtivo,
+    queryFn: () => getActiveComposition({ data: { productId } } as any),
+  });
+
+  const temFichaComIngrediente =
+    ((fichaAtiva.data as any)?.items?.length ?? 0) > 0;
+
   const rotuloDoTipo: Record<string, string> = {
     PREPARED: "Preparado",
     RESALE: "Revenda",
@@ -170,32 +210,60 @@ export function ProductForm({
   };
 
   const save = useMutation({
-    mutationFn: async () => {
-      const salvo: any = await saveProductFn({
-        data: { id: productId, data: values },
-      });
-      const id = productId ?? salvo?.id ?? salvo?.product?.id;
-
-      // Só toca no vínculo se ele mudou; produto sem estoque nem chama.
-      const antes = initial.inventoryItemId ?? "";
-      if (id && itemDeEstoque !== antes) {
-        try {
-          await adminLinkProductToInventory({
-            data: { productId: id, inventoryItemId: itemDeEstoque || null },
-          } as any);
-        } catch (e) {
-          throw new Error(
-            "O produto foi salvo, mas o vínculo com o estoque falhou: " +
-              (e instanceof Error ? e.message : String(e)) +
-              ". Abra o produto em Editar para vincular.",
-          );
-        }
-      }
-      return salvo;
-    },
-    onSuccess: async () => {
+    /*
+     * UMA CHAMADA SÓ, e o vínculo vai dentro dela.
+     *
+     * Eram duas: salvava o produto e, depois, gravava o vínculo. Com o controle
+     * de estoque ligado isso tornava impossível o gesto mais natural do
+     * cadastro — escolher o item de estoque e marcar "Ativo" na mesma tela:
+     * a guarda rodava na primeira chamada, lia o banco sem o vínculo (que só
+     * chegaria na segunda) e recusava, dizendo que faltava justamente o item
+     * que estava selecionado ali na tela.
+     *
+     * E quando a segunda chamada falhava, o produto ficava salvo sem vínculo,
+     * com um aviso pedindo para reabrir em Editar.
+     *
+     * Agora `inventoryItemId` é uma coluna gravada pelo mesmo comando que grava
+     * `isActive`: ou os dois entram, ou nenhum entra.
+     */
+    mutationFn: () =>
+      saveProductFn({
+        data: {
+          id: productId,
+          data: { ...values, inventoryItemId: itemDeEstoque || null },
+        },
+      }),
+    onSuccess: async (salvo: any) => {
       // Await the refetch so the list never flashes the pre-save values.
       await queryClient.invalidateQueries({ queryKey: ["products"] });
+
+      /*
+       * O SERVIDOR GRAVOU INATIVO, e o dono precisa saber disso agora.
+       *
+       * Com o controle de estoque ligado, produto novo sem ficha e sem vínculo
+       * nasce inativo — não há como criar a ficha antes do produto existir.
+       * Sem este aviso, ele marca "Ativo", salva sem erro nenhum e o produto
+       * simplesmente não aparece na vitrine: descobriria pelo silêncio.
+       *
+       * Fica na tela em vez de navegar, porque a próxima ação é aqui mesmo —
+       * montar a ficha ou vincular o item.
+       */
+      if (salvo?.nasceuInativo) {
+        /*
+         * DOIS TEXTOS, porque são duas situações diferentes. Quem já escolheu
+         * o item de estoque na tela não pode ser mandado configurar a origem
+         * de novo: pareceria que a escolha dele não funcionou.
+         */
+        setAviso(
+          salvo?.nasceuComVinculo
+            ? "Produto criado como inativo. A origem do estoque já está " +
+                "configurada — ative o produto quando quiser."
+            : "Produto criado como inativo: com o controle de estoque ligado, " +
+                "ele precisa de uma receita ou de um item de estoque vinculado " +
+                "antes de ser ativado.",
+        );
+        return;
+      }
 
       // Se há callback (modal), chamar; senão navegar (rota direta)
       if (onSuccess) {
@@ -210,6 +278,7 @@ export function ProductForm({
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    setAviso(null);
     if (!values.categoryId) {
       setError("Escolha uma categoria.");
       return;
@@ -232,6 +301,12 @@ export function ProductForm({
       {error && (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-[#E11D2E]">
           {error}
+        </p>
+      )}
+
+      {aviso && (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {aviso}
         </p>
       )}
 
@@ -309,44 +384,18 @@ export function ProductForm({
                   />
                 </div>
 
-                {/*
-                  CONTROLE DE ESTOQUE — o elo com o item que a venda consome.
-
-                  Fica fora do `saveProductFn` porque aquele caminho serve
-                  todo produto do cardápio, e a maioria não controla estoque.
-                  Vazio é o normal.
-                */}
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
-                    Controla estoque por (opcional)
-                  </label>
-                  <select
-                    value={itemDeEstoque}
-                    onChange={(e) => setItemDeEstoque(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
-                  >
-                    <option value="">Não controla estoque</option>
-                    {(itensDeEstoque.data ?? []).map((it: any) => (
-                      <option key={it.id} value={it.id}>
-                        {it.nome} — {rotuloDoTipo[it.tipo] ?? it.tipo} —{" "}
-                        {it.unidade} — saldo {it.saldo.toLocaleString("pt-BR")}
-                      </option>
-                    ))}
-                  </select>
-                  {itemDeEstoque ? (
-                    <p className="text-xs text-neutral-600 mt-1">
-                      Cada venda deste produto reserva{" "}
-                      <strong>1 unidade</strong> desse item. Se ele for um
-                      preparado, os ingredientes da receita <strong>não</strong>{" "}
-                      são baixados de novo — já saíram na produção.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-neutral-600 mt-1">
-                      Deixe em branco se este produto não tem estoque
-                      controlado. Preparados e itens de revenda aparecem no
-                      topo da lista.
-                    </p>
-                  )}
+                  <SecaoDeEstoque
+                    itemDeEstoque={itemDeEstoque}
+                    setItemDeEstoque={setItemDeEstoque}
+                    itens={itensDeEstoque.data ?? []}
+                    rotuloDoTipo={rotuloDoTipo}
+                    controleAtivo={controleAtivo}
+                    controlaEstoque={values.controlaEstoque}
+                    setControlaEstoque={(v) => set("controlaEstoque", v)}
+                    temFichaComIngrediente={temFichaComIngrediente}
+                    produtoNovo={productId === null}
+                  />
                 </div>
 
                 <div>
@@ -601,6 +650,22 @@ export function ProductForm({
                 </div>
               </div>
 
+              {/*
+                A MESMA seção de estoque do mobile, e não uma cópia dela.
+                Faltava inteira aqui, e é neste layout que o dono trabalha.
+              */}
+              <SecaoDeEstoque
+                itemDeEstoque={itemDeEstoque}
+                setItemDeEstoque={setItemDeEstoque}
+                itens={itensDeEstoque.data ?? []}
+                rotuloDoTipo={rotuloDoTipo}
+                controleAtivo={controleAtivo}
+                controlaEstoque={values.controlaEstoque}
+                setControlaEstoque={(v) => set("controlaEstoque", v)}
+                temFichaComIngrediente={temFichaComIngrediente}
+                produtoNovo={productId === null}
+              />
+
               {/* Descrição e Tamanhos disponíveis - lado a lado */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {/* Descrição */}
@@ -780,6 +845,139 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-sm font-medium text-neutral-900">{label}</span>
       {children}
     </label>
+  );
+}
+
+/**
+ * Tudo que o produto tem a ver com estoque, num lugar só.
+ *
+ * COMPONENTE, E NÃO DOIS BLOCOS IGUAIS. O formulário tem dois layouts — um
+ * `md:hidden` e um `hidden md:flex` — e a seção de estoque existia apenas no
+ * primeiro. No computador, que é onde o dono trabalha, não havia como vincular
+ * um item de estoque nem isentar um produto: a regra do servidor era
+ * obedecível só pelo celular. Duplicar o bloco resolveria hoje e divergiria na
+ * primeira alteração; um componente não tem como divergir de si mesmo.
+ *
+ * A TELA NÃO É A AUTORIDADE. Nada aqui desabilita o botão de salvar — quem
+ * recusa é a guarda no servidor. Aqui só se diz o que falta, para o dono não
+ * descobrir pelo silêncio.
+ */
+function SecaoDeEstoque({
+  itemDeEstoque,
+  setItemDeEstoque,
+  itens,
+  rotuloDoTipo,
+  controleAtivo,
+  controlaEstoque,
+  setControlaEstoque,
+  temFichaComIngrediente,
+  produtoNovo,
+}: {
+  itemDeEstoque: string;
+  setItemDeEstoque: (v: string) => void;
+  itens: any[];
+  rotuloDoTipo: Record<string, string>;
+  controleAtivo: boolean;
+  controlaEstoque: boolean;
+  setControlaEstoque: (v: boolean) => void;
+  temFichaComIngrediente: boolean;
+  produtoNovo: boolean;
+}) {
+  const temOrigem = Boolean(itemDeEstoque) || temFichaComIngrediente;
+  /*
+   * "(opcional)" só é verdade quando não está sendo exigido. Com o controle
+   * ligado e o produto participando, chamar de opcional o que o servidor vai
+   * cobrar é dizer ao dono o contrário do que vai acontecer.
+   */
+  const exigido = controleAtivo && controlaEstoque;
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wide mb-1">
+          Item de estoque vinculado{exigido ? "" : " (opcional)"}
+        </label>
+        <select
+          value={itemDeEstoque}
+          onChange={(e) => setItemDeEstoque(e.target.value)}
+          className="w-full rounded-lg border border-neutral-200 px-2.5 py-1.5 text-sm text-neutral-900"
+        >
+          <option value="">Nenhum item vinculado</option>
+          {itens.map((it: any) => (
+            <option key={it.id} value={it.id}>
+              {it.nome} — {rotuloDoTipo[it.tipo] ?? it.tipo} — {it.unidade} —
+              saldo {it.saldo.toLocaleString("pt-BR")}
+            </option>
+          ))}
+        </select>
+        {itemDeEstoque ? (
+          <p className="text-xs text-neutral-600 mt-1">
+            Cada venda deste produto reserva <strong>1 unidade</strong> desse
+            item. Se ele for um preparado, os ingredientes da receita{" "}
+            <strong>não</strong> são baixados de novo — já saíram na produção.
+          </p>
+        ) : (
+          <p className="text-xs text-neutral-600 mt-1">
+            Deixe em branco se este produto não sai do estoque. Preparados e
+            itens de revenda aparecem no topo da lista.
+          </p>
+        )}
+      </div>
+
+      {/*
+        Numa loja que não usa estoque isto seria uma pergunta a mais sobre um
+        assunto que ela não tem — e a maioria das lojas não tem.
+      */}
+      {controleAtivo && (
+        <div className="rounded-lg border border-neutral-200 p-3">
+          <label className="flex cursor-pointer items-start gap-2">
+            <input
+              type="checkbox"
+              checked={controlaEstoque}
+              onChange={(e) => setControlaEstoque(e.target.checked)}
+              className="mt-0.5 size-4 accent-[#E11D2E]"
+            />
+            <span className="text-sm text-neutral-700">
+              Participa do controle de estoque
+              <span className="block text-xs text-neutral-500">
+                Desmarque para o que ocupa uma linha do cardápio sem sair da
+                prateleira: taxa de entrega, couvert, serviço.
+              </span>
+            </span>
+          </label>
+
+          {controlaEstoque &&
+            (temOrigem ? (
+              <p className="mt-3 text-xs font-medium text-emerald-700">
+                {itemDeEstoque
+                  ? "✓ Item de estoque vinculado"
+                  : "✓ Receita cadastrada"}
+              </p>
+            ) : (
+              <div className="mt-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <p>
+                  Este produto precisa de uma <strong>receita</strong> ou de um{" "}
+                  <strong>item de estoque vinculado</strong> para participar do
+                  controle de estoque.
+                  {produtoNovo &&
+                    " Ele será criado inativo; ative-o depois de configurar."}
+                </p>
+                {/*
+                  A receita é montada na aba Estoque, e sem este link o dono não
+                  descobre isso sozinho: a mensagem exige uma coisa que mora
+                  noutra tela e não diz qual.
+                */}
+                <Link
+                  to="/admin/estoque"
+                  className="mt-1.5 inline-block font-medium underline underline-offset-2 hover:text-amber-950"
+                >
+                  Cadastrar receita
+                </Link>
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
   );
 }
 

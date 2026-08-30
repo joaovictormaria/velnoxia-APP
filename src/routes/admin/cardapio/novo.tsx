@@ -16,6 +16,8 @@ const EMPTY: ProductFormValues = {
   imageUrl: null,
   tag: null,
   isActive: true,
+  // Regra, não exceção: produto novo nasce participando do estoque.
+  controlaEstoque: true,
   allowHalfAndHalf: false,
   halfPizzaPricingRule: "HIGHEST_PRICE",
   sortOrder: 0,
