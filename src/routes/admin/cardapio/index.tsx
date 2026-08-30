@@ -65,10 +65,32 @@ function ProductsPage() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products"] });
 
+  /**
+   * O que deu errado na última ação da lista.
+   *
+   * NASCEU DE UMA FALHA MUDA. Com o controle de estoque ligado, tentar ativar
+   * um produto sem receita nem item vinculado era recusado pelo servidor — e a
+   * tela não dizia nada: o interruptor voltava sozinho e o dono ficava clicando
+   * sem entender. Este é o ponto onde ele mais encontra a regra, porque é aqui
+   * que ele volta depois de montar a receita.
+   */
+  const [erro, setErro] = useState<string | null>(null);
+
   const toggleActive = useMutation({
     mutationFn: (vars: { id: string; isActive: boolean }) =>
       setProductActiveFn({ data: vars }),
-    onSuccess: invalidate,
+    onSuccess: () => {
+      setErro(null);
+      return invalidate();
+    },
+    /*
+     * A mensagem do servidor passa INTEIRA. A guarda já explica as três saídas
+     * — receita, item vinculado, ou desmarcar a participação no estoque — e
+     * trocá-la por um "erro ao ativar" genérico jogaria fora exatamente a parte
+     * que ensina o dono a resolver.
+     */
+    onError: (e: Error) =>
+      setErro(e?.message || "Não foi possível alterar este produto."),
   });
 
   const remove = useMutation({
@@ -85,6 +107,8 @@ function ProductsPage() {
     imageUrl: p.imageUrl,
     tag: p.tag,
     isActive: p.isActive,
+    // `?? true` cai na regra por omissão, nunca na exceção. Ver $productId.tsx.
+    controlaEstoque: p.controlaEstoque ?? true,
     allowHalfAndHalf: p.allowHalfAndHalf,
     halfPizzaPricingRule: p.halfPizzaPricingRule,
     sortOrder: p.sortOrder,
@@ -140,6 +164,25 @@ function ProductsPage() {
       <header className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-bold text-neutral-900">Cardápio - Lista de Produtos</h1>
       </header>
+
+      {/*
+        Fica no topo da lista, e não junto do interruptor: a recusa é um texto
+        de três linhas, e enfiá-la dentro da linha do produto quebraria a tabela
+        inteira justamente na hora em que o dono precisa ler com calma.
+      */}
+      {erro && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-[#E11D2E]">{erro}</p>
+          <button
+            type="button"
+            onClick={() => setErro(null)}
+            className="shrink-0 text-sm text-red-400 hover:text-[#E11D2E]"
+            aria-label="Fechar aviso"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         <select

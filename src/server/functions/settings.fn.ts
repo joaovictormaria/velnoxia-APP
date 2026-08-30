@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
 import { prisma } from "../db/client";
 import { STARTER_CATALOGS } from "../catalog/starter-catalogs";
+import { produtosPendentesDeVinculo } from "../inventory/guarda-de-receita";
 import {
   addRestaurantPhoto,
   deleteRestaurantPhoto,
@@ -115,6 +116,72 @@ export const saveStoreSettingsFn = createServerFn({ method: "POST" })
     }
     const settings = await updateStoreSettings(storeId, data);
     return { ok: true as const, settings };
+  });
+
+/**
+ * O estado do controle de estoque e o que falta para ligá-lo.
+ *
+ * Devolve as pendências SEMPRE, mesmo com o controle já ligado, para a tela
+ * poder mostrar o que quebrou depois — um produto pode ficar irregular por um
+ * caminho que a guarda não cobre no futuro, e a tela é onde isso aparece.
+ */
+export const getControleDeEstoqueFn = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { storeId } = await requireAdminSession();
+    const [settings, pendentes] = await Promise.all([
+      prisma.storeSettings.findUnique({
+        where: { storeId },
+        select: { inventoryControlEnabled: true },
+      }),
+      produtosPendentesDeVinculo(storeId),
+    ]);
+    return {
+      ativo: settings?.inventoryControlEnabled ?? false,
+      pendentes,
+    };
+  },
+);
+
+/**
+ * Liga ou desliga o controle de estoque da loja.
+ *
+ * SERVER FUNCTION PRÓPRIA, e não um campo a mais em `settingsSchema`. Aquele
+ * schema salva a loja inteira de uma vez e não tem como recusar só um campo:
+ * ligar o estoque com produtos pendentes teria de derrubar junto o nome da
+ * loja, o endereço e o horário que a pessoa acabou de digitar.
+ *
+ * (E por isso mesmo o campo NÃO entra em `settingsSchema`: o `z.object` do Zod
+ * descarta chave desconhecida, então mandar `inventoryControlEnabled` no
+ * payload daquela função não liga nada. A única porta é esta.)
+ *
+ * D4: ligar NÃO migra produto, NÃO cria receita, NÃO apaga nada e NÃO mexe em
+ * saldo. Se há pendência, a ativação é recusada e a lista volta para a tela.
+ * Desligar nunca é recusado — é sempre possível voltar ao comportamento antigo.
+ */
+export const salvarControleDeEstoqueFn = createServerFn({ method: "POST" })
+  .validator(z.object({ ativo: z.boolean() }))
+  .handler(async ({ data }) => {
+    const { storeId } = await requireAdminSession();
+
+    if (data.ativo) {
+      const pendentes = await produtosPendentesDeVinculo(storeId);
+      if (pendentes.length > 0) {
+        return {
+          ok: false as const,
+          error:
+            "Alguns produtos ainda não têm ficha técnica nem item de estoque " +
+            "vinculado. Configure-os ou marque-os como fora do controle de estoque.",
+          pendentes,
+        };
+      }
+    }
+
+    await prisma.storeSettings.update({
+      where: { storeId },
+      data: { inventoryControlEnabled: data.ativo },
+    });
+
+    return { ok: true as const, ativo: data.ativo, pendentes: [] };
   });
 
 export const saveOpeningHoursFn = createServerFn({ method: "POST" })

@@ -12,6 +12,10 @@ import {
   updateProduct,
 } from "../repositories/product-repository";
 import { listActiveCategories } from "../repositories/category-repository";
+import {
+  exigirVinculoDeEstoque,
+  nasceInativoPorFaltaDeVinculo,
+} from "../inventory/guarda-de-receita";
 import { optionGroupsSchema } from "../validation/option-group-schema";
 import { convertProductForServal, convertProductsForServal } from "../utils/decimal-converter";
 
@@ -34,6 +38,23 @@ const productSchema = z.object({
   imageUrl: z.string().nullish(),
   tag: z.string().nullish(),
   isActive: z.boolean(),
+  /**
+   * Se este produto participa do controle de estoque da loja.
+   *
+   * `default(true)` e nunca `optional()`: um payload antigo, sem o campo, tem
+   * de cair na REGRA, não na exceção. Fosse opcional com fallback `false`,
+   * omitir o campo viraria o bypass mais barato da guarda inteira — bastava
+   * mandar um JSON sem ele.
+   */
+  controlaEstoque: z.boolean().default(true),
+  /**
+   * O item de estoque que o produto consome, gravado JUNTO com o produto.
+   *
+   * Ausente não mexe no vínculo; `null` desvincula. O id é conferido contra a
+   * loja da sessão no handler — aqui ele é só uma string, e o Zod não tem como
+   * saber de quem ela é.
+   */
+  inventoryItemId: z.string().nullish(),
   allowHalfAndHalf: z.boolean(),
   halfPizzaPricingRule: z.enum(["HIGHEST_PRICE", "AVERAGE_PRICE"]),
   sortOrder: z.number().int().default(0),
@@ -79,16 +100,105 @@ export const saveProductFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: productSchema }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    const product = data.id
-      ? await updateProduct(storeId, data.id, data.data)
-      : await createProduct(storeId, data.data);
-    return { ok: true as const, product: convertProductForServal(product) };
+
+    /*
+     * O VÍNCULO É CONFERIDO CONTRA A LOJA DA SESSÃO, ANTES DE QUALQUER COISA.
+     *
+     * `storeId` vem de `requireAdminSession()`; do payload vem apenas um id de
+     * item, que só é aceito se existir DENTRO dessa loja. Sem esta conferência,
+     * mandar o id de um item da loja vizinha satisfaria a guarda e ainda
+     * apontaria o produto para estoque alheio.
+     *
+     * `undefined` significa "não mexe no vínculo" e `null` significa
+     * "desvincula" — por isso a distinção explícita, e não um `if (id)`, que
+     * trataria os dois como a mesma coisa.
+     */
+    const vinculoProposto = data.data.inventoryItemId;
+    if (vinculoProposto !== undefined && vinculoProposto !== null) {
+      const item = await prisma.inventoryItem.findFirst({
+        where: { id: vinculoProposto, storeId },
+        select: { id: true },
+      });
+      if (!item) throw new Error("Item de estoque não encontrado.");
+    }
+
+    /*
+     * A GUARDA DE ESTOQUE, e por que os dois lados dela são diferentes.
+     *
+     * EDITAR é uma decisão sobre um produto que já existe: se a alteração o
+     * deixaria ativo sem de onde tirar o que vende, ela é RECUSADA. O dono tem
+     * como consertar — a ficha e o vínculo já estão ao alcance dele.
+     *
+     * CRIAR não pode ser recusado, e isso não é indulgência. Uma ficha técnica
+     * é FK para o produto, então não existe antes dele. Recusar aqui fecharia
+     * o cadastro inteiro com o estoque ligado. O produto nasce INATIVO, e a
+     * tela é avisada — decisão do João, 29/08/2026.
+     *
+     * TUDO DENTRO DE UMA TRANSAÇÃO SÓ. A guarda lê a ficha técnica e o vínculo;
+     * a gravação escreve o produto. Fora de uma transação, entre uma coisa e
+     * outra caberia apagar a receita que autorizou a ativação.
+     *
+     * E o vínculo agora é COLUNA DA MESMA LINHA, gravado pelo mesmo comando que
+     * grava `isActive`. Não existe estado parcial: não há como o produto ficar
+     * ativo sem o vínculo, nem vinculado sem a ativação — é uma escrita só.
+     */
+    if (data.id) {
+      const product = await prisma.$transaction(async (tx) => {
+        await exigirVinculoDeEstoque(
+          storeId,
+          data.id!,
+          {
+            isActive: data.data.isActive,
+            controlaEstoque: data.data.controlaEstoque,
+            ...(vinculoProposto !== undefined
+              ? { inventoryItemId: vinculoProposto }
+              : {}),
+          },
+          tx,
+        );
+        return updateProduct(storeId, data.id!, data.data, tx);
+      });
+      return { ok: true as const, product: convertProductForServal(product) };
+    }
+
+    const nasceInativo = await nasceInativoPorFaltaDeVinculo(storeId, {
+      isActive: data.data.isActive,
+      controlaEstoque: data.data.controlaEstoque,
+    });
+    const product = await createProduct(storeId, {
+      ...data.data,
+      isActive: nasceInativo ? false : data.data.isActive,
+    });
+    return {
+      ok: true as const,
+      product: convertProductForServal(product),
+      /*
+       * Não é enfeite. Sem este sinal o dono marca "Ativo", salva sem erro
+       * nenhum e o produto simplesmente não aparece na vitrine — ele
+       * descobriria pelo silêncio, que é a pior forma de descobrir.
+       */
+      nasceuInativo: nasceInativo,
+      /*
+       * Se ele nasceu inativo JÁ COM origem configurada, a tela não deve mandar
+       * configurar de novo o que acabou de ser feito.
+       */
+      nasceuComVinculo: vinculoProposto != null,
+    };
   });
 
 export const setProductActiveFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), isActive: z.boolean() }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
+    /*
+     * O caminho que NÃO passa pelo formulário: o botão de ligar/desligar da
+     * listagem. Sem a guarda aqui, criar o produto inativo e ativá-lo por este
+     * botão seria o desvio de uma linha para toda a regra.
+     *
+     * Desativar nunca é recusado — `produtoExigeVinculo` só cobra de produto
+     * ativo, então `isActive: false` passa sempre.
+     */
+    await exigirVinculoDeEstoque(storeId, data.id, { isActive: data.isActive });
     await setProductActive(storeId, data.id, data.isActive);
     return { ok: true as const };
   });
@@ -197,6 +307,20 @@ export const adminLinkProductToInventory = createServerFn({ method: "POST" })
         throw new Error("Item de estoque não encontrado");
       }
     }
+
+    /*
+     * DESVINCULAR PODE DEIXAR O PRODUTO SEM NADA, e é por isso que a guarda
+     * entra aqui também. Uma bebida ativa cujo único elo com o estoque é este
+     * campo volta a ser vendida sem descer saldo no instante em que ele vira
+     * nulo — sem passar pelo formulário e sem tocar em ficha nenhuma.
+     *
+     * A alteração é julgada pelo RESULTADO (`inventoryItemId` proposto), não
+     * pelo estado atual: checar o que está gravado aprovaria justamente a
+     * remoção, porque no instante da checagem o vínculo ainda está lá.
+     */
+    await exigirVinculoDeEstoque(admin.storeId, data.productId, {
+      inventoryItemId: data.inventoryItemId,
+    });
 
     const updated = await prisma.product.update({
       where: { id: data.productId },

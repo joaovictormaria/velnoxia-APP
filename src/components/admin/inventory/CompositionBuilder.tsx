@@ -153,7 +153,7 @@ export function CompositionBuilder(props: CompositionBuilderProps) {
         alert("✅ Receita atualizada com sucesso!");
       } else {
         // Criar nova receita
-        await adminCreateComposition({
+        const criada: any = await adminCreateComposition({
           data: {
             productId: props.productId,
             categoryId: props.categoryId,
@@ -161,7 +161,16 @@ export function CompositionBuilder(props: CompositionBuilderProps) {
             isActive: true,
           }
         } as any);
-        alert("✅ Receita criada com sucesso!");
+        /*
+         * Digitar um nome novo aqui CRIA o produto, e com o controle de estoque
+         * ligado ele nasce inativo e sem preço. Quem estava montando uma receita
+         * saía achando que terminou, e o produto não aparecia no cardápio.
+         */
+        alert(
+          criada?.produtoCriadoInativo
+            ? `✅ Receita criada com sucesso!\n\nO produto "${criada.produtoCriadoNome}" foi criado como INATIVO e sem preço. Vá em Cardápio para cadastrar o preço e ativá-lo.`
+            : "✅ Receita criada com sucesso!",
+        );
       }
       setCompositionItems([]);
       setEditingVersionId(null);

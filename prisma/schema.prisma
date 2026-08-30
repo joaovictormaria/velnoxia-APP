@@ -431,6 +431,25 @@ model StoreSettings {
   autoPrintEnabled         Boolean         @default(false)
   whatsappNotifyEnabled    Boolean         @default(true)
   notificationSoundEnabled Boolean         @default(true)
+
+  /// O estoque deixa de ser um módulo que a loja visita e passa a ser uma
+  /// regra que ela obedece.
+  ///
+  /// DESLIGADO é o default, e é o comportamento de sempre: o cadastro de
+  /// produto não exige nada, exatamente como antes deste campo existir. Toda
+  /// loja já criada continua onde estava.
+  ///
+  /// LIGADO faz `Product.controlaEstoque` valer alguma coisa: produto ativo
+  /// que participa precisa saber de onde tirar o que vende — ficha técnica com
+  /// ingrediente ou item de estoque vinculado. Quem decide isso é
+  /// `@/lib/regra-de-estoque`, e quem cobra é `@/server/inventory/guarda-de-receita`.
+  ///
+  /// Mora em StoreSettings, e não em Store, porque é uma decisão operacional
+  /// da loja — vizinha de `autoPrintEnabled` e `acceptsDelivery`, não de
+  /// `stripeCustomerId`. A relação é opcional no schema: loja sem linha de
+  /// settings lê `false`, que é o default seguro.
+  inventoryControlEnabled  Boolean         @default(false)
+
   createdAt                DateTime        @default(now())
   updatedAt                DateTime        @updatedAt
 
@@ -510,6 +529,25 @@ model Product {
   imageUrl             String?
   tag                  String?
   isActive             Boolean              @default(true)
+
+  /// Este produto participa do controle de estoque?
+  ///
+  /// Só significa alguma coisa quando `StoreSettings.inventoryControlEnabled`
+  /// está ligado. Com o controle desligado o campo existe e não é consultado
+  /// por ninguém — é por isso que a migration que o cria não muda
+  /// comportamento nenhum.
+  ///
+  /// DEFAULT `true`, e o default é a regra. Fosse `false`, ligar o controle
+  /// não exigiria nada de produto algum e a trava nasceria decorativa: cada
+  /// mercadoria teria de ser marcada à mão para o estoque valer.
+  ///
+  /// A exceção existe porque nem tudo que ocupa uma linha do cardápio sai de
+  /// prateleira. Taxa de entrega, couvert e serviço são produtos para o
+  /// pedido e não são mercadoria para o estoque. Sem este campo, o dono
+  /// precisaria inventar um item de estoque para a própria taxa de entrega só
+  /// para conseguir ligar o controle.
+  controlaEstoque      Boolean              @default(true)
+
   allowHalfAndHalf     Boolean              @default(false)
   halfPizzaPricingRule HalfPizzaPricingRule @default(HIGHEST_PRICE)
   sortOrder            Int                  @default(0)

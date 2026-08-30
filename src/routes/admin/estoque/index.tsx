@@ -186,6 +186,7 @@ function EstoquePage() {
                             {products.map((p) => (
                               <option key={p.id} value={p.name}>
                                 {p.name}
+                                {p.isActive === false ? ' (inativo)' : ''}
                               </option>
                             ))}
                           </select>
@@ -354,6 +355,7 @@ function EstoquePage() {
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
+                          {p.isActive === false ? ' (inativo)' : ''}
                         </option>
                       ))}
                     </select>

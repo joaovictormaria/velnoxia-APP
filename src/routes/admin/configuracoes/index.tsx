@@ -1,4 +1,4 @@
-import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { createFileRoute, useRouteContext, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Check, Loader2, X } from "lucide-react";
@@ -14,7 +14,9 @@ import {
 } from "@/lib/pizzaria2/cep-lookup";
 import {
   getBusinessTypeFn,
+  getControleDeEstoqueFn,
   getStoreSettingsFn,
+  salvarControleDeEstoqueFn,
   saveBusinessTypeFn,
   saveOpeningHoursFn,
   saveStoreSettingsFn,
@@ -93,7 +95,13 @@ type HoursDraft = Record<
   { isOpen: boolean; opensAt: string; closesAt: string }
 >;
 
-type TabId = "identidade" | "contato" | "endereco" | "entrega" | "horarios";
+type TabId =
+  | "identidade"
+  | "contato"
+  | "endereco"
+  | "entrega"
+  | "horarios"
+  | "estoque";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "identidade", label: "Identidade" },
@@ -101,6 +109,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "endereco", label: "Endereço" },
   { id: "entrega", label: "Entrega e retirada" },
   { id: "horarios", label: "Horários" },
+  { id: "estoque", label: "Estoque" },
 ];
 
 function SettingsPage() {
@@ -819,7 +828,156 @@ function SettingsPage() {
           ))}
         </div>
       </Section>
+
+      <Section
+        active={tab === "estoque"}
+        title="Controle de estoque"
+        description="Decide se o cardápio precisa dizer de onde sai o que vende."
+      >
+        <ControleDeEstoque />
+      </Section>
     </form>
+  );
+}
+
+/**
+ * O interruptor do controle de estoque, com a lista do que impede ligá-lo.
+ *
+ * COMPONENTE SEPARADO, e fora do `draft` da página. Aquele formulário salva a
+ * loja inteira num POST só; este campo pode ser RECUSADO sozinho, e uma recusa
+ * dele não pode derrubar junto o nome, o endereço e o horário que a pessoa
+ * acabou de digitar.
+ *
+ * A TELA NÃO É A AUTORIDADE. Ela mostra as pendências para o dono saber o que
+ * corrigir, mas quem recusa é `salvarControleDeEstoqueFn`: mesmo que esta
+ * lista chegue vazia por estar velha, o servidor confere de novo antes de
+ * gravar.
+ */
+function ControleDeEstoque() {
+  const queryClient = useQueryClient();
+  const [erro, setErro] = useState<string | null>(null);
+
+  const estado = useQuery({
+    queryKey: ["controle-de-estoque"],
+    queryFn: () => getControleDeEstoqueFn(),
+  });
+
+  const salvar = useMutation({
+    mutationFn: (ativo: boolean) =>
+      salvarControleDeEstoqueFn({ data: { ativo } }),
+    onSuccess: async (r: any) => {
+      setErro(r?.ok ? null : (r?.error ?? "Não foi possível salvar."));
+      await queryClient.invalidateQueries({ queryKey: ["controle-de-estoque"] });
+    },
+    onError: (e: Error) => setErro(e.message),
+  });
+
+  if (estado.isPending || !estado.data) {
+    return <p className="text-sm text-neutral-500">Carregando...</p>;
+  }
+
+  const ativo = estado.data.ativo;
+  /*
+   * A recusa mais recente manda, quando existe: a lista da consulta pode ter
+   * envelhecido entre carregar a tela e clicar em ligar.
+   */
+  const pendentes =
+    (salvar.data as any)?.ok === false
+      ? (salvar.data as any).pendentes
+      : estado.data.pendentes;
+
+  return (
+    <div className="space-y-5">
+      <Toggle
+        label={ativo ? "Controle de estoque ativado" : "Controle de estoque desativado"}
+        checked={ativo}
+        onChange={(v) => {
+          setErro(null);
+          salvar.mutate(v);
+        }}
+      />
+
+      <p className="text-sm text-neutral-500">
+        {ativo
+          ? "Produtos que participam do controle precisam ter uma ficha técnica com pelo menos um ingrediente ou um item de estoque vinculado."
+          : "Com o controle desativado, o cadastro de produtos segue sem exigir ficha técnica nem vínculo com o estoque."}
+      </p>
+
+      {salvar.isPending && (
+        <p className="flex items-center gap-2 text-sm text-neutral-500">
+          <Loader2 className="size-4 animate-spin" /> Salvando...
+        </p>
+      )}
+
+      {erro && (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {erro}
+        </p>
+      )}
+
+      {/*
+        DUAS LEITURAS DA MESMA LISTA, e a diferença não é cosmética.
+
+        Com o controle LIGADO, um produto sem origem é uma pendência real: ele
+        está no cardápio e não desce saldo. Alarme âmbar, lista aberta.
+
+        Com o controle DESLIGADO, não há nada errado — a loja simplesmente não
+        usa estoque. O texto anterior dizia "N produtos ainda precisam ser
+        configurados" mesmo assim, e numa loja que nunca vai ligar o controle
+        isso era um alarme permanente sobre um problema que não existe. Aqui
+        vira o que de fato é: o pré-requisito, recolhido, para quem quiser ver.
+      */}
+      {pendentes.length > 0 &&
+        (ativo ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-medium text-amber-900">
+              {pendentes.length === 1
+                ? "1 produto ainda precisa ser configurado:"
+                : `${pendentes.length} produtos ainda precisam ser configurados:`}
+            </p>
+            <ListaDePendentes pendentes={pendentes} />
+            <p className="mt-3 text-xs text-amber-700">
+              Cadastre uma receita, vincule um item de estoque ou desmarque
+              &ldquo;Participa do controle de estoque&rdquo; em cada um deles.
+            </p>
+          </div>
+        ) : (
+          <details className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+            <summary className="cursor-pointer text-sm text-neutral-700 marker:text-neutral-400">
+              Para ligar o controle de estoque,{" "}
+              {pendentes.length === 1
+                ? "1 produto precisará"
+                : `${pendentes.length} produtos precisarão`}{" "}
+              de receita ou item de estoque.{" "}
+              <span className="underline underline-offset-2">Ver quais</span>
+            </summary>
+            <ListaDePendentes pendentes={pendentes} />
+          </details>
+        ))}
+    </div>
+  );
+}
+
+/** Os produtos pendentes, cada um linkado para a própria tela de edição. */
+function ListaDePendentes({
+  pendentes,
+}: {
+  pendentes: { id: string; name: string }[];
+}) {
+  return (
+    <ul className="mt-2 space-y-1">
+      {pendentes.map((p) => (
+        <li key={p.id} className="text-sm text-neutral-700">
+          <Link
+            to="/admin/cardapio/$productId"
+            params={{ productId: p.id }}
+            className="underline underline-offset-2 hover:text-neutral-950"
+          >
+            {p.name}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
