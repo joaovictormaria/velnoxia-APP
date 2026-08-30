@@ -170,6 +170,50 @@ export class OrderInventoryHandler {
     if (!order?.storeId) return;
 
     const { insumos } = await insumosDoPedido(order.items);
+
+    /*
+     * AS RESERVAS DO PEDIDO CAEM TODAS, ANTES DE QUALQUER CONSUMO.
+     *
+     * Isto ficava DENTRO do laço abaixo, filtrado por `insumo.inventoryItemId`
+     * — e então só era revertido o que ainda aparecia na configuração ATUAL do
+     * produto. O que saíra dela no meio do caminho ficava reservado para sempre.
+     *
+     * A ficha técnica não sofria com isso porque é congelada em
+     * `OrderItem.compositionVersionId`: a versão que reservou é a mesma que
+     * consome. A EMBALAGEM não tem congelamento nenhum, e o TIPO do produto é
+     * editável a qualquer momento — bastava remover a embalagem, ou trocar o
+     * produto para "não controla", entre o pedido entrar e ir ao preparo:
+     *
+     *   pedido reserva 2 caixas → dono remove a embalagem → PREPARING
+     *   → a caixa não está mais em `insumos` → a reserva nunca era revertida
+     *
+     * O saldo físico não se perdia, mas `quantityReserved` subia de forma
+     * cumulativa e sem nenhuma tela que desfizesse: o disponível encolhia a
+     * cada ocorrência.
+     *
+     * A reversão passa a não depender da configuração atual — é o mesmo
+     * princípio que `onOrderCancelled` sempre usou, e é por isso que o
+     * cancelamento nunca teve este problema. Mesma função, sem segunda
+     * implementação: só sem o filtro por item.
+     *
+     * A ORDEM É SEGURA. Reverter uma RESERVATION mexe apenas em
+     * `quantityReserved` (`calcularDelta`: REVERSAL de RESERVATION devolve só
+     * `reserved`), e a checagem de saldo insuficiente abaixo lê
+     * `quantityOnHand`. Antecipar a reversão não muda um número dessa conta.
+     */
+    await this.reverterMovimentos(order.storeId, orderId, ["RESERVATION"]);
+
+    /*
+     * Sai DEPOIS de reverter, e não antes.
+     *
+     * Este `return` ficava acima da reversão, e era o caso extremo do mesmo
+     * bug: quando a configuração nova não produzia insumo nenhum — trocar
+     * REVENDA para "não controla", por exemplo — o pedido saía daqui sem
+     * liberar nada, e a reserva inteira ficava aberta.
+     *
+     * Não há o que consumir, e isso é um desfecho legítimo: o pedido segue
+     * para PREPARING normalmente.
+     */
     if (insumos.length === 0) return;
 
     const insuficientes: string[] = [];
@@ -184,9 +228,6 @@ export class OrderInventoryHandler {
           `${item.name} (tinha ${Number(item.quantityOnHand)}, precisou de ${insumo.quantidade.toFixed(4)})`,
         );
       }
-
-      // Libera a reserva e baixa o físico, na mesma passada.
-      await this.reverterMovimentos(order.storeId, orderId, ["RESERVATION"], insumo.inventoryItemId);
 
       await InventoryService.recordMovement(order.storeId, {
         idempotencyKey: `${order.storeId}#ORDER#${orderId}#CONSUMPTION#${insumo.inventoryItemId}`,
