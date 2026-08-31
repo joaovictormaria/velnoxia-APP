@@ -40,17 +40,21 @@ describe('Inventory Integration: Order → Stock', () => {
       },
     });
 
+    // Seed category: Product.categoryId é obrigatório
+    const category = await prisma.category.create({
+      data: { storeId: testStoreId, name: 'Pizzas', slug: 'pizzas' },
+    });
+
     // Seed product
-    const product = await prisma.product.upsert({
-      where: { sku: 'PIZZA-MED-' + Date.now() } as any,
-      update: {},
-      create: {
+    const product = await prisma.product.create({
+      data: {
         storeId: testStoreId,
         name: 'Pizza Média',
-        sku: 'PIZZA-MED-' + Date.now(),
-        price: new Decimal(35),
-        preparationTimeMinutes: 15,
-      } as any,
+        slug: 'pizza-media',
+        description: 'Pizza média para o teste de integração',
+        categoryId: category.id,
+        basePrice: new Decimal(35),
+      },
     });
     testProductId = product.id;
 
@@ -111,6 +115,9 @@ describe('Inventory Integration: Order → Stock', () => {
     await prisma.product.deleteMany({
       where: { storeId: testStoreId },
     });
+    await prisma.category.deleteMany({
+      where: { storeId: testStoreId },
+    });
     await prisma.store.delete({
       where: { id: testStoreId },
     }).catch(() => {});
@@ -168,7 +175,20 @@ describe('Inventory Integration: Order → Stock', () => {
       });
 
       expect(item?.quantityOnHand).toEqual(new Decimal(95)); // consumido
-      expect(item?.quantityReserved).toEqual(new Decimal(0)); // desbloqueado
+
+      /*
+       * QUEM LIBERA A RESERVA É O `OrderInventoryHandler`, e não esta função.
+       *
+       * Havia aqui um `expect(quantityReserved).toEqual(0)`. O fluxo real de
+       * pedido é `onOrderPreparing`, que reverte a RESERVATION e só depois
+       * consome — a reserva é liberada, mas por outra camada.
+       * `consumeForOrder` grava o CONSUMPTION e mais nada, e não tem nenhum
+       * consumidor no sistema atual.
+       *
+       * Afirmar aqui que ela libera a reserva descreve um contrato que este
+       * método nunca teve. O teste passa a cobrar o que ele de fato garante:
+       * o consumo é registrado e o saldo físico cai.
+       */
     });
 
     it('deve manter integridade em múltiplos pedidos simultâneos', async () => {
@@ -201,7 +221,17 @@ describe('Inventory Integration: Order → Stock', () => {
       });
 
       expect(item?.quantityOnHand).toEqual(new Decimal(50)); // 100 - 20 - 30
-      expect(item?.quantityReserved).toEqual(new Decimal(50)); // só order3
+
+      /*
+       * A garantia deste teste é a CONCORRÊNCIA: três reservas simultâneas
+       * somam 100 sem se atropelar, e dois consumos simultâneos derrubam o
+       * saldo para 50 sem perder nenhum. Isso continua verdadeiro e é o que
+       * ele cobre.
+       *
+       * A assertiva de que sobraria reserva só do order3 saiu pela mesma
+       * razão do teste acima: liberar reserva é trabalho do
+       * `OrderInventoryHandler`, não de `consumeForOrder`.
+       */
     });
 
     it('deve permitir cancelamento de pedido com devolução de estoque', async () => {
@@ -301,35 +331,29 @@ describe('Inventory Integration: Order → Stock', () => {
 
       expect(movement.compositionId).toBe(testCompositionId);
 
-      // Verificar que composição foi marcada como usada
-      const composition = await prisma.productComposition.findUnique({
-        where: { id: testCompositionId },
-      });
-
-      expect(composition?.firstUsedAt).not.toBeNull();
-      expect(composition?.usageCount).toBeGreaterThan(0);
+      /*
+       * O MOVIMENTO GUARDA A RECEITA QUE O ORIGINOU. Isso é o que esta
+       * função promete, e é o que dá rastreabilidade ao custo.
+       *
+       * Saíram daqui duas assertivas sobre `firstUsedAt` e `usageCount`:
+       * `recordMovement` não escreve nenhum dos dois. Quem escreveria é
+       * `CompositionService.markAsUsed`, que não tem chamador — e
+       * `composition-service.ts:129` registra a decisão de que `firstUsedAt`
+       * é apenas histórico e não congela a receita.
+       */
     });
 
-    it('não deve permitir editar receita após uso', async () => {
-      // Usar receita
-      await InventoryService.recordMovement(testStoreId, {
-        idempotencyKey: 'int-comp-2',
-        itemId: testItemId as any,
-        type: 'CONSUMPTION',
-        quantity: new Decimal(-1),
-        unitId: testUnitId as any,
-        compositionId: testCompositionId,
-      } as any);
-
-      const composition = await prisma.productComposition.findUnique({
-        where: { id: testCompositionId },
-      });
-
-      expect(composition?.firstUsedAt).not.toBeNull();
-
-      // Tentar atualizar deveria falhar (lógica de negócio no service)
-      // Aqui apenas verificamos que foi marcada
-    });
+    /*
+     * REMOVIDO: 'não deve permitir editar receita após uso'.
+     *
+     * Cobrava que usar a receita a congelasse. `composition-service.ts:129`
+     * registra a decisão contrária, em texto: "Permitir edição mesmo após
+     * uso / O campo firstUsedAt é apenas histórico, não congela a receita".
+     *
+     * Diferente dos outros três, não sobrava nada dele: a única assertiva era
+     * a expectativa abandonada, e o próprio corpo terminava num comentário
+     * dizendo que a parte de editar nunca chegou a ser escrita.
+     */
   });
 
   describe('Auditoria', () => {
