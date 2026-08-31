@@ -1225,13 +1225,28 @@ export function InventoryGrid(props: InventoryGridProps) {
         </div>
       )}
 
+      {/*
+        SEM `overflow-hidden` NO CARTÃO, E ISSO NÃO É ENFEITE.
+
+        Ele recortava o menu de ações das linhas: `overflow: hidden` corta
+        QUALQUER descendente que passe da caixa, e não olha para `z-index`
+        nenhum — por isso o `z-20` do menu não resolvia. Numa lista curta o
+        menu nascia já fora do cartão e aparecia pela metade.
+
+        O recorte existia só para o fundo do cabeçalho e o hover da última
+        linha não vazarem dos cantos arredondados. Os dois passam a ter raio
+        próprio, que resolve a mesma coisa sem cortar nada.
+      */}
       {!loading && visiveis.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-neutral-200 bg-white">
+        <div className="rounded-xl border border-neutral-200 bg-white">
           {/*
             CABEÇALHO SÓ EM TELA GRANDE. Abaixo de md cada item vira um card, e
             um cabeçalho de tabela sem tabela embaixo não significa nada.
+
+            `md:rounded-t-xl` porque o fundo cinza encosta na borda de cima do
+            cartão: sem raio próprio ele quadraria os dois cantos superiores.
           */}
-          <div className="hidden border-b border-neutral-200 bg-neutral-50 md:grid md:grid-cols-[minmax(0,2.2fr)_1fr_1fr_auto] md:gap-4 md:px-4 md:py-2.5">
+          <div className="hidden border-b border-neutral-200 bg-neutral-50 md:grid md:grid-cols-[minmax(0,2.2fr)_1fr_1fr_auto] md:gap-4 md:px-4 md:py-2.5 md:rounded-t-xl">
             <button
               onClick={() => handleSort("name")}
               className="flex items-center gap-1 text-left text-xs font-semibold uppercase tracking-wide text-neutral-600 hover:text-neutral-900"
@@ -1300,7 +1315,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                   className={`px-4 py-3 hover:bg-neutral-50/60 md:grid md:grid-cols-[minmax(0,2.2fr)_1fr_1fr_auto] md:items-center md:gap-4 ${
                     emAlerta
                       ? "my-1 rounded-lg border-2 border-red-500 bg-red-50/40"
-                      : "border-t border-neutral-100 first:border-t-0"
+                      : "border-t border-neutral-100 first:border-t-0 first:rounded-t-xl last:rounded-b-xl"
                   } ${item.isActive ? "" : "opacity-60"}`}
                 >
                   {/* ITEM */}
