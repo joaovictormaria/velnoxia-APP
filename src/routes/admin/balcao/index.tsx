@@ -20,8 +20,8 @@ import {
   criarPedidoDeBalcaoFn,
   getBalcaoMenuFn,
   precificarBalcaoFn,
-  type ProdutoDoBalcao,
 } from "@/server/functions/balcao.fn";
+import type { ProdutoDoBalcao } from "@/lib/balcao/tipos";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/balcao/")({

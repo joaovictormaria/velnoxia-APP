@@ -11,8 +11,8 @@ import {
 import { OrderInventoryHandler } from "@/server/services/order-inventory-handler";
 import { RecebimentosService } from "@/server/services/recebimentos-service";
 import { listKanbanOrders } from "@/server/repositories/order-repository";
-import { montarCardapioDoBalcao } from "@/server/functions/balcao.fn";
-import { aceitarComPagamentoEmAberto } from "@/server/functions/recebimentos.fn";
+import { montarCardapioDoBalcao } from "@/server/services/cardapio-do-balcao";
+import { aceitarComPagamentoEmAberto } from "@/server/services/aceitar-fiado";
 
 /*
  * O BALCÃO — pedido presencial.

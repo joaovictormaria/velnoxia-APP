@@ -1,17 +1,9 @@
 import { Loader2, Minus, Pencil, Plus, ShoppingCart, Trash2 } from "lucide-react";
-import type { ItemDoBalcao } from "@/lib/balcao/carrinho";
-import { totalDeItens } from "@/lib/balcao/carrinho";
+import { totalDeItens, type ItemDoBalcao } from "@/lib/balcao/carrinho";
+import type { LinhaPrecificada } from "@/lib/balcao/tipos";
 
 const dinheiro = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-/** Uma linha já precificada PELO SERVIDOR, na mesma ordem dos itens. */
-export type LinhaPrecificada = {
-  unitPrice: number;
-  quantity: number;
-  extras: { nome: string; grupo: string | null; preco: number }[];
-  extrasTotal: number;
-};
 
 /**
  * O PEDIDO ATUAL, sempre visível ao lado do cardápio.

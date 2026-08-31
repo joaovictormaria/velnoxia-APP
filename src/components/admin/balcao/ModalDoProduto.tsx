@@ -13,7 +13,7 @@ import {
   precoDoItem,
   type ItemDoBalcao,
 } from "@/lib/balcao/carrinho";
-import type { ExtraDoBalcao, ProdutoDoBalcao } from "@/server/functions/balcao.fn";
+import type { ExtraDoBalcao, ProdutoDoBalcao } from "@/lib/balcao/tipos";
 import { cn } from "@/lib/utils";
 
 const dinheiro = (v: number) =>

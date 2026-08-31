@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { RecebimentosService } from "@/server/services/recebimentos-service";
-import { transitionOrderStatus } from "@/server/services/order-service";
+import { aceitarComPagamentoEmAberto } from "@/server/services/aceitar-fiado";
 import { numeros } from "./serializar";
 
 /**
@@ -31,71 +31,17 @@ function autorDaSessao(admin: { id: string; name: string; email: string }) {
 }
 
 /**
- * "Pagamento outro dia" = aceitar o pedido, pôr na fila e deixar a cobrança em
- * aberto — os três num gesto só.
+ * "Pagamento outro dia": aceita o pedido, põe na fila e deixa a cobrança em
+ * aberto.
  *
- * SÃO DUAS OPERAÇÕES, COMPOSTAS AQUI E SÓ AQUI.
+ * A COMPOSIÇÃO NÃO MORA AQUI — mora em `@/server/services/aceitar-fiado`, e o
+ * porquê está escrito lá: um `export` comum dentro de um `.fn.ts` arrasta os
+ * imports do arquivo (repositórios, Prisma) para o bundle do NAVEGADOR e
+ * derruba toda tela que importe este módulo. Aqui ficam só server functions.
  *
- *   1. `RecebimentosService.abrirFiado` — puramente financeiro, não escreve em
- *      `Order.status` nem encosta no razão de estoque.
- *   2. `transitionOrderStatus(..., "PREPARING")` — o MESMO caminho do botão
- *      "Colocar na fila" do quadro.
- *
- * A composição mora na função HTTP, e não num parâmetro do serviço, porque é
- * uma decisão de PRODUTO ("quem fia, aceita") e não uma regra de dinheiro. O
- * serviço continua servindo a quem precisar só marcar o fiado.
- *
- * ⚠️ O ESTOQUE BAIXA AQUI, e isso é intencional: PREPARING é onde a reserva
- * vira consumo em qualquer venda. Não é o pagamento que consome — é o pedido
- * entrar na fila, exatamente como se o operador tivesse clicado no botão.
- *
- * DUPLO CLIQUE É SEGURO, por três travas que já existiam:
- *   · `abrirFiado` devolve cedo se o pedido já está OPEN;
- *   · `transitionOrderStatus` devolve `ok` se o status já é o pedido;
- *   · o consumo usa `idempotencyKey` com índice único, então a segunda
- *     tentativa reconhece o que a primeira gravou em vez de descontar de novo.
- *
- * SÓ DE RECEIVED. Um pedido que já está em preparo ou na rua não é empurrado —
- * marcar fiado não pode fazer quem já andou andar mais.
- *
- * A COMPOSIÇÃO MORA NA FUNÇÃO EXPORTADA ABAIXO, e não no corpo da server
- * function, por um motivo só: o balcão precisa exatamente dela. Um pedido
- * fiado registrado no balcão tem de virar a MESMA dívida, na MESMA aba, pelo
- * MESMO caminho do botão do quadro — e a única forma de garantir isso é haver
- * uma implementação, chamada de dois lugares. A server function continua sendo
- * a porta HTTP, e é ela quem exige a sessão.
+ * O balcão chama exatamente a mesma função de serviço, para o fiado registrado
+ * lá virar a MESMA dívida, na MESMA aba, pelo MESMO caminho deste botão.
  */
-export async function aceitarComPagamentoEmAberto(
-  storeId: string,
-  orderId: string,
-  autor: { id?: string | null; name?: string | null; email?: string | null },
-  opcoes: { note?: string | null; dueAt?: Date | null } = {},
-) {
-  const r = await RecebimentosService.abrirFiado(storeId, orderId, autor, {
-    note: opcoes.note ?? null,
-    dueAt: opcoes.dueAt ?? null,
-  });
-  if (!r.ok) return { ok: false as const, error: r.erro };
-
-  /*
-   * A fila anda DEPOIS de o fiado estar gravado. Se a transição falhar — um
-   * pedido cancelado por outra pessoa no meio do caminho, por exemplo — a
-   * dívida já está registrada e não se perde; o operador vê o aviso e move o
-   * pedido à mão.
-   */
-  let aviso: string | null = null;
-  if (r.dados.statusAtual === "RECEIVED") {
-    const t = await transitionOrderStatus(storeId, orderId, "PREPARING", {
-      authorType: "ADMIN",
-      authorName: autor.name ?? undefined,
-      note: "Aceito com pagamento em aberto",
-    } as any);
-    if (!t.ok) aviso = t.error;
-  }
-
-  return { ok: true as const, dados: r.dados, aviso };
-}
-
 export const abrirFiadoFn = createServerFn({ method: "POST" })
   .validator(
     z.object({

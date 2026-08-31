@@ -1,15 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
-import { listActiveExtras } from "../repositories/extra-repository";
-import { listMenuForStorefront } from "../repositories/product-repository";
-import { getStoreSettings } from "../repositories/store-settings-repository";
+import { montarCardapioDoBalcao } from "../services/cardapio-do-balcao";
+import { aceitarComPagamentoEmAberto } from "../services/aceitar-fiado";
 import {
   createOrderFromCheckout,
   precificarItens,
   type CheckoutItem,
 } from "../services/order-service";
-import { aceitarComPagamentoEmAberto } from "./recebimentos.fn";
 
 /**
  * O BALCÃO — pedido presencial montado por quem atende.
@@ -28,141 +26,14 @@ import { aceitarComPagamentoEmAberto } from "./recebimentos.fn";
  * │ Order, segundo serviço, segundo estoque, segundo fiado nem segundo     │
  * │ Kanban — depois de criado, o pedido é indistinguível dos outros.       │
  * └───────────────────────────────────────────────────────────────────────┘
- */
-
-/** O que a tela precisa saber sobre uma pergunta do cardápio. */
-export type GrupoDaTela = {
-  id: string;
-  name: string;
-  minChoices: number;
-  maxChoices: number;
-  freeChoices: number;
-  options: { id: string; name: string; price: number }[];
-};
-
-/**
- * Os tipos do cardápio são ESCRITOS, e não inferidos das consultas.
  *
- * As consultas do repositório passam por `any` em alguns pontos, e inferir a
- * partir delas faria `ProdutoDoBalcao` virar `any` — a tela inteira perderia
- * a checagem justamente onde ela pega erro de campo renomeado no cardápio.
+ * ⚠️ SÓ SERVER FUNCTIONS AQUI DENTRO. Nada de `export function` ou tipo
+ * declarado neste arquivo: o bundler substitui um `.fn.ts` de server functions
+ * puras por um stub de duzentos bytes no navegador, mas um `export` comum no
+ * meio delas o obriga a mandar os imports do arquivo junto — repositórios,
+ * Prisma, `node:crypto` — e a tela morre em `ReferenceError: Buffer is not
+ * defined`. Os tipos moram em `@/lib/balcao/tipos`; as funções, em serviços.
  */
-export type TamanhoDoBalcao = { id: string; label: string; price: number };
-
-export type ProdutoDoBalcao = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  imageUrl: string | null;
-  tag: string | null;
-  basePrice: number;
-  categoryId: string;
-  categoryName: string;
-  sizes: TamanhoDoBalcao[];
-  optionGroups: GrupoDaTela[];
-};
-
-export type ExtraDoBalcao = {
-  id: string;
-  name: string;
-  price: number;
-  categoryIds: string[];
-  productIds: string[];
-};
-
-export type CategoriaDoBalcao = { id: string; name: string; quantidade: number };
-
-export type CardapioDoBalcao = {
-  categorias: CategoriaDoBalcao[];
-  produtos: ProdutoDoBalcao[];
-  extras: ExtraDoBalcao[];
-  formasDePagamento: string[];
-};
-
-function grupoDaTela(g: any): GrupoDaTela {
-  return {
-    id: g.id,
-    name: g.name,
-    minChoices: g.minChoices,
-    maxChoices: g.maxChoices,
-    freeChoices: g.freeChoices,
-    options: (g.options ?? []).map((o: any) => ({
-      id: o.id,
-      name: o.name,
-      price: Number(o.price),
-    })),
-  };
-}
-
-/**
- * O cardápio do atendente.
- *
- * Exportada à parte da server function para ser exercível em teste sem
- * sessão — o recorte de loja é o argumento, e é justamente ele que os testes
- * de isolamento precisam variar.
- *
- * Os produtos já chegam com as perguntas da CATEGORIA somadas às DELE, na
- * mesma ordem que `precificarItens` usa no servidor: primeiro o que vale para
- * a categoria inteira, depois o que é só daquele item. Montar isso aqui evita
- * que a tela recomponha a lista e erre a ordem — e a ordem importa, porque é
- * ela que decide qual escolha cai na cota grátis.
- */
-export async function montarCardapioDoBalcao(storeId: string): Promise<CardapioDoBalcao> {
-  const [categorias, extras, settings] = await Promise.all([
-    listMenuForStorefront(storeId),
-    listActiveExtras(storeId),
-    getStoreSettings(storeId),
-  ]);
-
-  const produtos: ProdutoDoBalcao[] = categorias.flatMap((categoria: any) =>
-    (categoria.products ?? []).map((p: any) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      description: p.description ?? "",
-      imageUrl: p.imageUrl ?? null,
-      tag: p.tag ?? null,
-      basePrice: Number(p.basePrice),
-      categoryId: categoria.id,
-      categoryName: categoria.name,
-      sizes: (p.sizes ?? []).map((s: any) => ({
-        id: s.categorySizeId,
-        label: s.categorySize?.label ?? "",
-        price: Number(s.price),
-      })),
-      optionGroups: [
-        ...(categoria.optionGroups ?? []).map(grupoDaTela),
-        ...(p.optionGroups ?? []).map(grupoDaTela),
-      ],
-    })),
-  );
-
-  return {
-    categorias: categorias.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      /** Quantos produtos a aba mostra — some do filtro quando é zero. */
-      quantidade: (c.products ?? []).length,
-    })),
-    produtos,
-    extras: extras.map((e: any) => ({
-      id: e.id,
-      name: e.name,
-      price: Number(e.price ?? 0),
-      categoryIds: e.categoryIds,
-      productIds: e.productIds,
-    })),
-    /**
-     * As formas que a loja aceita, lidas de onde a vitrine as lê. O balcão não
-     * inventa nenhuma: PAYROLL fica de fora porque quem o libera é o plano do
-     * funcionário, pessoa a pessoa, e isso é conversa do checkout dele.
-     */
-    formasDePagamento: (settings.acceptedPaymentMethods as string[]).filter(
-      (m) => m !== "PAYROLL",
-    ),
-  };
-}
 
 export const getBalcaoMenuFn = createServerFn({ method: "GET" }).handler(async () => {
   const { storeId } = await requireAdminSession();
