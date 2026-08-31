@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { quantidade } from "@/lib/formato";
+import { statusDoEstoque, faltanteParaOMinimo } from "@/lib/status-do-estoque";
 import { adminGetInventoryValue, adminGetLowStockAlerts } from "@/server/functions/inventory.fn";
 
 export interface ReportsDashboardProps {
@@ -25,10 +27,26 @@ export function ReportsDashboard(props: ReportsDashboardProps) {
       if (Array.isArray(alerts)) {
         setLowStockCount(alerts.length);
         // Calcular quanto está faltando para cada item
-        const itemsWithMissing = alerts.map((item: any) => ({
-          ...item,
-          missingQuantity: (Number(item.maximumQuantity ?? 0) * 0.3) - Number(item.quantityOnHand ?? 0),
-        }));
+        /*
+          O FALTANTE VEM DO MINIMO, e nao de 30% de um campo que ninguem grava.
+
+          Era `maximumQuantity * 0,3 - quantityOnHand`, e `maximumQuantity`
+          nem vinha neste endpoint: o resultado era `0 - saldo`, um numero
+          negativo apresentado como "falta".
+
+          Agora e `minimo - disponivel`, calculado so quando o item esta de
+          fato em LOW_STOCK. Item sem minimo, ou sem disponivel, nao tem
+          faltante — tem falta, que e outra coisa e ja aparece no rotulo.
+        */
+        const itemsWithMissing = alerts.map((item: any) => {
+          const estado = statusDoEstoque(item);
+          return {
+            ...item,
+            status: estado.status,
+            disponivel: estado.disponivel,
+            missingQuantity: faltanteParaOMinimo(estado),
+          };
+        });
         setLowStockItems(itemsWithMissing);
       }
     } catch (error) {
@@ -57,15 +75,40 @@ export function ReportsDashboard(props: ReportsDashboardProps) {
         </div>
 
         <div className="p-4 border rounded bg-red-50 space-y-3">
-          <p className="text-sm text-neutral-600">Alertas de Estoque Baixo (≤30%)</p>
+          {/*
+            O TEXTO PASSOU A DESCREVER A REGRA QUE ALIMENTA O NÚMERO.
+
+            Dizia "(≤30%)" e "itens abaixo de 30% do máximo", mas o número
+            sempre veio de `minimumThreshold` — o endpoint nunca calculou
+            percentual de máximo nenhum. Duas frases descrevendo uma regra que
+            não era a executada.
+          */}
+          <p className="text-sm text-neutral-600">Alertas de Estoque</p>
           <p className="text-3xl font-bold text-red-600">{lowStockCount}</p>
-          <p className="text-xs text-neutral-600">itens abaixo de 30% do máximo</p>
+          <p className="text-xs text-neutral-600">
+            itens sem estoque ou abaixo do mínimo
+          </p>
           {lowStockItems.length > 0 && (
             <div className="mt-3 space-y-1 border-t pt-2">
               {lowStockItems.map((item: any) => (
                 <div key={item.id} className="text-xs text-red-700">
-                  <span className="font-medium">{item.name}:</span> Faltam{" "}
-                  <span className="font-bold">{item.missingQuantity.toFixed(2)} {item.baseUnit?.code}</span>
+                  <span className="font-medium">{item.name}:</span>{" "}
+                  {/*
+                    "Faltam X" só para quem está abaixo do mínimo. Quem está sem
+                    disponível não tem faltante — tem falta, e a frase certa é
+                    outra. Antes o cálculo devolvia negativo e a tela o exibia.
+                  */}
+                  {item.missingQuantity != null ? (
+                    <>
+                      Faltam{" "}
+                      <span className="font-bold">
+                        {quantidade(item.missingQuantity)} {item.baseUnit?.code}
+                      </span>{" "}
+                      para o mínimo
+                    </>
+                  ) : (
+                    <span className="font-bold">Sem estoque disponível</span>
+                  )}
                 </div>
               ))}
             </div>

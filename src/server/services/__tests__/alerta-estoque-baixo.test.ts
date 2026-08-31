@@ -83,25 +83,45 @@ describe("alerta de estoque baixo", () => {
     expect(await nomesEmAlerta()).toEqual([]);
   });
 
-  it("3 · saldo exatamente no limite não é alerta", async () => {
+  /*
+   * A REGRA VIROU `<=`, e este teste afirmava o contrário.
+   *
+   * Ele fixava `saldo == limite` como "não é alerta", que era o comportamento
+   * de `quantityOnHand < minimumThreshold`. A unificação em `statusDoEstoque`
+   * adotou `<=`: o mínimo é o piso que não se quer furar, não o ponto a partir
+   * do qual se começa a pensar. Estar exatamente nele já é hora de comprar.
+   */
+  it("3 · saldo exatamente no limite JÁ é alerta", async () => {
     await criarItem({ nome: "Alho", saldo: 10, limite: 10 });
-    expect(await nomesEmAlerta()).toEqual([]);
+    expect(await nomesEmAlerta()).toEqual(["Alho"]);
 
-    // E um décimo abaixo já é.
+    // E um décimo abaixo, com mais razão ainda.
     await criarItem({ nome: "Sal", saldo: 9.9, limite: 10 });
-    expect(await nomesEmAlerta()).toEqual(["Sal"]);
+    expect(await nomesEmAlerta()).toEqual(["Alho", "Sal"]);
   });
 
-  it("4 · item sem limite definido fica fora, em vez de comparar contra zero", async () => {
+  it("3.1 · um décimo ACIMA do limite não é alerta", async () => {
+    await criarItem({ nome: "Folgado", saldo: 10.1, limite: 10 });
+    expect(await nomesEmAlerta()).toEqual([]);
+  });
+
+  it("4 · item sem limite não é ESTOQUE BAIXO, mas pode estar SEM ESTOQUE", async () => {
     /*
-     * `minimumThreshold` é opcional. Item sem limite não é item em falta: é
-     * item sem alerta configurado. Tratá-lo como limite zero produziria dois
-     * erros opostos conforme o sinal do saldo, e nenhum deles é informação.
+     * `minimumThreshold` é opcional, e continua sendo: item sem limite não é
+     * item abaixo do mínimo — é item sem alerta configurado. Tratá-lo como
+     * limite zero faria todo insumo nunca configurado virar alarme.
+     *
+     * O QUE MUDOU: sem disponível, ele aparece assim mesmo. Antes as consultas
+     * filtravam `minimumThreshold: { not: null }` no SQL, e um item ZERADO
+     * ficava invisível por não ter alerta configurado — o pior dos dois mundos,
+     * porque zerado é justamente o que a produção precisa saber.
      */
     await criarItem({ nome: "Sem limite", saldo: 0, limite: null });
     await criarItem({ nome: "Sem limite negativo", saldo: -5, limite: null });
+    await criarItem({ nome: "Com folga", saldo: 50, limite: null });
 
-    expect(await nomesEmAlerta()).toEqual([]);
+    // Os dois sem disponível aparecem; o que tem folga, não.
+    expect(await nomesEmAlerta()).toEqual(["Sem limite", "Sem limite negativo"]);
   });
 
   it("5 · item inativo não gera alerta", async () => {
@@ -121,8 +141,13 @@ describe("alerta de estoque baixo", () => {
      * devolve vazio (o bug antigo) ou devolve tudo. Este cenário só passa com
      * a seleção exata, o que exclui os dois modos de falha.
      */
+    /*
+     * "Sem limite D" entrou na lista, e é a mudança da unificação: saldo zero
+     * é OUT_OF_STOCK independentemente de haver mínimo configurado. "Inativo E"
+     * continua fora, e "Acima B" também.
+     */
     const alerta = await nomesEmAlerta();
-    expect(alerta).toEqual(["Abaixo A", "Abaixo C"]);
+    expect(alerta).toEqual(["Abaixo A", "Abaixo C", "Sem limite D"]);
     expect(alerta.length).toBeGreaterThan(0);
     expect(alerta.length).toBeLessThan(5);
   });

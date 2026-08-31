@@ -234,8 +234,19 @@ describe("estoque baixo", () => {
     expect((await painel()).operacao.estoqueBaixo).toBe(0);
   });
 
-  it("14 · exatamente no limite NÃO é baixo", async () => {
+  /*
+   * A REGRA VIROU `<=`. Este teste fixava o contrário — era o comportamento de
+   * `onHand < minimumThreshold`, uma das oito regras que `statusDoEstoque`
+   * substituiu. Estar exatamente no mínimo já é o momento de repor.
+   */
+  it("14 · exatamente no limite JÁ é baixo", async () => {
     await itemComProduto({ saldo: 5, minimo: 5, comProduto: false });
+
+    expect((await painel()).operacao.estoqueBaixo).toBe(1);
+  });
+
+  it("14.1 · um pouco acima do limite não é baixo", async () => {
+    await itemComProduto({ saldo: 5.5, minimo: 5, comProduto: false });
 
     expect((await painel()).operacao.estoqueBaixo).toBe(0);
   });

@@ -1,5 +1,10 @@
 ﻿import { prisma } from "@/server/db/client";
+import { statusDoEstoque } from "@/lib/status-do-estoque";
 import { Prisma, InventoryMovementType } from "@prisma/client";
+import {
+  converterParaUnidadeBase,
+  montarMapaDeConversoes,
+} from "@/lib/conversao-de-unidade";
 
 export const reportRepository = {
   async getStockLevelsByStore(storeId: string, options?: any) {
@@ -14,19 +19,72 @@ export const reportRepository = {
       skip: options?.offset ?? 0
     });
 
-    // Calcular quantidade usada em receitas ativas para cada item
+    /*
+     * QUANTO DE CADA INSUMO ESTÁ CONFIGURADO NAS FICHAS ATIVAS.
+     *
+     * CONVERTE ANTES DE SOMAR, e a ordem é o conserto.
+     *
+     * Antes daqui se somava `CompositionItem.quantity` cru e se colava nele o
+     * código da unidade BASE do item. São duas línguas diferentes: uma ficha de
+     * 200 g de farinha aparecia como "200 kg", e 90 ml de óleo num item contado
+     * em garrafas aparecia como "90 un" — noventa garrafas. Mil vezes e
+     * novecentas vezes o valor real, sem erro nenhum na tela.
+     *
+     * O `unitId` nem era selecionado: a informação que resolve o problema nunca
+     * saía do banco.
+     *
+     * Cada linha passa pelo MESMO motor que a venda usa. Somar depois também é
+     * o que torna correta a ficha mista — um produto pedindo o insumo em `g` e
+     * outro em `kg` deixam de ser somados como se fossem o mesmo número.
+     */
     const usageByItem = new Map<string, number>();
     const compositions = await prisma.compositionItem.findMany({
       where: {
         composition: { storeId, isActive: true }
       },
-      select: { inventoryItemId: true, quantity: true }
+      select: { inventoryItemId: true, quantity: true, unitId: true }
     });
 
-    compositions.forEach(comp => {
-      const current = usageByItem.get(comp.inventoryItemId) || 0;
-      usageByItem.set(comp.inventoryItemId, current + Number(comp.quantity || 0));
-    });
+    if (compositions.length > 0) {
+      const conversoes = montarMapaDeConversoes(
+        await prisma.inventoryUnitConversion.findMany({
+          select: { fromUnitId: true, toUnitId: true, conversionFactor: true },
+        }),
+      );
+      /*
+       * Os itens já vieram na consulta acima, com `contentSize` e `contentUnit`
+       * — que é o que permite converter ml para garrafa. Um índice evita
+       * varrer a lista por linha de ficha.
+       */
+      const porId = new Map(items.map((i) => [i.id, i]));
+
+      for (const comp of compositions) {
+        const item = porId.get(comp.inventoryItemId);
+        // Insumo fora desta página (ou inativo): não há base para converter.
+        if (!item) continue;
+        try {
+          const naBase = converterParaUnidadeBase(
+            Number(comp.quantity || 0),
+            comp.unitId,
+            item,
+            conversoes,
+          );
+          usageByItem.set(comp.inventoryItemId, (usageByItem.get(comp.inventoryItemId) || 0) + naBase);
+        } catch {
+          /*
+           * A linha não converte — massa contra volume, ou embalagem sem
+           * conteúdo declarado. FICA DE FORA em vez de entrar pelo número cru.
+           *
+           * A guarda de `validarInsumos` impede que uma ficha assim nasça hoje;
+           * o que pode existir é linha anterior a ela. Somar o número cru seria
+           * repetir exatamente o defeito que este bloco conserta, e este é um
+           * relatório: derrubar a lista inteira de estoque por causa de uma
+           * ficha torta seria pior que mostrá-la sem essa linha.
+           */
+          continue;
+        }
+      }
+    }
 
     const withAvailable = items.map((item) => ({
       ...item,
@@ -41,11 +99,25 @@ export const reportRepository = {
   },
 
   async getLowStockItems(storeId: string) {
+    /*
+     * `quantityReserved` entrou no `select`, e é o que faltava: sem ele a
+     * regra só enxergava o saldo físico. E a comparação crua entre dois
+     * `Decimal` saiu — ela fazia comparação de STRING, respondendo que 10 é
+     * menor que 9.
+     */
     const items = await prisma.inventoryItem.findMany({
-      where: { storeId, isActive: true, minimumThreshold: { not: null } },
-      select: { id: true, name: true, quantityOnHand: true, minimumThreshold: true, baseUnit: true, cost: true },
+      where: { storeId, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        quantityOnHand: true,
+        quantityReserved: true,
+        minimumThreshold: true,
+        baseUnit: true,
+        cost: true,
+      },
     });
-    return items.filter((item) => item.minimumThreshold && item.quantityOnHand < item.minimumThreshold);
+    return items.filter((item) => statusDoEstoque(item).status !== "NORMAL");
   },
 
   async getMovementHistory(storeId: string, options?: any) {

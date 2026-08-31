@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/client";
+import { statusDoEstoque } from "@/lib/status-do-estoque";
 
 type Decimal = any;
 
@@ -57,8 +58,23 @@ export class InventoryAlertService {
 
     const available = item.quantityOnHand.minus(item.quantityReserved);
 
+    /*
+      O STATUS VEM DA FONTE UNICA; A SEVERIDADE CONTINUA AQUI.
+
+      São duas perguntas diferentes, e misturá-las foi o que deixou esta classe
+      discordando de si mesma: `checkItemAlerts` usava o disponível e
+      `getStockStatusReport` usava o saldo físico, dando respostas opostas para
+      o mesmo item.
+
+      `statusDoEstoque` responde "em que estado o item está" — NORMAL,
+      LOW_STOCK, OUT_OF_STOCK. O grau de urgência de NOTIFICAR (WARNING contra
+      CRITICAL, e o corte de metade do mínimo) é decisão desta camada e
+      permanece intacto: quem consome os e-mails espera esses níveis.
+    */
+    const estado = statusDoEstoque(item);
+
     // STOCK_OUT: nenhum disponível
-    if (available.isZero() && item.quantityOnHand.isZero()) {
+    if (estado.status === "OUT_OF_STOCK") {
       alerts.push({
         type: this.ALERT_TYPES.STOCK_OUT,
         severity: "CRITICAL",
@@ -68,8 +84,13 @@ export class InventoryAlertService {
       return alerts; // Não checar outros alertas se já zerou
     }
 
-    // CRITICAL: menos de 50% do mínimo
+    /*
+      CRITICAL e uma SEVERIDADE, nao um status. O item esta em LOW_STOCK nos
+      dois ramos abaixo; o que muda e a urgencia com que se avisa. Metade do
+      minimo continua sendo o corte, como sempre foi.
+    */
     if (
+      estado.status === "LOW_STOCK" &&
       item.minimumThreshold &&
       available.lessThan(item.minimumThreshold.mul((0.5 as any)))
     ) {
@@ -84,7 +105,7 @@ export class InventoryAlertService {
     }
 
     // LOW: abaixo do mínimo
-    if (item.minimumThreshold && available.lessThan(item.minimumThreshold)) {
+    if (estado.status === "LOW_STOCK") {
       alerts.push({
         type: this.ALERT_TYPES.STOCK_LOW,
         severity: "WARNING",
@@ -163,22 +184,41 @@ export class InventoryAlertService {
       .map((item) => ({
         ...item,
         available: item.quantityOnHand.minus(item.quantityReserved),
+        /*
+          O PERCENTUAL SEGUE O DISPONIVEL, como o status.
+
+          Ele media `quantityOnHand / minimo` enquanto o status ao lado media
+          outra coisa — o card mostrava "120% do minimo" para um item que a
+          outra funcao da mesma classe classificava como critico.
+        */
         percentOfMinimum: item.minimumThreshold
           ? item.quantityOnHand
+              .minus(item.quantityReserved)
               .dividedBy(item.minimumThreshold)
               .times(100)
               .toNumber()
           : 100,
-        status:
-          item.quantityOnHand.isZero()
-            ? "out_of_stock"
-            : item.minimumThreshold &&
-                item.quantityOnHand.lessThan(item.minimumThreshold)
-              ? "low"
-              : item.maximumCapacity &&
-                  item.quantityOnHand.greaterThan(item.maximumCapacity)
-                ? "overstocked"
-                : "ok",
+        /*
+          A MESMA REGRA DE `checkItemAlerts`, e nao uma cópia parecida. Aqui se
+          decidia por `quantityOnHand` enquanto a outra decidia por
+          `available`: um item com 10 no fisico e 10 reservados era "critico"
+          numa e "ok" na outra.
+
+          `overstocked` nao e estado de FALTA e continua sendo decidido pelo
+          saldo fisico contra a capacidade — e o galpao que enche, nao o
+          disponivel que sobra.
+        */
+        status: (() => {
+          const e = statusDoEstoque(item).status;
+          if (e === "OUT_OF_STOCK") return "out_of_stock";
+          if (e === "LOW_STOCK") return "low";
+          if (
+            item.maximumCapacity &&
+            item.quantityOnHand.greaterThan(item.maximumCapacity)
+          )
+            return "overstocked";
+          return "ok";
+        })(),
       }))
       .filter((item) => item.status !== "ok");
   }

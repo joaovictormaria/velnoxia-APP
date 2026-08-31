@@ -1,5 +1,6 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
+import { statusDoEstoque } from "@/lib/status-do-estoque";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { InventoryService } from "@/server/services/inventory-service";
@@ -83,6 +84,28 @@ export const adminListarUnidades = createServerFn({ method: "POST" }).handler(
   },
 );
 
+/**
+ * As conversoes entre unidades, para a tela fazer a MESMA conta do servidor.
+ *
+ * O custo estimado da ficha tecnica precisa bater com o custo que a venda vai
+ * gravar. Enquanto a tela nao tinha as conversoes, ela so conseguia multiplicar
+ * quantidade por custo — o que dava 100 g de acucar a R$ 5,00/kg valendo
+ * R$ 500,00. Mandar as mesmas linhas que o servidor usa e o que garante uma
+ * formula so.
+ */
+export const adminListarConversoesDeUnidade = createServerFn({ method: "POST" }).handler(
+  async () => {
+    await requireAdminSession();
+    const linhas = await prisma.inventoryUnitConversion.findMany({
+      select: { fromUnitId: true, toUnitId: true, conversionFactor: true },
+    });
+    return linhas.map((c: any) => ({
+      fromUnitId: c.fromUnitId,
+      toUnitId: c.toUnitId,
+      conversionFactor: Number(c.conversionFactor),
+    }));
+  },
+);
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data }: any) => {
     const admin = await requireAdminSession();
@@ -433,10 +456,18 @@ export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
       includeInactive: false,
     });
 
-    return items.filter((item) => {
-      if (!item.minimumThreshold) return false;
-      return item.quantityOnHand <= item.minimumThreshold;
-    });
+    /*
+     * A COMPARAÇÃO CRUA ENTRE DECIMAL SAIU DAQUI.
+     *
+     * Era `item.quantityOnHand <= item.minimumThreshold` com os dois lados
+     * sendo `Decimal` do Prisma — e o `valueOf()` do decimal.js devolve
+     * STRING, então o operador comparava texto: respondia que 10 é menor que 9.
+     * Quatro de seis casos errados, medidos.
+     *
+     * `statusDoEstoque` normaliza na entrada e considera o reservado. O
+     * formato do retorno não muda: continua a lista de itens.
+     */
+    return items.filter((item) => statusDoEstoque(item).status !== "NORMAL");
   });
 
 

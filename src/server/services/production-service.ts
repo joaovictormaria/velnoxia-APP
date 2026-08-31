@@ -1,4 +1,5 @@
 import { prisma } from "@/server/db/client";
+import { statusDoEstoque } from "@/lib/status-do-estoque";
 
 export class ProductionService {
   /**
@@ -17,17 +18,15 @@ export class ProductionService {
    */
   static async getLowStockItems(storeId: string) {
     const items = await prisma.inventoryItem.findMany({
-      where: {
-        storeId,
-        isActive: true,
-        minimumThreshold: { not: null },
-      },
+      where: { storeId, isActive: true },
     });
 
-    return items.filter(
-      (item) =>
-        item.minimumThreshold !== null &&
-        Number(item.quantityOnHand) < Number(item.minimumThreshold),
-    );
+    /*
+     * A REGRA SAIU DAQUI e foi para `statusDoEstoque`. O filtro de
+     * `minimumThreshold: { not: null }` também: item sem mínimo continua fora
+     * de LOW_STOCK, mas agora aparece quando está sem disponível — que é
+     * exatamente o item que a produção não pode usar.
+     */
+    return items.filter((item) => statusDoEstoque(item).status !== "NORMAL");
   }
 }

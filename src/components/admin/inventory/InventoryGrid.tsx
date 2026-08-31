@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { statusDoEstoque, rotuloDoStatus } from "@/lib/status-do-estoque";
 import { adminCreateInventoryItem, adminUpdateInventoryItem, adminListarUnidades } from "@/server/functions/inventory.fn";
 import {
   calcularCompra,
@@ -41,6 +42,8 @@ interface InventoryItem {
   /** Conteúdo de UMA unidade de estoque: 1 un = 1000 g. */
   contentSize?: number | null;
   contentUnit?: string | null;
+  /** O piso que dispara o alerta, na unidade base. Nulo = sem alerta. */
+  minimumThreshold?: number | null;
 }
 
 interface SortConfig {
@@ -80,6 +83,7 @@ export function InventoryGrid(props: InventoryGridProps) {
     purchasePackSize: "",
     contentSize: "",
     contentUnit: "",
+    minimumThreshold: "",
   });
   /*
    * As unidades vêm do BANCO, e o select guarda o ID.
@@ -418,6 +422,8 @@ export function InventoryGrid(props: InventoryGridProps) {
         item.purchasePackSize != null ? String(item.purchasePackSize) : "",
       contentSize: item.contentSize != null ? String(item.contentSize) : "",
       contentUnit: item.contentUnit ?? "",
+      minimumThreshold:
+        item.minimumThreshold != null ? String(item.minimumThreshold) : "",
     });
     setConteudoGravado(item.contentSize != null);
     setShowCreateModal(true);
@@ -485,6 +491,18 @@ export function InventoryGrid(props: InventoryGridProps) {
                   contentUnit: newItem.contentUnit?.trim() ?? "",
                 }
               : {}),
+            /*
+             * VAZIO SIGNIFICA "SEM ALERTA", e não zero.
+             *
+             * Nulo e zero são estados diferentes: nulo é "não configurei
+             * alerta"; zero é um mínimo legítimo. Mandar `0` quando o campo
+             * está em branco transformaria todo item nunca configurado num
+             * alerta permanente — que é justamente o que a regra evita.
+             */
+            minimumThreshold:
+              newItem.minimumThreshold?.trim() === ""
+                ? null
+                : Number(newItem.minimumThreshold),
           }
         } as any);
         showToast(`✅ Item "${newItem.name}" atualizado com sucesso!`);
@@ -507,6 +525,10 @@ export function InventoryGrid(props: InventoryGridProps) {
                   contentUnit: newItem.contentUnit?.trim() || undefined,
                 }
               : {}),
+            // Em branco não vai: o item nasce sem alerta configurado.
+            ...(newItem.minimumThreshold?.trim()
+              ? { minimumThreshold: Number(newItem.minimumThreshold) }
+              : {}),
           }
         };
 
@@ -526,6 +548,7 @@ export function InventoryGrid(props: InventoryGridProps) {
         baseUnitId: "",
         cost: "",
         itemType: "INGREDIENT",
+        minimumThreshold: "",
         initialQuantity: "",
         purchasePackLabel: "",
         purchasePackSize: "",
@@ -704,6 +727,72 @@ export function InventoryGrid(props: InventoryGridProps) {
                       <strong>L</strong> para leite e óleo a granel ·{" "}
                       <strong>un</strong> para ovos, garrafas e latas
                     </p>
+                    {/*
+                      A TRANQUILIZAÇÃO QUE FALTAVA, e que só agora é verdade.
+
+                      Escolher kg parecia condenar toda receita a ser escrita em
+                      kg — e era isso mesmo, enquanto a ficha técnica copiava a
+                      unidade do estoque sem deixar trocar. Quem cadastrava
+                      açúcar escolhia "un" para poder escrever "1" na receita.
+                      Dizer aqui que a receita aceita a subunidade tira o motivo
+                      de errar o cadastro.
+                    */}
+                    <p className="mt-1 text-xs text-neutral-500">
+                      A receita pode usar a subunidade: estoque em{" "}
+                      <strong>kg</strong> aceita ingrediente em <strong>g</strong>,
+                      e <strong>L</strong> aceita <strong>ml</strong>. O sistema
+                      converte sozinho.
+                    </p>
+
+                    {/*
+                      O MÍNIMO FICA JUNTO DA UNIDADE, e não numa seção própria.
+
+                      Ele é lido NA MESMA unidade escolhida logo acima, e essa é
+                      a única armadilha do campo: quem estoca em kg e digita
+                      "300" pensando em gramas define um mínimo de 300 quilos. O
+                      código da unidade ao lado do campo existe para isso — não
+                      há conversão aqui, e não deve haver.
+
+                      Vazio significa "sem alerta", que é diferente de zero.
+                    */}
+                    <div className="mt-3 border-t border-neutral-200 pt-3">
+                      <label className="mb-1 block text-sm font-medium text-neutral-700">
+                        Estoque mínimo (opcional)
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={newItem.minimumThreshold}
+                          onChange={(e) =>
+                            setNewItem({ ...newItem, minimumThreshold: e.target.value })
+                          }
+                          placeholder="3"
+                          step="0.0001"
+                          min="0"
+                          className="w-32 rounded-lg border border-neutral-200 px-3 py-2 text-right text-sm text-neutral-900 placeholder:text-neutral-400"
+                        />
+                        <span className="text-sm font-medium text-neutral-700">
+                          {codigoDaUnidade || "—"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-neutral-600">
+                        {newItem.minimumThreshold.trim() && codigoDaUnidade ? (
+                          <>
+                            Avisa quando sobrarem{" "}
+                            <strong>
+                              {newItem.minimumThreshold.trim()} {codigoDaUnidade}
+                            </strong>{" "}
+                            ou menos, já descontando o que está reservado para
+                            pedidos.
+                          </>
+                        ) : (
+                          <>
+                            Em branco, este item nunca gera alerta de estoque
+                            baixo. O valor é sempre na unidade acima.
+                          </>
+                        )}
+                      </p>
+                    </div>
                   </div>
                 )}
               </section>
@@ -983,6 +1072,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                     baseUnitId: "",
                     cost: "",
                     itemType: "INGREDIENT",
+                    minimumThreshold: "",
                     initialQuantity: "",
                     purchasePackLabel: "",
                     purchasePackSize: "",
@@ -1170,10 +1260,23 @@ export function InventoryGrid(props: InventoryGridProps) {
                 Só a apresentação mudou: era uma borda vermelha de 2px em volta
                 da linha inteira, que gritava mais alto que o próprio número.
               */
-              const threshold = Number((item as any).maximumQuantity ?? 0) * 0.3;
-              const isLowStock =
-                Number(item.quantityOnHand ?? 0) <= threshold && threshold > 0;
-              const zerado = Number(item.quantityOnHand ?? 0) <= 0;
+              /*
+                A REGRA DOS 30% SAIU DAQUI.
+
+                Era `onHand <= maximumQuantity * 0,3` — um limiar tirado do
+                maior saldo ja alcancado. So que `maximumQuantity` nunca
+                recebeu valor: o unico escritor, `updateMaximumQuantityIfNeeded`,
+                nao tem chamador, e nao ha campo na tela. O limiar era sempre
+                zero, a guarda `threshold > 0` nunca passava, e o ponto ambar
+                nunca acendeu.
+
+                Agora o estado vem de `statusDoEstoque`, a mesma funcao que o
+                painel e os relatorios usam — e considera o RESERVADO, que esta
+                regra ignorava.
+              */
+              const estado = statusDoEstoque(item as any);
+              const isLowStock = estado.status === "LOW_STOCK";
+              const zerado = estado.status === "OUT_OF_STOCK";
               const usado = Number((item as any).quantityUsedInRecipes ?? 0);
               const tipo = TIPOS[item.itemType] ?? TIPOS.INGREDIENT;
 
@@ -1214,7 +1317,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                     <span className="flex items-center gap-1.5">
                       {(isLowStock || zerado) && (
                         <span
-                          title={zerado ? "Sem estoque" : "Estoque baixo"}
+                          title={rotuloDoStatus(estado.status) ?? ""}
                           className={`inline-block size-1.5 rounded-full ${
                             zerado ? "bg-red-500" : "bg-amber-500"
                           }`}
@@ -1229,7 +1332,7 @@ export function InventoryGrid(props: InventoryGridProps) {
                     </span>
                     {usado > 0 && (
                       <span className="text-xs text-neutral-500 md:mt-0.5">
-                        {quantidade(usado)} {item.baseUnit.code} em receitas
+                        {quantidade(usado)} {item.baseUnit.code} nas fichas
                       </span>
                     )}
                   </div>

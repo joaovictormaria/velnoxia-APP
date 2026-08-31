@@ -1,4 +1,5 @@
 import type { OrderStatus } from "@prisma/client";
+import { statusDoEstoque } from "@/lib/status-do-estoque";
 import { prisma } from "../db/client";
 import { estaAbertoAgora, horasDoGrafico, rotuloDaHora } from "./janela-do-grafico";
 import { getKanbanMetrics, pedidosRecentes } from "../repositories/order-repository";
@@ -188,19 +189,30 @@ async function contarProdutosEsgotados(storeId: string) {
 }
 
 /**
- * Itens de estoque abaixo do limite mínimo.
+ * Itens de estoque em alerta.
  *
- * Mesma regra de `ProductionService.getLowStockItems`: item SEM limite definido
- * fica de fora, em vez de ser comparado contra zero e virar alarme permanente
- * para todo insumo que a loja nunca configurou.
+ * A REGRA MORA EM `statusDoEstoque`, e não mais aqui. Este arquivo tinha uma
+ * cópia — `onHand < minimumThreshold` — que era uma das oito espalhadas pelo
+ * projeto. Duas mudanças vêm junto com a unificação:
+ *
+ *   o RESERVADO passa a contar. Dez unidades com oito prometidas deixam duas
+ *   livres, e duas livres com mínimo três é alerta.
+ *
+ *   o filtro `minimumThreshold: { not: null }` SAIU do SQL. Item sem mínimo
+ *   continua não virando LOW_STOCK — a função garante isso —, mas agora pode
+ *   virar OUT_OF_STOCK, que é o estado de quem simplesmente não tem nada. Antes
+ *   ele nem era lido.
+ *
+ * O contador continua sendo "itens abaixo do mínimo": só LOW_STOCK entra, para
+ * não mudar o significado do número que o painel já mostra.
  */
 async function contarEstoqueBaixo(storeId: string) {
   const itens = await prisma.inventoryItem.findMany({
-    where: { storeId, isActive: true, minimumThreshold: { not: null } },
-    select: { quantityOnHand: true, minimumThreshold: true },
+    where: { storeId, isActive: true },
+    select: { quantityOnHand: true, quantityReserved: true, minimumThreshold: true },
   });
 
-  return itens.filter((i) => Number(i.quantityOnHand) < Number(i.minimumThreshold)).length;
+  return itens.filter((i) => statusDoEstoque(i).status === "LOW_STOCK").length;
 }
 
 export async function getDashboardData(storeId: string, reference = new Date()) {
