@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Flame, Plus } from "lucide-react";
+import { Flame, Pizza, Plus } from "lucide-react";
 import { useStore } from "@/lib/pizzaria2/store-provider";
 import { formatCurrency, type Product } from "@/lib/pizzaria2/menu";
 
@@ -43,7 +43,11 @@ export function ProductRow({
             />
           ) : (
             <div className="w-full h-28 bg-charcoal/5 flex items-center justify-center">
-              {Icon ? <Icon className="size-8 text-charcoal/30" /> : <Icon className="size-8 text-charcoal/30" />}
+              {Icon ? (
+                <Icon className="size-8 text-charcoal/30" />
+              ) : (
+                <Pizza className="size-8 text-charcoal/30" />
+              )}
             </div>
           )}
           {product.tag && (
