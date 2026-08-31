@@ -1,4 +1,5 @@
 import type {
+  OrderSource,
   OrderStatus,
   OrderType,
   PaymentMethod,
@@ -50,6 +51,19 @@ export type CheckoutInput = {
   customerPhone: string;
   type: OrderType;
   paymentMethod: PaymentMethod;
+  /**
+   * DE ONDE VEIO O PEDIDO. Ausente é `SITE` — a vitrine, e o comportamento de
+   * sempre.
+   *
+   * `ADMIN` é o balcão: quem monta o pedido é um atendente autenticado, de pé
+   * na loja, e não um cliente no navegador. O CAMINHO É O MESMO — mesma
+   * precificação, mesma reserva de estoque dentro da mesma transação, mesmo
+   * status inicial, mesmo Kanban, mesmo fiado. O que muda são três
+   * conferências que só existem para a vitrine, cada uma comentada onde
+   * acontece: os interruptores de entrega/retirada, o pedido mínimo e a
+   * obrigatoriedade do telefone.
+   */
+  source?: OrderSource;
   couponCode?: string;
   /**
    * O PIN de quem se declarou funcionário. Ausente na esmagadora maioria dos
@@ -485,17 +499,37 @@ export async function createOrderFromCheckout(
     deviceId = (deviceInfo as any).deviceId;
   }
 
-  if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
-    return {
-      ok: false,
-      error: "A loja não está aceitando entregas no momento.",
-    };
-  }
-  if (input.type === "PICKUP" && !settings.acceptsPickup) {
-    return {
-      ok: false,
-      error: "A loja não está aceitando retiradas no momento.",
-    };
+  /**
+   * O pedido foi montado no BALCÃO, por um atendente autenticado.
+   *
+   * Não é uma segunda modalidade de pedido: é a mesma venda, com três
+   * conferências a menos — e as três existem para proteger a VITRINE de si
+   * mesma, não a loja de quem trabalha nela. Cada uma está marcada abaixo com
+   * o motivo de não valer aqui.
+   */
+  const noBalcao = input.source === "ADMIN";
+
+  /*
+   * OS INTERRUPTORES DE ENTREGA E RETIRADA SÃO DA VITRINE.
+   *
+   * "Não aceitando retiradas" quer dizer que o site parou de oferecer
+   * retirada — normalmente porque a fila encheu. Não quer dizer que a pessoa
+   * parada no balcão, com o dinheiro na mão e o atendente na frente dela, não
+   * pode comprar. Recusar aqui seria o sistema desligando a loja física.
+   */
+  if (!noBalcao) {
+    if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
+      return {
+        ok: false,
+        error: "A loja não está aceitando entregas no momento.",
+      };
+    }
+    if (input.type === "PICKUP" && !settings.acceptsPickup) {
+      return {
+        ok: false,
+        error: "A loja não está aceitando retiradas no momento.",
+      };
+    }
   }
   const phone = input.customerPhone.replace(/\D/g, "");
 
@@ -550,7 +584,15 @@ export async function createOrderFromCheckout(
   if (!precos.ok) return precos;
   const { lines, linhasParaBeneficio, subtotal } = precos;
 
-  if (Number(subtotal) < Number((settings as any).minOrderValue)) {
+  /*
+   * O PEDIDO MÍNIMO É REGRA DE ENTREGA, e por isso não vale no balcão.
+   *
+   * Ele existe para a moto não sair por seis reais. No balcão não sai moto
+   * nenhuma: recusar um refrigerante avulso porque o mínimo do delivery é
+   * R$ 25 mandaria o atendente vender por fora do sistema — e aí o estoque, o
+   * caixa e o relatório perdem a venda inteira.
+   */
+  if (!noBalcao && Number(subtotal) < Number((settings as any).minOrderValue)) {
     return {
       ok: false,
       error: `O pedido mínimo é de R$ ${Number((settings as any).minOrderValue)
@@ -689,11 +731,28 @@ export async function createOrderFromCheckout(
       const total =
         Math.round((Number(subtotal) + deliveryFee - discount) * 100) / 100;
 
-      const customer = await tx.customer.upsert({
-        where: { storeId_phone: { storeId, phone } },
-        create: { storeId, phone, name: input.customerName },
-        update: { name: input.customerName },
-      });
+      /*
+       * A FICHA DO CLIENTE É INDEXADA PELO TELEFONE, e no balcão o telefone é
+       * opcional — muita gente compra um pastel e vai embora.
+       *
+       * Sem telefone NÃO se cria ficha. Fazer o upsert com string vazia
+       * empilharia todo mundo na MESMA `Customer`, porque a chave única é
+       * (storeId, phone): o segundo comprador anônimo do dia renomearia o
+       * primeiro, e a ficha resultante mostraria o histórico de dezenas de
+       * pessoas diferentes sob o nome de quem passou por último.
+       *
+       * `customerId` fica nulo, que o schema já permite. O nome continua
+       * gravado em `customerName` — o pedido não perde a quem pertence, só
+       * não vira cadastro. Informando o telefone, o caminho é o de sempre e o
+       * balcão reaproveita a ficha que a vitrine já criou.
+       */
+      const customer = phone
+        ? await tx.customer.upsert({
+            where: { storeId_phone: { storeId, phone } },
+            create: { storeId, phone, name: input.customerName },
+            update: { name: input.customerName },
+          })
+        : null;
 
       // Order numbers restart at #1 for every store, so each lanchonete sees a
       // clean sequence instead of a database-wide counter. Computed inside the
@@ -710,13 +769,13 @@ export async function createOrderFromCheckout(
         data: {
           storeId,
           number: nextNumber,
-          customerId: customer.id,
+          customerId: customer?.id ?? null,
           customerName: input.customerName,
           customerPhone: phone,
           trackingToken: newTrackingToken(),
           type: input.type,
           status: "RECEIVED",
-          source: "SITE",
+          source: input.source ?? "SITE",
           paymentMethod: input.paymentMethod,
           subtotal: Number(subtotal),
           deliveryFee,
@@ -756,7 +815,9 @@ export async function createOrderFromCheckout(
           statusHistory: {
             create: {
               status: "RECEIVED",
-              authorType: "CUSTOMER",
+              // Quem registrou o pedido, e não quem vai comer. No balcão foi o
+              // atendente; na vitrine foi o próprio cliente.
+              authorType: noBalcao ? "ADMIN" : "CUSTOMER",
               authorName: input.customerName,
             },
           },

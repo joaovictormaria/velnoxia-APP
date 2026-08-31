@@ -34,6 +34,7 @@ import { Route as EntregadorEntrarRouteImport } from './routes/entregador/entrar
 import { Route as StoreSlugAcompanharTokenRouteImport } from './routes/$storeSlug/acompanhar/$token'
 import { Route as StoreSlugProdutoSlugRouteImport } from './routes/$storeSlug/produto/$slug'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
+import { Route as AdminBalcaoIndexRouteImport } from './routes/admin/balcao/index'
 import { Route as AdminCardapioIndexRouteImport } from './routes/admin/cardapio/index'
 import { Route as AdminCardapioProductIdRouteImport } from './routes/admin/cardapio/$productId'
 import { Route as AdminCardapioCategoriasRouteImport } from './routes/admin/cardapio/categorias'
@@ -186,6 +187,11 @@ const StoreSlugProdutoSlugRoute = StoreSlugProdutoSlugRouteImport.update({
 const AdminAvaliacoesIndexRoute = AdminAvaliacoesIndexRouteImport.update({
   id: '/avaliacoes/',
   path: '/avaliacoes/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminBalcaoIndexRoute = AdminBalcaoIndexRouteImport.update({
+  id: '/balcao/',
+  path: '/balcao/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminCardapioIndexRoute = AdminCardapioIndexRouteImport.update({
@@ -371,6 +377,7 @@ export interface FileRoutesByFullPath {
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
+  '/admin/balcao/': typeof AdminBalcaoIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
@@ -422,6 +429,7 @@ export interface FileRoutesByTo {
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesIndexRoute
+  '/admin/balcao': typeof AdminBalcaoIndexRoute
   '/admin/cardapio': typeof AdminCardapioIndexRoute
   '/admin/clientes': typeof AdminClientesIndexRoute
   '/admin/configuracoes': typeof AdminConfiguracoesIndexRoute
@@ -477,6 +485,7 @@ export interface FileRoutesById {
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
+  '/admin/balcao/': typeof AdminBalcaoIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
   '/admin/clientes/': typeof AdminClientesIndexRoute
   '/admin/configuracoes/': typeof AdminConfiguracoesIndexRoute
@@ -533,6 +542,7 @@ export interface FileRouteTypes {
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes/'
+    | '/admin/balcao/'
     | '/admin/cardapio/'
     | '/admin/clientes/'
     | '/admin/configuracoes/'
@@ -584,6 +594,7 @@ export interface FileRouteTypes {
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes'
+    | '/admin/balcao'
     | '/admin/cardapio'
     | '/admin/clientes'
     | '/admin/configuracoes'
@@ -638,6 +649,7 @@ export interface FileRouteTypes {
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
     | '/admin/avaliacoes/'
+    | '/admin/balcao/'
     | '/admin/cardapio/'
     | '/admin/clientes/'
     | '/admin/configuracoes/'
@@ -844,6 +856,13 @@ declare module '@tanstack/react-router' {
       path: '/avaliacoes'
       fullPath: '/admin/avaliacoes/'
       preLoaderRoute: typeof AdminAvaliacoesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/balcao/': {
+      id: '/admin/balcao/'
+      path: '/balcao'
+      fullPath: '/admin/balcao/'
+      preLoaderRoute: typeof AdminBalcaoIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
     '/admin/cardapio/': {
@@ -1077,6 +1096,7 @@ interface AdminRouteRouteChildren {
   AdminRelatoriosRecebimentosRoute: typeof AdminRelatoriosRecebimentosRoute
   AdminRelatoriosReceitaRoute: typeof AdminRelatoriosReceitaRoute
   AdminAvaliacoesIndexRoute: typeof AdminAvaliacoesIndexRoute
+  AdminBalcaoIndexRoute: typeof AdminBalcaoIndexRoute
   AdminCardapioIndexRoute: typeof AdminCardapioIndexRoute
   AdminClientesIndexRoute: typeof AdminClientesIndexRoute
   AdminConfiguracoesIndexRoute: typeof AdminConfiguracoesIndexRoute
@@ -1111,6 +1131,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminRelatoriosRecebimentosRoute: AdminRelatoriosRecebimentosRoute,
   AdminRelatoriosReceitaRoute: AdminRelatoriosReceitaRoute,
   AdminAvaliacoesIndexRoute: AdminAvaliacoesIndexRoute,
+  AdminBalcaoIndexRoute: AdminBalcaoIndexRoute,
   AdminCardapioIndexRoute: AdminCardapioIndexRoute,
   AdminClientesIndexRoute: AdminClientesIndexRoute,
   AdminConfiguracoesIndexRoute: AdminConfiguracoesIndexRoute,

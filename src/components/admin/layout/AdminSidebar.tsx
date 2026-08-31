@@ -24,6 +24,7 @@ import {
   QrCode,
   Shapes,
   Star,
+  Store,
   Tags,
   User,
   Users,
@@ -55,6 +56,14 @@ type Grupo = { id: string; label: string; icon: LucideIcon; itens: Item[] };
  */
 const MENU: (Item | Grupo)[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutGrid, exact: true },
+  /*
+   * Logo abaixo do Dashboard e acima de Pedidos, e não dentro de um grupo.
+   *
+   * O balcão é onde a pessoa que atende PASSA O DIA — é a tela que ela abre ao
+   * chegar e fecha ao sair. Escondê-la atrás de um cabeçalho que precisa ser
+   * aberto custaria um clique em cada pedido presencial da loja.
+   */
+  { to: "/admin/balcao", label: "Balcão", icon: Store },
   { to: "/admin/pedidos", label: "Pedidos", icon: Inbox },
   { to: "/admin/mesas", label: "Mesas", icon: QrCode },
   {

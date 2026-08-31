@@ -57,7 +57,45 @@ function autorDaSessao(admin: { id: string; name: string; email: string }) {
  *
  * SÓ DE RECEIVED. Um pedido que já está em preparo ou na rua não é empurrado —
  * marcar fiado não pode fazer quem já andou andar mais.
+ *
+ * A COMPOSIÇÃO MORA NA FUNÇÃO EXPORTADA ABAIXO, e não no corpo da server
+ * function, por um motivo só: o balcão precisa exatamente dela. Um pedido
+ * fiado registrado no balcão tem de virar a MESMA dívida, na MESMA aba, pelo
+ * MESMO caminho do botão do quadro — e a única forma de garantir isso é haver
+ * uma implementação, chamada de dois lugares. A server function continua sendo
+ * a porta HTTP, e é ela quem exige a sessão.
  */
+export async function aceitarComPagamentoEmAberto(
+  storeId: string,
+  orderId: string,
+  autor: { id?: string | null; name?: string | null; email?: string | null },
+  opcoes: { note?: string | null; dueAt?: Date | null } = {},
+) {
+  const r = await RecebimentosService.abrirFiado(storeId, orderId, autor, {
+    note: opcoes.note ?? null,
+    dueAt: opcoes.dueAt ?? null,
+  });
+  if (!r.ok) return { ok: false as const, error: r.erro };
+
+  /*
+   * A fila anda DEPOIS de o fiado estar gravado. Se a transição falhar — um
+   * pedido cancelado por outra pessoa no meio do caminho, por exemplo — a
+   * dívida já está registrada e não se perde; o operador vê o aviso e move o
+   * pedido à mão.
+   */
+  let aviso: string | null = null;
+  if (r.dados.statusAtual === "RECEIVED") {
+    const t = await transitionOrderStatus(storeId, orderId, "PREPARING", {
+      authorType: "ADMIN",
+      authorName: autor.name ?? undefined,
+      note: "Aceito com pagamento em aberto",
+    } as any);
+    if (!t.ok) aviso = t.error;
+  }
+
+  return { ok: true as const, dados: r.dados, aviso };
+}
+
 export const abrirFiadoFn = createServerFn({ method: "POST" })
   .validator(
     z.object({
@@ -68,31 +106,14 @@ export const abrirFiadoFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
-    const r = await RecebimentosService.abrirFiado(
+    const r = await aceitarComPagamentoEmAberto(
       admin.storeId,
       data.orderId,
       autorDaSessao(admin),
       { note: data.note ?? null, dueAt: data.dueAt ? new Date(data.dueAt) : null },
     );
-    if (!r.ok) return { ok: false as const, error: r.erro };
-
-    /*
-     * A fila anda DEPOIS de o fiado estar gravado. Se a transição falhar — um
-     * pedido cancelado por outra pessoa no meio do caminho, por exemplo — a
-     * dívida já está registrada e não se perde; o operador vê o aviso e move o
-     * pedido à mão.
-     */
-    let aviso: string | null = null;
-    if (r.dados.statusAtual === "RECEIVED") {
-      const t = await transitionOrderStatus(admin.storeId, data.orderId, "PREPARING", {
-        authorType: "ADMIN",
-        authorName: admin.name,
-        note: "Aceito com pagamento em aberto",
-      } as any);
-      if (!t.ok) aviso = t.error;
-    }
-
-    return { ok: true as const, ...numeros(r.dados), aviso };
+    if (!r.ok) return { ok: false as const, error: r.error };
+    return { ok: true as const, ...numeros(r.dados), aviso: r.aviso };
   });
 
 /**
