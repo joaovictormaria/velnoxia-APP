@@ -153,6 +153,21 @@ export const adminCreateInventoryItem = createServerFn({ method: "POST" })
         ? parseFloat(String(itemData.contentSize))
         : null,
       contentUnit: itemData?.contentUnit || null,
+      /*
+       * O MÍNIMO DO ALERTA, que nunca chegava ao banco.
+       *
+       * A tela sempre mandou o campo, mas ele não estava nesta lista — e o que
+       * não está aqui não entra no `parse`, logo não existe para o serviço. O
+       * item nascia com `minimumThreshold` nulo, `statusDoEstoque` respondia
+       * NORMAL para todo mundo e o contador de alertas ficava em zero para
+       * sempre. Nada dava erro: o valor era descartado em silêncio.
+       *
+       * Ausente continua sendo `undefined` — item que nasce sem alerta.
+       */
+      minimumThreshold:
+        itemData?.minimumThreshold == null
+          ? undefined
+          : Number(itemData.minimumThreshold),
     });
 
     /*
@@ -202,6 +217,19 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
     precoDaEmbalagem: z.string().optional(),
     contentSize: z.string().optional(),
     contentUnit: z.string().optional(),
+    /*
+     * NÚMERO, e não string como os vizinhos.
+     *
+     * Os outros campos numéricos chegam como texto porque a tela manda o valor
+     * cru do input. Este não: o formulário já converte com `Number()` antes de
+     * enviar, e manda `null` quando o campo está vazio. Declarar `z.string()`
+     * aqui recusaria a requisição inteira com "expected string, received
+     * number" — trocaria um descarte silencioso por um erro na cara do
+     * operador, e o mínimo continuaria sem ser gravado.
+     *
+     * Ausente = não mexe. Nulo = apaga o alerta.
+     */
+    minimumThreshold: z.number().nonnegative().nullable().optional(),
   }))
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
@@ -232,6 +260,10 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
           : undefined,
       contentUnit:
         data.contentUnit === "" ? null : data.contentUnit || undefined,
+      // Os três estados são distintos e cada um significa uma coisa: ausente
+      // não mexe no que está gravado, nulo apaga o alerta, número define.
+      minimumThreshold:
+        data.minimumThreshold === undefined ? undefined : data.minimumThreshold,
     });
 
     const result = await InventoryService.updateItem(admin.storeId, data.itemId, validated);

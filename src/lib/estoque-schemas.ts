@@ -38,7 +38,14 @@ export const createInventoryItemSchema = z.object({
   itemType: z
     .enum(["INGREDIENT", "RESALE", "PREPARED", "PACKAGING"])
     .default("INGREDIENT"),
-  minimumThreshold: z.number().nonnegative().optional(),
+  /**
+   * NULO É "SEM ALERTA", e por isso o campo precisa aceitar null.
+   *
+   * Era só `.optional()`: dava para definir um mínimo e nunca mais tirá-lo,
+   * porque apagar o campo manda `null` e o zod recusava. Nulo e zero são
+   * estados diferentes — zero é um mínimo legítimo, nulo é não ter alerta.
+   */
+  minimumThreshold: z.number().nonnegative().nullable().optional(),
   idealQuantity: z.number().nonnegative().optional(),
   maximumCapacity: z.number().nonnegative().optional(),
   /**
@@ -80,7 +87,14 @@ export const updateInventoryItemSchema = z.object({
   itemType: z
     .enum(["INGREDIENT", "RESALE", "PREPARED", "PACKAGING"])
     .optional(),
-  minimumThreshold: z.number().nonnegative().optional(),
+  /**
+   * NULO É "SEM ALERTA", e por isso o campo precisa aceitar null.
+   *
+   * Era só `.optional()`: dava para definir um mínimo e nunca mais tirá-lo,
+   * porque apagar o campo manda `null` e o zod recusava. Nulo e zero são
+   * estados diferentes — zero é um mínimo legítimo, nulo é não ter alerta.
+   */
+  minimumThreshold: z.number().nonnegative().nullable().optional(),
   idealQuantity: z.number().nonnegative().optional(),
   maximumCapacity: z.number().nonnegative().optional(),
   isActive: z.boolean().optional(),
