@@ -1,5 +1,10 @@
 import { prisma } from "@/server/db/client";
 import {
+  converterParaUnidadeBase,
+  montarMapaDeConversoes,
+} from "@/lib/conversao-de-unidade";
+import { unidadeEhCompativel } from "@/lib/unidades-compativeis";
+import {
   productCompositionRepository,
   compositionItemRepository,
   inventoryUnitRepository,
@@ -27,23 +32,17 @@ export class CompositionService {
   ) {
     // productId é apenas um identificador para a receita, não precisa validar se existe na tabela Product
 
-    await this.recusarEmbalagemComoInsumo(storeId, data.items);
+    /*
+      UMA CONFERENCIA SO, e nao uma copia local dela.
 
-    // Validate all items and units exist
-    for (const item of data.items) {
-      const inventoryItem = await inventoryItemRepository.findById(
-        storeId,
-        item.inventoryItemId
-      );
-      if (!inventoryItem) {
-        throw new Error(`Inventory item not found: ${item.inventoryItemId}`);
-      }
-
-      const unit = await inventoryUnitRepository.findById(item.unitId);
-      if (!unit) {
-        throw new Error(`Unit not found: ${item.unitId}`);
-      }
-    }
+      Aqui havia um laco proprio que checava existencia de insumo e de unidade —
+      as mesmas duas coisas que `validarInsumos` ja checava para os preparados,
+      escritas de novo. Duas copias de uma regra sao duas regras: quando a
+      compatibilidade de unidade foi exigida, ela entrou so em uma delas, e a
+      receita de PRODUTO — que e o caminho desta funcao — continuou aceitando
+      "Leite: 100 g" sem reclamar.
+    */
+    await this.validarInsumos(storeId, data.items);
 
     // Get next version number
     const nextVersion = await productCompositionRepository.getNextVersion(
@@ -132,25 +131,9 @@ export class CompositionService {
 
     // If items provided, replace all
     if (data.items) {
-      await this.recusarEmbalagemComoInsumo(storeId, data.items);
-
-      // Validate all items
-      for (const item of data.items) {
-        const invItem = await inventoryItemRepository.findById(
-          storeId,
-          item.inventoryItemId
-        );
-        if (!invItem) {
-          throw new Error(
-            `Inventory item not found: ${item.inventoryItemId}`
-          );
-        }
-
-        const unit = await inventoryUnitRepository.findById(item.unitId);
-        if (!unit) {
-          throw new Error(`Unit not found: ${item.unitId}`);
-        }
-      }
+      // A mesma conferencia da criacao: editar a ficha nao pode ser a porta
+      // que aceita o que a criacao recusa.
+      await this.validarInsumos(storeId, data.items);
 
       return prisma.$transaction(async (tx) => {
         // Delete old items
@@ -569,23 +552,98 @@ export class CompositionService {
     return item;
   }
 
+  /*
+   * A UNIDADE DA RECEITA PRECISA CABER NA UNIDADE DO ESTOQUE.
+   *
+   * Antes daqui só se conferia que a unidade EXISTE. Bastava, enquanto a tela
+   * travava a unidade na base do insumo — mas travada a tela não estava
+   * validando nada, estava impedindo. Com a unidade selecionável, "existe"
+   * deixaria passar "Leite: 100 g": o banco aceitaria, e a falha só apareceria
+   * NA VENDA, quando `converterParaUnidadeBase` lançasse no meio da reserva.
+   *
+   * A tela é conveniência; a autoridade é aqui. Duas conferências, nesta ordem:
+   *
+   *   1. mesmo `system` — g e kg são peso, ml e L são volume, un é contagem.
+   *      É a mesma regra que o `<select>` usa, na mesma função pura.
+   *   2. a conversão de fato existe — mesmo sistema com fator ausente e sem
+   *      `contentSize` utilizável ainda quebraria na venda. Recusar aqui é
+   *      recusar enquanto a pessoa está olhando o campo.
+   */
   private static async validarInsumos(
     storeId: string,
-    items: Array<{ inventoryItemId: string; unitId: string }>,
+    items: Array<{ inventoryItemId: string; unitId: string; quantity?: unknown }>,
   ) {
     await this.recusarEmbalagemComoInsumo(storeId, items);
+
+    const unidades = await prisma.inventoryUnit.findMany({
+      select: { id: true, code: true, system: true },
+    });
+    const conversoes = montarMapaDeConversoes(
+      await prisma.inventoryUnitConversion.findMany({
+        select: { fromUnitId: true, toUnitId: true, conversionFactor: true },
+      }),
+    );
+
     for (const item of items) {
       const insumo = await prisma.inventoryItem.findFirst({
         where: { id: item.inventoryItemId, storeId },
-        select: { id: true },
+        select: {
+          id: true,
+          name: true,
+          baseUnitId: true,
+          contentSize: true,
+          contentUnit: true,
+        },
       });
       if (!insumo) throw new Error(`Insumo não encontrado: ${item.inventoryItemId}`);
 
-      const unidade = await prisma.inventoryUnit.findUnique({
-        where: { id: item.unitId },
-        select: { id: true },
-      });
+      const unidade = unidades.find((u) => u.id === item.unitId);
       if (!unidade) throw new Error(`Unidade não encontrada: ${item.unitId}`);
+
+      const base = unidades.find((u) => u.id === insumo.baseUnitId);
+      if (!base) {
+        throw new Error(
+          `O insumo "${insumo.name}" aponta para uma unidade de estoque que não existe.`,
+        );
+      }
+
+      /*
+       * O INSUMO INTEIRO, e não só o `baseUnitId`.
+       *
+       * É o que permite a segunda porta: um item contado em `un` que declara
+       * "cada garrafa tem 900 ml" aceita receita em ml. Enquanto só o id da
+       * unidade base atravessava, `contentSize` era invisível aqui e a ficha
+       * do óleo era recusada — obrigando a lançar uma garrafa por salgado.
+       */
+      if (!unidadeEhCompativel(item.unitId, insumo, unidades)) {
+        const conteudo =
+          insumo.contentUnit && Number(insumo.contentSize) > 0
+            ? unidades.find((u) => u.id === insumo.contentUnit)
+            : undefined;
+        throw new Error(
+          conteudo
+            ? `"${insumo.name}" é contado em ${base.code}, e cada ${base.code} ` +
+                `contém ${Number(insumo.contentSize)} ${conteudo.code}. A receita ` +
+                `aceita ${base.code} ou ${conteudo.code} — ${unidade.code} é de ` +
+                `outra grandeza.`
+            : `"${insumo.name}" é controlado em ${base.code}, e ${unidade.code} não se ` +
+                `converte para ${base.code}. Use uma unidade da mesma grandeza, ou ` +
+                `informe no cadastro do insumo quanto cada ${base.code} contém.`,
+        );
+      }
+
+      /*
+       * O ensaio da conta que a venda vai fazer. Quantidade 1 basta: o que se
+       * quer saber é se existe caminho de conversão, não quanto dá.
+       */
+      try {
+        converterParaUnidadeBase(1, item.unitId, insumo, conversoes);
+      } catch {
+        throw new Error(
+          `Não dá para converter ${unidade.code} para ${base.code} no insumo ` +
+            `"${insumo.name}". Cadastre o conteúdo da embalagem ou use ${base.code}.`,
+        );
+      }
     }
   }
 

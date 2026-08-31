@@ -18,6 +18,7 @@ import {
 } from "../inventory/guarda-de-receita";
 import { optionGroupsSchema } from "../validation/option-group-schema";
 import { convertProductForServal, convertProductsForServal } from "../utils/decimal-converter";
+import { mensagemDeSlugDuplicado } from "@/lib/slug-de-produto";
 
 const sizeSchema = z.object({
   /** Aponta para um tamanho da categoria; o repositÃ³rio confere se Ã© dela. */
@@ -179,29 +180,62 @@ export const saveProductFn = createServerFn({ method: "POST" })
     }
 
     /*
+     * O TIPO É OBRIGATÓRIO PARA CRIAR, e a cobrança é aqui — não no Zod.
+     *
+     * No schema o campo continua `.nullish()` de propósito: editar um produto
+     * LEGADO manda `tipoDeControle: null`, e um Zod obrigatório recusaria mexer
+     * no preço de um produto que existe desde antes desta pergunta. A
+     * obrigatoriedade vale para o que nasce agora, nunca para o que já está lá.
+     *
+     * `=== undefined` e não `== null`: a tela sempre manda a chave, com `null`
+     * enquanto o dono não escolheu. Os dois casos caem aqui, e é o que se quer.
+     */
+    if (data.data.tipoDeControle == null) {
+      throw new Error(
+        "Escolha o tipo do produto: Produção, Revenda ou Não controlar estoque.",
+      );
+    }
+
+    /*
      * A CRIAÇÃO TAMBÉM É UMA TRANSAÇÃO SÓ, e agora ela precisa ser: a avaliação
      * lê o item de estoque para conferir o tipo dele, e a gravação escreve o
      * produto que aponta para esse item. Fora de uma transação, entre uma coisa
      * e a outra caberia trocar o tipo do item — ou apagá-lo.
      */
-    const { product, nasceInativo } = await prisma.$transaction(async (tx) => {
-      const { nasceInativo } = await avaliarCriacaoDeProduto(
-        storeId,
-        {
-          isActive: data.data.isActive,
-          controlaEstoque: data.data.controlaEstoque,
-          tipoDeControle: data.data.tipoDeControle ?? null,
-          inventoryItemId: vinculoProposto ?? null,
-        },
-        tx,
-      );
-      const product = await createProduct(
-        storeId,
-        { ...data.data, isActive: nasceInativo ? false : data.data.isActive },
-        tx,
-      );
-      return { product, nasceInativo };
-    });
+/*
+     * O SLUG REPETIDO SAI COMO FRASE, e não como erro de banco.
+     *
+     * Sem isto o dono via "Unique constraint failed on the fields:
+     * (`storeId`,`slug`)" — que não diz o que fazer, e nem sequer menciona o
+     * nome, que é o campo que ele consegue mudar. A unicidade continua sendo a
+     * regra; o que muda é quem a explica.
+     */
+    let criado;
+    try {
+      criado = await prisma.$transaction(async (tx) => {
+        const { nasceInativo } = await avaliarCriacaoDeProduto(
+          storeId,
+          {
+            isActive: data.data.isActive,
+            controlaEstoque: data.data.controlaEstoque,
+            tipoDeControle: data.data.tipoDeControle ?? null,
+            inventoryItemId: vinculoProposto ?? null,
+          },
+          tx,
+        );
+        const product = await createProduct(
+          storeId,
+          { ...data.data, isActive: nasceInativo ? false : data.data.isActive },
+          tx,
+        );
+        return { product, nasceInativo };
+      });
+    } catch (erro) {
+      const recado = mensagemDeSlugDuplicado(erro);
+      if (recado) throw new Error(recado);
+      throw erro;
+    }
+    const { product, nasceInativo } = criado;
     return {
       ok: true as const,
       product: convertProductForServal(product),

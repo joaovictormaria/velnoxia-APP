@@ -31,10 +31,19 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
+    /**
+     * Classes extras para o fundo atrás do modal.
+     *
+     * Existe porque o `bg-black/80` padrão apaga a página inteira, e um
+     * cadastro longo pede um fundo que ainda deixe ver onde se está. Sem valor,
+     * nada muda: os modais que já usavam este componente continuam iguais.
+     */
+    overlayClassName?: string;
+  }
+>(({ className, children, overlayClassName, ...props }, ref) => (
   <DialogPortal>
-    <DialogOverlay />
+    <DialogOverlay className={overlayClassName} />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(

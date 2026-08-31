@@ -14,17 +14,44 @@
 const PT = "pt-BR";
 
 /**
- * Quantidade de estoque: `10 un`, `1,5 kg`, `0,24 L`.
+ * Quantidade de estoque: `10 un`, `1,5 kg`, `0,24 L`, `0,00000556 un`.
  *
- * Sem casas quando é inteiro — 10 ovos são dez ovos, não "10,00". Até quatro
- * quando há fração, que é a precisão em que o saldo é gravado.
+ * Sem casas quando é inteiro — 10 ovos são dez ovos, não "10,00".
+ *
+ * QUATRO CASAS NORMALMENTE, ATÉ OITO QUANDO QUATRO MENTEM. O saldo passou a ser
+ * gravado em `DECIMAL(19,8)` porque o estoque por conteúdo de embalagem produz
+ * dízima: 40 ml tirados de uma garrafa de 900 ml gastam 0,04444444 de unidade.
+ * Mostrar as oito casas sempre encheria a lista de `1.500,12345678`, que ninguém
+ * consegue ler. Mostrar quatro sempre tinha um caso pior que feio: um item com
+ * `0,00000556 un` aparecia como **`0`** — a tela dizia que o estoque acabou
+ * quando não tinha acabado.
+ *
+ * O critério é o mesmo de `moeda()` logo abaixo, e de propósito: mede-se o
+ * estrago, não o tamanho do número. Uma ideia neste arquivo, não duas.
  */
 export function quantidade(valor: unknown): string {
   const n = Number(valor ?? 0);
   if (!Number.isFinite(n)) return "0";
+
+  /*
+   * Duas perguntas, e basta uma responder "sim" para abrir as oito casas:
+   *
+   *   zerou?      um saldo que existe não pode ser exibido como nenhum.
+   *   distorceu?  meio por cento é o limiar herdado de `moeda()`. Acima disso o
+   *               número na tela deixa de representar o que está no banco.
+   *
+   * O teto é oito porque é a escala da coluna. Além dela não há número, há
+   * ruído de ponto flutuante.
+   */
+  const emQuatroCasas = Math.round(n * 1e4) / 1e4;
+  const mente =
+    n !== 0 &&
+    (emQuatroCasas === 0 || Math.abs(emQuatroCasas - n) / Math.abs(n) > 0.005);
+
   return n.toLocaleString(PT, {
+    // Zero à esquerda do mínimo: `0,10` sai `0,1`, e `6` continua `6`.
     minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
+    maximumFractionDigits: mente ? 8 : 4,
   });
 }
 

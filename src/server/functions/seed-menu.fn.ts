@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { gerarSlugDeProduto } from "@/lib/slug-de-produto";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { prisma } from "@/server/db/client";
@@ -60,7 +61,7 @@ export const seedMenuFn = createServerFn({ method: "POST" })
         where: {
           storeId_slug: {
             storeId: store.storeId,
-            slug: prato.name.toLowerCase().replace(/\s+/g, "-"),
+            slug: gerarSlugDeProduto(prato.name),
           },
         },
         update: {},
@@ -68,7 +69,7 @@ export const seedMenuFn = createServerFn({ method: "POST" })
           storeId: store.storeId,
           categoryId: pratos.id,
           name: prato.name,
-          slug: prato.name.toLowerCase().replace(/\s+/g, "-"),
+          slug: gerarSlugDeProduto(prato.name),
           description: `Delicioso ${prato.name.toLowerCase()}`,
           basePrice: prato.price,
           isActive: true,
@@ -96,7 +97,7 @@ export const seedMenuFn = createServerFn({ method: "POST" })
         where: {
           storeId_slug: {
             storeId: store.storeId,
-            slug: bebida.name.toLowerCase().replace(/\s+/g, "-"),
+            slug: gerarSlugDeProduto(bebida.name),
           },
         },
         update: {},
@@ -104,7 +105,7 @@ export const seedMenuFn = createServerFn({ method: "POST" })
           storeId: store.storeId,
           categoryId: bebidas.id,
           name: bebida.name,
-          slug: bebida.name.toLowerCase().replace(/\s+/g, "-"),
+          slug: gerarSlugDeProduto(bebida.name),
           description: `Refrescante ${bebida.name.toLowerCase()}`,
           basePrice: bebida.price,
           isActive: true,

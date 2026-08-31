@@ -25,113 +25,35 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
     const data = context?.data?.data || context?.data;
 
     const items = data?.items || [];
-    const productName = data?.productId;
-    const categoryIdOrName = data?.categoryId;
+    const productId = data?.productId;
 
-    console.log("ðŸ” [adminCreateComposition] Recebeu", items.length, "itens para produto:", productName, "categoria:", categoryIdOrName);
+    /*
+      O PRODUTO VEM POR ID, E JÁ EXISTE.
 
-    /** O produto nasceu nesta chamada E nasceu inativo? A tela precisa dizer. */
-    let produtoCriadoAgoraInativo = false;
+      Aqui se lia `const productName = data?.productId` — o campo chamado
+      productId era tratado como NOME. O CompositionBuilder sempre mandou o
+      id de verdade, então a busca por nome não achava nada e o bloco
+      seguinte CRIAVA um segundo produto: nome igual ao cuid, preço zero,
+      slug igual ao cuid. A receita ficava presa nesse fantasma e o produto
+      real seguia sem receita, inativo para sempre.
 
-    // Buscar ou criar o produto pelo nome
-    let product = await prisma.product.findFirst({
-      where: { storeId: admin.storeId, name: productName },
+      Montar uma ficha técnica não é cadastrar produto. Quem cria produto é
+      o formulário de produto, com as guardas dele. Este caminho agora
+      apenas RECUSA quando o id não existe na loja, em vez de improvisar.
+    */
+    if (!productId || typeof productId !== "string") {
+      throw new Error("Receita sem produto: informe o produto ao qual ela pertence.");
+    }
+
+    const product = await prisma.product.findFirst({
+      where: { id: productId, storeId: admin.storeId },
     });
 
     if (!product) {
-      console.log(`ðŸ“¦ Produto "${productName}" nÃ£o encontrado. Criando...`);
-
-      // Procurar ou criar categoria
-      let category = await prisma.category.findFirst({
-        where: { storeId: admin.storeId, id: categoryIdOrName },
-      });
-
-      // Se nÃ£o encontrou por ID, procura por nome (categoria nova)
-      if (!category && categoryIdOrName) {
-        category = await prisma.category.findFirst({
-          where: { storeId: admin.storeId, name: categoryIdOrName },
-        });
-
-        // Se ainda nÃ£o encontrou, criar categoria nova
-        if (!category) {
-          const categorySlug = categoryIdOrName.toLowerCase().replace(/\s+/g, "-");
-          category = await prisma.category.create({
-            data: {
-              storeId: admin.storeId,
-              name: categoryIdOrName,
-              slug: categorySlug,
-              kind: "SIMPLE",
-              sortOrder: 0,
-            },
-          });
-          console.log(`âœ… Categoria "${categoryIdOrName}" criada`);
-        }
-      }
-
-      // Se ainda nÃ£o tem categoria, usar primeira disponÃ­vel ou criar padrÃ£o
-      if (!category) {
-        category = await prisma.category.findFirst({
-          where: { storeId: admin.storeId },
-        });
-
-        if (!category) {
-          category = await prisma.category.create({
-            data: {
-              storeId: admin.storeId,
-              name: "Bebidas",
-              slug: "bebidas",
-              kind: "SIMPLE",
-              sortOrder: 0,
-            },
-          });
-        }
-      }
-
-      // Gerar slug Ãºnico
-      let baseSlug = productName.toLowerCase().replace(/\s+/g, "-");
-      let slug = baseSlug;
-      let counter = 1;
-
-      while (await prisma.product.findFirst({
-        where: { storeId: admin.storeId, slug }
-      })) {
-        slug = `${baseSlug}-${counter}`;
-        counter++;
-      }
-
-      /*
-       * ESTE CAMINHO CRIA PRODUTO POR EFEITO COLATERAL, e por isso ele também
-       * é uma porta da regra de estoque. Sem a mesma disciplina do
-       * `saveProductFn`, montar uma ficha técnica com um nome de produto que
-       * ainda não existe seria a forma de fazer nascer produto ativo sem
-       * passar por guarda nenhuma.
-       *
-       * Nasce inativo pelo mesmo motivo de lá: a ficha ainda não existe neste
-       * ponto — ela é criada logo abaixo, e precisa deste produto para existir.
-       */
-      const nasceInativo = await nasceInativoPorFaltaDeVinculo(admin.storeId, {
-        isActive: true,
-        controlaEstoque: true,
-      });
-
-      // Criar novo produto
-      product = await prisma.product.create({
-        data: {
-          storeId: admin.storeId,
-          categoryId: category.id,
-          name: productName,
-          slug,
-          description: `Produto ${productName} criado automaticamente`,
-          basePrice: 0,
-          sortOrder: 0,
-          isActive: !nasceInativo,
-        },
-      });
-      produtoCriadoAgoraInativo = nasceInativo;
-
-      console.log(`âœ… Produto "${productName}" criado com ID: ${product.id}`);
+      throw new Error(
+        "Produto não encontrado nesta loja. Cadastre o produto antes de montar a receita dele.",
+      );
     }
-
     /*
      * UM PRODUTO DE REVENDA NÃO TEM RECEITA, e a recusa é aqui — não na tela.
      *
@@ -168,19 +90,16 @@ export const adminCreateComposition = createServerFn({ method: "POST" })
     );
 
     /*
-     * O produto pode ter NASCIDO AQUI, e inativo, sem que ninguém tenha pedido
-     * um produto. Quem digita um nome novo neste campo está montando uma
-     * receita, não cadastrando item de cardápio — e saía daqui achando que
-     * terminou, com um produto invisível e de preço zero no cardápio.
-     *
-     * `produtoCriadoInativo` é acrescentado ao retorno, não o substitui: nada
-     * hoje lê os campos da composição devolvida, mas trocar a forma do retorno
-     * por um objeto novo quebraria quem viesse a ler.
-     */
+      `produtoCriadoInativo` continua no retorno, sempre falso.
+
+      Nada mais nasce por aqui, então o aviso perdeu o motivo — mas a tela
+      antiga ainda lê o campo, e sumir com ele daria `undefined` num lugar
+      que hoje decide qual mensagem mostrar.
+    */
     return {
       ...(numeros(composicao) as any),
-      produtoCriadoInativo: produtoCriadoAgoraInativo,
-      produtoCriadoNome: produtoCriadoAgoraInativo ? product.name : null,
+      produtoCriadoInativo: false,
+      produtoCriadoNome: null,
     };
   });
 

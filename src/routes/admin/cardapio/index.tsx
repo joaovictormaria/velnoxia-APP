@@ -1,14 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ArrowLeft, ImageIcon, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ImageIcon, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import {
   deleteProductFn,
   getProductFn,
+  getProductFormOptionsFn,
   listProductsFn,
   setProductActiveFn,
 } from "@/server/functions/products.fn";
-import { ProductForm, type ProductFormValues } from "@/components/admin/products/ProductForm";
+import {
+  ProductForm,
+  PRODUTO_EM_BRANCO,
+  type ProductFormValues,
+} from "@/components/admin/products/ProductForm";
 import { getControleDeEstoqueFn } from "@/server/functions/settings.fn";
 import type { ProductsWithCategoriesResponse, ProductDetailResponse } from "@/types/api-responses";
 import { AvisoDeLimpezaInicial } from "@/components/admin/cardapio/AvisoDeLimpezaInicial";
@@ -48,6 +53,15 @@ function ProductsPage() {
   const [categoryId, setCategoryId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  /*
+    CADASTRAR SEM SAIR DA LISTA.
+
+    O botão "Novo produto" era um link para /admin/cardapio/novo, e trocar de
+    página é justamente o que o modal existe para evitar: a lista fica atrás,
+    visível, e volta a valer quando o modal fecha. A rota /novo continua de pé
+    para quem chega nela por link direto.
+  */
+  const [criando, setCriando] = useState(false);
 
   const { data, isPending } = useQuery({
     queryKey: ["products", categoryId, search],
@@ -64,6 +78,17 @@ function ProductsPage() {
     enabled: !!editingProductId,
   });
   const detailData = editingProductData as ProductDetailResponse | undefined;
+
+  /*
+    As categorias para um produto NOVO vêm da mesma fonte que a rota /novo usa.
+    A lista de produtos também traz categorias, mas sem os tamanhos e os grupos
+    de opções que o formulário precisa.
+  */
+  const { data: opcoesDoFormulario } = useQuery({
+    queryKey: ["product-form-options"],
+    queryFn: () => getProductFormOptionsFn(),
+    enabled: criando,
+  });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products"] });
 
@@ -186,34 +211,29 @@ function ProductsPage() {
 
   return (
     <>
-      {editingProductId && detailData?.product && (
-        <>
-          <style>{`body { overflow: hidden; }`}</style>
-          <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/50 p-4 sm:p-8">
-          <div className="flex w-full max-w-7xl flex-col">
-            <div className="flex items-center gap-2 rounded-t-2xl border border-b-0 border-neutral-200 bg-white px-5 py-3">
-              <button
-                type="button"
-                onClick={() => setEditingProductId(null)}
-                aria-label="Voltar"
-                className="rounded-lg p-1.5 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900"
-              >
-                <ArrowLeft className="size-5" />
-              </button>
-              <h2 className="text-base font-semibold text-neutral-900">Editar Produto</h2>
-            </div>
+      {/*
+        O MODAL AGORA É DO PRÓPRIO FORMULÁRIO.
 
-            <div className="max-h-[90vh] overflow-y-auto rounded-b-2xl border border-neutral-200 bg-white p-5">
-              <ProductForm
-                productId={detailData.product.id}
-                initial={buildProductFormValues(detailData.product)}
-                categories={detailData.categories as any}
-                onSuccess={() => setEditingProductId(null)}
-              />
-            </div>
-          </div>
-        </div>
-        </>
+        Aqui existia um modal escrito à mão — overlay, cabeçalho e trava de
+        rolagem do body — só para a edição. O ProductForm passou a se abrir
+        dentro do Dialog do projeto, e manter este daria modal dentro de modal.
+      */}
+      {editingProductId && detailData?.product && (
+        <ProductForm
+          productId={detailData.product.id}
+          initial={buildProductFormValues(detailData.product)}
+          categories={detailData.categories as any}
+          onSuccess={() => setEditingProductId(null)}
+        />
+      )}
+
+      {criando && opcoesDoFormulario && (
+        <ProductForm
+          productId={null}
+          initial={PRODUTO_EM_BRANCO}
+          categories={(opcoesDoFormulario as any).categories}
+          onSuccess={() => setCriando(false)}
+        />
       )}
 
       <div className="space-y-6">
@@ -399,13 +419,14 @@ function ProductsPage() {
       )}
 
       {/* Botão flutuante de novo produto */}
-      <Link
-        to="/admin/cardapio/novo"
+      <button
+        type="button"
+        onClick={() => setCriando(true)}
         className="fixed bottom-6 right-6 flex items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] shadow-lg"
       >
         <Plus className="size-4" />
         Novo produto
-      </Link>
+      </button>
     </div>
     </>
   );

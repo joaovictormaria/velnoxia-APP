@@ -455,7 +455,16 @@ describe("criação de produto", () => {
     expect(r.nasceInativo).toBe(false);
   });
 
-  it("controle desligado nunca faz nascer inativo", async () => {
+  /*
+   * ESTE TESTE MUDOU DE LADO, e a inversão é a regra nova.
+   *
+   * Ele afirmava que o controle desligado nunca fazia nascer inativo — nem em
+   * PRODUÇÃO. Isso amarrava a exigência de receita a uma configuração de
+   * ESTOQUE, e a receita de um produto de produção não existe para o estoque:
+   * existe para o CUSTO. Sem ela não há CMV, não há lucro e não há margem, com
+   * a flag ligada ou não. Decisão do João, 30/08/2026.
+   */
+  it("PRODUÇÃO nasce inativa mesmo com o controle DESLIGADO", async () => {
     await prisma.storeSettings.update({
       where: { storeId },
       data: { inventoryControlEnabled: false },
@@ -465,7 +474,119 @@ describe("criação de produto", () => {
       controlaEstoque: true,
       tipoDeControle: "PRODUCAO",
     });
+    expect(r.nasceInativo).toBe(true);
+  });
+
+  /*
+   * O OUTRO LADO DA MESMA MOEDA: só PRODUÇÃO escapou da flag. Preservar
+   * integralmente o comportamento de REVENDA foi condição explícita, e estes
+   * dois testes são o que impede alguém de "uniformizar" isso depois sem
+   * perceber que está mudando uma regra que foi decidida.
+   */
+  it("REVENDA sem item continua LIVRE com o controle desligado", async () => {
+    await prisma.storeSettings.update({
+      where: { storeId },
+      data: { inventoryControlEnabled: false },
+    });
+    const r = await avaliarCriacaoDeProduto(storeId, {
+      isActive: true,
+      controlaEstoque: true,
+      tipoDeControle: "REVENDA",
+    });
     expect(r.nasceInativo).toBe(false);
+  });
+
+  it("NAO_CONTROLA continua livre com o controle desligado", async () => {
+    await prisma.storeSettings.update({
+      where: { storeId },
+      data: { inventoryControlEnabled: false },
+    });
+    const r = await avaliarCriacaoDeProduto(storeId, {
+      isActive: true,
+      controlaEstoque: false,
+      tipoDeControle: "NAO_CONTROLA",
+    });
+    expect(r.nasceInativo).toBe(false);
+  });
+
+  it("produto LEGADO (tipo nulo) continua livre com o controle desligado", async () => {
+    await prisma.storeSettings.update({
+      where: { storeId },
+      data: { inventoryControlEnabled: false },
+    });
+    const r = await avaliarCriacaoDeProduto(storeId, {
+      isActive: true,
+      controlaEstoque: true,
+      tipoDeControle: null,
+    });
+    expect(r.nasceInativo).toBe(false);
+  });
+});
+
+describe("a receita da PRODUÇÃO não depende do controle de estoque", () => {
+  /*
+   * O bloco que fixa o desacoplamento no caminho de EDIÇÃO/ATIVAÇÃO — o outro
+   * portão, que é o que decide se um produto pode ficar operacional.
+   */
+  async function desligarControle() {
+    await prisma.storeSettings.update({
+      where: { storeId },
+      data: { inventoryControlEnabled: false },
+    });
+  }
+
+  it("PRODUÇÃO sem receita é RECUSADA mesmo com o controle desligado", async () => {
+    await desligarControle();
+    const p = await produto({ tipoDeControle: "PRODUCAO" });
+    expect(await recusa(p.id)).toBe("PRODUCAO_SEM_ORIGEM");
+  });
+
+  it("PRODUÇÃO COM receita passa, com o controle desligado", async () => {
+    await desligarControle();
+    const farinha = await item("Farinha", "INGREDIENT");
+    const p = await produto({ tipoDeControle: "PRODUCAO" });
+    await ficha(p.id, farinha.id);
+    expect(await recusa(p.id)).toBeNull();
+  });
+
+  it("PRODUÇÃO com preparado vinculado passa, com o controle desligado", async () => {
+    await desligarControle();
+    const bolo = await item("Bolo", "PREPARED");
+    const p = await produto({ tipoDeControle: "PRODUCAO", inventoryItemId: bolo.id });
+    expect(await recusa(p.id)).toBeNull();
+  });
+
+  it("REVENDA sem item continua PASSANDO com o controle desligado", async () => {
+    await desligarControle();
+    const p = await produto({ tipoDeControle: "REVENDA" });
+    expect(await recusa(p.id)).toBeNull();
+  });
+
+  it("NAO_CONTROLA com vínculo continua passando com o controle desligado", async () => {
+    await desligarControle();
+    const coca = await item("Coca lata", "RESALE");
+    const p = await produto({
+      tipoDeControle: "NAO_CONTROLA",
+      inventoryItemId: coca.id,
+    });
+    expect(await recusa(p.id)).toBeNull();
+  });
+
+  it("produto LEGADO sem origem continua passando com o controle desligado", async () => {
+    await desligarControle();
+    const p = await produto();
+    expect(await recusa(p.id)).toBeNull();
+  });
+
+  /*
+   * PRODUÇÃO INATIVA não é cobrada, com a flag ligada ou não: produto que não
+   * é vendido não fura custo nenhum. É o que permite editar o preço de um
+   * produto que ainda está esperando a receita.
+   */
+  it("PRODUÇÃO inativa não é cobrada, mesmo sem receita", async () => {
+    await desligarControle();
+    const p = await produto({ tipoDeControle: "PRODUCAO", isActive: false });
+    expect(await recusa(p.id, { isActive: false })).toBeNull();
   });
 });
 

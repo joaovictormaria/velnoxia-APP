@@ -1,4 +1,5 @@
 import { prisma } from "../db/client";
+import { gerarSlugDeProduto } from "@/lib/slug-de-produto";
 import { hashPassword } from "../auth/password";
 import {
   generateUniqueSlug,
@@ -316,7 +317,7 @@ export async function criarContaDeLoja(
                 storeId: store.id,
                 categoryId: created.id,
                 name: product.name,
-                slug: slugifyProduct(product.name),
+                slug: gerarSlugDeProduto(product.name),
                 description: product.description,
                 basePrice: product.basePrice,
                 tag: product.tag ?? null,
@@ -414,11 +415,3 @@ export async function criarContaDeLoja(
  */
 
 /** Product slugs are unique per store, so the plain name is enough. */
-function slugifyProduct(name: string) {
-  return name
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}

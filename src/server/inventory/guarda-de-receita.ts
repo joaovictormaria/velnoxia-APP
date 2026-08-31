@@ -333,8 +333,20 @@ export async function exigirConfiguracaoDeEstoque(
   proposta: ConfiguracaoProposta = {},
   db: Db = prisma,
 ): Promise<void> {
-  if (!(await controleDeEstoqueAtivo(storeId, db))) return;
-
+  /*
+   * O PRODUTO É LIDO ANTES DA FLAG, e a ordem é a mudança.
+   *
+   * Antes a função saía aqui quando a loja tinha o controle de estoque
+   * desligado, sem nem olhar o produto. Isso amarrava a exigência de receita a
+   * uma configuração de ESTOQUE — e a receita de um produto de PRODUÇÃO não
+   * existe para o estoque: existe para o CUSTO. Sem ela não há CMV, não há
+   * lucro e não há margem, com a flag ligada ou não.
+   *
+   * O motor nunca dependeu dessa flag: `insumosDoPedido`,
+   * `order-inventory-handler`, `inventory-cost-service` e `regra-financeira`
+   * não a consultam em lugar nenhum. Ela sempre governou só a COBRANÇA, e é
+   * exatamente isso que muda aqui — para um tipo, e só um.
+   */
   const produto = await db.product.findFirst({
     where: { id: productId, storeId },
     select: {
@@ -363,6 +375,24 @@ export async function exigirConfiguracaoDeEstoque(
     proposta.tipoDeControle !== undefined
       ? proposta.tipoDeControle
       : (produto.tipoDeControle as TipoDeControleOuNulo);
+
+  /*
+   * A FLAG DEIXA DE VALER PARA PRODUÇÃO, E SÓ PARA ELA.
+   *
+   * `PRODUCAO`   cobrada sempre. A receita é a origem do custo, não do
+   *              estoque — decisão do João, 30/08/2026.
+   * `REVENDA`    segue como estava, atrás da flag: preservar integralmente o
+   *              comportamento atual foi condição explícita.
+   * `NAO_CONTROLA` idem — nada a cobrar de taxa de entrega ou couvert.
+   * `null`       idem — produto legado não muda de comportamento.
+   *
+   * A assimetria entre PRODUÇÃO e REVENDA com a flag desligada é deliberada e
+   * está registrada: pela lógica de custo as duas seriam simétricas, mas mexer
+   * em REVENDA foi expressamente descartado.
+   */
+  if (tipo !== "PRODUCAO" && !(await controleDeEstoqueAtivo(storeId, db))) {
+    return;
+  }
 
   // Produto legado: a regra antiga, sem uma linha de diferença.
   if (tipo === null) {
@@ -485,9 +515,16 @@ export async function avaliarCriacaoDeProduto(
   },
   db: Db = prisma,
 ): Promise<{ nasceInativo: boolean }> {
-  if (!(await controleDeEstoqueAtivo(storeId, db))) return { nasceInativo: false };
-
   const tipo = proposto.tipoDeControle ?? null;
+
+  /*
+   * Mesma regra de `exigirConfiguracaoDeEstoque`, e pelo mesmo motivo: só
+   * PRODUÇÃO escapa da flag, porque só nela a receita é a origem do custo.
+   */
+  if (tipo !== "PRODUCAO" && !(await controleDeEstoqueAtivo(storeId, db))) {
+    return { nasceInativo: false };
+  }
+
   if (tipo === null) {
     return {
       nasceInativo: await nasceInativoPorFaltaDeVinculo(

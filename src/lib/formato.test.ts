@@ -42,6 +42,63 @@ describe("quantidade", () => {
     expect(quantidade(undefined)).toBe("0");
     expect(quantidade(NaN)).toBe("0");
   });
+
+  /*
+   * AS OITO CASAS DO SALDO, E QUANDO ELAS APARECEM.
+   *
+   * O saldo é gravado em DECIMAL(19,8) porque o estoque por conteúdo de
+   * embalagem produz dízima. Mostrar oito casas sempre encheria a lista de
+   * `1.500,12345678`; mostrar quatro sempre tinha um caso pior que feio, e é o
+   * do teste 5.4.
+   */
+  it("5.1 · saldo com dízima continua legível em quatro casas", () => {
+    // 6 garrafas menos 40/900: a distorção de exibir 5,9556 é de 0,0000001%.
+    expect(quantidade(5.95555556)).toBe("5,9556");
+    expect(quantidade(1500.12345678)).toBe("1.500,1235");
+  });
+
+  it("5.2 · consumo de 40 ml numa garrafa de 900 ml", () => {
+    // 0,0444 distorce 0,1% — abaixo do limiar, então as quatro bastam.
+    expect(quantidade(0.04444444)).toBe("0,0444");
+  });
+
+  it("5.3 · consumo de 1 ml abre as oito casas", () => {
+    // 0,0011 distorceria 1%: acima do limiar de meio por cento.
+    expect(quantidade(0.00111111)).toBe("0,00111111");
+    expect(quantidade(0.00111111)).not.toBe("0,0011");
+  });
+
+  /*
+   * O caso que motivou a mudança: a tela dizia que o estoque tinha acabado
+   * quando ainda havia saldo. Um número que existe nunca pode virar "0".
+   */
+  it("5.4 · saldo minúsculo NUNCA aparece como zero", () => {
+    expect(quantidade(0.00000556)).toBe("0,00000556");
+    expect(quantidade(0.00000556)).not.toBe("0");
+    expect(quantidade(0.00000001)).not.toBe("0");
+  });
+
+  it("5.5 · negativo também não é engolido", () => {
+    expect(quantidade(-0.00000556)).toBe("-0,00000556");
+    expect(quantidade(-2.5)).toBe("-2,5");
+  });
+
+  it("5.6 · zeros à direita continuam aparados", () => {
+    expect(quantidade(0.1)).toBe("0,1");
+    expect(quantidade(0.10000000)).toBe("0,1");
+    expect(quantidade(2.5000)).toBe("2,5");
+    expect(quantidade(6.0)).toBe("6");
+  });
+
+  /*
+   * Oito é o teto porque é a escala da coluna. O que vem depois é ruído de
+   * ponto flutuante, e mostrá-lo seria inventar precisão que o banco não tem.
+   */
+  it("5.7 · nunca passa de oito casas", () => {
+    const texto = quantidade(1 / 3);
+    const casas = texto.split(",")[1]?.length ?? 0;
+    expect(casas).toBeLessThanOrEqual(8);
+  });
 });
 
 describe("moeda", () => {
