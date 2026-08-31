@@ -111,10 +111,15 @@ export async function getTableSessionDetails(
           revokedAt: true,
         },
       },
+      /*
+       * SÓ `select`, e nunca os dois juntos.
+       *
+       * Havia um `include: { items: ... }` ao lado deste `select`, e o Prisma
+       * recusa os dois no mesmo nível — `getTableSessionDetails` lançava em
+       * TODA chamada, antes de ler qualquer coisa. O `include` era redundante:
+       * `items` já está no `select` logo abaixo, com a mesma projeção.
+       */
       orders: {
-        include: {
-          items: { select: { id: true } },
-        },
         select: {
           id: true,
           number: true,
@@ -141,7 +146,17 @@ export async function getTableSessionDetails(
   const paymentStatus =
     session.status === "PAID"
       ? ("PAID" as const)
-      : session.orders.every((o) => o.paymentStatus === "PAID")
+      : /*
+         * SESSÃO SEM PEDIDO NÃO ESTÁ PAGA.
+         *
+         * `[].every(...)` é `true` — a mesa que acabou de abrir, sem nenhum
+         * pedido, era classificada como PAID por verdade vazia. Ninguém tinha
+         * visto porque esta função lançava antes de chegar aqui (o `include`
+         * com `select`); com ela de pé, o painel abriria toda mesa nova como
+         * paga. Exigir ao menos um pedido é o que a frase sempre quis dizer.
+         */
+        session.orders.length > 0 &&
+          session.orders.every((o) => o.paymentStatus === "PAID")
         ? ("PAID" as const)
         : ("PENDING" as const);
 
@@ -216,16 +231,24 @@ export async function closeTableSession(
       },
     });
 
-    // Revoke all device tokens for this session
-    await tx.sessionDevice.updateMany(
-      {
+    /*
+     * Revoke all device tokens for this session.
+     *
+     * `updateMany` recebe UM objeto com `where` e `data`, e não dois argumentos.
+     * Estava escrito como se fosse `(filtro, valores)` — o Prisma lia o primeiro
+     * objeto como o argumento inteiro, não achava `where` nem `data`, e recusava
+     * com "Unknown argument `sessionId`". `closeTableSession` lançava sempre, em
+     * qualquer um dos três status.
+     */
+    await tx.sessionDevice.updateMany({
+      where: {
         sessionId,
         revokedAt: null, // Only active devices
       },
-      {
+      data: {
         revokedAt: new Date(),
       },
-    );
+    });
   });
 }
 

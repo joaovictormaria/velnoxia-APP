@@ -1485,20 +1485,32 @@ model InventoryItem {
   contentUnit String?
 
   /// ESTADO DERIVADO: Saldo atual em estoque (FONTE DE VERDADE: InventoryMovement)
-  quantityOnHand   Decimal @default(0) @db.Decimal(15, 4)
+  ///
+  /// OITO CASAS, e a razão está em InventoryMovement.quantity. O saldo é
+  /// escrito por incremento do movimento: se ele corta, o saldo carrega o
+  /// corte para sempre.
+  quantityOnHand   Decimal @default(0) @db.Decimal(19, 8)
   /// ESTADO DERIVADO: Quantidade reservada para pedidos
-  quantityReserved Decimal @default(0) @db.Decimal(15, 4)
+  ///
+  /// MESMA PRECISÃO DO SALDO, obrigatoriamente. Reserva e consumo calculam a
+  /// mesma fração; guardadas com escalas diferentes elas não se cancelariam, e
+  /// sobraria reserva presa para sempre.
+  quantityReserved Decimal @default(0) @db.Decimal(19, 8)
   /// Máximo de estoque (para alertas de estoque baixo: alerta em 30%)
   maximumQuantity  Decimal @default(0) @db.Decimal(15, 4)
 
   /// Custo unitário: o do evento de aquisição não revertido mais recente,
   /// seja ele uma corrida de produção ou uma compra.
   ///
-  /// SEIS CASAS, e não duas. Duas bastam para preço de VENDA, que sempre tem
+  /// OITO CASAS, e não duas. Duas bastam para preço de VENDA, que sempre tem
   /// centavo redondo. Não bastam para CUSTO, que é resultado de uma divisão —
   /// R$ 8,00 a garrafa ÷ 900 ml = R$ 0,008889 o ml, e arredondar isso para
   /// R$ 0,01 punha 12% de erro em toda receita que usasse o item.
-  cost Decimal? @db.Decimal(15, 6)
+  ///
+  /// Eram seis, e seis deixavam 0,008% num caso real: R$ 30,00 o pacote de
+  /// 5400 ml dá R$ 0,00555555... por ml. Com a quantidade em oito casas, o
+  /// custo passaria a ser o elo mais fraco da multiplicação.
+  cost Decimal? @db.Decimal(19, 8)
 
   /// RESERVADO, nulo e sem uso. Existe para que a evolução de "custo da última
   /// aquisição" para "média ponderada" não exija migration destrutiva depois,
@@ -1547,7 +1559,18 @@ model InventoryMovement {
 
   type InventoryMovementType
 
-  quantity Decimal       @db.Decimal(15, 4)
+  /// OITO CASAS, e é aqui que a precisão se ganhava ou se perdia.
+  ///
+  /// Com quatro, 40 ml tirados de uma garrafa de 900 ml (40/900 = 0,044444...)
+  /// eram gravados como 0,0444. O erro é sistemático — a mesma receita dá
+  /// sempre a mesma dízima e arredonda sempre para o mesmo lado —, então ele
+  /// ACUMULA: quatro litros de óleo por cem mil vendas, sempre para menos, e a
+  /// contagem física nunca fechava com o sistema.
+  ///
+  /// Oito casas põem o desvio em 0,4 ml nas mesmas cem mil vendas. O limite
+  /// veio do pior caso real: um galão de 20 L, onde cada casa decimal vale
+  /// vinte vezes mais do que numa garrafa de 900 ml.
+  quantity Decimal       @db.Decimal(19, 8)
   unitId   String
   unit     InventoryUnit @relation(fields: [unitId], references: [id], onDelete: Restrict)
 
@@ -1566,7 +1589,7 @@ model InventoryMovement {
   /// SEIS CASAS, iguais a `InventoryItem.cost`: e o mesmo conceito de custo
   /// unitario de estoque, congelado. Precisao diferente entre os dois faria o
   /// sistema concordar consigo mesmo no presente e discordar no passado.
-  costAtTime Decimal? @db.Decimal(15, 6)
+  costAtTime Decimal? @db.Decimal(19, 8)
   note       String?
 
   authorType String?

@@ -91,12 +91,13 @@ describe("Table Session Dashboard Service", () => {
           sessionId,
           storeId,
           number: 1,
-          status: "CONFIRMED",
+          status: "RECEIVED",
           customerName: "Test",
           customerPhone: "1234567890",
           type: "PICKUP",
           paymentMethod: "CASH",
           paymentStatus: "PENDING",
+          subtotal: 100,
           total: 100,
         },
       });
@@ -131,26 +132,28 @@ describe("Table Session Dashboard Service", () => {
     });
 
     it("should order sessions by openedAt", async () => {
-      // Create another session
-      const session2 = await prisma.tableSession.create({
-        data: {
-          storeId,
-          tableId: `test-table-2-${Date.now()}`,
-          status: "OPEN",
-          pinHash: "$2b$10$test",
-          openedAt: new Date(Date.now() - 60000), // Earlier
-          expiresAt: new Date(Date.now() + 7200000),
-        },
-      });
-
+      // A mesa vem primeiro: TableSession.tableId e uma FK.
+      const tableId2 = `test-table-2-${Date.now()}`;
       await prisma.table.create({
         data: {
-          id: session2.tableId,
+          id: tableId2,
           storeId,
           number: 2,
           capacity: 4,
           qrcodeUrl: "https://example.com/qr2",
           qrcodeData: "data:image/png;base64,...",
+        },
+      });
+
+      // Create another session
+      const session2 = await prisma.tableSession.create({
+        data: {
+          storeId,
+          tableId: tableId2,
+          status: "OPEN",
+          pinHash: "$2b$10$test",
+          openedAt: new Date(Date.now() - 60000), // Earlier
+          expiresAt: new Date(Date.now() + 7200000),
         },
       });
 
@@ -185,12 +188,13 @@ describe("Table Session Dashboard Service", () => {
           sessionId,
           storeId,
           number: 1,
-          status: "CONFIRMED",
+          status: "RECEIVED",
           customerName: "Test",
           customerPhone: "1234567890",
           type: "PICKUP",
           paymentMethod: "CASH",
           paymentStatus: "PENDING",
+          subtotal: 50,
           total: 50,
         },
       });
@@ -301,10 +305,10 @@ describe("Table Session Dashboard Service", () => {
 
     it("should not revoke already revoked devices", async () => {
       const revokedAt = new Date(Date.now() - 60000);
-      await prisma.sessionDevice.updateMany(
-        { sessionId },
-        { revokedAt: revokedAt },
-      );
+      await prisma.sessionDevice.updateMany({
+        where: { sessionId },
+        data: { revokedAt: revokedAt },
+      });
 
       await closeTableSession(storeId, sessionId, "CLOSED");
 
