@@ -1,6 +1,5 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
-import { statusDoEstoque } from "@/lib/status-do-estoque";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
 import { InventoryService } from "@/server/services/inventory-service";
@@ -14,7 +13,8 @@ import {
   createConsumptionSchema,
   createAdjustmentSchema,
 } from "@/lib/estoque-schemas";
-import { inventoryItemRepository, inventoryUnitRepository } from "@/server/repositories";
+import { inventoryItemRepository, inventoryUnitRepository, reportRepository } from "@/server/repositories";
+import { numeros } from "./serializar";
 import { prisma } from "@/server/db/client";
 import { calcularMovimentoDeCompra } from "@/lib/embalagem-de-compra";
 
@@ -479,27 +479,24 @@ export const adminGetInventoryValue = createServerFn({ method: "POST" })
 
 /**
  * Admin only: Get low stock alerts
+ *
+ * O RETORNO PASSA POR `numeros()`, e essa era a razao do painel mostrar zero.
+ *
+ * O handler devolvia os itens CRUS do Prisma, com `quantityOnHand`,
+ * `quantityReserved`, `minimumThreshold` e `cost` como `Decimal`. O seroval do
+ * TanStack Start nao serializa `Decimal`: a chamada morria na fronteira, o
+ * `Promise.all` do painel rejeitava e o `catch` zerava a tela inteira — o
+ * contador de alertas E o valor total em estoque, que nem vem daqui.
+ *
+ * A REGRA NAO MUDOU: `getLowStockItems` ja filtrava por `statusDoEstoque`, a
+ * mesma funcao que a aba Itens usa para pintar a linha. O que havia eram DUAS
+ * consultas escrevendo o mesmo filtro; agora e uma. De quebra sai o `take: 100`
+ * do `findAll`, que escondia alerta de loja com mais de cem itens.
  */
 export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
   .handler(async () => {
     const admin = await requireAdminSession();
-
-    const items = await inventoryItemRepository.findAll(admin.storeId, {
-      includeInactive: false,
-    });
-
-    /*
-     * A COMPARAÇÃO CRUA ENTRE DECIMAL SAIU DAQUI.
-     *
-     * Era `item.quantityOnHand <= item.minimumThreshold` com os dois lados
-     * sendo `Decimal` do Prisma — e o `valueOf()` do decimal.js devolve
-     * STRING, então o operador comparava texto: respondia que 10 é menor que 9.
-     * Quatro de seis casos errados, medidos.
-     *
-     * `statusDoEstoque` normaliza na entrada e considera o reservado. O
-     * formato do retorno não muda: continua a lista de itens.
-     */
-    return items.filter((item) => statusDoEstoque(item).status !== "NORMAL");
+    return numeros(await reportRepository.getLowStockItems(admin.storeId));
   });
 
 

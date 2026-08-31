@@ -1253,12 +1253,19 @@ export function InventoryGrid(props: InventoryGridProps) {
             <span className="w-9" />
           </div>
 
-          <div className="divide-y divide-neutral-100">
+          <div>
             {visiveis.map((item) => {
               /*
                 O CÁLCULO DO ESTOQUE BAIXO É O MESMO DE ANTES, linha por linha.
-                Só a apresentação mudou: era uma borda vermelha de 2px em volta
-                da linha inteira, que gritava mais alto que o próprio número.
+                Só a apresentação mudou: o ponto colorido de 6px ao lado do
+                número saiu e a linha INTEIRA voltou a receber borda vermelha.
+                Um ponto de 6px depende de o olho já estar naquela coluna; a
+                borda é vista ao correr a lista, que é quando o alerta serve.
+
+                A borda mora aqui e não no `divide-y` do contêiner: uma regra
+                `.divide-neutral-100 > * ~ *` tem especificidade maior que a
+                classe da linha e repintaria a borda vermelha de cinza. Por
+                isso o separador virou `border-t` por linha.
               */
               /*
                 A REGRA DOS 30% SAIU DAQUI.
@@ -1275,17 +1282,26 @@ export function InventoryGrid(props: InventoryGridProps) {
                 regra ignorava.
               */
               const estado = statusDoEstoque(item as any);
-              const isLowStock = estado.status === "LOW_STOCK";
-              const zerado = estado.status === "OUT_OF_STOCK";
+              /*
+                UM SÓ PREDICADO PARA AS DUAS SITUAÇÕES DE ALERTA. `NORMAL` é o
+                único estado sem alerta — escrever `LOW_STOCK || OUT_OF_STOCK`
+                cria uma lista que alguém precisa lembrar de atualizar se a
+                fonte única ganhar um terceiro estado de alerta um dia.
+              */
+              const emAlerta = estado.status !== "NORMAL";
               const usado = Number((item as any).quantityUsedInRecipes ?? 0);
               const tipo = TIPOS[item.itemType] ?? TIPOS.INGREDIENT;
 
               return (
                 <div
                   key={item.id}
+                  data-alerta={emAlerta ? estado.status : undefined}
+                  title={rotuloDoStatus(estado.status) ?? undefined}
                   className={`px-4 py-3 hover:bg-neutral-50/60 md:grid md:grid-cols-[minmax(0,2.2fr)_1fr_1fr_auto] md:items-center md:gap-4 ${
-                    item.isActive ? "" : "opacity-60"
-                  }`}
+                    emAlerta
+                      ? "my-1 rounded-lg border-2 border-red-500 bg-red-50/40"
+                      : "border-t border-neutral-100 first:border-t-0"
+                  } ${item.isActive ? "" : "opacity-60"}`}
                 >
                   {/* ITEM */}
                   <div className="min-w-0">
@@ -1315,14 +1331,6 @@ export function InventoryGrid(props: InventoryGridProps) {
                       Estoque
                     </span>
                     <span className="flex items-center gap-1.5">
-                      {(isLowStock || zerado) && (
-                        <span
-                          title={rotuloDoStatus(estado.status) ?? ""}
-                          className={`inline-block size-1.5 rounded-full ${
-                            zerado ? "bg-red-500" : "bg-amber-500"
-                          }`}
-                        />
-                      )}
                       <span className="font-semibold tabular-nums text-neutral-900">
                         {quantidade(item.quantityOnHand)}
                       </span>
