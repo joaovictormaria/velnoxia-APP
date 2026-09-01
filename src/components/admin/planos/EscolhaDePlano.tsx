@@ -112,6 +112,17 @@ export function EscolhaDePlano({
 
   const ocupado = contratando !== null;
 
+  /*
+    A MESMA PERGUNTA QUE O CARD FAZ, e é por isso que ela mora aqui em cima.
+
+    A barra do celular checava só `!temAssinatura`, enquanto o card checava
+    `ehPlanoAtual && !temAssinatura`. Numa loja com plano gravado e sem
+    assinatura, o card dizia "Plano atual" e a barra logo abaixo oferecia
+    "Continuar" para o MESMO plano — duas telas discordando sobre a mesma
+    conta, e um botão que abriria o checkout do plano que a loja já tem.
+  */
+  const selecionadoEhPlanoAtual = plano.armazenado === selecionado;
+
   return (
     <section className="mt-6">
       {/* ───────── CABEÇALHO: o teste e a proposta, em um bloco só ───────── */}
@@ -271,19 +282,30 @@ export function EscolhaDePlano({
                 <span className="text-xs font-medium text-neutral-500"> /mês</span>
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => aoContratar(selecionado)}
-              disabled={ocupado || !vendaveis[selecionado]}
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E11D2E] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
-            >
-              {contratando === selecionado ? (
-                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-              ) : (
-                <ArrowRight className="size-4" aria-hidden="true" />
-              )}
-              Continuar
-            </button>
+            {/*
+              ESPELHA O CARD. Onde o card mostra "Plano atual" e some com o
+              botão, a barra faz o mesmo — em vez de oferecer o checkout do
+              plano que a loja já tem.
+            */}
+            {selecionadoEhPlanoAtual ? (
+              <span className="shrink-0 rounded-xl bg-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-600">
+                Plano atual
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => aoContratar(selecionado)}
+                disabled={ocupado || !vendaveis[selecionado]}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#E11D2E] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E11D2E] disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
+              >
+                {contratando === selecionado ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <ArrowRight className="size-4" aria-hidden="true" />
+                )}
+                Continuar
+              </button>
+            )}
           </div>
         </div>
       )}

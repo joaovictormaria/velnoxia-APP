@@ -32,6 +32,68 @@ function fimDoPeriodo(sub: Stripe.Subscription): Date | null {
 const VIVAS = new Set(["active", "trialing", "past_due"]);
 
 /**
+ * Em que pé está a assinatura DESTA loja, segundo o Stripe.
+ *
+ * ─── POR QUE PERGUNTAR AO STRIPE, E NÃO SÓ AO BANCO ────────────────────────
+ *
+ * O banco guarda uma CÓPIA do que o Stripe disse por último, e ela envelhece:
+ * uma assinatura cancelada pelo Portal e cujo webhook se perdeu continuaria
+ * gravada aqui. Recusar uma contratação nova por causa de uma assinatura que
+ * não existe mais seria prender o cliente do lado de fora do próprio
+ * pagamento. Quem manda sobre o estado do pagamento é o Stripe.
+ *
+ * ─── OS QUATRO ESTADOS, E POR QUE NÃO É UM BOOLEANO ────────────────────────
+ *
+ *   SEM_ASSINATURA → a loja nunca assinou. Pode contratar.
+ *   ENCERRADA      → assinou e acabou (cancelada, incompleta, ou apagada do
+ *                    Stripe). Pode contratar de novo.
+ *   VIVA           → está pagando agora. NÃO pode abrir um segundo checkout.
+ *   INDETERMINADO  → o Stripe não respondeu. Não se sabe.
+ *
+ * `INDETERMINADO` existe para não virar "pode contratar" por omissão. Um
+ * booleano obrigaria a escolher um dos dois lados na hora de uma falha de
+ * rede, e o lado errado custa caro: duas assinaturas cobrando a mesma loja,
+ * com a segunda sobrescrevendo o ponteiro da primeira — que continua cobrando
+ * no Stripe enquanto o sistema esquece que ela existe. Diante da dúvida,
+ * recusar custa uma tentativa; permitir custa dinheiro do cliente.
+ *
+ * `incomplete` NÃO é viva, e é deliberado: é o checkout cujo cartão falhou.
+ * Tratá-la como viva prenderia a pessoa num pagamento que nunca completou.
+ */
+export type EstadoDaAssinatura =
+  | "SEM_ASSINATURA"
+  | "ENCERRADA"
+  | "VIVA"
+  | "INDETERMINADO";
+
+export async function estadoDaAssinaturaNoStripe(
+  storeId: string,
+): Promise<EstadoDaAssinatura> {
+  const loja = await prisma.store.findUniqueOrThrow({
+    where: { id: storeId },
+    select: { stripeSubscriptionId: true },
+  });
+
+  if (!loja.stripeSubscriptionId) return "SEM_ASSINATURA";
+
+  try {
+    const sub = await stripe().subscriptions.retrieve(loja.stripeSubscriptionId);
+    return VIVAS.has(sub.status) ? "VIVA" : "ENCERRADA";
+  } catch (erro) {
+    /*
+     * `resource_missing` é resposta, e não falha: a assinatura foi apagada do
+     * Stripe e a cópia do banco ficou para trás. Só isso libera contratar.
+     * Qualquer outro erro — rede, chave, indisponibilidade — é "não sei".
+     */
+    const codigo = (erro as { code?: string })?.code;
+    if (codigo === "resource_missing") return "ENCERRADA";
+
+    console.error("[stripe] falha ao conferir a assinatura da loja:", codigo ?? erro);
+    return "INDETERMINADO";
+  }
+}
+
+/**
  * Reusa o cliente do Stripe da loja, ou cria o primeiro.
  *
  * Sem isso, cada tentativa de assinar criaria um cliente novo, e o dono que

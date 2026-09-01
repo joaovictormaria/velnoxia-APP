@@ -434,12 +434,23 @@ describe("um aviso só sobre o teste", () => {
 });
 
 describe("quem já tem o plano não recebe oferta dele", () => {
+  /*
+   * A asserção olha o BLOCO do card, e não o arquivo inteiro com uma
+   * indentação exata: "Plano atual" agora aparece duas vezes — no card e na
+   * barra do celular, que passou a espelhá-lo — e cravar espaços em branco
+   * quebrava a cada reindentação, sem nada ter mudado de comportamento.
+   */
   it("o card do plano atual troca o CTA por um estado", () => {
     expect(componente).toContain("ehPlanoAtual && !temAssinatura ?");
     // O selo no topo do card…
     expect(componente).toContain("Seu plano atual");
     // …e o lugar onde estaria o botão.
-    expect(componente).toContain("              Plano atual\n");
+    const cta = componente.slice(
+      componente.indexOf("ehPlanoAtual && !temAssinatura ?"),
+      componente.indexOf(") : temAssinatura ? ("),
+    );
+    expect(cta).toMatch(/>\s*Plano atual\s*</);
+    expect(cta).not.toContain("<button");
   });
 
   it("e o outro card mantém o convite", () => {

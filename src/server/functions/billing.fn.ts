@@ -6,6 +6,7 @@ import { planoVendavel } from "../billing/precos-dos-planos";
 import {
   criarCheckout,
   criarPortal,
+  estadoDaAssinaturaNoStripe,
   resumoDaAssinatura,
 } from "../billing/subscription-service";
 
@@ -70,6 +71,46 @@ export const iniciarAssinaturaFn = createServerFn({ method: "POST" })
 
     if (!planoVendavel(data.plano)) {
       return { ok: false as const, error: "Este plano ainda não está disponível para contratação." };
+    }
+
+    /*
+     * ═══ UMA ASSINATURA POR LOJA — E A GUARDA É AQUI, NÃO NA TELA ═════════
+     *
+     * A tela já esconde o botão de quem assina, mas esconder não é impedir:
+     * uma chamada direta a esta função criaria a SEGUNDA assinatura. E o
+     * estrago passa do dobro da cobrança — `aplicarAssinatura` grava
+     * `stripeSubscriptionId` sem condição, então a nova sobrescreve o
+     * ponteiro da antiga, que continua cobrando no Stripe enquanto o sistema
+     * esquece que ela existe.
+     *
+     * TROCAR DE PLANO NÃO PASSA POR AQUI. Quem já assina troca pelo Portal,
+     * que sabe fazer o rateio; abrir outro checkout não trocaria nada, só
+     * somaria uma cobrança.
+     *
+     * QUEM CANCELOU PODE VOLTAR. `ENCERRADA` e `SEM_ASSINATURA` seguem em
+     * frente — recusar quem já foi cliente seria fechar a porta do próprio
+     * pagamento.
+     */
+    const assinatura = await estadoDaAssinaturaNoStripe(admin.storeId);
+
+    if (assinatura === "VIVA") {
+      return {
+        ok: false as const,
+        error:
+          "Sua loja já tem uma assinatura ativa. Para trocar de plano ou " +
+          "cancelar, use “Gerenciar assinatura”.",
+      };
+    }
+
+    if (assinatura === "INDETERMINADO") {
+      /*
+       * Não deu para conferir com o Stripe. Recusar custa uma tentativa;
+       * permitir custaria uma cobrança dupla no cartão do cliente.
+       */
+      return {
+        ok: false as const,
+        error: "Não conseguimos confirmar sua assinatura agora. Tente de novo em instantes.",
+      };
     }
 
     try {
