@@ -1,9 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { MailCheck, UtensilsCrossed } from "lucide-react";
+import { MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  BOTAO_DE_ACESSO,
+  CAMPO_DE_ACESSO,
+  PainelDeAcesso,
+} from "@/components/admin/acesso/PainelDeAcesso";
 import { requestPasswordResetFn } from "@/server/functions/password-reset.fn";
 
 export const Route = createFileRoute("/admin/esqueci-senha")({
@@ -27,47 +32,50 @@ function EsqueciSenhaPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <UtensilsCrossed className="size-10 text-[#E11D2E]" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Velnox.app</h1>
-            <p className="text-[10px] font-semibold tracking-widest text-[#E11D2E]">
-              RECUPERAR ACESSO
-            </p>
-          </div>
-        </div>
+    <PainelDeAcesso
+      frases={[
+        "Perdeu a senha? O painel continua seu.",
+        "Um link no e-mail e você volta para dentro.",
+        "Acontece com todo mundo. Leva um minuto.",
+      ]}
+      apoio="Mandamos um link para o e-mail da conta e você escolhe uma nova em minutos."
+    >
+      <p className="text-[10px] font-semibold tracking-[0.2em] text-[#E11D2E]">
+        RECUPERAR ACESSO
+      </p>
 
-        {enviado ? (
-          <div className="admin-theme space-y-4 rounded-2xl bg-white p-6 text-center text-neutral-900 shadow-xl">
-            <MailCheck className="mx-auto size-10 text-emerald-600" />
-            <p className="font-semibold">Se existir uma conta com esse e-mail, o link já saiu.</p>
-            <p className="text-sm text-neutral-600">
-              Confira a caixa de entrada de <strong>{email}</strong> — e o spam, que é onde esse
-              tipo de mensagem costuma parar. O link vale por 30 minutos.
-            </p>
-            <Link
-              to="/admin/login"
-              className="block text-sm font-semibold text-[#E11D2E] hover:underline"
-            >
-              Voltar para o login
-            </Link>
-          </div>
-        ) : (
-          <form
-            onSubmit={handleSubmit}
-            className="admin-theme space-y-4 rounded-2xl bg-white p-6 text-neutral-900 shadow-xl"
+      {enviado ? (
+        <div className="mt-3">
+          <MailCheck className="size-9 text-emerald-400" />
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-white">
+            O link já saiu
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+            Se existir uma conta com esse e-mail, o link está a caminho. Confira a caixa de
+            entrada de <strong className="text-neutral-200">{email}</strong> — e o spam, que é
+            onde esse tipo de mensagem costuma parar. O link vale por 30 minutos.
+          </p>
+          <Link
+            to="/admin/login"
+            className="mt-8 flex h-11 w-full items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-semibold text-white transition-colors hover:border-[#E11D2E]/60 hover:bg-[#E11D2E]/10"
           >
-            <div>
-              <h2 className="font-bold">Esqueceu a senha?</h2>
-              <p className="mt-1 text-sm text-neutral-600">
-                Informe o e-mail da sua conta e mandamos um link para você escolher uma nova.
-              </p>
-            </div>
+            Voltar para o login
+          </Link>
+        </div>
+      ) : (
+        <>
+          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            Esqueceu a senha?
+          </h1>
+          <p className="mt-2 text-sm text-neutral-400">
+            Informe o e-mail da sua conta e mandamos um link para você escolher uma nova.
+          </p>
 
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email" className="text-[13px] text-neutral-300">
+                E-mail
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -76,26 +84,24 @@ function EsqueciSenhaPage() {
                 required
                 autoComplete="email"
                 autoFocus
+                placeholder="seu@email.com"
+                className={CAMPO_DE_ACESSO}
               />
             </div>
 
-            <Button
-              type="submit"
-              disabled={pending}
-              className="w-full bg-[#E11D2E] text-white hover:bg-[#c4172a]"
-            >
+            <Button type="submit" disabled={pending} className={BOTAO_DE_ACESSO}>
               {pending ? "Enviando..." : "Enviar link"}
             </Button>
-
-            <Link
-              to="/admin/login"
-              className="block text-center text-sm text-neutral-500 hover:text-neutral-800"
-            >
-              Voltar para o login
-            </Link>
           </form>
-        )}
-      </div>
-    </div>
+
+          <Link
+            to="/admin/login"
+            className="mt-6 block text-center text-sm text-neutral-500 transition-colors hover:text-neutral-300"
+          >
+            Voltar para o login
+          </Link>
+        </>
+      )}
+    </PainelDeAcesso>
   );
 }

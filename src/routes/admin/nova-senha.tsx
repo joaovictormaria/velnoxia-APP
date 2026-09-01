@@ -1,16 +1,23 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import { CheckCircle2, UtensilsCrossed } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  BOTAO_DE_ACESSO,
+  CAMPO_DE_ACESSO,
+  PainelDeAcesso,
+} from "@/components/admin/acesso/PainelDeAcesso";
 import { resetPasswordFn } from "@/server/functions/password-reset.fn";
 
 export const Route = createFileRoute("/admin/nova-senha")({
   validateSearch: z.object({ token: z.string().optional() }),
   component: NovaSenhaPage,
 });
+
+const ROTULO = "text-[13px] text-neutral-300";
 
 function NovaSenhaPage() {
   const router = useRouter();
@@ -49,108 +56,117 @@ function NovaSenhaPage() {
     // bastante para merecer explicação em vez de um formulário que não envia.
     if (!token) {
       return (
-        <div className="space-y-3 text-center">
-          <h2 className="font-bold">Link incompleto</h2>
-          <p className="text-sm text-neutral-600">
+        <>
+          <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            Link incompleto
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-neutral-400">
             Este endereço veio sem o código de verificação — alguns aplicativos de e-mail cortam
             links longos. Abra o link direto da mensagem ou peça um novo.
           </p>
           <Link
             to="/admin/esqueci-senha"
-            className="block text-sm font-semibold text-[#E11D2E] hover:underline"
+            className="mt-8 flex h-11 w-full items-center justify-center rounded-xl border border-white/15 px-4 text-sm font-semibold text-white transition-colors hover:border-[#E11D2E]/60 hover:bg-[#E11D2E]/10"
           >
             Pedir um novo link
           </Link>
-        </div>
+        </>
       );
     }
 
     if (pronto) {
       return (
-        <div className="space-y-3 text-center">
-          <CheckCircle2 className="mx-auto size-10 text-emerald-600" />
-          <h2 className="font-bold">Senha trocada</h2>
-          <p className="text-sm text-neutral-600">
+        <>
+          <CheckCircle2 className="mt-3 size-9 text-emerald-400" />
+          <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-white">
+            Senha trocada
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-neutral-400">
             Já pode entrar com a senha nova. Este link não vale mais.
           </p>
           <Button
             type="button"
             onClick={() => router.navigate({ to: "/admin/login" })}
-            className="w-full bg-[#E11D2E] text-white hover:bg-[#c4172a]"
+            className={`mt-8 ${BOTAO_DE_ACESSO}`}
           >
             Ir para o login
           </Button>
-        </div>
+        </>
       );
     }
 
     return (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <h2 className="font-bold">Escolha uma nova senha</h2>
-          <p className="mt-1 text-sm text-neutral-600">
-            Depois de trocar, este link deixa de funcionar.
-          </p>
-        </div>
+      <>
+        <h1 className="mt-3 font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          Escolha uma nova senha
+        </h1>
+        <p className="mt-2 text-sm text-neutral-400">
+          Depois de trocar, este link deixa de funcionar.
+        </p>
 
-        <div className="space-y-2">
-          <Label htmlFor="password">Nova senha</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            autoComplete="new-password"
-            autoFocus
-          />
-          <p className="text-xs text-neutral-500">Pelo menos 8 caracteres.</p>
-        </div>
+        <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="password" className={ROTULO}>
+              Nova senha
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              autoFocus
+              className={CAMPO_DE_ACESSO}
+            />
+            <p className="text-xs text-neutral-500">Pelo menos 8 caracteres.</p>
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="confirmacao">Repita a nova senha</Label>
-          <Input
-            id="confirmacao"
-            type="password"
-            value={confirmacao}
-            onChange={(e) => setConfirmacao(e.target.value)}
-            required
-            minLength={8}
-            autoComplete="new-password"
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmacao" className={ROTULO}>
+              Repita a nova senha
+            </Label>
+            <Input
+              id="confirmacao"
+              type="password"
+              value={confirmacao}
+              onChange={(e) => setConfirmacao(e.target.value)}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              className={CAMPO_DE_ACESSO}
+            />
+          </div>
 
-        {error && <p className="text-sm text-[#E11D2E]">{error}</p>}
+          {error && (
+            <p
+              role="alert"
+              className="rounded-xl border border-[#E11D2E]/30 bg-[#E11D2E]/10 px-3 py-2 text-sm text-[#FF8A94]"
+            >
+              {error}
+            </p>
+          )}
 
-        <Button
-          type="submit"
-          disabled={pending}
-          className="w-full bg-[#E11D2E] text-white hover:bg-[#c4172a]"
-        >
-          {pending ? "Trocando..." : "Trocar senha"}
-        </Button>
-      </form>
+          <Button type="submit" disabled={pending} className={BOTAO_DE_ACESSO}>
+            {pending ? "Trocando..." : "Trocar senha"}
+          </Button>
+        </form>
+      </>
     );
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <UtensilsCrossed className="size-10 text-[#E11D2E]" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Velnox.app</h1>
-            <p className="text-[10px] font-semibold tracking-widest text-[#E11D2E]">
-              NOVA SENHA
-            </p>
-          </div>
-        </div>
-
-        <div className="admin-theme rounded-2xl bg-white p-6 text-neutral-900 shadow-xl">
-          {conteudo()}
-        </div>
-      </div>
-    </div>
+    <PainelDeAcesso
+      frases={[
+        "Uma senha nova, e o painel volta a ser seu.",
+        "Escolha a senha e siga o dia.",
+        "Só você precisa saber a próxima.",
+      ]}
+      apoio="Depois de trocar, o link do e-mail deixa de funcionar."
+    >
+      <p className="text-[10px] font-semibold tracking-[0.2em] text-[#E11D2E]">NOVA SENHA</p>
+      {conteudo()}
+    </PainelDeAcesso>
   );
 }

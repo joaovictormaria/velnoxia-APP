@@ -1,9 +1,13 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { UtensilsCrossed } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  BOTAO_DE_ACESSO,
+  CAMPO_DE_ACESSO_COMPACTO,
+  PainelDeAcesso,
+} from "@/components/admin/acesso/PainelDeAcesso";
 import { createStoreAccountFn } from "@/server/functions/signup.fn";
 import { mensagemDoErro } from "@/lib/erro-do-servidor";
 import { BUSINESS_TYPE_OPTIONS, DEFAULT_BUSINESS_TYPE } from "@/server/catalog/starter-catalogs";
@@ -18,6 +22,12 @@ import {
 export const Route = createFileRoute("/admin/cadastro")({
   component: SignupPage,
 });
+
+/** O rótulo dos campos, no tom claro que o painel escuro pede. */
+const ROTULO = "text-[13px] text-neutral-300";
+
+/** A linha de ajuda embaixo de um campo. */
+const AJUDA = "text-xs text-neutral-500";
 
 function SignupPage() {
   const router = useRouter();
@@ -173,131 +183,162 @@ function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-950 px-4 py-10">
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <UtensilsCrossed className="size-10 text-[#E11D2E]" />
-          <div>
-            <h1 className="text-2xl font-bold text-white">Crie a conta da sua lanchonete</h1>
-            <p className="mt-1 text-sm text-neutral-400">
-              Cardápio digital e painel de pedidos. 14 dias grátis, sem cartão.
-            </p>
-          </div>
+    <PainelDeAcesso
+      frases={[
+        "Sua lanchonete no ar em poucos minutos.",
+        "O cardápio já nasce pronto para o seu ramo.",
+        "Quatorze dias para testar, sem cartão.",
+        "Comece hoje e ajuste o resto depois.",
+      ]}
+      apoio="Cardápio digital, painel de pedidos e controle de estoque desde o primeiro dia."
+      // O formulário é longo: a coluna dele ganha um pouco mais de largura que
+      // a do login, senão sete campos empilhados viram um corredor estreito.
+      proporcao="lg:grid-cols-[1.35fr_1fr]"
+      larguraDoConteudo="max-w-md"
+      altura="lg:h-[min(92vh,940px)]"
+    >
+      <p className="text-[10px] font-semibold tracking-[0.2em] text-[#E11D2E]">
+        14 DIAS GRÁTIS, SEM CARTÃO
+      </p>
+      <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-white">
+        Crie a conta da sua lanchonete
+      </h1>
+      <p className="mt-1.5 text-sm text-neutral-400">
+        Cardápio digital e painel de pedidos, prontos para usar.
+      </p>
+
+      {contaSemSessao && (
+        <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+          <p className="font-semibold">Conta criada.</p>
+          <p className="mt-1 text-emerald-200/80">
+            Não conseguimos abrir sua sessão automaticamente — sua conta está pronta e você já
+            pode entrar com o e-mail e a senha que acabou de cadastrar.
+          </p>
+          <Link
+            to="/admin/login"
+            className="mt-3 inline-block font-semibold text-emerald-200 underline"
+          >
+            Ir para o login
+          </Link>
+        </div>
+      )}
+
+      {/* Campos curtos vão em pares. São sete no total: empilhados um a um o
+          formulário passa da altura do painel e nasce com barra de rolagem. */}
+      <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="storeName" className={ROTULO}>
+            Nome da lanchonete
+          </Label>
+          <Input
+            id="storeName"
+            value={storeName}
+            onChange={(e) => setStoreName(e.target.value)}
+            required
+            minLength={2}
+            placeholder="Lanche do Zé"
+            className={CAMPO_DE_ACESSO_COMPACTO}
+          />
         </div>
 
-        {contaSemSessao && (
-          <div className="mb-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
-            <p className="font-semibold">Conta criada.</p>
-            <p className="mt-1">
-              Não conseguimos abrir sua sessão automaticamente — sua conta está
-              pronta e você já pode entrar com o e-mail e a senha que acabou de
-              cadastrar.
-            </p>
-            <Link
-              to="/admin/login"
-              className="mt-3 inline-block font-semibold text-emerald-900 underline"
-            >
-              Ir para o login
-            </Link>
-          </div>
-        )}
+        <div className="space-y-1.5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="businessType" className={ROTULO}>
+                O que você vende
+              </Label>
+              {/* O select nativo herda as cores do sistema na lista aberta,
+                  então as opções também precisam do fundo escuro — no Windows
+                  elas saem brancas se só o campo for pintado. */}
+              <select
+                id="businessType"
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                aria-describedby="businessType-ajuda"
+                className="h-10 w-full rounded-xl border border-white/10 bg-white/4 px-3 text-base text-white transition-colors focus-visible:border-[#E11D2E] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E11D2E]/40 md:text-sm [&>option]:bg-[#141515] [&>option]:text-white"
+              >
+                {BUSINESS_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="admin-theme space-y-4 rounded-2xl bg-white p-6 text-neutral-900 shadow-xl"
-        >
-          <div className="space-y-2">
-            <Label htmlFor="storeName">Nome da lanchonete</Label>
-            <Input
-              id="storeName"
-              value={storeName}
-              onChange={(e) => setStoreName(e.target.value)}
-              required
-              minLength={2}
-              placeholder="Lanche do Zé"
-            />
-          </div>
-
-
-          <div className="space-y-2">
-            <Label htmlFor="businessType">O que você vende</Label>
-            <select
-              id="businessType"
-              value={businessType}
-              onChange={(e) => setBusinessType(e.target.value)}
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-            >
-              {BUSINESS_TYPE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-neutral-500">
-              Seu cardápio já nasce com categorias e itens desse ramo — é só ajustar depois.
-            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="whatsappNumber" className={ROTULO}>
+                WhatsApp da loja
+              </Label>
+              <Input
+                id="whatsappNumber"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                required
+                placeholder="(11) 99999-9999"
+                className={CAMPO_DE_ACESSO_COMPACTO}
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="whatsappNumber">WhatsApp da loja</Label>
-            <Input
-              id="whatsappNumber"
-              value={whatsappNumber}
-              onChange={(e) => setWhatsappNumber(e.target.value)}
-              required
-              placeholder="(11) 99999-9999"
-            />
-          </div>
+          {/* A ajuda do ramo fica embaixo do par inteiro: dentro da meia coluna
+              ela quebraria em três linhas e comeria a altura que o par economiza. */}
+          <p id="businessType-ajuda" className={AJUDA}>
+            Seu cardápio já nasce com categorias e itens desse ramo — é só ajustar depois.
+          </p>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="document">CPF ou CNPJ</Label>
-            <Input
-              ref={documentRef}
-              id="document"
-              value={formatDocumentInput(document)}
-              onChange={aoDigitarDocumento}
-              onInvalid={(e) => conferirValidade(e.currentTarget, document)}
-              required
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="000.000.000-00"
-              aria-invalid={documentoInvalido || undefined}
-              aria-describedby="document-ajuda"
-              className={
-                documentoInvalido
-                  ? "border-red-400 focus-visible:ring-red-400"
-                  : documentoOk
-                    ? "border-emerald-500 focus-visible:ring-emerald-500"
-                    : undefined
-              }
-            />
-            <p
-              id="document-ajuda"
-              className={
-                documentoInvalido ? "text-xs text-red-600" : "text-xs text-neutral-500"
-              }
-            >
-              {documentoInvalido
-                ? "Informe um CPF ou CNPJ válido."
-                : "Pode ser o seu CPF ou o CNPJ da empresa. A máscara se ajusta sozinha."}
-            </p>
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="document" className={ROTULO}>
+            CPF ou CNPJ
+          </Label>
+          <Input
+            ref={documentRef}
+            id="document"
+            value={formatDocumentInput(document)}
+            onChange={aoDigitarDocumento}
+            onInvalid={(e) => conferirValidade(e.currentTarget, document)}
+            required
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="000.000.000-00"
+            aria-invalid={documentoInvalido || undefined}
+            aria-describedby="document-ajuda"
+            className={
+              documentoInvalido
+                ? `${CAMPO_DE_ACESSO_COMPACTO} border-red-500/70 focus-visible:border-red-500 focus-visible:ring-red-500/40`
+                : documentoOk
+                  ? `${CAMPO_DE_ACESSO_COMPACTO} border-emerald-500/70 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/40`
+                  : CAMPO_DE_ACESSO_COMPACTO
+            }
+          />
+          <p id="document-ajuda" className={documentoInvalido ? "text-xs text-red-400" : AJUDA}>
+            {documentoInvalido
+              ? "Informe um CPF ou CNPJ válido."
+              : "Pode ser o seu CPF ou o CNPJ da empresa. A máscara se ajusta sozinha."}
+          </p>
+        </div>
 
-          <hr className="border-neutral-200" />
+        <hr className="border-white/10" />
 
-          <div className="space-y-2">
-            <Label htmlFor="adminName">Seu nome</Label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="adminName" className={ROTULO}>
+              Seu nome
+            </Label>
             <Input
               id="adminName"
               value={adminName}
               onChange={(e) => setAdminName(e.target.value)}
               required
               minLength={2}
+              className={CAMPO_DE_ACESSO_COMPACTO}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Seu e-mail</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className={ROTULO}>
+              Seu e-mail
+            </Label>
             <Input
               id="email"
               type="email"
@@ -305,42 +346,52 @@ function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              placeholder="seu@email.com"
+              className={CAMPO_DE_ACESSO_COMPACTO}
             />
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
-            <p className="text-xs text-neutral-500">Mínimo de 8 caracteres.</p>
-          </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className={ROTULO}>
+            Senha
+          </Label>
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={8}
+            autoComplete="new-password"
+            className={CAMPO_DE_ACESSO_COMPACTO}
+          />
+          <p className={AJUDA}>Mínimo de 8 caracteres.</p>
+        </div>
 
-          {error && <p className="text-sm text-[#E11D2E]">{error}</p>}
-
-          <Button
-            type="submit"
-            disabled={pending}
-            className="w-full bg-[#E11D2E] text-white hover:bg-[#c4172a]"
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl border border-[#E11D2E]/30 bg-[#E11D2E]/10 px-3 py-2 text-sm text-[#FF8A94]"
           >
-            {pending ? "Criando sua loja..." : "Criar conta grátis"}
-          </Button>
-
-          <p className="text-center text-sm text-neutral-600">
-            Já tem conta?{" "}
-            <Link to="/admin/login" className="font-semibold text-[#E11D2E] hover:underline">
-              Entrar
-            </Link>
+            {error}
           </p>
-        </form>
-      </div>
-    </div>
+        )}
+
+        <Button type="submit" disabled={pending} className={BOTAO_DE_ACESSO}>
+          {pending ? "Criando sua loja..." : "Criar conta grátis"}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-neutral-500">
+        Já tem conta?{" "}
+        <Link
+          to="/admin/login"
+          className="font-semibold text-[#E11D2E] transition-colors hover:text-[#ff4d5e]"
+        >
+          Entrar
+        </Link>
+      </p>
+    </PainelDeAcesso>
   );
 }
-
