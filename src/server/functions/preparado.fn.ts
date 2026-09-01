@@ -162,6 +162,23 @@ export const adminAtualizarReceitaDePreparado = createServerFn({ method: "POST" 
     );
   });
 
+/**
+ * Tira um preparado da lista.
+ *
+ * Desativação, não `DELETE` — o histórico de produção e os movimentos que
+ * explicam o saldo continuam de pé. Quem decide se pode, e por quê, é
+ * `CompositionService.excluirPreparado`; aqui só se autentica e delega.
+ */
+export const adminExcluirPreparado = createServerFn({ method: "POST" })
+  .validator(z.object({ inventoryItemId: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    const admin = await exigirRecurso("PRODUCAO");
+    const { CompositionService } = await import("@/server/services/composition-service");
+    return numeros(
+      await CompositionService.excluirPreparado(admin.storeId, data.inventoryItemId),
+    );
+  });
+
 export const adminProduzir = createServerFn({ method: "POST" })
   .validator(
     z.object({

@@ -479,6 +479,111 @@ export class CompositionService {
     }
   }
 
+  /**
+   * ═════════════════════════════════════════════════════════════════════════
+   *  EXCLUIR UM PREPARADO
+   * ═════════════════════════════════════════════════════════════════════════
+   *
+   * É DESATIVAÇÃO, e não `DELETE`. `InventoryItem` não tem `deletedAt`; quem
+   * decide o que aparece na aba é `isActive`, e `adminListarPreparados` já
+   * filtra por ele. Apagar de verdade levaria junto o histórico: os
+   * `InventoryMovement` que explicam o saldo de hoje e as `ProductionRun` que
+   * dizem quanto custou produzir. Um custo de venda apurado no mês passado
+   * deixaria de ter de onde vir.
+   *
+   * A receita do preparado é desativada junto. Deixá-la ativa manteria uma
+   * ficha técnica apontando para um item que não está mais na lista — e a
+   * próxima produção a encontraria.
+   *
+   * ⚠️ TRÊS SITUAÇÕES EM QUE ELE RECUSA, e cada uma por um motivo diferente:
+   *
+   *   1. TEM SALDO. Sumir com um item que tem 8 kg em estoque não faz os 8 kg
+   *      deixarem de existir — faz eles deixarem de ser contados. O valor do
+   *      inventário cairia sem nenhum movimento que explicasse a queda.
+   *
+   *   2. TEM RESERVA. Há pedido aberto contando com ele. A reserva só se
+   *      desfaz quando o pedido fecha ou é cancelado; desativar agora deixaria
+   *      a reserva presa para sempre, e o consumo não teria o que baixar.
+   *
+   *   3. É INGREDIENTE DE OUTRA FICHA. Algum produto do cardápio usa este
+   *      preparado. Sem ele, aquela ficha perde uma parcela do custo — e não
+   *      dá erro: o produto simplesmente passa a parecer mais barato do que é,
+   *      e a margem que a loja lê fica errada.
+   *
+   * Nos três casos a recusa diz O QUE fazer, porque em todos há saída: dar
+   * baixa, fechar o pedido, tirar da outra ficha.
+   */
+  static async excluirPreparado(storeId: string, inventoryItemId: string) {
+    const item = await prisma.inventoryItem.findFirst({
+      /*
+       * `storeId` no `where`, e não conferido depois. É a mesma regra de
+       * isolamento do resto do módulo: a loja A não enxerga o id da loja B, e
+       * a consulta que não acha devolve "não encontrado" — sem revelar que o
+       * id existe em outro lugar.
+       */
+      where: { id: inventoryItemId, storeId, itemType: "PREPARED" },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        quantityOnHand: true,
+        quantityReserved: true,
+      },
+    });
+    if (!item) throw new Error("Preparado não encontrado.");
+
+    if (!item.quantityOnHand.equals(0)) {
+      throw new Error(
+        `"${item.name}" ainda tem saldo em estoque. Dê baixa por perda ou consumo antes de excluir.`,
+      );
+    }
+
+    if (item.quantityReserved.greaterThan(0)) {
+      throw new Error(
+        `"${item.name}" está reservado para pedidos em aberto. Feche ou cancele esses pedidos antes de excluir.`,
+      );
+    }
+
+    /*
+     * Só as fichas ATIVAS bloqueiam. Uma versão antiga e desativada de uma
+     * receita é histórico — ela não vai ser usada em nenhuma venda nova, e
+     * exigir que a loja limpe versões velhas para poder excluir um preparado
+     * seria pedir arqueologia por nada.
+     */
+    const emUso = await prisma.compositionItem.findFirst({
+      where: {
+        inventoryItemId: item.id,
+        composition: { storeId, isActive: true },
+      },
+      select: { composition: { select: { product: { select: { name: true } } } } },
+    });
+    if (emUso) {
+      const onde = emUso.composition?.product?.name;
+      throw new Error(
+        onde
+          ? `"${item.name}" é ingrediente da ficha de "${onde}". Tire ele de lá antes de excluir.`
+          : `"${item.name}" é ingrediente da ficha técnica de outro produto. Tire ele de lá antes de excluir.`,
+      );
+    }
+
+    /*
+     * Item e receita na MESMA transação. Separados, uma queda no meio deixaria
+     * o preparado fora da lista com a receita ainda ativa — invisível de
+     * consertar pela tela, porque a tela só mostra o que está ativo.
+     */
+    return prisma.$transaction(async (tx) => {
+      await tx.productComposition.updateMany({
+        where: { storeId, inventoryItemId: item.id, isActive: true },
+        data: { isActive: false },
+      });
+      await tx.inventoryItem.update({
+        where: { id: item.id },
+        data: { isActive: false },
+      });
+      return { id: item.id, nome: item.name };
+    });
+  }
+
   /** A receita que vale para um preparado agora. */
   static async receitaAtivaDoPreparado(storeId: string, inventoryItemId: string) {
     return prisma.productComposition.findFirst({

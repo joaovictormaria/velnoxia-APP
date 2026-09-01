@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Trash2, X } from "lucide-react";
 import {
   converterParaUnidadeBase,
   montarMapaDeConversoes,
@@ -12,7 +13,16 @@ import {
   adminProduzir,
   adminHistoricoDeProducao,
   adminReverterProducao,
+  adminExcluirPreparado,
 } from "@/server/functions/preparado.fn";
+import {
+  botaoPrimario,
+  botaoSecundario,
+  campo,
+  estiloDaSeta,
+  rotulo,
+  selecao,
+} from "./campos";
 
 /**
  * A aba Preparados.
@@ -163,7 +173,7 @@ export function PreparadosTab() {
         <button
           onClick={() => setCriando(true)}
           disabled={ocupado}
-          className="px-4 py-2 rounded bg-neutral-900 text-white text-sm disabled:opacity-50"
+          className={botaoPrimario}
         >
           + Novo preparado
         </button>
@@ -181,7 +191,7 @@ export function PreparadosTab() {
           massa, recheio — e que entra na ficha dos produtos do cardápio.
         </div>
       ) : (
-        <div className="overflow-x-auto border rounded">
+        <div className="overflow-x-auto rounded-xl border border-neutral-200">
           <table className="w-full text-sm">
             <thead className="bg-neutral-50 text-neutral-600">
               <tr>
@@ -236,25 +246,61 @@ export function PreparadosTab() {
                       <span className="text-neutral-400">sem receita</span>
                     )}
                   </td>
-                  <td className="p-3 text-right whitespace-nowrap">
-                    {p.receita && (
-                      <>
-                        <button
-                          onClick={() => setProduzindo(p)}
-                          disabled={ocupado}
-                          className="px-3 py-1 rounded bg-neutral-900 text-white text-xs mr-2 disabled:opacity-50"
-                        >
-                          Produzir
-                        </button>
-                        <button
-                          onClick={() => setEditandoFicha(p)}
-                          disabled={ocupado}
-                          className="px-3 py-1 rounded border text-xs disabled:opacity-50"
-                        >
-                          Ficha
-                        </button>
-                      </>
-                    )}
+                  <td className="p-3 whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-2">
+                      {p.receita && (
+                        <>
+                          <button
+                            onClick={() => setProduzindo(p)}
+                            disabled={ocupado}
+                            className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-neutral-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 disabled:opacity-50 motion-reduce:transition-none"
+                          >
+                            Produzir
+                          </button>
+                          <button
+                            onClick={() => setEditandoFicha(p)}
+                            disabled={ocupado}
+                            className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 disabled:opacity-50 motion-reduce:transition-none"
+                          >
+                            Ficha
+                          </button>
+                        </>
+                      )}
+                      {/*
+                        EXCLUIR APARECE MESMO SEM RECEITA — e é justamente aí
+                        que ele fazia mais falta. Um preparado cadastrado sem
+                        ficha não tinha nenhum botão na linha: não dava para
+                        produzir, não dava para editar e não dava para tirar da
+                        lista. Ficava lá, para sempre.
+
+                        Quem decide se PODE excluir é o servidor: saldo,
+                        reserva e uso na ficha de outro produto são recusados lá,
+                        com a explicação do que fazer antes. Aqui só se confirma
+                        e se mostra o que voltou.
+                      */}
+                      <button
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              `Excluir "${p.nome}"? O histórico de produção é preservado.`,
+                            )
+                          ) {
+                            return;
+                          }
+                          await executar(() =>
+                            adminExcluirPreparado({
+                              data: { inventoryItemId: p.id },
+                            } as any),
+                          );
+                        }}
+                        disabled={ocupado}
+                        aria-label={`Excluir ${p.nome}`}
+                        title="Excluir"
+                        className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 disabled:opacity-50 motion-reduce:transition-none"
+                      >
+                        <Trash2 className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -334,15 +380,32 @@ export function PreparadosTab() {
 
 function Modal(props: { titulo: string; children: React.ReactNode; onFechar: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h3 className="font-bold">{props.titulo}</h3>
-          <button onClick={props.onFechar} className="text-neutral-500 text-xl leading-none">
-            ×
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+      {/*
+        NO CELULAR ELE SOBE DE BAIXO e ocupa a largura toda; a partir de 640px
+        vira a caixa centralizada de sempre. Um modal centralizado com margem
+        em 360px sobra pouca largura para campos que já são estreitos.
+      */}
+      <div className="flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-h-[90vh] sm:rounded-2xl">
+        {/*
+          O CABEÇALHO NÃO ROLA JUNTO. A ficha de preparado é longa — insumos,
+          rendimento, prévia de custo —, e ao rolar até o fim some tanto o
+          título quanto o botão de fechar.
+        */}
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-neutral-200 px-5 py-4">
+          <h3 className="font-display text-base font-bold text-neutral-900">
+            {props.titulo}
+          </h3>
+          <button
+            type="button"
+            onClick={props.onFechar}
+            aria-label="Fechar"
+            className="-mr-1.5 shrink-0 rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 motion-reduce:transition-none"
+          >
+            <X className="size-4" aria-hidden="true" />
           </button>
         </div>
-        <div className="p-4">{props.children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{props.children}</div>
       </div>
     </div>
   );
@@ -502,14 +565,14 @@ function FichaDePreparado(props: {
         {!editando && (
           <>
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className={rotulo}>
                 Nome do preparado *
               </label>
               <input
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
                 placeholder="Molho de tomate"
-                className="w-full px-3 py-2 border rounded"
+                className={campo}
               />
               <p className="text-xs text-neutral-600 mt-1">
                 Como você chama o que está sendo produzido. Ex.: Molho de
@@ -518,13 +581,13 @@ function FichaDePreparado(props: {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className={rotulo}>
                 Unidade do preparado *
               </label>
               <select
                 value={baseUnitId}
                 onChange={(e) => setBaseUnitId(e.target.value)}
-                className="w-full px-3 py-2 border rounded"
+                className={campo}
               >
                 {props.unidades.map((u) => (
                   <option key={u.id} value={u.id}>
@@ -551,7 +614,7 @@ function FichaDePreparado(props: {
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-1">
+          <label className={rotulo}>
             O que é usado para fazer este preparado? *
           </label>
           <p className="text-xs text-neutral-600 mb-2">
@@ -571,7 +634,7 @@ function FichaDePreparado(props: {
                 <select
                   value={l.inventoryItemId}
                   onChange={(e) => trocarLinha(idx, "inventoryItemId", e.target.value)}
-                  className="col-span-6 px-2 py-2 border rounded text-sm"
+                  className={`${selecao} col-span-6 px-2 pr-8`} style={estiloDaSeta}
                 >
                   <option value="">Selecione…</option>
                   {props.insumos
@@ -588,12 +651,12 @@ function FichaDePreparado(props: {
                   value={l.quantidade}
                   onChange={(e) => trocarLinha(idx, "quantidade", e.target.value)}
                   placeholder="0"
-                  className="col-span-3 px-2 py-2 border rounded text-sm text-right"
+                  className={`${campo} col-span-3 px-2 text-right`}
                 />
                 <select
                   value={l.unitId}
                   onChange={(e) => trocarLinha(idx, "unitId", e.target.value)}
-                  className="col-span-2 px-2 py-2 border rounded text-sm"
+                  className={`${selecao} col-span-2 px-2 pr-8`} style={estiloDaSeta}
                 >
                   {props.unidades.map((u) => (
                     <option key={u.id} value={u.id}>{u.code}</option>
@@ -619,7 +682,7 @@ function FichaDePreparado(props: {
         </div>
 
         <div className="p-3 bg-neutral-50 rounded">
-          <label className="block text-sm font-medium mb-1">
+          <label className={rotulo}>
             Quanto esta receita produz? *
           </label>
           <p className="text-xs text-neutral-600 mb-2">
@@ -633,12 +696,12 @@ function FichaDePreparado(props: {
               value={rendimento}
               onChange={(e) => setRendimento(e.target.value)}
               placeholder="4"
-              className="w-32 px-3 py-2 border rounded text-right"
+              className={`${campo} w-32 text-right`}
             />
             <select
               value={yieldUnitId}
               onChange={(e) => setYieldUnitId(e.target.value)}
-              className="px-3 py-2 border rounded"
+              className={selecao} style={estiloDaSeta}
             >
               {props.unidades.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -712,13 +775,13 @@ function FichaDePreparado(props: {
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={props.onCancelar} className="px-4 py-2 border rounded text-sm">
+          <button onClick={props.onCancelar} className={botaoSecundario}>
             Cancelar
           </button>
           <button
             onClick={salvar}
             disabled={!podeSalvar || props.ocupado}
-            className="px-4 py-2 rounded bg-neutral-900 text-white text-sm disabled:opacity-50"
+            className={botaoPrimario}
           >
             {props.ocupado ? "Salvando…" : "Salvar"}
           </button>
@@ -793,23 +856,23 @@ function ProducaoForm(props: {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">Planejado *</label>
+            <label className={rotulo}>Planejado *</label>
             <input
               type="number" step="0.0001" value={planejado}
               onChange={(e) => setPlanejado(e.target.value)}
-              className="w-full px-3 py-2 border rounded text-right"
+              className={`${campo} text-right`}
             />
             <p className="text-xs text-neutral-600 mt-1">
               Escala os insumos: o dobro gasta o dobro.
             </p>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Produzido *</label>
+            <label className={rotulo}>Produzido *</label>
             <input
               type="number" step="0.0001" value={produzido}
               onChange={(e) => setProduzido(e.target.value)}
               placeholder={planejado}
-              className="w-full px-3 py-2 border rounded text-right"
+              className={`${campo} text-right`}
             />
             <p className="text-xs text-neutral-600 mt-1">
               O que saiu da balança, não o que a receita prometia.
@@ -833,11 +896,11 @@ function ProducaoForm(props: {
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-1">Perda declarada (opcional)</label>
+          <label className={rotulo}>Perda declarada (opcional)</label>
           <input
             type="number" step="0.0001" min="0" value={perda}
             onChange={(e) => setPerda(e.target.value)}
-            className="w-40 px-3 py-2 border rounded text-right"
+            className={`${campo} w-40 text-right`}
           />
           <p className="text-xs text-neutral-600 mt-1">
             O que se perdeu depois de pronto. A merma da própria receita não vai
@@ -846,15 +909,15 @@ function ProducaoForm(props: {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Observação (opcional)</label>
+          <label className={rotulo}>Observação (opcional)</label>
           <input
             value={nota} onChange={(e) => setNota(e.target.value)}
-            className="w-full px-3 py-2 border rounded"
+            className={campo}
           />
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={props.onCancelar} className="px-4 py-2 border rounded text-sm">
+          <button onClick={props.onCancelar} className={botaoSecundario}>
             Cancelar
           </button>
           <button
@@ -869,7 +932,7 @@ function ProducaoForm(props: {
               })
             }
             disabled={!(p > 0) || !(q > 0) || props.ocupado}
-            className="px-4 py-2 rounded bg-neutral-900 text-white text-sm disabled:opacity-50"
+            className={botaoPrimario}
           >
             {props.ocupado ? "Produzindo…" : "Produzir"}
           </button>
@@ -890,7 +953,7 @@ function HistoricoDeProducao(props: {
   return (
     <div>
       <h3 className="font-bold mb-2">Histórico de produção</h3>
-      <div className="overflow-x-auto border rounded">
+      <div className="overflow-x-auto rounded-xl border border-neutral-200">
         <table className="w-full text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
