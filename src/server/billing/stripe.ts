@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { planoVendavel } from "./precos-dos-planos";
 
 /**
  * O Stripe, criado só quando alguém precisa dele.
@@ -18,15 +19,17 @@ export function stripe(): Stripe {
   return cliente;
 }
 
-/** Se dá para cobrar. Falso em desenvolvimento sem chave, e a tela avisa. */
+/**
+ * Se dá para cobrar. Falso em desenvolvimento sem chave, e a tela avisa.
+ *
+ * O preço não é mais lido aqui: quem sabe qual Price pertence a qual plano é
+ * `precos-dos-planos.ts`, e é ele quem responde se o Premium — o plano que a
+ * tela de assinatura vende hoje — tem Price configurado. O `STRIPE_PRICE_ID`
+ * antigo continua servindo de reserva lá dentro, então nenhuma instalação que
+ * cobrava ontem deixa de cobrar hoje.
+ */
 export function cobrancaConfigurada(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY?.trim() && process.env.STRIPE_PRICE_ID?.trim());
-}
-
-export function precoDaAssinatura(): string {
-  const preco = process.env.STRIPE_PRICE_ID?.trim();
-  if (!preco) throw new Error("STRIPE_PRICE_ID não está configurada.");
-  return preco;
+  return Boolean(process.env.STRIPE_SECRET_KEY?.trim()) && planoVendavel("PREMIUM");
 }
 
 export function segredoDoWebhook(): string {

@@ -1,7 +1,9 @@
 import type Stripe from "stripe";
 import { prisma } from "../db/client";
 import { baseUrlDoApp } from "../mail/resend";
-import { precoDaAssinatura, stripe } from "./stripe";
+import type { Plano } from "@/lib/planos/tipos";
+import { planoDaAssinatura, precoDoPlano } from "./precos-dos-planos";
+import { stripe } from "./stripe";
 
 /**
  * A assinatura mensal da loja.
@@ -68,15 +70,27 @@ async function clienteDaLoja(storeId: string): Promise<string> {
   return cliente.id;
 }
 
-/** A tela de pagamento hospedada pelo Stripe. Devolve para onde mandar o dono. */
-export async function criarCheckout(storeId: string): Promise<string> {
+/**
+ * A tela de pagamento hospedada pelo Stripe. Devolve para onde mandar o dono.
+ *
+ * O PLANO É PARÂMETRO, e o padrão é PREMIUM — que é exatamente o que a tela de
+ * assinatura vende hoje, com o Price de sempre. Nada muda para quem já usa.
+ *
+ * O dia em que existir uma tela de preços, ela passa `"BASIC"` aqui e o
+ * checkout cobra o Price do BASIC. Nenhuma outra peça precisa mudar: quem
+ * traduz plano em Price é `precoDoPlano`, e ele já sabe os dois.
+ */
+export async function criarCheckout(
+  storeId: string,
+  plano: Plano = "PREMIUM",
+): Promise<string> {
   const customer = await clienteDaLoja(storeId);
   const base = baseUrlDoApp();
 
   const sessao = await stripe().checkout.sessions.create({
     mode: "subscription",
     customer,
-    line_items: [{ price: precoDaAssinatura(), quantity: 1 }],
+    line_items: [{ price: precoDoPlano(plano), quantity: 1 }],
     // Os dois caminhos de volta. O sucesso não libera nada sozinho: quem
     // libera é o webhook. Esta tela só diz que deu certo.
     success_url: `${base}/admin/assinatura?pago=1`,
@@ -136,6 +150,41 @@ export async function aplicarAssinatura(sub: Stripe.Subscription): Promise<strin
   const viva = VIVAS.has(sub.status);
   const ate = fimDoPeriodo(sub);
 
+  /*
+   * ═══ O PLANO CONTRATADO ════════════════════════════════════════════════
+   *
+   * Vem do Price do item da assinatura, traduzido pela fonte central. É a
+   * única escrita de `Store.plan` no sistema inteiro.
+   *
+   * PLANO NÃO É ACESSO, e a distinção é a mesma que sustenta o resto da
+   * arquitetura: `paidUntil` e `status` dizem se a loja pode entrar; `plan`
+   * diz o que ela contratou. Uma assinatura cancelada continua sabendo qual
+   * era o plano — cancelar não apaga o histórico, e não existe regra de
+   * rebaixamento aqui.
+   *
+   * PRICE DESCONHECIDO NÃO CLASSIFICA NADA. `planoDaAssinatura` devolve
+   * `null` quando o Price não é nenhum dos dois configurados, e `undefined`
+   * no Prisma significa NÃO MEXER NA COLUNA — não é `null`, não é BASIC por
+   * padrão e não é rebaixamento. Uma variável de ambiente esquecida num
+   * deploy deixa o plano exatamente como estava, em vez de degradar quem
+   * paga. O resto do evento (data, status, ids) continua sendo gravado
+   * normalmente: o pagamento é fato, e não depende de a tradução ter
+   * funcionado.
+   */
+  const plano = planoDaAssinatura(sub);
+  if (plano === null) {
+    /*
+     * Log sem o Price e sem a chave: o identificador do Price não é segredo
+     * criptográfico, mas também não precisa entrar no log de produção para
+     * este aviso cumprir a função. O id da assinatura basta para achar o
+     * caso no painel do Stripe.
+     */
+    console.warn(
+      `[stripe] assinatura ${sub.id}: Price não corresponde a nenhum plano configurado; ` +
+        "Store.plan preservado.",
+    );
+  }
+
   await prisma.store.update({
     where: { id: loja.id },
     data: {
@@ -149,6 +198,7 @@ export async function aplicarAssinatura(sub: Stripe.Subscription): Promise<strin
       // O status vira ACTIVE assim que existe assinatura viva — inclusive
       // past_due, porque a tolerância é decidida pela data, não por aqui.
       status: viva ? "ACTIVE" : undefined,
+      plan: plano ?? undefined,
     },
   });
 
