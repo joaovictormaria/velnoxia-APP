@@ -1,0 +1,50 @@
+-- PLANO DA LOJA
+--
+-- Dá ao plano comercial uma origem real no banco. Até aqui o contrato de
+-- BASIC/PREMIUM existia só em TypeScript, sem nada persistido dizendo qual
+-- plano cada loja tem.
+--
+-- INTEIRAMENTE ADITIVA. Um tipo novo e uma coluna nova, NULÁVEL e SEM DEFAULT.
+-- Nenhuma coluna é removida ou renomeada, nenhuma linha existente é reescrita,
+-- nenhum índice ou constraint é derrubado. Não há UPDATE, não há DELETE, não há
+-- DROP. O rollback é:
+--   ALTER TABLE "Store" DROP COLUMN "plan"; DROP TYPE "PlanoDaLoja";
+--
+-- NADA AQUI TOCA PEDIDOS, ESTOQUE, FINANCEIRO, STRIPE OU AUTENTICAÇÃO. A única
+-- tabela alterada é `Store`, e a coluna nova não é consultada por nenhuma
+-- decisão de acesso: `conferirAcesso()` continua lendo `status`, `trialEndsAt`,
+-- `paidUntil` e `subscriptionStatus`, exatamente como antes.
+--
+-- IMPACTO NOS REGISTROS EXISTENTES: NENHUM, e isso é verificável. Toda loja já
+-- criada fica com `plan = NULL`, e nulo aqui significa "plano ainda não
+-- definido" — não BASIC, não PREMIUM. Nenhuma loja muda de acesso, porque
+-- nenhuma decisão de acesso olha esta coluna.
+
+-- CreateEnum
+--
+-- Enum e não texto livre, pela mesma razão de `EstadoDaNovidade`: um plano
+-- escrito errado — "PREMIUN", "premium" — é recusado aqui, e não descoberto
+-- meses depois por uma loja que perdeu acesso sem motivo aparente.
+--
+-- TRIAL NÃO É UM VALOR DESTE TIPO. Teste é estado temporal da conta, já
+-- representado por `Store.status = 'TRIAL'` mais `trialEndsAt`. Um valor TRIAL
+-- aqui obrigaria a manter um terceiro conjunto de recursos sincronizado com o
+-- do Premium — e a regra comercial é justamente que teste USA o conjunto do
+-- Premium, não uma cópia dele.
+CREATE TYPE "PlanoDaLoja" AS ENUM ('BASIC', 'PREMIUM');
+
+-- AlterTable
+--
+-- NULÁVEL E SEM DEFAULT, e as duas coisas são a mesma decisão.
+--
+-- `Store` já tem linhas em produção. Uma coluna NOT NULL exigiria um DEFAULT, e
+-- qualquer DEFAULT converteria todas as lojas existentes no instante da
+-- migration: `DEFAULT 'BASIC'` rebaixaria contas que hoje usam o sistema
+-- inteiro, `DEFAULT 'PREMIUM'` entregaria de graça o que se pretende vender.
+-- Backfill escondido dentro de uma palavra continua sendo backfill.
+--
+-- Nulo é, portanto, um estado de primeira classe: "loja legada, plano ainda não
+-- classificado". Como classificá-las é decisão comercial de uma fase posterior,
+-- e o código que lê esta coluna trata o nulo como INDEFINIDO em vez de
+-- adivinhar um dos dois lados.
+ALTER TABLE "Store" ADD COLUMN "plan" "PlanoDaLoja";

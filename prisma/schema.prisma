@@ -162,6 +162,30 @@ enum StoreStatus {
   SUSPENDED
 }
 
+/// O PLANO COMERCIAL CONTRATADO. Dois valores, e so dois.
+///
+/// TRIAL NAO ESTA AQUI, e a ausencia e deliberada: teste e um ESTADO
+/// TEMPORAL da conta — ja representado por `StoreStatus.TRIAL` mais
+/// `trialEndsAt` —, nao um terceiro conjunto de recursos. Enquanto o teste
+/// corre, a loja usa o conjunto do PREMIUM; um valor TRIAL neste enum
+/// obrigaria alguem a manter uma terceira lista de recursos sincronizada com
+/// a do Premium, e o dia em que as duas divergissem seria o dia em que um
+/// cliente em teste deixaria de ver o que lhe foi vendido.
+///
+/// Enum e nao String, pela mesma razao de `EstadoDaNovidade`: um plano
+/// escrito errado — "PREMIUN", "premium" — e recusado pelo banco, e nao
+/// descoberto meses depois por uma loja que perdeu acesso sem motivo.
+///
+/// O espelho em TypeScript vive em `src/lib/planos/tipos.ts` e NAO importa
+/// o Prisma, para que a regra continue pura e testavel sem banco. Os dois
+/// sao mantidos em sincronia por uma asercao de tipo em
+/// `src/server/billing/plano-da-loja.ts`, que quebra a compilacao se
+/// divergirem.
+enum PlanoDaLoja {
+  BASIC
+  PREMIUM
+}
+
 /**
  * Qual documento identifica o estabelecimento.
  * Deriva do tamanho de `Store.document` (11 digitos = CPF, 14 = CNPJ), mas
@@ -194,6 +218,24 @@ model Store {
   documentType DocumentType?
   status       StoreStatus   @default(TRIAL)
   trialEndsAt  DateTime?
+
+  /// O plano contratado. NULO E UM ESTADO REAL, e nao um valor faltando.
+  ///
+  /// `null` significa "plano ainda nao definido" — a loja legada, criada
+  /// antes de existirem planos. NAO significa BASIC e NAO significa PREMIUM:
+  /// tratar nulo como BASIC rebaixaria contas que hoje usam tudo, e trata-lo
+  /// como PREMIUM entregaria de graca o que se pretende vender. As duas
+  /// leituras sao decisoes comerciais, e nenhuma delas cabe a um DEFAULT.
+  ///
+  /// SEM DEFAULT, de proposito. Um `@default(BASIC)` faria toda loja
+  /// existente virar BASIC no instante da migration — que e exatamente o
+  /// backfill que se decidiu nao fazer, so que escondido numa palavra.
+  ///
+  /// LOJA NOVA TAMBEM NASCE NULA. Ela entra em TRIAL, e o teste ja lhe da o
+  /// Premium inteiro por 14 dias sem que nada precise ser gravado aqui.
+  /// Gravar PREMIUM na criacao seria confundir teste com contrato: acabado o
+  /// teste, a loja apareceria como assinante Premium sem nunca ter pago.
+  plan         PlanoDaLoja?
 
   /// O cliente no Stripe. Criado na primeira tentativa de assinar e reusado
   /// depois, para o dono não virar dois clientes com dois cartões.
