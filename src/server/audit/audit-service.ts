@@ -139,9 +139,63 @@ export class AuditService {
       newValue: log.newValue ? JSON.parse(log.newValue) : null,
       reason: log.reason,
       status: log.status,
+      /*
+       * `isSystem` e `errorMessage` entraram para a tela de consulta.
+       *
+       * Sem o primeiro, uma linha escrita por webhook aparece como autor
+       * vazio — e "ninguém" é a resposta errada para "quem fez". Sem o
+       * segundo, uma linha FAILED mostra o rótulo do fracasso e esconde o
+       * motivo dele, que é justamente o que se foi ler.
+       *
+       * São dois campos a mais no retorno: o filtro, a ordenação e a
+       * paginação continuam exatamente como estavam.
+       */
+      isSystem: log.isSystem,
+      errorMessage: log.errorMessage,
       ipAddress: log.ipAddress,
       createdAt: log.createdAt,
     }));
+  }
+
+  /**
+   * As opções REAIS de filtro desta loja — as que o banco consegue responder.
+   *
+   * O `action` e o `resource` são texto livre no modelo, e o código já escreve
+   * duas dezenas de valores diferentes ("ADJUST", "ABRIR_FIADO", "OCCUPY_TABLE"
+   * …). Uma lista fixa na tela envelheceria no primeiro evento novo e ofereceria
+   * filtros que não devolvem nada. Aqui a lista vem do que a loja realmente
+   * registrou.
+   *
+   * Só entram usuários com `userId`: é por ele que `query()` filtra. Oferecer no
+   * seletor um autor sem id seria oferecer um filtro que a consulta ignora.
+   */
+  static async filterOptions(storeId: string) {
+    const [acoes, recursos, usuarios] = await Promise.all([
+      prisma.auditLog.groupBy({
+        by: ["action"],
+        where: { storeId },
+        orderBy: { action: "asc" },
+      }),
+      prisma.auditLog.groupBy({
+        by: ["resource"],
+        where: { storeId },
+        orderBy: { resource: "asc" },
+      }),
+      prisma.auditLog.groupBy({
+        by: ["userId", "userEmail"],
+        where: { storeId, userId: { not: null } },
+        orderBy: { userId: "asc" },
+      }),
+    ]);
+
+    return {
+      actions: acoes.map((a) => a.action),
+      resources: recursos.map((r) => r.resource),
+      users: usuarios.map((u) => ({
+        userId: u.userId as string,
+        userEmail: u.userEmail,
+      })),
+    };
   }
 
   /**
