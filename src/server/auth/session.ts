@@ -1,6 +1,8 @@
 import { clearSession, getSession, updateSession } from "@tanstack/react-start/server";
 import { prisma } from "../db/client";
 import { conferirAcesso, type Veredito } from "../billing/access";
+import { estadoComercialDaLoja } from "../billing/plano-da-loja";
+import type { EstadoComercial } from "@/lib/planos/resolucao";
 import { verifyPassword } from "./password";
 
 type AdminSessionData = {
@@ -54,6 +56,22 @@ export type CurrentAdmin = {
      * precisa dizer qual foi para oferecer a saída certa.
      */
     acesso: Veredito;
+    /**
+     * Qual plano vale para esta loja agora — e se ela ainda está em teste.
+     *
+     * Vem junto da sessão para que a tela não precise de uma segunda ida ao
+     * banco (nem ao Stripe) só para descobrir o plano. É calculado do que já
+     * foi lido aqui: nenhuma consulta a mais.
+     *
+     * SEPARADO DE `acesso`, e não dentro dele. São duas perguntas distintas —
+     * "pode entrar?" e "o que contratou?" — e `Veredito` já é consumido por
+     * quem não tem nada a ver com plano (`StoreInactiveError` o estreita pelo
+     * `motivo`). Campo novo é aditivo; mexer na forma do veredito não seria.
+     *
+     * NADA É BLOQUEADO POR ISTO AINDA. Nesta fase a sessão apenas passa a
+     * SABER o plano; as guardas de recurso são das fases seguintes.
+     */
+    plano: EstadoComercial;
     /** True when the trial window has passed — the account still exists. */
     trialExpired: boolean;
     /** A logo que o dono subiu. Null enquanto ele não subir nenhuma. */
@@ -87,6 +105,8 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
           paidUntil: true,
           subscriptionStatus: true,
           cancelAtPeriodEnd: true,
+          // O plano contratado. Nulo = loja legada, ainda sem classificação.
+          plan: true,
           settings: { select: { logoUrl: true } },
         },
       },
@@ -115,6 +135,14 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
       // no canto da tela em vez de ver o ícone genérico do sistema.
       logoUrl: admin.store.settings?.logoUrl ?? null,
       acesso: conferirAcesso(admin.store),
+      /*
+        O MESMO recorte da loja alimenta os dois. `estadoComercialDaLoja`
+        chama `conferirAcesso` por dentro para saber se o teste está valendo,
+        em vez de comparar `trialEndsAt` de novo — dois calendários acabariam
+        divergindo, e a loja perderia acesso enquanto a tela ainda a mostrasse
+        em teste.
+      */
+      plano: estadoComercialDaLoja(admin.store),
       trialExpired:
         admin.store.status === "TRIAL" &&
         admin.store.trialEndsAt !== null &&
