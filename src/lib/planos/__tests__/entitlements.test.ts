@@ -31,10 +31,14 @@ import type { EstadoDoPlano, Plano, Recurso } from "../tipos";
 const estado = (plano: Plano, emTrial = false): EstadoDoPlano => ({ plano, emTrial });
 
 describe("a matriz — quem tem o quê", () => {
-  it("BASIC tem exatamente os nove essenciais", () => {
+  it("BASIC tem exatamente os oito essenciais", () => {
     expect([...RECURSOS_DO_PLANO.BASIC].sort()).toEqual([...ESSENCIAIS].sort());
-    // Nove desde 31/08/2026, quando ESTOQUE desceu para o plano básico.
-    expect(RECURSOS_DO_PLANO.BASIC.size).toBe(9);
+    /*
+      Nove em 31/08/2026, quando ESTOQUE desceu para o plano básico; oito de
+      novo em 01/09, quando DELIVERY_BASICO subiu para o Premium. O número é
+      cravado de propósito: mover uma chave de plano tem de passar por aqui.
+    */
+    expect(RECURSOS_DO_PLANO.BASIC.size).toBe(8);
   });
 
   it("PREMIUM tem os vinte — essenciais mais exclusivos", () => {
@@ -83,7 +87,6 @@ describe("BASIC — o que entra e o que não entra", () => {
     "CLIENTES",
     "CONFIGURACOES",
     "ASSINATURA",
-    "DELIVERY_BASICO",
   ];
 
   for (const recurso of essenciais) {
@@ -113,14 +116,22 @@ describe("BASIC — o que entra e o que não entra", () => {
   }
 
   /*
-   * A loja BASIC ENTREGA — ela só não gerencia uma frota. Foi decisão
-   * comercial explícita separar o pedido de entrega (essencial) do cadastro de
-   * entregadores com rastreamento (avançado), e é a única chave do catálogo
-   * partida em duas por esse motivo.
+   * A LOJA BASIC NÃO ENTREGA MAIS — decisão de 01/09/2026.
+   *
+   * Até essa data ela entregava e só não gerenciava frota. As duas chaves
+   * continuam separadas, e é por isso que a mudança coube numa linha: o
+   * catálogo consegue dizer "entrega" e "gerencia frota" como coisas
+   * distintas, e um dia pode voltar a separá-las entre os planos.
+   *
+   * O que o BASIC perdeu foi RECEBER pedido de entrega. Vender continua:
+   * retirada e balcão seguem essenciais.
    */
-  it("BASIC entrega, mas não gerencia entregadores", () => {
-    expect(temRecurso(estado("BASIC"), "DELIVERY_BASICO")).toBe(true);
+  it("BASIC não entrega nem gerencia entregadores", () => {
+    expect(temRecurso(estado("BASIC"), "DELIVERY_BASICO")).toBe(false);
     expect(temRecurso(estado("BASIC"), "DELIVERY_AVANCADO")).toBe(false);
+    // E continua vendendo pelos dois caminhos que sobraram.
+    expect(temRecurso(estado("BASIC"), "PEDIDOS")).toBe(true);
+    expect(temRecurso(estado("BASIC"), "BALCAO")).toBe(true);
   });
 
   /*

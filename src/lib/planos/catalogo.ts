@@ -33,12 +33,6 @@ import type { Plano, Recurso } from "./tipos";
  * pagamento. Pela mesma razão, `billing.fn.ts` já não passa por
  * `requireAdminSession()` — a conta bloqueada precisa chegar até lá.
  *
- * `DELIVERY_BASICO` é o pedido de entrega em si: endereço, taxa, frete grátis,
- * pedido mínimo e tempo estimado. O que fica no PREMIUM é `DELIVERY_AVANCADO`
- * — cadastro e convite de entregadores, despacho, posição ao vivo e o link de
- * acompanhamento com rastreio. A loja BASIC entrega; ela só não gerencia uma
- * frota.
- *
  * `ESTOQUE` desceu para cá em 31/08/2026, por decisão comercial de João.
  * É o estoque como controle de quantidade: item, entrada, saída, ajuste,
  * perda, devolução, estorno, saldo, custo de compra, alerta e histórico de
@@ -60,7 +54,6 @@ export const ESSENCIAIS: readonly Recurso[] = [
   "CLIENTES",
   "CONFIGURACOES",
   "ASSINATURA",
-  "DELIVERY_BASICO",
   "ESTOQUE",
 ] as const;
 
@@ -75,8 +68,20 @@ export const ESSENCIAIS: readonly Recurso[] = [
  * o BASIC, e essa separação em três chaves é exatamente o que tornou a
  * mudança possível: bastou mover uma linha. Se as três fossem uma chave só,
  * levar o controle de quantidade ao BASIC teria levado a ficha técnica junto.
+ *
+ * `DELIVERY_BASICO` subiu para cá em 01/09/2026, também por decisão de João —
+ * e ele é a entrega em si: receber pedido com endereço, taxa, frete grátis,
+ * pedido mínimo e tempo estimado. `DELIVERY_AVANCADO` continua sendo a camada
+ * de cima: cadastrar entregador, despachar, posição ao vivo e rastreio.
+ *
+ * ⚠️ A LOJA BASIC DEIXOU DE ENTREGAR. Até esta data ela entregava e só não
+ * gerenciava frota; agora ela vende por RETIRADA e BALCÃO. Não é mudança de
+ * tela: `criarPedido` recusa um pedido de entrega, e a vitrine deixa de
+ * oferecer a opção. Mover a chave sem isso faria a página de preços dizer que
+ * o Basic não entrega enquanto ele continuava entregando.
  */
 export const EXCLUSIVOS_DO_PREMIUM: readonly Recurso[] = [
+  "DELIVERY_BASICO",
   "PRODUCAO",
   "RECEITAS",
   "FINANCEIRO",

@@ -82,7 +82,6 @@ describe("BASIC — vender continua liberado", () => {
     "PEDIDOS",
     "BALCAO",
     "CARDAPIO",
-    "DELIVERY_BASICO",
     "CLIENTES",
     "DASHBOARD",
   ] as const) {

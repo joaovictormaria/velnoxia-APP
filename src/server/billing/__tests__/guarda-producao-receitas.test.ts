@@ -95,7 +95,7 @@ describe("PREMIUM, TRIAL e LEGADO — liberados", () => {
 });
 
 describe("BASIC — a venda e o cadastro continuam", () => {
-  for (const recurso of ["CARDAPIO", "PEDIDOS", "BALCAO", "DELIVERY_BASICO", "DASHBOARD"] as const) {
+  for (const recurso of ["CARDAPIO", "PEDIDOS", "BALCAO", "DASHBOARD"] as const) {
     it(`${recurso} passa no BASIC`, () => {
       expect(() => garantirRecurso(BASIC, recurso)).not.toThrow();
     });

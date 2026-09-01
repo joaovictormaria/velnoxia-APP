@@ -92,7 +92,6 @@ describe("BASIC — vender continua liberado", () => {
     "BALCAO",
     "CARDAPIO",
     "CLIENTES",
-    "DELIVERY_BASICO",
     "DASHBOARD",
   ] as const) {
     it(`${recurso} passa`, () => {

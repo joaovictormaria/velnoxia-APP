@@ -1,5 +1,10 @@
 import type { PaymentMethod, Weekday } from "@prisma/client";
 import { prisma } from "../db/client";
+import {
+  CAMPOS_DO_PLANO,
+  entregaLiberadaNoPlano,
+} from "@/server/delivery/guarda-de-entrega";
+import type { LojaParaPlano } from "@/server/billing/plano-da-loja";
 
 
 
@@ -104,10 +109,25 @@ function serializeStoreSettings(settings: any) {
  */
 export async function getPublicStoreSettings(storeId: string) {
   const settings = await getStoreSettings(storeId);
+  /*
+    O PLANO VEM NA MESMA CONSULTA que já buscava o `businessType` — nenhuma
+    ida a mais ao banco. `DELIVERY_BASICO` é do Premium desde 01/09/2026, e a
+    vitrine de uma loja BASIC não pode oferecer uma entrega que `criarPedido`
+    vai recusar: o cliente preencheria o endereço para levar um erro no fim.
+  */
   const store = await prisma.store.findUniqueOrThrow({
     where: { id: storeId },
-    select: { businessType: true },
+    select: { businessType: true, ...CAMPOS_DO_PLANO },
   });
+
+  /*
+    DUAS PERGUNTAS, UM RESULTADO — e a ordem importa para quem lê o código
+    depois: o plano PERMITE entregar, e a loja QUER entregar agora. Basta uma
+    dizer não. Quem recusa de verdade continua sendo o servidor do pedido;
+    isto é a cortesia de não oferecer.
+  */
+  const entregaNoPlano = entregaLiberadaNoPlano(store as unknown as LojaParaPlano);
+
   return {
     /** Chooses the hero photo and its rotating cravings on the storefront. */
     businessType: store.businessType,
@@ -143,7 +163,7 @@ export async function getPublicStoreSettings(storeId: string) {
     estimatedDeliveryMinMax: settings.estimatedDeliveryMinMax,
     estimatedPickupMinMin: settings.estimatedPickupMinMin,
     estimatedPickupMinMax: settings.estimatedPickupMinMax,
-    acceptsDelivery: settings.acceptsDelivery,
+    acceptsDelivery: settings.acceptsDelivery && entregaNoPlano,
     acceptsPickup: settings.acceptsPickup,
     acceptedPaymentMethods: settings.acceptedPaymentMethods,
     openingHours: [...settings.openingHours]

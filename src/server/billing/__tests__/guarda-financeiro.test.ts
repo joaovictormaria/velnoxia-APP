@@ -90,7 +90,7 @@ describe("PREMIUM, TRIAL e LEGADO — financeiro liberado", () => {
  * Só a segunda é paga, e este bloco é a prova de que a primeira ficou de fora.
  */
 describe("BASIC — o que a venda precisa continua liberado", () => {
-  for (const recurso of ["PEDIDOS", "BALCAO", "CARDAPIO", "DELIVERY_BASICO", "CLIENTES", "DASHBOARD"] as const) {
+  for (const recurso of ["PEDIDOS", "BALCAO", "CARDAPIO", "CLIENTES", "DASHBOARD"] as const) {
     it(`${recurso} passa no BASIC`, () => {
       expect(() => garantirRecurso(BASIC, recurso)).not.toThrow();
     });

@@ -82,7 +82,6 @@ describe("BASIC — a venda inteira segue liberada", () => {
     "PEDIDOS",
     "BALCAO",
     "CARDAPIO",
-    "DELIVERY_BASICO",
     "CLIENTES",
     "DASHBOARD",
   ] as const) {

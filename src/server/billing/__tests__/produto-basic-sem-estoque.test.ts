@@ -103,7 +103,7 @@ describe("BASIC", () => {
   });
 
   it("continua com cardápio, pedidos, balcão e delivery básico", () => {
-    for (const r of ["CARDAPIO", "PEDIDOS", "BALCAO", "DELIVERY_BASICO", "CLIENTES"] as const) {
+    for (const r of ["CARDAPIO", "PEDIDOS", "BALCAO", "CLIENTES"] as const) {
       expect(() => garantirRecurso(BASIC, r)).not.toThrow();
     }
   });

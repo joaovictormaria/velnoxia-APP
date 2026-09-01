@@ -259,8 +259,7 @@ describe("BASIC — regressão", () => {
     "CLIENTES",
     "CONFIGURACOES",
     "ASSINATURA",
-    "DELIVERY_BASICO",
-  ] as const) {
+    ] as const) {
     it(`${recurso} continua liberado`, () => {
       expect(() => garantirRecurso(BASIC, recurso)).not.toThrow();
     });

@@ -73,8 +73,7 @@ describe("BASIC — rota Premium bloqueada, rotas BASIC abertas", () => {
   it("cardápio, pedidos, balcão, painel, clientes, config e assinatura passam", () => {
     const essenciais: Recurso[] = [
       "CARDAPIO", "PEDIDOS", "BALCAO", "DASHBOARD", "CLIENTES",
-      "CONFIGURACOES", "ASSINATURA", "DELIVERY_BASICO",
-    ];
+      "CONFIGURACOES", "ASSINATURA", ];
     for (const recurso of essenciais) {
       expect(rotaBloqueada(BASIC, recurso), recurso).toBe(false);
     }

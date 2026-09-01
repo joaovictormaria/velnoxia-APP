@@ -23,6 +23,7 @@ import {
 import { conferirOpcoes } from "./option-pricing";
 import { orderStatusSync } from "./order-status-sync";
 import { OrderInventoryHandler } from "./order-inventory-handler";
+import { entregaLiberada } from "@/server/delivery/guarda-de-entrega";
 
 /**
  * Secret for the tracking link the customer gets. Generated with crypto rather
@@ -517,6 +518,25 @@ export async function createOrderFromCheckout(
    * parada no balcão, com o dinheiro na mão e o atendente na frente dela, não
    * pode comprar. Recusar aqui seria o sistema desligando a loja física.
    */
+  /*
+   * O PLANO VALE INCLUSIVE NO BALCÃO — e é a diferença entre as duas coisas.
+   *
+   * Os interruptores acima são da vitrine, e por isso não valem para quem
+   * está atendendo com o cliente na frente. Isto não é um interruptor: é o
+   * que a loja contratou. Não existe "entregar só desta vez" num plano que
+   * não inclui entrega, e deixar o balcão passar por cima abriria a porta
+   * que a mudança de plano veio fechar.
+   *
+   * A mensagem diz o que resolve. "A loja não está aceitando entregas" faria
+   * o dono procurar um interruptor que não vai destravar nada.
+   */
+  if (input.type === "DELIVERY" && !(await entregaLiberada(storeId))) {
+    return {
+      ok: false,
+      error: "Seu plano não inclui pedidos de entrega. Assine o Premium para entregar.",
+    };
+  }
+
   if (!noBalcao) {
     if (input.type === "DELIVERY" && !settings.acceptsDelivery) {
       return {

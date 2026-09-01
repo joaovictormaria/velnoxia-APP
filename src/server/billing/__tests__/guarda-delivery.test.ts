@@ -81,9 +81,20 @@ describe("BASIC — a frota é recusada", () => {
  *  O DELIVERY BÁSICO CONTINUA
  * ═══════════════════════════════════════════════════════════════════════════
  */
-describe("BASIC — entregar continua liberado", () => {
-  it("DELIVERY_BASICO passa, DELIVERY_AVANCADO não", () => {
-    expect(() => garantirRecurso(BASIC, "DELIVERY_BASICO")).not.toThrow();
+/*
+ * ⚠️ A ENTREGA SAIU DO BASIC — 01/09/2026.
+ *
+ * Este bloco provava o oposto até essa data: o BASIC entregava e só não
+ * gerenciava frota. A decisão comercial mudou, e as DUAS chaves passaram a ser
+ * do Premium — mas continuam sendo duas, o que é o que permitiu mover uma sem
+ * a outra.
+ *
+ * O enforcement da entrega em si mora em
+ * `server/delivery/__tests__/entrega-por-plano.test.ts`.
+ */
+describe("BASIC — entregar deixou de ser liberado", () => {
+  it("nem DELIVERY_BASICO nem DELIVERY_AVANCADO passam", () => {
+    expect(() => garantirRecurso(BASIC, "DELIVERY_BASICO")).toThrow();
     expect(() => garantirRecurso(BASIC, "DELIVERY_AVANCADO")).toThrow();
   });
 

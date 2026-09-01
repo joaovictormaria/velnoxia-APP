@@ -104,8 +104,7 @@ describe("BASIC — os módulos pagos são recusados", () => {
   it("os essenciais passam — cardápio, pedidos, balcão, painel, delivery", () => {
     const essenciais: Recurso[] = [
       "CARDAPIO", "PEDIDOS", "BALCAO", "DASHBOARD", "CLIENTES",
-      "CONFIGURACOES", "ASSINATURA", "DELIVERY_BASICO",
-    ];
+      "CONFIGURACOES", "ASSINATURA", ];
     for (const recurso of essenciais) {
       expect(() => garantirRecurso(BASIC, recurso)).not.toThrow();
     }
