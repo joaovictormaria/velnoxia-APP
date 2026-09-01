@@ -1,7 +1,7 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAdminSession } from "../auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import {
   createPromotion,
   deletePromotion,
@@ -28,14 +28,14 @@ const promotionSchema = z.object({
 });
 
 export const listPromotionsFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("MARKETING");
   return listPromotions(storeId);
 });
 
 export const savePromotionFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: promotionSchema }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MARKETING");
     // A crossed-out price below the current one reads as a price increase, so
     // it is refused here rather than shown to customers.
     if (
@@ -57,7 +57,7 @@ export const savePromotionFn = createServerFn({ method: "POST" })
 export const deletePromotionFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MARKETING");
     await deletePromotion(storeId, data.id);
     return { ok: true as const };
   });

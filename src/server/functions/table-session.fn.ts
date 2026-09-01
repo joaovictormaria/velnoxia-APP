@@ -2,6 +2,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getStoreBySlug } from "../repositories/store-repository";
+import { estadoComercialDaLoja } from "@/server/billing/plano-da-loja";
+import { recursoNoEstado } from "@/lib/planos/resolucao";
 import { permitido } from "../security/rate-limit";
 import {
   validateTableSessionPin,
@@ -39,6 +41,29 @@ export const validateTableSessionPinFn = createServerFn({ method: "POST" })
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
         return { ok: false as const, error: "Loja nÃ£o encontrada" };
+      }
+      /*
+        ═══ O PLANO DA LOJA, NUM FLUXO SEM SESSÃO ADMINISTRATIVA ══════════
+
+        Quem chama aqui é o CLIENTE que escaneou o QR — não há painel, não há
+        cookie de admin, e `exigirRecurso` não serve: ela passa por
+        `requireAdminSession`, que recusaria qualquer pessoa comum.
+
+        A loja vem do `storeSlug`, mas quem a resolve é o BANCO: o cliente
+        informa um slug e recebe a loja que aquele slug realmente aponta.
+        Trocar o parâmetro na URL leva a outra loja, com o plano DELA — não há
+        parâmetro que faça o plano ser outro.
+
+        `getStoreBySlug` já devolve a linha inteira, então `status`,
+        `trialEndsAt`, `paidUntil`, `subscriptionStatus` e `plan` chegam sem
+        nenhuma consulta a mais.
+
+        A recusa é a MESMA de loja inexistente, e isso é deliberado: dizer
+        "esta loja não tem mesas no plano" contaria a um estranho o que a loja
+        contratou. Quem não pode usar não precisa saber por quê.
+      */
+      if (recursoNoEstado(estadoComercialDaLoja(store), "MESAS") === "BLOQUEADO") {
+        return { ok: false as const, error: "Loja não encontrada" };
       }
 
       const result = await validateTableSessionPin(store.id, data.sessionId, data.pin);
@@ -93,6 +118,29 @@ export const orchestrateTableSessionFn = createServerFn({ method: "POST" })
       if (!store) {
         return { ok: false as const, error: "Loja nÃ£o encontrada" };
       }
+      /*
+        ═══ O PLANO DA LOJA, NUM FLUXO SEM SESSÃO ADMINISTRATIVA ══════════
+
+        Quem chama aqui é o CLIENTE que escaneou o QR — não há painel, não há
+        cookie de admin, e `exigirRecurso` não serve: ela passa por
+        `requireAdminSession`, que recusaria qualquer pessoa comum.
+
+        A loja vem do `storeSlug`, mas quem a resolve é o BANCO: o cliente
+        informa um slug e recebe a loja que aquele slug realmente aponta.
+        Trocar o parâmetro na URL leva a outra loja, com o plano DELA — não há
+        parâmetro que faça o plano ser outro.
+
+        `getStoreBySlug` já devolve a linha inteira, então `status`,
+        `trialEndsAt`, `paidUntil`, `subscriptionStatus` e `plan` chegam sem
+        nenhuma consulta a mais.
+
+        A recusa é a MESMA de loja inexistente, e isso é deliberado: dizer
+        "esta loja não tem mesas no plano" contaria a um estranho o que a loja
+        contratou. Quem não pode usar não precisa saber por quê.
+      */
+      if (recursoNoEstado(estadoComercialDaLoja(store), "MESAS") === "BLOQUEADO") {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
 
       const result = await orchestrateTableSession(store.id, data.tableId);
 
@@ -129,6 +177,29 @@ export const getSessionPinHintFn = createServerFn({ method: "POST" })
 
       const store = await getStoreBySlug(data.storeSlug);
       if (!store) {
+        return { ok: false as const, error: "Loja não encontrada" };
+      }
+      /*
+        ═══ O PLANO DA LOJA, NUM FLUXO SEM SESSÃO ADMINISTRATIVA ══════════
+
+        Quem chama aqui é o CLIENTE que escaneou o QR — não há painel, não há
+        cookie de admin, e `exigirRecurso` não serve: ela passa por
+        `requireAdminSession`, que recusaria qualquer pessoa comum.
+
+        A loja vem do `storeSlug`, mas quem a resolve é o BANCO: o cliente
+        informa um slug e recebe a loja que aquele slug realmente aponta.
+        Trocar o parâmetro na URL leva a outra loja, com o plano DELA — não há
+        parâmetro que faça o plano ser outro.
+
+        `getStoreBySlug` já devolve a linha inteira, então `status`,
+        `trialEndsAt`, `paidUntil`, `subscriptionStatus` e `plan` chegam sem
+        nenhuma consulta a mais.
+
+        A recusa é a MESMA de loja inexistente, e isso é deliberado: dizer
+        "esta loja não tem mesas no plano" contaria a um estranho o que a loja
+        contratou. Quem não pode usar não precisa saber por quê.
+      */
+      if (recursoNoEstado(estadoComercialDaLoja(store), "MESAS") === "BLOQUEADO") {
         return { ok: false as const, error: "Loja não encontrada" };
       }
 

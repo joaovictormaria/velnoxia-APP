@@ -1,8 +1,10 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAdminSession } from "../auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
+import { estadoComercialDaLoja } from "@/server/billing/plano-da-loja";
+import { recursoNoEstado } from "@/lib/planos/resolucao";
 import { permitido } from "../security/rate-limit";
 import {
   createCoupon,
@@ -36,14 +38,14 @@ const couponSchema = z.object({
 });
 
 export const listCouponsFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("MARKETING");
   return listCoupons(storeId);
 });
 
 export const saveCouponFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: couponSchema }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MARKETING");
     const d = data.data;
 
     if (d.discountType === "PERCENTAGE" && d.discountValue > 100) {
@@ -79,7 +81,7 @@ export const saveCouponFn = createServerFn({ method: "POST" })
 export const deleteCouponFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MARKETING");
     await deleteCoupon(storeId, data.id);
     return { ok: true as const };
   });
@@ -108,6 +110,21 @@ export const previewCouponFn = createServerFn({ method: "POST" })
     }
     const store = await getStoreBySlug(data.storeSlug);
     if (!store || !isStoreServable(store)) return { ok: false as const, error: "Loja indisponÃ­vel." };
+
+    /*
+      ═══ O PLANO, NUM FLUXO PÚBLICO ═════════════════════════════════════
+
+      Quem chama é o CLIENTE no checkout — sem conta e sem cookie de
+      painel. `exigirRecurso` recusaria qualquer pessoa comum, então a
+      pergunta vai sobre a LOJA que o slug resolveu no banco.
+
+      A resposta é a mesma de código inexistente, e isso é honesto: numa
+      loja sem o módulo não há cupom nenhum a validar. Dizer "o plano desta
+      loja não tem cupons" contaria a um cliente o que a loja contratou.
+    */
+    if (recursoNoEstado(estadoComercialDaLoja(store), "MARKETING") === "BLOQUEADO") {
+      return { ok: false as const, error: "Cupom inválido." };
+    }
 
     const coupon = await findCouponByCode(store.id, data.code);
     // Every refusal says which one it is: a customer who is told only "invalid"

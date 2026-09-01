@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { notFound } from "@tanstack/react-router";
 import { z } from "zod";
-import { requireAdminSession } from "../auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
 import {
   createReview,
@@ -82,7 +82,7 @@ export const toggleReviewLikeFn = createServerFn({ method: "POST" })
 /* ---- admin: read, answer, hide. Never edit. ---- */
 
 export const listReviewsForAdminFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("MARKETING");
   const [reviews, summary] = await Promise.all([
     listReviewsForAdmin(storeId),
     ratingSummary(storeId),
@@ -93,7 +93,7 @@ export const listReviewsForAdminFn = createServerFn({ method: "GET" }).handler(a
 export const respondToReviewFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), response: z.string().trim().min(1).max(1000) }))
   .handler(async ({ data }) => {
-    const { storeId, id: adminId } = await requireAdminSession();
+    const { storeId, id: adminId } = await exigirRecurso("MARKETING");
     await respondToReview(storeId, data.id, adminId, data.response);
     return { ok: true as const };
   });
@@ -101,7 +101,7 @@ export const respondToReviewFn = createServerFn({ method: "POST" })
 export const setReviewHiddenFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), isHidden: z.boolean() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MARKETING");
     await setReviewHidden(storeId, data.id, data.isHidden);
     return { ok: true as const };
   });

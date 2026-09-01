@@ -6,7 +6,13 @@ import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { Header } from "@/components/site/pizzaria2/Header";
 import { HeroDaVitrine } from "@/components/site/pizzaria2/HeroDaVitrine";
-import { aplicarRascunhoDaLoja } from "@/lib/previa/aplicar-rascunho";
+import { SobreORestaurante } from "@/components/site/pizzaria2/SobreORestaurante";
+import {
+  aplicarRascunhoDaLoja,
+  aplicarRascunhoDoSobre,
+} from "@/lib/previa/aplicar-rascunho";
+/* As MESMAS de sempre — a edição do "Sobre" mudou de tela, não de porta. */
+import { getAboutFn, saveAboutFn } from "@/server/functions/posts.fn";
 import {
   formatCep,
   isCompleteCep,
@@ -97,6 +103,7 @@ type HoursDraft = Record<
 
 type TabId =
   | "identidade"
+  | "sobre"
   | "contato"
   | "endereco"
   | "entrega"
@@ -105,6 +112,15 @@ type TabId =
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "identidade", label: "Identidade" },
+  /*
+    "NOSSO RESTAURANTE" MUDOU DE CASA — de Avaliações para cá.
+
+    Ele edita `StoreSettings.about*`: a mesma natureza de nome, logo e horário
+    — a apresentação da loja, não campanha de marketing. Enquanto morava na
+    tela de Avaliações, que virou paga, a loja BASIC ficava sem como escrever a
+    própria história, tendo CONFIGURACOES no plano.
+  */
+  { id: "sobre", label: "Nosso restaurante" },
   { id: "contato", label: "Contato e redes" },
   { id: "endereco", label: "Endereço" },
   { id: "entrega", label: "Entrega e retirada" },
@@ -830,6 +846,14 @@ function SettingsPage() {
       </Section>
 
       <Section
+        active={tab === "sobre"}
+        title="Nosso restaurante"
+        description="A seção que conta a história da loja na sua página."
+      >
+        <EdicaoDoSobre />
+      </Section>
+
+      <Section
         active={tab === "estoque"}
         title="Controle de estoque"
         description="Decide se o cardápio precisa dizer de onde sai o que vende."
@@ -837,6 +861,147 @@ function SettingsPage() {
         <ControleDeEstoque />
       </Section>
     </form>
+  );
+}
+
+/**
+ * A edição de "Nosso restaurante" — o MESMO componente de antes, mudado de tela.
+ *
+ * NENHUMA SERVER FUNCTION NOVA: continua chamando `getAboutFn` e `saveAboutFn`,
+ * que seguem exigindo CONFIGURACOES. O que mudou foi só onde a tela mora — de
+ * `/admin/avaliacoes`, que virou paga, para cá, que o BASIC tem.
+ *
+ * FORA DO `draft` DA PÁGINA, pelo mesmo motivo de `ControleDeEstoque`: aquele
+ * formulário salva a loja inteira num POST só, e este bloco tem consulta e
+ * gravação próprias.
+ *
+ * E NÃO É UM `<form>`: as seções desta página já vivem dentro de um, e
+ * formulário aninhado é HTML inválido. O botão grava no clique.
+ */
+function EdicaoDoSobre() {
+  const queryClient = useQueryClient();
+  const { data, isPending } = useQuery({
+    queryKey: ["about"],
+    queryFn: () => getAboutFn(),
+  });
+  const { admin } = useRouteContext({ from: "/admin" });
+  const [foco, setFoco] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    aboutEyebrow: "",
+    aboutTitle: "",
+    aboutBody: "",
+    aboutImageUrl: null as string | null,
+  });
+  const [saved, setSaved] = useState(false);
+
+  // A consulta responde depois do primeiro render, então o formulário se
+  // preenche por efeito em vez de por um valor inicial que estaria sempre vazio.
+  useEffect(() => {
+    if (!data) return;
+    setForm({
+      aboutEyebrow: data.aboutEyebrow ?? "",
+      aboutTitle: data.aboutTitle ?? "",
+      aboutBody: data.aboutBody ?? "",
+      aboutImageUrl: data.aboutImageUrl,
+    });
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      saveAboutFn({
+        data: {
+          aboutEyebrow: form.aboutEyebrow,
+          aboutTitle: form.aboutTitle,
+          aboutBody: form.aboutBody,
+          aboutImageUrl: form.aboutImageUrl,
+        },
+      }),
+    onSuccess: () => {
+      setSaved(true);
+      queryClient.invalidateQueries({ queryKey: ["about"] });
+      window.setTimeout(() => setSaved(false), 2500);
+    },
+  });
+
+  if (isPending) return <p className="text-sm text-neutral-500">Carregando...</p>;
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      {/* Prévia no topo à direita, como nas outras telas: quem escreve o texto
+          aqui não faz ideia de como ele vai cair ao lado da foto. */}
+      {admin && (
+        <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
+          <PreviaDaVitrine
+            storeSlug={admin.store.slug}
+            foco={foco}
+            largura={900}
+            aplicarLoja={(loja) => aplicarRascunhoDoSobre(loja, form)}
+          >
+            <div className="bg-mozzarella p-8">
+              <SobreORestaurante />
+            </div>
+          </PreviaDaVitrine>
+        </div>
+      )}
+
+      <p className="text-sm text-neutral-500 lg:col-span-3">
+        Deixe qualquer campo vazio para usar o texto padrão do seu ramo.
+      </p>
+
+      <div
+        className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3"
+        onFocusCapture={() => setFoco("foto-do-sobre")}
+      >
+        <ImageUploadField
+          kind="product"
+          label="Foto do restaurante"
+          value={form.aboutImageUrl}
+          onChange={(url) => setForm({ ...form, aboutImageUrl: url })}
+        />
+        <div className="space-y-4">
+          <Field label="Chamada" hint="Linha pequena acima do título.">
+            <Input
+              onFocus={() => setFoco("chamada-do-sobre")}
+              value={form.aboutEyebrow}
+              onChange={(v) => setForm({ ...form, aboutEyebrow: v })}
+              placeholder="Nosso restaurante"
+            />
+          </Field>
+          <Field label="Título">
+            <Input
+              onFocus={() => setFoco("titulo-do-sobre")}
+              value={form.aboutTitle}
+              onChange={(v) => setForm({ ...form, aboutTitle: v })}
+              placeholder="Feito com paixão, servido com carinho."
+            />
+          </Field>
+        </div>
+      </div>
+
+      <div className="lg:col-span-3">
+        <Field label="Texto" hint="Conte a história da sua loja em um parágrafo.">
+          <textarea
+            onFocus={() => setFoco("texto-do-sobre")}
+            value={form.aboutBody}
+            onChange={(e) => setForm({ ...form, aboutBody: e.target.value })}
+            rows={5}
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+          />
+        </Field>
+      </div>
+
+      <div className="flex items-center gap-3 lg:col-span-3">
+        <button
+          type="button"
+          onClick={() => save.mutate()}
+          disabled={save.isPending}
+          className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
+        >
+          {save.isPending ? "Salvando..." : "Salvar"}
+        </button>
+        {saved && <span className="text-sm text-green-600">Salvo.</span>}
+      </div>
+    </div>
   );
 }
 

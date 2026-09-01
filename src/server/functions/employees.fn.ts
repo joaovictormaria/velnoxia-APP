@@ -1,7 +1,7 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAdminSession } from "../auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { hashPassword } from "../auth/password";
 import {
   createEmployee,
@@ -45,7 +45,7 @@ const employeeSchema = z.object({
 });
 
 export const listEmployeesFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("FUNCIONARIOS");
   return listEmployees(storeId);
 });
 
@@ -71,7 +71,7 @@ export const consumoDeFuncionariosFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("FUNCIONARIOS");
 
     const inicio = new Date(data.ano, data.mes - 1, 1, 0, 0, 0, 0);
     const fim = new Date(data.ano, data.mes, 0, 23, 59, 59, 999);
@@ -93,7 +93,7 @@ export const saveEmployeeFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("FUNCIONARIOS");
     const dados = data.data;
 
     if (!data.id && !data.pin) {
@@ -127,7 +127,7 @@ export const saveEmployeeFn = createServerFn({ method: "POST" })
 export const setEmployeeActiveFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), isActive: z.boolean() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("FUNCIONARIOS");
     const ok = await setEmployeeActive(storeId, data.id, data.isActive);
     return ok ? { ok: true as const } : { ok: false as const, error: "FuncionÃ¡rio nÃ£o encontrado." };
   });
@@ -135,7 +135,7 @@ export const setEmployeeActiveFn = createServerFn({ method: "POST" })
 export const deleteEmployeeFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("FUNCIONARIOS");
     const nome = await deleteEmployee(storeId, data.id);
     return nome
       ? { ok: true as const, name: nome }
@@ -167,7 +167,7 @@ const planSchema = z.object({
 });
 
 export const listBenefitPlansFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("BENEFICIOS");
   return listBenefitPlans(storeId);
 });
 
@@ -180,7 +180,7 @@ export const saveBenefitPlanFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("BENEFICIOS");
     const d = data.data;
 
     if (d.defaultType === "PERCENTAGE" && d.defaultValue > 100) {
@@ -238,7 +238,7 @@ export const saveBenefitPlanFn = createServerFn({ method: "POST" })
 export const deleteBenefitPlanFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("BENEFICIOS");
     const ok = await deleteBenefitPlan(storeId, data.id);
     // Quem estava nele fica sem benefÃ­cio, mas continua cadastrado.
     return ok ? { ok: true as const } : { ok: false as const, error: "Plano nÃ£o encontrado." };

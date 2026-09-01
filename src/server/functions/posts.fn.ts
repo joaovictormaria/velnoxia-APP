@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAdminSession } from "../auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { createPost, deletePost, listPosts, updatePost } from "../repositories/post-repository";
 import {
   getStoreSettings,
@@ -22,14 +22,14 @@ const postSchema = z.object({
 });
 
 export const listPostsFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("MARKETING");
   return listPosts(storeId);
 });
 
 export const savePostFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: postSchema }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MARKETING");
     // A date the browser sends as "2026-08-18" is midnight UTC; parsing it here
     // keeps the stored instant the same one the owner picked.
     const publishedAt = data.data.publishedAt ? new Date(data.data.publishedAt) : null;
@@ -46,13 +46,13 @@ export const savePostFn = createServerFn({ method: "POST" })
 export const deletePostFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MARKETING");
     await deletePost(storeId, data.id);
     return { ok: true as const };
   });
 
 export const getAboutFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("CONFIGURACOES");
   const s = await getStoreSettings(storeId);
   return {
     aboutEyebrow: s.aboutEyebrow,
@@ -72,7 +72,7 @@ export const saveAboutFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("CONFIGURACOES");
     await updateAboutSection(storeId, data);
     return { ok: true as const };
   });

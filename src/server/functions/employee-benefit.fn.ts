@@ -8,6 +8,8 @@ import {
   lerUsoDoDia,
 } from "../repositories/employee-repository";
 import { getStoreBySlug, isStoreServable } from "../repositories/store-repository";
+import { estadoComercialDaLoja } from "@/server/billing/plano-da-loja";
+import { recursoNoEstado } from "@/lib/planos/resolucao";
 import { permitido } from "../security/rate-limit";
 import { calcularBeneficio, descreverCota } from "../services/employee-benefit";
 import { precificarItens } from "../services/order-service";
@@ -55,6 +57,24 @@ export const previewEmployeeBenefitFn = createServerFn({ method: "POST" })
     const store = await getStoreBySlug(data.storeSlug);
     if (!store || !isStoreServable(store)) {
       return { ok: false as const, error: "Esta loja não está disponível no momento." };
+    }
+
+    /*
+      ═══ O PLANO, NUM FLUXO PÚBLICO ══════════════════════════════════════
+
+      Quem chama é o CLIENTE no checkout da vitrine — sem conta, sem cookie
+      de painel. `exigirRecurso` passaria por `requireAdminSession` e
+      recusaria qualquer pessoa comum, então a pergunta é feita sobre a LOJA
+      que o slug resolveu no banco.
+
+      A resposta é a mesma de "telefone ou PIN não confere", e isso é
+      HONESTO, não evasivo: numa loja sem o módulo não existe programa de
+      benefício algum, então não há benefício a conceder. Dizer "o plano
+      desta loja não tem benefícios" contaria a um cliente o que a loja
+      contratou.
+    */
+    if (recursoNoEstado(estadoComercialDaLoja(store), "BENEFICIOS") === "BLOQUEADO") {
+      return { ok: false as const, error: "Telefone ou PIN não confere." };
     }
 
     const phone = data.phone.replace(/\D/g, "");
@@ -115,6 +135,14 @@ export const employeePhoneHasBenefitFn = createServerFn({ method: "POST" })
 
     const store = await getStoreBySlug(data.storeSlug);
     if (!store || !isStoreServable(store)) return { funcionario: false as const };
+
+    /*
+      Sem o módulo, este telefone não tem benefício nesta loja — e a
+      resposta é exatamente essa, sem rodeio nem vazamento de plano.
+    */
+    if (recursoNoEstado(estadoComercialDaLoja(store), "BENEFICIOS") === "BLOQUEADO") {
+      return { funcionario: false as const };
+    }
 
     const funcionario = await employeeHasBenefit(store.id, data.phone.replace(/\D/g, ""));
     return { funcionario };
