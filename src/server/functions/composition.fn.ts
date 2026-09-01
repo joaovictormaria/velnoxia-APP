@@ -1,6 +1,7 @@
 ﻿// @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { requireAdminSession } from "@/server/auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { CompositionService } from "@/server/services/composition-service";
 import {
   createProductCompositionSchema,
@@ -202,7 +203,7 @@ export const adminUpdateComposition = createServerFn({ method: "POST" })
  */
 export const adminActivateVersion = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
     const data = context?.data?.data || context?.data;
 
     /*
@@ -233,7 +234,7 @@ export const adminActivateVersion = createServerFn({ method: "POST" })
  */
 export const adminDeleteComposition = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
     const data = context?.data?.data || context?.data;
 
     /*
@@ -256,7 +257,7 @@ export const adminDeleteComposition = createServerFn({ method: "POST" })
  */
 export const adminDeleteCompositionVersion = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
     const data = context?.data?.data || context?.data;
 
     const composition = await prisma.productComposition.findUnique({
@@ -299,7 +300,7 @@ export const adminDeleteCompositionVersion = createServerFn({ method: "POST" })
  */
 export const adminGetComposition = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
     const data = context?.data?.data || context?.data;
 
     return numeros(await productCompositionRepository.findById(admin.storeId, data.compositionId));
@@ -321,7 +322,7 @@ export const adminGetProductVersions = createServerFn({ method: "POST" })
  */
 export const adminCalculateCompositionCost = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
     const data = context?.data?.data || context?.data;
 
     return numeros(await CompositionService.calculateCost(admin.storeId, data.compositionId));
@@ -343,7 +344,7 @@ export const getActiveComposition = createServerFn({ method: "POST" })
  */
 export const adminGetAllCompositions = createServerFn({ method: "POST" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
 
     return numeros(
       await productCompositionRepository.findAllByStore(admin.storeId, {
@@ -357,7 +358,7 @@ export const adminGetAllCompositions = createServerFn({ method: "POST" })
  */
 export const adminGetAllProducts = createServerFn({ method: "POST" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
 
     /*
      * `deletedAt: null` e `isActive` são desta correção, e os dois pelo mesmo

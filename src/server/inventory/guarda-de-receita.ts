@@ -20,6 +20,8 @@
  */
 
 import type { Prisma } from "@prisma/client";
+import { estadoComercialDaLoja } from "@/server/billing/plano-da-loja";
+import { recursoNoEstado } from "@/lib/planos/resolucao";
 import { prisma } from "@/server/db/client";
 import {
   produtoEstaIrregular,
@@ -64,9 +66,82 @@ export async function controleDeEstoqueAtivo(
 ): Promise<boolean> {
   const settings = await db.storeSettings.findUnique({
     where: { storeId },
-    select: { inventoryControlEnabled: true },
+    select: {
+      inventoryControlEnabled: true,
+      /*
+       * O PLANO VEM NA MESMA CONSULTA, pela relação — não é uma segunda ida ao
+       * banco. Esta função está no caminho quente de salvar produto, e dobrar o
+       * número de consultas ali seria pagar caro por uma pergunta que a linha
+       * vizinha já responde.
+       */
+      store: {
+        select: {
+          status: true,
+          trialEndsAt: true,
+          paidUntil: true,
+          subscriptionStatus: true,
+          plan: true,
+        },
+      },
+    },
   });
-  return settings?.inventoryControlEnabled ?? false;
+
+  if (!settings?.inventoryControlEnabled) return false;
+
+  /*
+   * ═══ O PLANO É A FONTE COMERCIAL; A FLAG É PREFERÊNCIA OPERACIONAL ═══════
+   *
+   * `inventoryControlEnabled` responde "o dono QUER usar controle de estoque?".
+   * Ela nunca respondeu "o plano dele PERMITE?", e usá-la como se respondesse
+   * foi o que emperrou a separação entre BASIC e Premium: uma loja BASIC
+   * nascia com a flag ligada, e a partir daí o cadastro de um produto comum
+   * passava a exigir tipo de controle, vínculo de estoque e ficha técnica —
+   * tudo Premium.
+   *
+   * As duas perguntas agora são feitas separadamente, e o controle só está
+   * ativo quando as duas dizem sim. O efeito em cascata é o conserto inteiro:
+   * `tipoDeControleExigido`, `produtoExigeVinculo` e
+   * `exigirConfiguracaoDeEstoque` deixam de cobrar do BASIC sem que nenhuma
+   * delas precise saber o que é um plano.
+   *
+   * ⚠️ `BLOQUEADO` É O ÚNICO QUE DESLIGA. `INDEFINIDO` — a loja legada — passa,
+   * e é o que garante que nenhuma conta existente mude de comportamento: quem
+   * tem a flag ligada hoje continua exatamente como está, sem backfill e sem
+   * nada gravado. É a mesma regra do servidor, da rota e do menu.
+   */
+  return recursoNoEstado(estadoComercialDaLoja(settings.store), "ESTOQUE") !== "BLOQUEADO";
+}
+
+/**
+ * O plano desta loja INCLUI o controle de estoque?
+ *
+ * Separada de `controleDeEstoqueAtivo` porque a tela precisa distinguir dois
+ * "não" que parecem um só:
+ *
+ *   · não disponível  → o plano não tem o módulo. A seção nem aparece.
+ *   · disponível e desligado → o dono escolheu não usar. A seção aparece,
+ *     convidando em vez de cobrar, exatamente como sempre funcionou.
+ *
+ * Sem essa distinção, esconder a seção para o BASIC também a esconderia da
+ * loja Premium que simplesmente desligou o controle — mudando o comportamento
+ * de quem paga.
+ */
+export async function estoqueDisponivelNoPlano(
+  storeId: string,
+  db: Db = prisma,
+): Promise<boolean> {
+  const loja = await db.store.findUnique({
+    where: { id: storeId },
+    select: {
+      status: true,
+      trialEndsAt: true,
+      paidUntil: true,
+      subscriptionStatus: true,
+      plan: true,
+    },
+  });
+  if (!loja) return false;
+  return recursoNoEstado(estadoComercialDaLoja(loja), "ESTOQUE") !== "BLOQUEADO";
 }
 
 /**

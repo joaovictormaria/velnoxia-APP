@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { numeros } from "./serializar";
 import { decimalToNumber } from "../utils/decimal-converter";
 import { reportRepository } from "@/server/repositories/report-repository";
@@ -37,14 +38,14 @@ export const adminGetStockReport = createServerFn({ method: "POST" })
 
 export const adminGetLowStockAlerts2 = createServerFn({ method: "GET" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     return reportRepository.getLowStockItems(admin.storeId);
   });
 
 export const adminGetMovementHistory = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     const data = context?.data || {};
     const limit = parseInt(data.limit || "100") || 100;
@@ -85,35 +86,35 @@ export const adminGetCostAnalysis = createServerFn({ method: "POST" })
     type: z.string().optional(),
   }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     return reportRepository.getMovementCostAnalysis(admin.storeId, { type: data.type || undefined });
   });
 
 export const adminGetCompositionUsageReport = createServerFn({ method: "GET" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RECEITAS");
 
     return reportRepository.getCompositionUsageReport(admin.storeId);
   });
 
 export const adminGetMovementStats = createServerFn({ method: "GET" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     return reportRepository.getMovementStats(admin.storeId);
   });
 
 export const adminGetOrderFulfillmentStats = createServerFn({ method: "GET" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("RELATORIOS");
 
     return reportRepository.getOrderFulfillmentStats(admin.storeId);
   });
 
 export const adminGetInventoryValueReport = createServerFn({ method: "GET" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     const relatorio = await reportRepository.getInventoryValue(admin.storeId);
 

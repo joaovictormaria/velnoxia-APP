@@ -5,9 +5,12 @@ import { requireAdminSession } from "../auth/session";
 import { prisma } from "../db/client";
 import { STARTER_CATALOGS } from "../catalog/starter-catalogs";
 import {
+  controleDeEstoqueAtivo,
+  estoqueDisponivelNoPlano,
   produtosPendentesDeVinculo,
   produtosSemTipoDeControle,
 } from "../inventory/guarda-de-receita";
+import { exigirRecurso } from "../billing/guarda-de-recurso";
 import {
   addRestaurantPhoto,
   deleteRestaurantPhoto,
@@ -131,16 +134,26 @@ export const saveStoreSettingsFn = createServerFn({ method: "POST" })
 export const getControleDeEstoqueFn = createServerFn({ method: "GET" }).handler(
   async () => {
     const { storeId } = await requireAdminSession();
-    const [settings, pendentes, semTipo] = await Promise.all([
-      prisma.storeSettings.findUnique({
-        where: { storeId },
-        select: { inventoryControlEnabled: true },
-      }),
+    const [disponivel, ativo, pendentes, semTipo] = await Promise.all([
+      /*
+        DOIS ESTADOS, e a tela precisa dos dois separados:
+
+          disponivel → o PLANO inclui o módulo de estoque
+          ativo      → o dono LIGOU o controle E o plano o inclui
+
+        Fundir os dois num booleano só esconderia a diferença entre "seu
+        plano não tem isso" e "você desligou isso" — e a segunda é uma
+        escolha que a loja Premium faz o tempo todo, com a seção do
+        formulário continuando visível, convidando em vez de cobrar.
+      */
+      estoqueDisponivelNoPlano(storeId),
+      controleDeEstoqueAtivo(storeId),
       produtosPendentesDeVinculo(storeId),
       produtosSemTipoDeControle(storeId),
     ]);
     return {
-      ativo: settings?.inventoryControlEnabled ?? false,
+      disponivel,
+      ativo,
       pendentes,
       /*
        * OUTRA LISTA, e as duas convivem de propósito.
@@ -176,7 +189,26 @@ export const getControleDeEstoqueFn = createServerFn({ method: "GET" }).handler(
 export const salvarControleDeEstoqueFn = createServerFn({ method: "POST" })
   .validator(z.object({ ativo: z.boolean() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    /*
+      LIGAR EXIGE O RECURSO; DESLIGAR, NÃO.
+
+      A assimetria é deliberada, e a guarda continua aqui mesmo depois de
+      ESTOQUE ter descido para o BASIC em 31/08/2026 — agora ela deixa passar,
+      porque o catálogo mudou, não a regra. É isso que faz o BASIC poder
+      ligar e desligar o controle de estoque sem nenhuma linha nova, e o que
+      faria a recusa voltar sozinha se o recurso um dia voltasse a ser pago.
+
+      DISPONÍVEL NO PLANO ≠ ATIVADO PELA LOJA, e as duas continuam separadas:
+      esta função é a preferência do dono, e quem responde a primeira pergunta
+      é `estoqueDisponivelNoPlano`.
+
+      Desligar continua livre para qualquer plano, inclusive para a loja
+      legada que decida sair do controle: recusar isso prenderia alguém num
+      módulo que ela não quer mais, e desligar nunca cria pendência.
+    */
+    const { storeId } = data.ativo
+      ? await exigirRecurso("ESTOQUE")
+      : await requireAdminSession();
 
     if (data.ativo) {
       const pendentes = await produtosPendentesDeVinculo(storeId);

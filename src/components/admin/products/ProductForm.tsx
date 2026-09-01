@@ -335,6 +335,21 @@ export function ProductForm({
     queryFn: () => getControleDeEstoqueFn(),
   });
   const controleAtivo = controleDeEstoque.data?.ativo ?? false;
+  /*
+    DUAS PERGUNTAS DIFERENTES, e o formulário precisa das duas:
+
+      estoqueNoPlano → o PLANO inclui o módulo (BASIC não inclui)
+      controleAtivo  → o dono LIGOU o controle
+
+    Esconder a seção por `controleAtivo` falso a esconderia também da loja
+    Premium que apenas desligou o controle — e ali ela deve continuar
+    aparecendo, convidando em vez de cobrar, como sempre funcionou.
+
+    O padrão é `true` enquanto a consulta não respondeu: um `false`
+    otimista faria a seção sumir e reaparecer a cada abertura do
+    formulário. Quem recusa de verdade é o servidor.
+  */
+  const estoqueNoPlano = controleDeEstoque.data?.disponivel ?? true;
 
   /*
    * A ficha ativa deste produto, só para o selo dizer a verdade.
@@ -1088,6 +1103,39 @@ export function ProductForm({
     </div>
   );
 
+  /*
+    A ETAPA 2 SEM O MÓDULO PAGO.
+
+    O passo continua existindo — mexer na máquina de etapas para pular um
+    passo mudaria a navegação, os botões do rodapé e o Enter do teclado, e
+    nada disso precisa mudar para o cadastro funcionar. O que muda é o
+    conteúdo: em vez de perguntar como o produto controla estoque, explica
+    que o módulo é do Premium e deixa salvar.
+
+    Sem nenhum campo de estoque preenchido, o produto nasce comum — que é
+    exatamente o que o BASIC precisa. O servidor recusa o resto.
+  */
+  const painelSemEstoque = (
+    <div className="mx-auto w-full max-w-2xl">
+      <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-center">
+        <h3 className="text-sm font-semibold text-neutral-900">
+          Controle de estoque está no plano Premium
+        </h3>
+        <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-neutral-600">
+          Seu produto será salvo normalmente e já pode ser vendido. Com o
+          Premium você ainda liga cada produto ao estoque, monta a ficha
+          técnica e acompanha o custo de cada item.
+        </p>
+        <a
+          href="/admin/assinatura"
+          className="mt-4 inline-block rounded-lg border border-neutral-300 px-4 py-2 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400"
+        >
+          Conhecer o Premium
+        </a>
+      </div>
+    </div>
+  );
+
   const painelReceita = (
     <div className="mx-auto w-full max-w-3xl">
     {/*
@@ -1127,7 +1175,14 @@ export function ProductForm({
   );
 
   const painelDe = (e: Etapa) =>
-    e === "produto" ? painelProduto : e === "tipo" ? painelTipo : painelReceita;
+    e === "produto"
+      ? painelProduto
+      : e === "tipo"
+        ? // Sem o módulo no plano, a etapa 2 explica em vez de perguntar.
+          estoqueNoPlano
+          ? painelTipo
+          : painelSemEstoque
+        : painelReceita;
 
   return (
     /*

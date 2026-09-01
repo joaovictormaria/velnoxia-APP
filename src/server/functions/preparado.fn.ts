@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { numeros } from "./serializar";
 import {
   criarReceitaDePreparadoSchema,
@@ -23,7 +24,7 @@ import {
 /** Preparados da loja, com saldo, disponível, custo e a receita que vale. */
 export const adminListarPreparados = createServerFn({ method: "POST" }).handler(
   async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("PRODUCAO");
     const { prisma } = await import("@/server/db/client");
 
     const itens = await prisma.inventoryItem.findMany({
@@ -87,7 +88,7 @@ export const adminListarPreparados = createServerFn({ method: "POST" }).handler(
 /** Insumos que podem entrar numa ficha, e as unidades disponíveis. */
 export const adminOpcoesDePreparado = createServerFn({ method: "POST" }).handler(
   async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("PRODUCAO");
     const { prisma } = await import("@/server/db/client");
 
     const [itens, unidades, conversoes] = await Promise.all([
@@ -137,7 +138,7 @@ export const adminCriarPreparado = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("PRODUCAO");
     const { CompositionService } = await import("@/server/services/composition-service");
     return numeros(await CompositionService.criarPreparadoComReceita(admin.storeId, data));
   });
@@ -150,7 +151,7 @@ export const adminAtualizarReceitaDePreparado = createServerFn({ method: "POST" 
     }),
   )
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("PRODUCAO");
     const { CompositionService } = await import("@/server/services/composition-service");
     return numeros(
       await CompositionService.atualizarReceitaDePreparado(
@@ -180,7 +181,7 @@ export const adminProduzir = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("PRODUCAO");
     const { ProducaoService } = await import("@/server/services/producao-service");
     return numeros(
       await ProducaoService.produzir(admin.storeId, {
@@ -198,7 +199,7 @@ export const adminHistoricoDeProducao = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("PRODUCAO");
     const { ProducaoService } = await import("@/server/services/producao-service");
     return numeros(await ProducaoService.historico(admin.storeId, data));
   });
@@ -206,7 +207,7 @@ export const adminHistoricoDeProducao = createServerFn({ method: "POST" })
 export const adminReverterProducao = createServerFn({ method: "POST" })
   .validator(z.object({ runId: z.string().min(1) }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("PRODUCAO");
     const { ProducaoService } = await import("@/server/services/producao-service");
     return numeros(await ProducaoService.reverter(admin.storeId, data.runId, admin.id));
   });

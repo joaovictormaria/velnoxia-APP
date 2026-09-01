@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { InventoryService } from "@/server/services/inventory-service";
 import {
   createInventoryItemClientSchema,
@@ -108,7 +109,7 @@ export const adminListarConversoesDeUnidade = createServerFn({ method: "POST" })
 );
 export const adminCreateInventoryItem = createServerFn({ method: "POST" })
   .handler(async ({ data }: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
     const itemData = data?.data || data;
 
     const itemType = itemData?.itemType || "INGREDIENT";
@@ -232,7 +233,7 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
     minimumThreshold: z.number().nonnegative().nullable().optional(),
   }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     const validated = updateInventoryItemSchema.parse({
       name: data.name || undefined,
@@ -275,7 +276,7 @@ export const adminUpdateInventoryItem = createServerFn({ method: "POST" })
  */
 export const adminRecordMovement = createServerFn({ method: "POST" })
   .handler(async (context: any) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
     const data = context?.data?.data || context?.data;
 
     const digitado = data?.quantity ? parseFloat(data.quantity) : 0;
@@ -380,7 +381,7 @@ export const adminReverseMovement = createServerFn({ method: "POST" })
     originalMovementId: z.string(),
   }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     const validated = createReversalSchema.parse({
       originalMovementId: data.originalMovementId,
@@ -441,7 +442,7 @@ export const systemConsumeForOrder = createServerFn({ method: "POST" })
  */
 export const getStoreInventory = createServerFn({ method: "GET" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     return inventoryItemRepository.findAll(admin.storeId, { includeInactive: false });
   });
@@ -454,7 +455,7 @@ export const getItemDetails = createServerFn({ method: "POST" })
     itemId: z.string(),
   }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     return inventoryItemRepository.getSummary(admin.storeId, data.itemId);
   });
@@ -464,7 +465,7 @@ export const getItemDetails = createServerFn({ method: "POST" })
  */
 export const adminGetInventoryValue = createServerFn({ method: "POST" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
 
     const items = await inventoryItemRepository.findAll(admin.storeId, {
       includeInactive: false,
@@ -495,7 +496,7 @@ export const adminGetInventoryValue = createServerFn({ method: "POST" })
  */
 export const adminGetLowStockAlerts = createServerFn({ method: "POST" })
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("ESTOQUE");
     return numeros(await reportRepository.getLowStockItems(admin.storeId));
   });
 
