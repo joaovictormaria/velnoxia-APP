@@ -23,6 +23,7 @@ import { ConfirmDialog } from "@/components/admin/comum/ConfirmDialog";
 import { NotificationBell } from "@/components/admin/layout/NotificationBell";
 import { listKanbanOrdersFn, listMesasAbertasFn, updateOrderStatusFn, confirmPaymentFn } from "@/server/functions/orders.fn";
 import { abrirFiadoFn, getPagamentosEmAbertoFn } from "@/server/functions/recebimentos.fn";
+import { recursoNoEstado } from "@/lib/planos/resolucao";
 import type { KanbanResponse, MesasAbertasResponse } from "@/types/api-responses";
 
 export const Route = createFileRoute("/admin/pedidos/")({
@@ -40,6 +41,8 @@ function todayISO() {
 
 function KanbanPage() {
   const queryClient = useQueryClient();
+  /* O estado comercial já veio na sessão, pelo `beforeLoad` de `/admin`. */
+  const { admin } = Route.useRouteContext();
   const [date, setDate] = useState(todayISO());
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -73,12 +76,24 @@ function KanbanPage() {
   });
   const kanban = data as KanbanResponse | undefined;
 
+  /*
+    SEM O MÓDULO, NEM CONSULTA.
+
+    O servidor já recusa `listMesasAbertasFn` sem MESAS, e o painel ficaria
+    vazio de qualquer forma — mas às custas de uma requisição que falha a
+    cada 3 segundos em toda loja BASIC. Mesmo motivo do indicador de fiado.
+  */
+  const temMesas =
+    !admin?.store.plano ||
+    recursoNoEstado(admin.store.plano, "MESAS") !== "BLOQUEADO";
+
   const { data: mesasData = [] } = useQuery({
     queryKey: ["mesas", "abertas", date, search],
     queryFn: () => listMesasAbertasFn({ data: { date, search: search || undefined } }),
     refetchInterval: 3_000,
     staleTime: 3_000,
     gcTime: 10 * 60 * 1000,
+    enabled: temMesas,
   });
   const mesas = mesasData as MesasAbertasResponse;
 
@@ -281,6 +296,11 @@ function KanbanPage() {
         <KanbanBoard
           columns={(kanban?.columns as any) ?? []}
           mostrarEntrega={kanban?.mostrarEntrega ?? true}
+          /* O plano já veio na sessão: nenhuma consulta a mais. */
+          permiteEntregador={
+            !admin?.store.plano ||
+            recursoNoEstado(admin.store.plano, "DELIVERY_AVANCADO") !== "BLOQUEADO"
+          }
           onAdvance={handleAdvance}
           onDispatch={(order) =>
             setDispatching({
@@ -528,10 +548,24 @@ function Metric({
  * vira moldura e ninguém lê no dia em que houver um.
  */
 function IndicadorDeFiado() {
+  /*
+    SEM O RECURSO, NEM CONSULTA.
+
+    O servidor já recusa `getPagamentosEmAbertoFn` para quem não tem FIADO,
+    e o indicador desapareceria sozinho — mas às custas de uma requisição
+    que falha a cada 60 segundos, para sempre, em toda loja BASIC. O
+    `enabled` evita a consulta que já se sabe que será recusada.
+  */
+  const { admin } = Route.useRouteContext();
+  const temFiado =
+    !admin?.store.plano ||
+    recursoNoEstado(admin.store.plano, "FIADO") !== "BLOQUEADO";
+
   const { data } = useQuery({
     queryKey: ["pagamentos-em-aberto"],
     queryFn: async () => getPagamentosEmAbertoFn({ data: {} }),
     refetchInterval: 60_000,
+    enabled: temFiado,
   });
   const quantidade = data?.quantidade ?? 0;
   if (quantidade === 0) return null;

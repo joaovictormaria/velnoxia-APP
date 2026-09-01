@@ -33,6 +33,7 @@ import { Route as EntregadorIndexRouteImport } from './routes/entregador/index'
 import { Route as EntregadorEntrarRouteImport } from './routes/entregador/entrar'
 import { Route as StoreSlugAcompanharTokenRouteImport } from './routes/$storeSlug/acompanhar/$token'
 import { Route as StoreSlugProdutoSlugRouteImport } from './routes/$storeSlug/produto/$slug'
+import { Route as AdminAuditoriaIndexRouteImport } from './routes/admin/auditoria/index'
 import { Route as AdminAvaliacoesIndexRouteImport } from './routes/admin/avaliacoes/index'
 import { Route as AdminBalcaoIndexRouteImport } from './routes/admin/balcao/index'
 import { Route as AdminCardapioIndexRouteImport } from './routes/admin/cardapio/index'
@@ -183,6 +184,11 @@ const StoreSlugProdutoSlugRoute = StoreSlugProdutoSlugRouteImport.update({
   id: '/produto/$slug',
   path: '/produto/$slug',
   getParentRoute: () => StoreSlugRouteRoute,
+} as any)
+const AdminAuditoriaIndexRoute = AdminAuditoriaIndexRouteImport.update({
+  id: '/auditoria/',
+  path: '/auditoria/',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const AdminAvaliacoesIndexRoute = AdminAvaliacoesIndexRouteImport.update({
   id: '/avaliacoes/',
@@ -376,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
+  '/admin/auditoria/': typeof AdminAuditoriaIndexRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/balcao/': typeof AdminBalcaoIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -428,6 +435,7 @@ export interface FileRoutesByTo {
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
+  '/admin/auditoria': typeof AdminAuditoriaIndexRoute
   '/admin/avaliacoes': typeof AdminAvaliacoesIndexRoute
   '/admin/balcao': typeof AdminBalcaoIndexRoute
   '/admin/cardapio': typeof AdminCardapioIndexRoute
@@ -484,6 +492,7 @@ export interface FileRoutesById {
   '/qr-pin/$storeSlug/$sessionId': typeof QrPinStoreSlugSessionIdRoute
   '/qr-show-pin/$storeSlug/$sessionId': typeof QrShowPinStoreSlugSessionIdRoute
   '/qr/$storeSlug/$qrcodeId': typeof QrStoreSlugQrcodeIdRoute
+  '/admin/auditoria/': typeof AdminAuditoriaIndexRoute
   '/admin/avaliacoes/': typeof AdminAvaliacoesIndexRoute
   '/admin/balcao/': typeof AdminBalcaoIndexRoute
   '/admin/cardapio/': typeof AdminCardapioIndexRoute
@@ -541,6 +550,7 @@ export interface FileRouteTypes {
     | '/qr-pin/$storeSlug/$sessionId'
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
+    | '/admin/auditoria/'
     | '/admin/avaliacoes/'
     | '/admin/balcao/'
     | '/admin/cardapio/'
@@ -593,6 +603,7 @@ export interface FileRouteTypes {
     | '/qr-pin/$storeSlug/$sessionId'
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
+    | '/admin/auditoria'
     | '/admin/avaliacoes'
     | '/admin/balcao'
     | '/admin/cardapio'
@@ -648,6 +659,7 @@ export interface FileRouteTypes {
     | '/qr-pin/$storeSlug/$sessionId'
     | '/qr-show-pin/$storeSlug/$sessionId'
     | '/qr/$storeSlug/$qrcodeId'
+    | '/admin/auditoria/'
     | '/admin/avaliacoes/'
     | '/admin/balcao/'
     | '/admin/cardapio/'
@@ -850,6 +862,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$storeSlug/produto/$slug'
       preLoaderRoute: typeof StoreSlugProdutoSlugRouteImport
       parentRoute: typeof StoreSlugRouteRoute
+    }
+    '/admin/auditoria/': {
+      id: '/admin/auditoria/'
+      path: '/auditoria'
+      fullPath: '/admin/auditoria/'
+      preLoaderRoute: typeof AdminAuditoriaIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/admin/avaliacoes/': {
       id: '/admin/avaliacoes/'
@@ -1095,6 +1114,7 @@ interface AdminRouteRouteChildren {
   AdminRelatoriosProdutosRoute: typeof AdminRelatoriosProdutosRoute
   AdminRelatoriosRecebimentosRoute: typeof AdminRelatoriosRecebimentosRoute
   AdminRelatoriosReceitaRoute: typeof AdminRelatoriosReceitaRoute
+  AdminAuditoriaIndexRoute: typeof AdminAuditoriaIndexRoute
   AdminAvaliacoesIndexRoute: typeof AdminAvaliacoesIndexRoute
   AdminBalcaoIndexRoute: typeof AdminBalcaoIndexRoute
   AdminCardapioIndexRoute: typeof AdminCardapioIndexRoute
@@ -1130,6 +1150,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminRelatoriosProdutosRoute: AdminRelatoriosProdutosRoute,
   AdminRelatoriosRecebimentosRoute: AdminRelatoriosRecebimentosRoute,
   AdminRelatoriosReceitaRoute: AdminRelatoriosReceitaRoute,
+  AdminAuditoriaIndexRoute: AdminAuditoriaIndexRoute,
   AdminAvaliacoesIndexRoute: AdminAvaliacoesIndexRoute,
   AdminBalcaoIndexRoute: AdminBalcaoIndexRoute,
   AdminCardapioIndexRoute: AdminCardapioIndexRoute,

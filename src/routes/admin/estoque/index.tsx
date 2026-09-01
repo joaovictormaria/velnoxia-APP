@@ -9,10 +9,33 @@ import {
   ReportsDashboard,
 } from "@/components/admin/inventory";
 import { EstoqueProvider } from "@/lib/estoque-store";
+import {
+  rotaBloqueada,
+  TelaDeRecursoPremium,
+} from "@/components/admin/planos/rota-premium";
+import type { Recurso } from "@/lib/planos/tipos";
 import { PreparadosTab } from "@/components/admin/inventory/PreparadosTab";
 import { adminGetAllProducts, adminGetProductVersions, adminDeleteCompositionVersion } from "@/server/functions/composition.fn";
 import { getProductFormOptionsFn, adminCreateCategoryFn, adminDeleteCategoryFn } from "@/server/functions/products.fn";
 
+/*
+  A ROTA É ABERTA; DUAS ABAS DELA NÃO.
+
+  Até 31/08/2026 a tela inteira era paga por ESTOQUE, e uma `rotaPremium` na
+  porta bastava. Com ESTOQUE no BASIC isso deixou de valer: cinco das sete
+  abas passaram a ser do plano básico, e trancar a porta trancaria o estoque
+  junto com a produção.
+
+  A proteção desceu para a ABA. Cada uma declara o recurso a que pertence, e
+  a pergunta é a mesma `recursoNoEstado` de sempre — a que a guarda de rota, o
+  cadeado do menu e as server functions usam. Não há segunda matriz aqui: só a
+  lista de qual aba é o quê, que é o mesmo papel de `RECURSO_DA_ROTA`.
+
+  ⚠️ ABRIR ESTA TELA NÃO ABRE PREPARADOS NEM RECEITAS. Quem recusa de verdade
+  continua sendo o servidor: `preparado.fn.ts` exige PRODUCAO e
+  `composition.fn.ts` exige RECEITAS, e recusariam ainda que estas linhas não
+  existissem. O que a aba faz é explicar em vez de mostrar um painel de erros.
+*/
 export const Route = createFileRoute("/admin/estoque/")({
   component: EstoquePage,
 });
@@ -37,7 +60,19 @@ function EstoquePage() {
   const [newCategoryName, setNewCategoryName] = useState<string>("");
   const [createdCategoryIdTemp, setCreatedCategoryIdTemp] = useState<string | null>(null);
 
+  /*
+    SÓ QUEM TEM RECEITAS BUSCA ESTA LISTA.
+
+    `adminGetAllProducts` exige RECEITAS no servidor, e ela só alimenta a aba
+    de Receitas. Buscá-la ao abrir a tela — como era quando a página inteira
+    era paga — faria toda loja BASIC começar a visita com uma recusa no
+    console, para preencher uma lista que ela não vai ver.
+  */
+  const temReceitas = !rotaBloqueada({ admin }, "RECEITAS");
+
   useEffect(() => {
+    if (!temReceitas) return;
+
     const fetchProducts = async () => {
       setLoadingProducts(true);
       try {
@@ -54,7 +89,7 @@ function EstoquePage() {
       }
     };
     fetchProducts();
-  }, []);
+  }, [temReceitas]);
 
   useEffect(() => {
     const loadVersions = async () => {
@@ -85,24 +120,55 @@ function EstoquePage() {
     }
   };
 
-  const tabs: Array<{ id: TabId; label: string; icon: string }> = [
-    { id: "dashboard", label: "Dashboard", icon: "📊" },
-    { id: "items", label: "Itens", icon: "📦" },
-    { id: "movements", label: "Movimentações", icon: "↔️" },
-    { id: "preparados", label: "Preparados", icon: "🍲" },
-    { id: "compositions", label: "Receitas", icon: "🧪" },
-    { id: "audit", label: "Auditoria", icon: "📋" },
-    { id: "charts", label: "Gráficos", icon: "📈" },
+  /*
+    O RECURSO DE CADA ABA — classificado pelo CONTEÚDO, não pela pasta.
+
+    "Auditoria" aqui NÃO é o módulo AUDITORIA: ela mostra o histórico de
+    movimentação do estoque (`InventoryMovement`), e não o `AuditLog`. O nome
+    coincide; o conteúdo não. Por isso é ESTOQUE, e a auditoria de verdade
+    mora em `/admin/auditoria`.
+
+    "Gráficos" desenha saldo e movimentação — estoque, não apuração de
+    resultado. Margem e rentabilidade continuam em FINANCEIRO, em outra tela.
+  */
+  const tabs: Array<{ id: TabId; label: string; icon: string; recurso: Recurso }> = [
+    { id: "dashboard", label: "Dashboard", icon: "📊", recurso: "ESTOQUE" },
+    { id: "items", label: "Itens", icon: "📦", recurso: "ESTOQUE" },
+    { id: "movements", label: "Movimentações", icon: "↔️", recurso: "ESTOQUE" },
+    { id: "preparados", label: "Preparados", icon: "🍲", recurso: "PRODUCAO" },
+    { id: "compositions", label: "Receitas", icon: "🧪", recurso: "RECEITAS" },
+    { id: "audit", label: "Auditoria", icon: "📋", recurso: "ESTOQUE" },
+    { id: "charts", label: "Gráficos", icon: "📈", recurso: "ESTOQUE" },
   ];
+
+  /*
+    A MESMA FUNÇÃO DA GUARDA DE ROTA. Ela responde "este recurso está
+    bloqueado para esta sessão?" — a pergunta não é sobre rota, é sobre
+    recurso, e reusá-la aqui é o que impede uma segunda regra de aparecer.
+  */
+  const bloqueada = (recurso: Recurso) => rotaBloqueada({ admin }, recurso);
+  const abaAtual = tabs.find((t) => t.id === activeTab)!;
+  const recursoBloqueadoDaAba = bloqueada(abaAtual.recurso) ? abaAtual.recurso : null;
 
   return (
     <EstoqueProvider>
       <div className="space-y-6">
-        {/* Header */}
+        {/*
+          Header
+
+          "Estoque", e o subtítulo só com o que o BASIC tem de fato. O título
+          antigo — "Estoque & Produção", com receitas no subtítulo — prometia
+          na primeira linha da tela dois módulos que ficaram no Premium, e o
+          cliente só descobriria ao esbarrar no cadeado de Preparados.
+
+          As duas abas pagas continuam visíveis, com cadeado: quem quiser
+          produção e ficha técnica encontra o convite. O que o cabeçalho não
+          faz mais é anunciá-las como se já fossem dele.
+        */}
         <header className="space-y-2">
-          <h1 className="text-3xl font-bold text-neutral-900">Estoque & Produção</h1>
+          <h1 className="text-3xl font-bold text-neutral-900">Estoque</h1>
           <p className="text-sm text-neutral-600">
-            Gerencie inventário, receitas, movimentações e relatórios
+            Gerencie seu estoque, movimentações, custos e alertas
           </p>
         </header>
 
@@ -119,7 +185,12 @@ function EstoquePage() {
                     : "border-transparent text-neutral-600 hover:text-neutral-900"
                 }`}
               >
-                {tab.icon} {tab.label}
+                {/*
+                  A aba paga continua VISÍVEL e clicável, com cadeado. Escondê-la
+                  faria o BASIC nunca descobrir que Preparados e Receitas
+                  existem — e é o convite que vende o Premium.
+                */}
+                {bloqueada(tab.recurso) ? "🔒" : tab.icon} {tab.label}
               </button>
             ))}
           </div>
@@ -127,7 +198,11 @@ function EstoquePage() {
 
         {/* Content */}
         <div className="space-y-6">
-          {activeTab === "dashboard" && (
+          {recursoBloqueadoDaAba && (
+            <TelaDeRecursoPremium recurso={recursoBloqueadoDaAba} />
+          )}
+
+          {!recursoBloqueadoDaAba && activeTab === "dashboard" && (
             <ReportsDashboard storeId={adminContext.storeId} />
           )}
 
@@ -162,9 +237,9 @@ function EstoquePage() {
             </div>
           )}
 
-          {activeTab === "preparados" && <PreparadosTab />}
+          {!recursoBloqueadoDaAba && activeTab === "preparados" && <PreparadosTab />}
 
-          {activeTab === "compositions" && (
+          {!recursoBloqueadoDaAba && activeTab === "compositions" && (
             <div className="space-y-6">
               {/* Modo Criação */}
               {isCreatingComposition && (

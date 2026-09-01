@@ -1,12 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowLeft, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { consumoDeFuncionariosFn } from "@/server/functions/employees.fn";
 
-export const Route = createFileRoute("/admin/relatorios/funcionarios")({
-  component: EmployeeReportPage,
-});
+/*
+  MÓDULO PAGO — FUNCIONARIOS.
+
+  FUNCIONARIOS, e não FINANCEIRO: a tela mora sob `/relatorios`, mas o que ela
+  entrega é o consumo da equipe. A pasta não classifica o módulo.
+
+  As server functions desta tela já exigem o recurso; a guarda de rota evita
+  que digitar a URL renda um painel de erros.
+*/
+export const Route = createFileRoute("/admin/relatorios/funcionarios")(
+  rotaPremium("FUNCIONARIOS", EmployeeReportPage),
+);
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 

@@ -1,4 +1,5 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
@@ -7,9 +8,14 @@ import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { CupomDaPrevia } from "@/components/admin/preview/CupomDaPrevia";
 import { toNumber as decimalToNumber, toStr } from "@/lib/decimal-utils";
 
-export const Route = createFileRoute("/admin/cupons/")({
-  component: CouponsPage,
-});
+/*
+  MÓDULO PAGO — MARKETING.
+
+  Cupons: código, desconto, validade e limite de usos.
+*/
+export const Route = createFileRoute("/admin/cupons/")(
+  rotaPremium("MARKETING", CouponsPage),
+);
 
 type Draft = {
   id: string | null;

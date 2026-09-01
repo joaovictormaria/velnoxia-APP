@@ -114,6 +114,9 @@ function AdminLayout() {
       <AdminSidebar
         storeName={admin.store.name}
         logoUrl={admin.store.logoUrl}
+        /* O estado comercial já veio na sessão: o menu decide o cadeado sem
+           nenhuma consulta a mais ao banco ou ao Stripe. */
+        plano={admin.store.plano}
         onLogout={handleLogout}
       />
       {/* A moldura cresce com a tela em vez de custar 96px fixos. Num celular

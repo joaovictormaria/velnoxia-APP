@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { recursoNoEstado } from "@/lib/planos/resolucao";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Search, UtensilsCrossed } from "lucide-react";
@@ -46,6 +47,8 @@ const dinheiro = (v: number) =>
  */
 function BalcaoPage() {
   const queryClient = useQueryClient();
+  /* O estado comercial já veio na sessão, pelo `beforeLoad` de `/admin`. */
+  const { admin } = Route.useRouteContext();
 
   const [categoria, setCategoria] = useState<string>("todos");
   const [busca, setBusca] = useState("");
@@ -322,6 +325,11 @@ function BalcaoPage() {
         enviando={criar.isPending}
         erro={erroDoEnvio}
         onFechar={() => setFinalizando(false)}
+        /* O plano vem da sessão: nenhuma consulta a mais para saber isto. */
+        permiteFiado={
+          !admin?.store.plano ||
+          recursoNoEstado(admin.store.plano, "FIADO") !== "BLOQUEADO"
+        }
         onConfirmar={(dados) => {
           setErroDoEnvio(null);
           criar.mutate(dados);

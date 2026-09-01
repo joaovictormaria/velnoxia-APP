@@ -1,4 +1,5 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
@@ -13,9 +14,14 @@ import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { PromoCarouselDaPrevia } from "@/components/admin/preview/PromoCarouselDaPrevia";
 import { aplicarRascunhoDePromocao } from "@/lib/previa/aplicar-rascunho";
 
-export const Route = createFileRoute("/admin/promocoes/")({
-  component: PromotionsPage,
-});
+/*
+  MÓDULO PAGO — MARKETING.
+
+  As campanhas da vitrine: carrossel, preço antes e depois, ordenação.
+*/
+export const Route = createFileRoute("/admin/promocoes/")(
+  rotaPremium("MARKETING", PromotionsPage),
+);
 
 type Draft = {
   id: string | null;

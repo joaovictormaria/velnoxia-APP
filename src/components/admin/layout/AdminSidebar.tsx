@@ -12,6 +12,7 @@ import {
   Grid3x3,
   Inbox,
   LayoutGrid,
+  Lock,
   LogOut,
   Megaphone,
   Menu,
@@ -23,6 +24,7 @@ import {
   PlusSquare,
   QrCode,
   Shapes,
+  ShieldCheck,
   Star,
   Store,
   Tags,
@@ -33,6 +35,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ProvedorDeCadeado, useCadeado } from "@/components/admin/planos/cadeado-do-menu";
+import type { EstadoComercial } from "@/lib/planos/resolucao";
 
 type Item = {
   to: string;
@@ -126,7 +130,28 @@ const MENU: (Item | Grupo)[] = [
       { to: "/admin/relatorios/recebimentos", label: "Pagamentos em aberto", icon: HandCoins },
     ],
   },
-  { to: "/admin/estoque", label: "Estoque & Produção", icon: Package },
+  /*
+   * "Estoque", e não "Estoque & Produção".
+   *
+   * O recurso ESTOQUE desceu para o BASIC em 31/08/2026; PRODUCAO ficou no
+   * Premium. O nome antigo prometia ao plano básico a metade que ele não tem,
+   * e o cliente só descobriria ao esbarrar no cadeado da aba Preparados.
+   *
+   * O rótulo é fixo, e continua sendo: um nome por plano colocaria regra de
+   * plano dentro da barra, que é exatamente o que o cadeado central existe
+   * para evitar.
+   */
+  { to: "/admin/estoque", label: "Estoque", icon: Package },
+  /*
+   * Item de topo, e não dentro de "Relatórios".
+   *
+   * Relatório responde "quanto vendi"; auditoria responde "quem mexeu nisto".
+   * A segunda pergunta é feita em outro momento — quando um número não bate,
+   * ou quando se quer saber quem apagou o que — e por quem administra a conta,
+   * não por quem acompanha a operação. Fica junto de Assinatura e
+   * Configurações, que é onde essa pessoa já vai.
+   */
+  { to: "/admin/auditoria", label: "Auditoria", icon: ShieldCheck },
   { to: "/admin/assinatura", label: "Assinatura", icon: CreditCard },
   { to: "/admin/configuracoes", label: "Configurações", icon: Cog },
 ];
@@ -145,10 +170,19 @@ export function AdminSidebar({
   storeName,
   logoUrl,
   onLogout,
+  plano,
 }: {
   storeName: string;
   logoUrl: string | null;
   onLogout: () => void;
+  /**
+   * O estado comercial da loja, vindo da sessão.
+   *
+   * Opcional de propósito: uma barra montada sem ele — num teste, numa tela
+   * futura — desenha exatamente como antes desta fase, sem cadeado nenhum.
+   * Trancar por não saber o plano seria pior que não trancar.
+   */
+  plano?: EstadoComercial | null;
 }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [recolhido, setRecolhido] = useState(false);
@@ -174,7 +208,7 @@ export function AdminSidebar({
   }, [pathname]);
 
   return (
-    <>
+    <ProvedorDeCadeado plano={plano}>
       {/* Celular: sem esta barra não haveria como chegar ao menu. */}
       <div className="sticky top-0 z-30 flex items-center gap-3 bg-neutral-950 px-4 py-3 lg:hidden">
         <button
@@ -280,7 +314,7 @@ export function AdminSidebar({
           </button>
         </div>
       </aside>
-    </>
+    </ProvedorDeCadeado>
   );
 }
 
@@ -351,6 +385,57 @@ function SecaoDoMenu({ grupo, pathname }: { grupo: Grupo; pathname: string }) {
   );
 }
 
+/**
+ * O item do menu RECOLHIDO — só ícone.
+ *
+ * Bloqueado, vira botão como na lista larga. Sem texto visível, o cadeado
+ * sozinho não diria nada a quem usa leitor de tela: o `aria-label` e o
+ * `title` carregam a explicação inteira.
+ */
+function IconeDoMenu({ item, pathname }: { item: Item; pathname: string }) {
+  const { bloqueioDaRota, abrirConvite } = useCadeado();
+  const bloqueado = bloqueioDaRota(item.to);
+  const forma = "relative flex size-11 items-center justify-center rounded-lg transition-colors";
+
+  if (bloqueado) {
+    return (
+      <button
+        type="button"
+        onClick={() => abrirConvite(bloqueado)}
+        title={`${item.label} — disponível no plano Premium`}
+        aria-label={`${item.label} — disponível no plano Premium`}
+        className={cn(
+          forma,
+          "text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300",
+          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-500",
+        )}
+      >
+        <item.icon className="size-6" />
+        <Lock
+          className="absolute right-1 top-1 size-3 text-neutral-500"
+          aria-hidden="true"
+        />
+      </button>
+    );
+  }
+
+  return (
+    <Link
+      to={item.to}
+      title={item.label}
+      aria-label={item.label}
+      className={cn(
+        forma,
+        estaAtivo(pathname, item)
+          ? "bg-[#E11D2E] text-white"
+          : "text-neutral-400 hover:bg-neutral-900 hover:text-white",
+      )}
+    >
+      <item.icon className="size-6" />
+    </Link>
+  );
+}
+
 function LinkDoMenu({
   item,
   pathname,
@@ -361,18 +446,57 @@ function LinkDoMenu({
   filho?: boolean;
 }) {
   const ativo = estaAtivo(pathname, item);
+  const { bloqueioDaRota, abrirConvite } = useCadeado();
+  const bloqueado = bloqueioDaRota(item.to);
+
+  const forma = cn(
+    "flex w-full items-center gap-3 rounded-lg py-2.5 text-left text-sm transition-colors",
+    filho ? "pl-8 pr-3" : "px-3 font-semibold uppercase tracking-wide",
+  );
+  const icone = cn("shrink-0", filho ? "size-4" : "size-5");
+
+  /*
+    BLOQUEADO VIRA BOTÃO, E NÃO LINK.
+
+    Um link levaria a uma rota que — para os módulos cuja fase de
+    enforcement ainda não chegou — abriria normalmente, desmentindo o
+    cadeado que a pessoa acabou de ver. O botão abre o convite, e a
+    resposta é a mesma para todos os módulos pagos.
+
+    O cadeado NUNCA vai sozinho: o `aria-label` diz o que ele significa, e
+    o item continua legível em escala de cinza — ninguém depende de
+    enxergar o ícone, nem de distinguir cor.
+  */
+  if (bloqueado) {
+    return (
+      <button
+        type="button"
+        onClick={() => abrirConvite(bloqueado)}
+        aria-label={`${item.label} — disponível no plano Premium`}
+        className={cn(
+          forma,
+          "text-neutral-500 hover:bg-neutral-900 hover:text-neutral-300",
+          "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-500",
+        )}
+      >
+        <item.icon className={icone} />
+        <span className="truncate">{item.label}</span>
+        <Lock className="ml-auto size-3.5 shrink-0" aria-hidden="true" />
+      </button>
+    );
+  }
+
   return (
     <Link
       to={item.to}
       className={cn(
-        "flex items-center gap-3 rounded-lg py-2.5 text-sm transition-colors",
-        filho ? "pl-8 pr-3" : "px-3 font-semibold uppercase tracking-wide",
+        forma,
         ativo
           ? "bg-[#E11D2E] text-white"
           : "text-neutral-400 hover:bg-neutral-900 hover:text-white",
       )}
     >
-      <item.icon className={cn("shrink-0", filho ? "size-4" : "size-5")} />
+      <item.icon className={icone} />
       <span className="truncate">{item.label}</span>
     </Link>
   );
@@ -394,20 +518,7 @@ function TrilhaDeIcones({ pathname }: { pathname: string }) {
             {i > 0 && <div className="mx-3 my-1.5 border-t border-neutral-900" />}
             <div className="flex flex-col items-center gap-1">
               {itens.map((item) => (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  title={item.label}
-                  aria-label={item.label}
-                  className={cn(
-                    "flex size-11 items-center justify-center rounded-lg transition-colors",
-                    estaAtivo(pathname, item)
-                      ? "bg-[#E11D2E] text-white"
-                      : "text-neutral-400 hover:bg-neutral-900 hover:text-white",
-                  )}
-                >
-                  <item.icon className="size-6" />
-                </Link>
+                <IconeDoMenu key={item.to} item={item} pathname={pathname} />
               ))}
             </div>
           </div>

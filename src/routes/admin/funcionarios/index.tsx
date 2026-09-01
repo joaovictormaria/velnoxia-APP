@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { BadgePercent, Check, Pencil, Trash2, UserPlus, Users, X } from "lucide-react";
@@ -10,9 +11,17 @@ import {
   setEmployeeActiveFn,
 } from "@/server/functions/employees.fn";
 
-export const Route = createFileRoute("/admin/funcionarios/")({
-  component: FuncionariosPage,
-});
+/*
+  MÓDULO PAGO — FUNCIONARIOS.
+
+  A EQUIPE: cadastro, cargo, PIN pessoal e ativação. Vender não passa por aqui.
+
+  As server functions desta tela já exigem o recurso; a guarda de rota evita
+  que digitar a URL renda um painel de erros.
+*/
+export const Route = createFileRoute("/admin/funcionarios/")(
+  rotaPremium("FUNCIONARIOS", FuncionariosPage),
+);
 
 const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 

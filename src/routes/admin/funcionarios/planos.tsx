@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Pencil, Plus, Tags, Trash2, X } from "lucide-react";
@@ -10,9 +11,18 @@ import {
 import { listProductsFn } from "@/server/functions/products.fn";
 import { toNumber } from "@/lib/decimal-utils";
 
-export const Route = createFileRoute("/admin/funcionarios/planos")({
-  component: PlanosPage,
-});
+/*
+  MÓDULO PAGO — BENEFICIOS.
+
+  O BENEFÍCIO: desconto por cargo, exceções por categoria e produto, cota mensal.
+  Módulo próprio — ter funcionário cadastrado não implica ter programa de benefício.
+
+  As server functions desta tela já exigem o recurso; a guarda de rota evita
+  que digitar a URL renda um painel de erros.
+*/
+export const Route = createFileRoute("/admin/funcionarios/planos")(
+  rotaPremium("BENEFICIOS", PlanosPage),
+);
 
 type Tipo = "NONE" | "PERCENTAGE" | "FIXED_AMOUNT" | "FIXED_PRICE";
 type Limite = "NONE" | "ITEMS_PER_DAY" | "AMOUNT_PER_DAY" | "PER_CATEGORY";

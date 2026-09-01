@@ -1,12 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowLeft, PackageX } from "lucide-react";
 import { getPerdas } from "@/server/functions/inventory-costs.fn";
 
-export const Route = createFileRoute("/admin/relatorios/perdas")({
-  component: PerdasPage,
-});
+/*
+  MÓDULO PAGO — FINANCEIRO.
+
+  A classificação vem da FUNÇÃO da tela, e não da pasta em que ela mora:
+  esta rota está sob `/admin/relatorios`, mas o que entrega é apuração de
+  dinheiro. Pelo mesmo critério, "Pagamentos em aberto" é FIADO e o
+  relatório de equipe é FUNCIONARIOS, cada um com sua fase.
+
+  As server functions que alimentam esta tela já exigem FINANCEIRO; a
+  guarda de rota evita que digitar a URL renda um painel de erros.
+*/
+export const Route = createFileRoute("/admin/relatorios/perdas")(
+  rotaPremium("FINANCEIRO", PerdasPage),
+);
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dateTime = new Intl.DateTimeFormat("pt-BR", {

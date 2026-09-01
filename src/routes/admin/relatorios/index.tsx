@@ -1,9 +1,21 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { ArrowRight } from "lucide-react";
 
-export const Route = createFileRoute("/admin/relatorios/")({
-  component: ReportsPage,
-});
+/*
+  MÓDULO PAGO — RELATORIOS.
+
+  Esta tela não traz número nenhum: é o índice que leva às cinco telas de
+  relatório. Todas as cinco já são pagas — Financeiro e Funcionários —,
+  então deixá-la aberta ofereceria ao BASIC uma porta para cinco cadeados.
+
+  É o ÚNICO caso de `RELATORIOS` puro entre as rotas deste diretório: as
+  outras sete pertencem a FINANCEIRO, FIADO ou FUNCIONARIOS, cada uma pelo
+  que entrega e não pela pasta em que mora.
+*/
+export const Route = createFileRoute("/admin/relatorios/")(
+  rotaPremium("RELATORIOS", ReportsPage),
+);
 
 function ReportsPage() {
   return (

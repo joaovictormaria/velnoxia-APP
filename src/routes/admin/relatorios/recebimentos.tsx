@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { ArrowLeft, HandCoins, AlertCircle } from "lucide-react";
@@ -8,9 +9,20 @@ import {
   receberPagamentoFn,
 } from "@/server/functions/recebimentos.fn";
 
-export const Route = createFileRoute("/admin/relatorios/recebimentos")({
-  component: RecebimentosPage,
-});
+/*
+  MÓDULO PAGO — FIADO, e não FINANCEIRO.
+
+  A tela mora sob `/admin/relatorios`, mas o que ela entrega são contas a
+  receber: quem deve, quanto e há quantos dias. Classificá-la pela pasta a
+  jogaria em FINANCEIRO junto com receita e margem — e no dia em que os dois
+  módulos ficassem em planos diferentes, o cadeado errado apareceria.
+
+  As cinco server functions de recebimentos já exigem FIADO; a guarda de rota
+  evita que digitar a URL renda um painel de erros.
+*/
+export const Route = createFileRoute("/admin/relatorios/recebimentos")(
+  rotaPremium("FIADO", RecebimentosPage),
+);
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const dia = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });

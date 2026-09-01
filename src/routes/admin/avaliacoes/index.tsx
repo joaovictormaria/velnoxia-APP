@@ -1,34 +1,41 @@
 import { createFileRoute, useRouteContext } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Eye, EyeOff, Heart, Plus, Star, Trash2, X } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
-import {
-  deletePostFn,
-  getAboutFn,
-  listPostsFn,
-  savePostFn,
-  saveAboutFn,
-} from "@/server/functions/posts.fn";
+import { deletePostFn, listPostsFn, savePostFn } from "@/server/functions/posts.fn";
 import {
   listReviewsForAdminFn,
   respondToReviewFn,
   setReviewHiddenFn,
 } from "@/server/functions/reviews.fn";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
-import { SobreORestaurante } from "@/components/site/pizzaria2/SobreORestaurante";
-import { aplicarRascunhoDoSobre, aplicarRascunhoDePublicacao } from "@/lib/previa/aplicar-rascunho";
+import { aplicarRascunhoDePublicacao } from "@/lib/previa/aplicar-rascunho";
 import { PublicacoesDaPrevia } from "@/components/admin/preview/PublicacoesDaPrevia";
 import { RespostaDaPrevia } from "@/components/admin/preview/RespostaDaPrevia";
 
-export const Route = createFileRoute("/admin/avaliacoes/")({
-  component: AvaliacoesPage,
-});
+/*
+  MÓDULO PAGO — MARKETING.
 
-type Tab = "sobre" | "blog" | "avaliacoes";
+  A GESTÃO de avaliações e do blog — responder, ocultar, publicar.
+  Enviar e ler avaliação continua público e BASIC: o que é pago é administrá-las.
+*/
+export const Route = createFileRoute("/admin/avaliacoes/")(
+  rotaPremium("MARKETING", AvaliacoesPage),
+);
+
+/*
+  "NOSSO RESTAURANTE" SAIU DAQUI — foi para Configurações.
+
+  Ele edita `StoreSettings.about*`, que é apresentação da loja e não
+  campanha: com esta tela virando paga, a loja BASIC ficaria sem como
+  escrever a própria história. A tela é a mesma, e as server functions
+  também — só o endereço mudou.
+*/
+type Tab = "blog" | "avaliacoes";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "sobre", label: "Nosso restaurante" },
   { id: "blog", label: "Novidades" },
   { id: "avaliacoes", label: "Avaliações" },
 ];
@@ -40,7 +47,7 @@ const dateFormat = new Intl.DateTimeFormat("pt-BR", {
 });
 
 function AvaliacoesPage() {
-  const [tab, setTab] = useState<Tab>("sobre");
+  const [tab, setTab] = useState<Tab>("blog");
 
   return (
     <div className="space-y-6">
@@ -70,146 +77,9 @@ function AvaliacoesPage() {
         ))}
       </div>
 
-      {tab === "sobre" && <AboutTab />}
       {tab === "blog" && <BlogTab />}
       {tab === "avaliacoes" && <ReviewsTab />}
     </div>
-  );
-}
-
-/* ---------------------------------------------------------------- sobre --- */
-
-function AboutTab() {
-  const queryClient = useQueryClient();
-  const { data, isPending } = useQuery({
-    queryKey: ["about"],
-    queryFn: () => getAboutFn(),
-  });
-  const { admin } = useRouteContext({ from: "/admin" });
-  const [foco, setFoco] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    aboutEyebrow: "",
-    aboutTitle: "",
-    aboutBody: "",
-    aboutImageUrl: null as string | null,
-  });
-  const [saved, setSaved] = useState(false);
-
-  // The query answers after the first render, so the form fills in from an
-  // effect rather than from an initial value that would always be empty.
-  useEffect(() => {
-    if (!data) return;
-    setForm({
-      aboutEyebrow: data.aboutEyebrow ?? "",
-      aboutTitle: data.aboutTitle ?? "",
-      aboutBody: data.aboutBody ?? "",
-      aboutImageUrl: data.aboutImageUrl,
-    });
-  }, [data]);
-
-  const save = useMutation({
-    mutationFn: () =>
-      saveAboutFn({
-        data: {
-          aboutEyebrow: form.aboutEyebrow,
-          aboutTitle: form.aboutTitle,
-          aboutBody: form.aboutBody,
-          aboutImageUrl: form.aboutImageUrl,
-        },
-      }),
-    onSuccess: () => {
-      setSaved(true);
-      queryClient.invalidateQueries({ queryKey: ["about"] });
-      window.setTimeout(() => setSaved(false), 2500);
-    },
-  });
-
-  if (isPending)
-    return <p className="text-sm text-neutral-500">Carregando...</p>;
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        save.mutate();
-      }}
-      className="grid gap-4 rounded-2xl border border-neutral-200 bg-white p-5 lg:grid-cols-5"
-    >
-      {/* Topo à direita, como nas outras telas. Esta seção só existe lá
-          embaixo na página da loja, e quem escreve o texto aqui não faz ideia
-          de como ele vai cair ao lado da foto. */}
-      {admin && (
-        <div className="hidden lg:col-span-2 lg:col-start-4 lg:row-span-3 lg:row-start-1 lg:block">
-          <PreviaDaVitrine
-            storeSlug={admin.store.slug}
-            foco={foco}
-            largura={900}
-            aplicarLoja={(loja) => aplicarRascunhoDoSobre(loja, form)}
-          >
-            <div className="bg-mozzarella p-8">
-              <SobreORestaurante />
-            </div>
-          </PreviaDaVitrine>
-        </div>
-      )}
-
-      <p className="text-sm text-neutral-500 lg:col-span-3">
-        Deixe qualquer campo vazio para usar o texto padrão do seu ramo.
-      </p>
-
-      <div
-        className="grid gap-4 sm:grid-cols-[200px_1fr] lg:col-span-3"
-        onFocusCapture={() => setFoco("foto-do-sobre")}
-      >
-        <ImageUploadField
-          kind="product"
-          label="Foto do restaurante"
-          value={form.aboutImageUrl}
-          onChange={(url) => setForm({ ...form, aboutImageUrl: url })}
-        />
-        <div className="space-y-4">
-          <Field label="Chamada" hint="Linha pequena acima do título.">
-            <Input
-              onFocus={() => setFoco("chamada-do-sobre")}
-              value={form.aboutEyebrow}
-              onChange={(v) => setForm({ ...form, aboutEyebrow: v })}
-              placeholder="Nosso restaurante"
-            />
-          </Field>
-          <Field label="Título">
-            <Input
-              onFocus={() => setFoco("titulo-do-sobre")}
-              value={form.aboutTitle}
-              onChange={(v) => setForm({ ...form, aboutTitle: v })}
-              placeholder="Feito com paixão, servido com carinho."
-            />
-          </Field>
-        </div>
-      </div>
-
-      <div className="lg:col-span-3">
-      <Field label="Texto" hint="Conte a história da sua loja em um parágrafo.">
-        <textarea
-          onFocus={() => setFoco("texto-do-sobre")}
-          value={form.aboutBody}
-          onChange={(e) => setForm({ ...form, aboutBody: e.target.value })}
-          rows={5}
-          className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-        />
-      </Field>
-      </div>
-
-      <div className="flex items-center gap-3 lg:col-span-3">
-        <button
-          type="submit"
-          disabled={save.isPending}
-          className="rounded-xl bg-[#E11D2E] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#c4172a] disabled:opacity-60"
-        >
-          {save.isPending ? "Salvando..." : "Salvar"}
-        </button>
-        {saved && <span className="text-sm text-green-600">Salvo.</span>}
-      </div>
-    </form>
   );
 }
 

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QrCode, Download, Trash2, Loader } from "lucide-react";
@@ -27,9 +28,16 @@ function getCorPorMesa(tableId: string): string {
 }
 
 
-export const Route = createFileRoute("/admin/mesas/")({
-  component: MesasPage,
-});
+/*
+  MÓDULO PAGO — MESAS.
+
+  O salão inteiro: cadastro de mesa, número, capacidade e o QR Code
+  permanente que abre a comanda no celular do cliente. Pedido, balcão e
+  cardápio não passam por aqui e seguem BASIC.
+*/
+export const Route = createFileRoute("/admin/mesas/")(
+  rotaPremium("MESAS", MesasPage),
+);
 
 interface GeneratedQRCode {
   id: string;

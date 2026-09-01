@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { rotaPremium } from "@/components/admin/planos/rota-premium";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Bike, Check, Copy, KeyRound, Trash2, UserPlus, Users, X } from "lucide-react";
@@ -11,9 +12,17 @@ import {
   setCourierActiveFn,
 } from "@/server/functions/courier-invites.fn";
 
-export const Route = createFileRoute("/admin/entregadores/")({
-  component: EntregadoresPage,
-});
+/*
+  MÓDULO PAGO — DELIVERY_AVANCADO.
+
+  O delivery BÁSICO não passa por aqui: aceitar pedido de entrega, endereço,
+  taxa, frete grátis, pedido mínimo e tempo estimado são do plano básico e
+  ficam em Configurações e no checkout. Esta tela é a FROTA — convidar,
+  ativar, desativar e revogar entregador —, e é ela que o Premium vende.
+*/
+export const Route = createFileRoute("/admin/entregadores/")(
+  rotaPremium("DELIVERY_AVANCADO", EntregadoresPage),
+);
 
 const dataHora = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
