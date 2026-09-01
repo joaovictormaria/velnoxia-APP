@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { WhatsAppIcon } from "@/components/site/WhatsAppIcon";
 import { useCart } from "@/lib/pizzaria2/cart";
 import { formatCurrency } from "@/lib/pizzaria2/menu";
 import { CampoDeCupom } from "@/components/site/pizzaria2/CampoDeCupom";
@@ -352,9 +351,6 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
   });
 
   if (placed) {
-    const href = storeInfo.whatsappHref(
-      `Oi! Acabei de fazer o pedido #${placed.number} pelo site. Total: ${formatCurrency(placed.total)}.`,
-    );
     return (
       <Overlay onClose={onClose}>
         <div className="text-center">
@@ -369,34 +365,43 @@ export function CheckoutForm({ onClose }: { onClose: () => void }) {
             {formatCurrency(placed.total)}
           </p>
 
-          {/* O link so existe nesta tela: sem WhatsApp automatico, quem fechar a
-              aba perde o acompanhamento. Por isso ele vem em destaque e com o
-              aviso de guardar. */}
+          {/*
+            O ACOMPANHAMENTO É O BOTÃO PRINCIPAL — e não mais o WhatsApp.
+
+            Os dois disputavam a mesma tela: o link do andamento vinha pequeno
+            dentro de uma moldura, e o botão grande e verde levava para uma
+            conversa. Quem acabou de fazer o pedido quer saber em que etapa ele
+            está, e essa resposta mora aqui dentro — a conversa não a dá
+            sozinha, alguém da loja precisa responder.
+
+            A moldura ficou como explicação e o botão virou a ação, em vez de
+            repetirem o mesmo destino em dois tamanhos. O aviso de guardar
+            continua: o link só existe nesta tela, e quem fechar a aba sem
+            salvá-lo perde o acompanhamento.
+          */}
           {placed.trackingToken && (
-            <div className="mt-5 rounded-xl border border-charcoal/12 p-4 text-left">
-              <p className="text-sm font-semibold text-charcoal">Acompanhe seu pedido</p>
-              <p className="mt-0.5 text-xs text-charcoal/55">
-                Guarde este link: ele mostra em que etapa seu pedido está.
-              </p>
+            <>
+              <div className="mt-5 rounded-xl border border-charcoal/12 p-4 text-left">
+                <p className="text-sm font-semibold text-charcoal">Acompanhe seu pedido</p>
+                <p className="mt-0.5 text-xs text-charcoal/55">
+                  Guarde este link: ele mostra em que etapa seu pedido está.
+                </p>
+              </div>
+
               <Link
                 to="/$storeSlug/acompanhar/$token"
                 params={{ storeSlug: storeInfo.slug, token: placed.trackingToken }}
-                className="mt-2 inline-block text-sm font-semibold text-tomato hover:underline"
+                /*
+                  `--on-primary`, e não `text-white`: a vitrine é branca-label
+                  e a cor primária é escolhida por loja. Um branco fixo some
+                  em cima de uma cor clara.
+                */
+                className="mt-5 flex items-center justify-center gap-2 rounded-full bg-tomato px-6 py-3 font-semibold text-[color:var(--on-primary)] transition-colors hover:bg-tomato/90"
               >
                 Ver o andamento →
               </Link>
-            </div>
+            </>
           )}
-
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 flex items-center justify-center gap-2 rounded-full bg-emerald-500 px-6 py-3 font-semibold text-white hover:bg-emerald-600"
-          >
-            <WhatsAppIcon className="size-5" />
-            Acompanhar pelo WhatsApp
-          </a>
           <button
             type="button"
             onClick={onClose}
