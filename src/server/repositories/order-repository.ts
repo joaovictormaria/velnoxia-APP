@@ -187,12 +187,25 @@ export async function listKanbanOrders(
    */
   const settings = await prisma.storeSettings.findUnique({
     where: { storeId },
-    select: { acceptsDelivery: true },
+    select: { acceptsDelivery: true, autoPrintEnabled: true },
   });
   const naRua = columns.find((c) => c.status === "OUT_FOR_DELIVERY")?.total ?? 0;
   const mostrarEntrega = (settings?.acceptsDelivery ?? true) || naRua > 0;
 
-  return { columns, awaiting, mostrarEntrega };
+  /*
+   * A COMANDA SÓ SAI SE A LOJA PEDIU.
+   *
+   * `autoPrintEnabled` existe desde sempre, nasce `false` e ninguém o
+   * consultava: o quadro chamava `window.print()` ao aceitar o pedido em
+   * qualquer loja, inclusive nas que tinham a impressão automática desligada.
+   * Vinha daqui junto com `mostrarEntrega` para não custar consulta nova.
+   *
+   * Padrão `false` quando não há settings: uma loja sem configuração não
+   * deve receber um diálogo de impressão que ninguém pediu.
+   */
+  const imprimirAoAceitar = settings?.autoPrintEnabled ?? false;
+
+  return { columns, awaiting, mostrarEntrega, imprimirAoAceitar };
 }
 
 /** Mesas abertas agrupadas por tableId com todos seus pedidos */

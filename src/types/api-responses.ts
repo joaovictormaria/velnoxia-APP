@@ -134,6 +134,20 @@ export type KanbanResponse = {
   preparing: any[];
   ready: any[];
   metrics: KanbanMetrics;
+  /**
+   * Os dois sinalizadores que a resposta carrega junto das colunas, vindos da
+   * mesma consulta de `StoreSettings` — nenhuma ida a mais ao banco.
+   *
+   * `mostrarEntrega` já era consumido pela tela sem estar declarado aqui.
+   * `imprimirAoAceitar` é o `autoPrintEnabled` da loja: sem ele o quadro
+   * chamava `window.print()` em toda loja, inclusive nas que têm a impressão
+   * automática desligada — que são todas, por padrão.
+   *
+   * Opcionais porque a tela lê com padrão: uma resposta antiga em cache não
+   * deve mudar o comportamento nem quebrar a renderização.
+   */
+  mostrarEntrega?: boolean;
+  imprimirAoAceitar?: boolean;
 };
 
 export type MesaAbertas = {

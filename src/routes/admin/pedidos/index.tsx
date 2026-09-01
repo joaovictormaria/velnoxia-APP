@@ -108,25 +108,31 @@ function KanbanPage() {
       setError(null);
 
       /*
-       * A COMANDA IMPRIME AO ACEITAR — e só ao aceitar.
+       * A COMANDA IMPRIME AO ACEITAR — se a loja tiver pedido isso.
        *
-       * Isto morava no diálogo de pedido novo, que foi removido. Sem ele o
-       * balcão passou a precisar de dois cliques a mais por pedido no horário
-       * de pico: abrir o pedido e clicar em imprimir.
+       * ⚠️ A CONDIÇÃO DO PLANO NÃO EXISTIA, e era o defeito: o quadro chamava
+       * `window.print()` em TODA loja, inclusive nas que tinham a impressão
+       * automática desligada — que são todas, por padrão. O interruptor
+       * `autoPrintEnabled` mora no banco desde sempre, nasce `false`, e
+       * ninguém o consultava. Colocar um pedido na fila abria um diálogo de
+       * impressão que ninguém pediu, no meio do horário de pico.
        *
-       * `PREPARING` é a única transição que imprime. Recusar não imprime, e
-       * avançar para pronto ou concluído também não — a comanda já saiu quando
-       * o pedido entrou na fila.
+       * A resposta do quadro traz o interruptor junto com `mostrarEntrega`,
+       * na mesma consulta — nenhuma ida a mais ao banco.
        *
-       * DEPOIS do `res.ok`, e não junto com o clique: a versão antiga disparava
-       * a impressão em paralelo com a mutação, e um pedido que o servidor
-       * recusasse mudar imprimia comanda assim mesmo.
+       * `PREPARING` continua sendo a única transição que imprime. Recusar não
+       * imprime, e avançar para pronto ou concluído também não — a comanda já
+       * saiu quando o pedido entrou na fila.
+       *
+       * DEPOIS do `res.ok`, e não junto com o clique: a versão antiga
+       * disparava a impressão em paralelo com a mutação, e um pedido que o
+       * servidor recusasse mudar imprimia comanda assim mesmo.
        *
        * `setTimeout` porque `window.print()` trava a thread principal até
        * alguém fechar o diálogo do sistema. Adiando um tick, a atualização do
        * quadro não fica esperando a impressora.
        */
-      if (vars.status === "PREPARING") {
+      if (vars.status === "PREPARING" && kanban?.imprimirAoAceitar) {
         setTimeout(() => window.print(), 0);
       }
 
