@@ -1,7 +1,7 @@
 import { createFileRoute, useRouteContext, Link } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, Loader2, Lock, X } from "lucide-react";
 import { ImageUploadField } from "@/components/admin/products/ImageUploadField";
 import { PreviaDaVitrine } from "@/components/admin/preview/PreviaDaVitrine";
 import { Header } from "@/components/site/pizzaria2/Header";
@@ -28,6 +28,7 @@ import {
   saveStoreSettingsFn,
 } from "@/server/functions/settings.fn";
 import { BUSINESS_TYPE_OPTIONS } from "@/server/catalog/starter-catalogs";
+import { recursoNoEstado } from "@/lib/planos/resolucao";
 
 export const Route = createFileRoute("/admin/configuracoes/")({
   component: SettingsPage,
@@ -131,6 +132,27 @@ const TABS: { id: TabId; label: string }[] = [
 function SettingsPage() {
   // A loja vem da moldura do painel, que é quem tem a sessão.
   const { admin } = useRouteContext({ from: "/admin" });
+
+  /*
+    A MESMA PERGUNTA QUE O SERVIDOR FAZ, e não uma segunda regra.
+
+    `recursoNoEstado` é a função que a guarda de rota, o cadeado do menu, as
+    abas do estoque e `entregaLiberadaNoPlano` usam. Escrever aqui um
+    `plano === "BASIC"` criaria a quinta versão da mesma regra — e a primeira
+    a divergir no dia em que a matriz comercial mudar.
+
+    ⚠️ ISTO É CORTESIA, NÃO PROTEÇÃO. Quem recusa gravar taxa e prazo numa loja
+    sem entrega é `saveStoreSettingsFn`; quem recusa o pedido é `order-service`.
+    Esta linha só evita que a tela ofereça o que não vai valer.
+  */
+  /*
+    Sem sessão carregada, NÃO tranca. É a mesma escolha do `INDEFINIDO`: na
+    dúvida a tela deixa passar, porque quem recusa de verdade é o servidor —
+    e trancar por não saber transformaria um carregamento em cadeado.
+  */
+  const entregaTrancada = admin
+    ? recursoNoEstado(admin.store.plano, "DELIVERY_BASICO") === "BLOQUEADO"
+    : false;
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
   const [hours, setHours] = useState<HoursDraft | null>(null);
@@ -693,12 +715,19 @@ function SettingsPage() {
         title="Entrega e retirada"
         description="Controla o que o checkout oferece."
       >
+        {/*
+          A ABA NÃO É TODA PAGA, e por isso o cadeado desce para o bloco.
+
+          Retirada, pedido mínimo e formas de pagamento são do BASIC — trancar
+          a aba inteira tiraria da loja configurações que ela tem direito de
+          mexer. O que é exclusivo da entrega fica reunido no bloco abaixo,
+          separado do resto justamente para poder ser trancado sozinho.
+
+          Mesma escolha do menu, das abas do estoque e dos cards de relatório:
+          o bloqueado continua VISÍVEL. Escondê-lo faria a loja nunca descobrir
+          que a entrega existe — e é ela que dá motivo para assinar.
+        */}
         <div className="flex flex-wrap gap-6">
-          <Toggle
-            label="Aceita entrega"
-            checked={draft.acceptsDelivery}
-            onChange={(v) => set("acceptsDelivery", v)}
-          />
           <Toggle
             label="Aceita retirada"
             checked={draft.acceptsPickup}
@@ -707,51 +736,13 @@ function SettingsPage() {
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <Field label="Taxa de entrega (R$)">
-            <NumberInput
-              value={draft.deliveryFee}
-              onChange={(v) => set("deliveryFee", v)}
-              step={0.5}
-            />
-          </Field>
-          <Field label="Pedido mínimo (R$)">
+          <Field label="Pedido mínimo (R$)" hint="Vale para entrega e retirada.">
             <NumberInput
               value={draft.minOrderValue}
               onChange={(v) => set("minOrderValue", v)}
               step={0.5}
             />
           </Field>
-          <Field
-            label="Frete grátis a partir de (R$)"
-            hint="Deixe vazio para não oferecer."
-          >
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={draft.freeDeliveryMinOrder ?? ""}
-              onChange={(e) =>
-                set(
-                  "freeDeliveryMinOrder",
-                  e.target.value === "" ? null : Number(e.target.value),
-                )
-              }
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
-            />
-          </Field>
-          <Field label="Entrega: mínimo (min)">
-            <NumberInput
-              value={draft.estimatedDeliveryMinMin}
-              onChange={(v) => set("estimatedDeliveryMinMin", v)}
-            />
-          </Field>
-          <Field label="Entrega: máximo (min)">
-            <NumberInput
-              value={draft.estimatedDeliveryMinMax}
-              onChange={(v) => set("estimatedDeliveryMinMax", v)}
-            />
-          </Field>
-          <div />
           <Field label="Retirada: mínimo (min)">
             <NumberInput
               value={draft.estimatedPickupMinMin}
@@ -764,6 +755,98 @@ function SettingsPage() {
               onChange={(v) => set("estimatedPickupMinMax", v)}
             />
           </Field>
+        </div>
+
+        <div
+          className={`mt-6 rounded-xl border p-4 ${
+            entregaTrancada
+              ? "border-neutral-200 bg-neutral-50"
+              : "border-neutral-200"
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900">
+                {entregaTrancada && (
+                  <Lock className="size-3.5 text-neutral-400" aria-hidden="true" />
+                )}
+                Entrega
+              </p>
+              <p className="mt-0.5 text-xs leading-snug text-neutral-500">
+                {entregaTrancada
+                  ? "Seu plano atual vende por retirada e balcão. Com o Premium a loja passa a receber pedidos com endereço, taxa e prazo."
+                  : "Taxa, frete grátis e prazo do pedido com endereço."}
+              </p>
+            </div>
+            {entregaTrancada && (
+              <Link
+                to="/admin/assinatura"
+                className="shrink-0 rounded-lg bg-[#E11D2E] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#c4172a] motion-reduce:transition-none"
+              >
+                Conhecer o Premium
+              </Link>
+            )}
+          </div>
+
+          {/*
+            OS CAMPOS CONTINUAM NA TELA, desabilitados e com os valores reais.
+            Uma loja que caiu de Premium para BASIC vê a configuração que tinha
+            — e sabe que ela volta inteira se reassinar. O servidor descarta
+            qualquer escrita neles enquanto o plano não permitir.
+          */}
+          <div className="mt-4 flex flex-wrap gap-6">
+            <Toggle
+              label="Aceita entrega"
+              checked={draft.acceptsDelivery && !entregaTrancada}
+              onChange={(v) => set("acceptsDelivery", v)}
+              disabled={entregaTrancada}
+            />
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Field label="Taxa de entrega (R$)">
+              <NumberInput
+                value={draft.deliveryFee}
+                onChange={(v) => set("deliveryFee", v)}
+                step={0.5}
+                disabled={entregaTrancada}
+              />
+            </Field>
+            <Field
+              label="Frete grátis a partir de (R$)"
+              hint="Deixe vazio para não oferecer."
+            >
+              <input
+                type="number"
+                min={0}
+                step={0.5}
+                disabled={entregaTrancada}
+                value={draft.freeDeliveryMinOrder ?? ""}
+                onChange={(e) =>
+                  set(
+                    "freeDeliveryMinOrder",
+                    e.target.value === "" ? null : Number(e.target.value),
+                  )
+                }
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
+              />
+            </Field>
+            <div />
+            <Field label="Entrega: mínimo (min)">
+              <NumberInput
+                value={draft.estimatedDeliveryMinMin}
+                onChange={(v) => set("estimatedDeliveryMinMin", v)}
+                disabled={entregaTrancada}
+              />
+            </Field>
+            <Field label="Entrega: máximo (min)">
+              <NumberInput
+                value={draft.estimatedDeliveryMinMax}
+                onChange={(v) => set("estimatedDeliveryMinMax", v)}
+                disabled={entregaTrancada}
+              />
+            </Field>
+          </div>
         </div>
 
         <div className="mt-5">
@@ -1254,19 +1337,22 @@ function NumberInput({
   value,
   onChange,
   step = 1,
+  disabled,
 }: {
   value: number;
   onChange: (v: number) => void;
   step?: number;
+  disabled?: boolean;
 }) {
   return (
     <input
       type="number"
       min={0}
       step={step}
+      disabled={disabled}
       value={value}
       onChange={(e) => onChange(Number(e.target.value))}
-      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900"
+      className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-base md:text-sm text-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-100 disabled:text-neutral-500"
     />
   );
 }
@@ -1275,16 +1361,23 @@ function Toggle({
   label,
   checked,
   onChange,
+  disabled,
 }: {
   label: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2">
+    <label
+      className={`inline-flex items-center gap-2 ${
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+      }`}
+    >
       <input
         type="checkbox"
         checked={checked}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
         className="size-4 accent-[#E11D2E]"
       />

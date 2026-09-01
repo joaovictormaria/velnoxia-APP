@@ -11,6 +11,7 @@ import {
   produtosSemTipoDeControle,
 } from "../inventory/guarda-de-receita";
 import { exigirRecurso } from "../billing/guarda-de-recurso";
+import { entregaLiberada } from "../delivery/guarda-de-entrega";
 import {
   addRestaurantPhoto,
   deleteRestaurantPhoto,
@@ -96,31 +97,89 @@ export const getStoreSettingsFn = createServerFn({ method: "GET" }).handler(
   },
 );
 
+/*
+ * AS CONFIGURAÇÕES QUE SÓ FAZEM SENTIDO COM ENTREGA.
+ *
+ * "Pedido mínimo" NÃO está aqui de propósito: ele vale para retirada também, e
+ * a loja BASIC continua dona dele. Só entra na lista o que existe unicamente
+ * por causa da entrega.
+ */
+const CAMPOS_DE_ENTREGA = [
+  "acceptsDelivery",
+  "deliveryFee",
+  "freeDeliveryMinOrder",
+  "estimatedDeliveryMinMin",
+  "estimatedDeliveryMinMax",
+] as const;
+
 export const saveStoreSettingsFn = createServerFn({ method: "POST" })
   .validator(settingsSchema)
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
-    // Ranges are validated here rather than in the schema so the message can
-    // name the offending pair instead of a generic field error.
-    if (data.estimatedDeliveryMinMax < data.estimatedDeliveryMinMin) {
+
+    /*
+     * ═══════════════════════════════════════════════════════════════════════
+     *  O PLANO DECIDE SE ESTES CAMPOS PODEM SER GRAVADOS
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * A tela já mostra o bloco com cadeado, mas cadeado de tela é cortesia: um
+     * POST direto continuava gravando taxa, prazo e `acceptsDelivery: true`
+     * numa loja BASIC. A recusa de verdade mora aqui.
+     *
+     * E é DESCARTE, não erro. O formulário manda o rascunho inteiro num POST
+     * só — recusar a requisição impediria a loja BASIC de salvar horário de
+     * funcionamento por causa de um campo que ela nem pode editar. Então os
+     * campos de entrega são ignorados, e o resto grava normalmente.
+     *
+     * O valor guardado NÃO é zerado. Uma loja que caiu de Premium para BASIC
+     * mantém a taxa e o prazo que configurou; se voltar, encontra tudo como
+     * deixou. Quem impede a entrega de acontecer não é esta coluna — é
+     * `order-service`, que recusa o pedido, e `store-settings-repository`, que
+     * apaga `acceptsDelivery` no que a vitrine recebe.
+     */
+    const podeEntregar = await entregaLiberada(storeId);
+
+    const dados = { ...data };
+    if (!podeEntregar) {
+      for (const campo of CAMPOS_DE_ENTREGA) delete dados[campo];
+    }
+
+    /*
+     * As faixas são validadas aqui, e não no schema, para a mensagem poder
+     * nomear o par que está errado em vez de um erro genérico de campo.
+     */
+    if (
+      podeEntregar &&
+      data.estimatedDeliveryMinMax < data.estimatedDeliveryMinMin
+    ) {
       return {
         ok: false as const,
-        error: "O tempo mÃ¡ximo de entrega nÃ£o pode ser menor que o mÃ­nimo.",
+        error: "O tempo máximo de entrega não pode ser menor que o mínimo.",
       };
     }
     if (data.estimatedPickupMinMax < data.estimatedPickupMinMin) {
       return {
         ok: false as const,
-        error: "O tempo mÃ¡ximo de retirada nÃ£o pode ser menor que o mÃ­nimo.",
+        error: "O tempo máximo de retirada não pode ser menor que o mínimo.",
       };
     }
-    if (!data.acceptsDelivery && !data.acceptsPickup) {
+
+    /*
+     * A pergunta é sobre o que a loja PODE oferecer, e não sobre o que ela
+     * mandou. Sem o `podeEntregar`, uma loja BASIC com "aceita entrega" ligado
+     * lá atrás passaria por esta checagem sem aceitar nada de fato — e ficaria
+     * com uma vitrine sem nenhuma forma de comprar.
+     */
+    if (!(podeEntregar && data.acceptsDelivery) && !data.acceptsPickup) {
       return {
         ok: false as const,
-        error: "A loja precisa aceitar entrega ou retirada.",
+        error: podeEntregar
+          ? "A loja precisa aceitar entrega ou retirada."
+          : "Seu plano não inclui entrega, então a loja precisa aceitar retirada.",
       };
     }
-    const settings = await updateStoreSettings(storeId, data);
+
+    const settings = await updateStoreSettings(storeId, dados);
     return { ok: true as const, settings };
   });
 
