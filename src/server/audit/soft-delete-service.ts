@@ -1,4 +1,5 @@
 import { prisma } from "../db/client";
+import { garantirLimite } from "../billing/guarda-de-limite";
 import { AuditService } from "./audit-service";
 
 /**
@@ -78,12 +79,26 @@ export class SoftDeleteService {
       throw new Error("Produto não encontrado ou já está ativo");
     }
 
-    await prisma.product.update({
-      where: { id: productId },
-      data: {
-        deletedAt: null,
-        deletedBy: null,
-      },
+    /*
+     * RESTAURAR É VOLTAR A OCUPAR UMA VAGA, e por isso passa pela mesma cota
+     * da criação. Sem isto, uma loja BASIC no teto poderia excluir e
+     * restaurar em volta do limite indefinidamente.
+     *
+     * ⚠️ CAMINHO SEM CHAMADOR HOJE. `deleteProductFn` apaga de verdade
+     * (`prisma.product.delete`), então não existe produto com `deletedAt`
+     * para restaurar, e nenhuma tela chama este método. A guarda entra agora
+     * para que o dia em que o soft delete for ligado não seja o dia em que o
+     * limite deixe de valer.
+     */
+    await prisma.$transaction(async (tx) => {
+      await garantirLimite(tx, storeId, "MAX_PRODUTOS");
+      await tx.product.update({
+        where: { id: productId },
+        data: {
+          deletedAt: null,
+          deletedBy: null,
+        },
+      });
     });
 
     // Auditar a restauração

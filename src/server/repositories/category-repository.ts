@@ -1,4 +1,4 @@
-import type { CategoryKind } from "@prisma/client";
+import type { CategoryKind, Prisma } from "@prisma/client";
 import { prisma } from "../db/client";
 import {
   criarGrupos,
@@ -61,8 +61,14 @@ export function getCategoryById(storeId: string, id: string) {
 export function createCategory(
   storeId: string,
   { sizes, optionGroups, ...data }: CategoryInput,
+  /**
+   * Transação do chamador, quando a checagem que autorizou a criação e a
+   * criação em si precisam ser o mesmo instante — é o caso da cota de
+   * categorias em `saveCategoryFn`. Mesmo desenho de `createProduct`.
+   */
+  tx: Prisma.TransactionClient | typeof prisma = prisma,
 ) {
-  return prisma.category.create({
+  return tx.category.create({
     data: {
       ...data,
       storeId,

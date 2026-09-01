@@ -2,6 +2,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
+import { garantirRecurso } from "@/server/billing/guarda-de-recurso";
+import { garantirLimite } from "@/server/billing/guarda-de-limite";
 import { prisma } from "../db/client";
 import {
   createProduct,
@@ -114,7 +116,43 @@ export const getProductFormOptionsFn = createServerFn({ method: "GET" }).handler
 export const saveProductFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: productSchema }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const admin = await requireAdminSession();
+    const { storeId } = admin;
+
+    /*
+     * ═══ O CADASTRO É BASIC; UM CAMPO DELE NÃO ═══════════════════════════
+     *
+     * Esta função nunca exigiu um recurso inteiro — cadastrar produto é o
+     * coração do plano básico, e gateá-la derrubaria o cardápio de quem paga
+     * o BASIC. O que ela julga é CAMPO A CAMPO, e o corte mudou em
+     * 31/08/2026, quando ESTOQUE desceu para o BASIC:
+     *
+     *   tipoDeControle: REVENDA   → baixa um item de estoque      → ESTOQUE
+     *   inventoryItemId           → o vínculo com esse item       → ESTOQUE
+     *   tipoDeControle: PRODUCAO  → o produto sai de uma ficha    → PRODUCAO
+     *
+     * `NAO_CONTROLA` e `null` seguem livres: são o produto comum.
+     *
+     * REVENDA E VÍNCULO AGORA PASSAM NO BASIC. `garantirRecurso(…,"ESTOQUE")`
+     * continua ali, e é ele quem deixa passar: o recurso mudou de plano no
+     * catálogo, não a guarda. Se um dia ESTOQUE voltar a ser pago, esta linha
+     * volta a recusar sozinha.
+     *
+     * PRODUÇÃO CONTINUA RECUSADA, e é a metade que este corte protege. Uma
+     * loja BASIC que gravasse um produto de PRODUÇÃO ficaria com um item que
+     * precisa de ficha técnica — e ficha técnica é RECEITAS, Premium. Ela não
+     * conseguiria montá-la, e o produto viraria impossível de acertar. Sem a
+     * separação, mover ESTOQUE para o BASIC teria aberto a produção junto.
+     *
+     * As duas perguntas vão à camada central: nenhuma comparação de plano
+     * mora aqui.
+     */
+    const tipo = data.data.tipoDeControle;
+
+    if (tipo === "PRODUCAO") garantirRecurso(admin, "PRODUCAO");
+
+    const pediuEstoque = tipo === "REVENDA" || Boolean(data.data.inventoryItemId);
+    if (pediuEstoque) garantirRecurso(admin, "ESTOQUE");
 
     /*
      * O VÍNCULO É CONFERIDO CONTRA A LOJA DA SESSÃO, ANTES DE QUALQUER COISA.
@@ -213,6 +251,19 @@ export const saveProductFn = createServerFn({ method: "POST" })
     let criado;
     try {
       criado = await prisma.$transaction(async (tx) => {
+        /*
+         * ═══ CABE MAIS UM PRODUTO NESTE PLANO? ════════════════════════════
+         *
+         * DENTRO DA TRANSAÇÃO, e antes de tudo: a guarda tranca a loja para
+         * este limite, conta e decide no mesmo instante em que o produto é
+         * gravado. Contar fora daqui deixaria a janela em que duas
+         * requisições simultâneas veriam 49 e gravariam o 50º e o 51º.
+         *
+         * SÓ NA CRIAÇÃO. O ramo de edição, acima, não passa por aqui —
+         * mexer num produto que já existe não consome cota nenhuma.
+         */
+        await garantirLimite(tx, storeId, "MAX_PRODUTOS");
+
         const { nasceInativo } = await avaliarCriacaoDeProduto(
           storeId,
           {
@@ -291,14 +342,25 @@ export const adminCreateCategoryFn = createServerFn({ method: "POST" })
     // Se nÃ£o existe, criar
     if (!category) {
       const slug = data.name.toLowerCase().replace(/\s+/g, "-");
-      category = await prisma.category.create({
-        data: {
-          storeId,
-          name: data.name,
-          slug,
-          kind: "SIMPLE",
-          sortOrder: 0,
-        },
+      /*
+       * A COTA SÓ É COBRADA DE QUEM VAI MESMO CRIAR UMA LINHA.
+       *
+       * Esta função reaproveita a categoria de mesmo nome quando ela já
+       * existe, e o caminho de cima sai daqui sem tocar no limite —
+       * reaproveitar não é criar. A transação começa aqui, e não antes, pelo
+       * mesmo motivo.
+       */
+      category = await prisma.$transaction(async (tx) => {
+        await garantirLimite(tx, storeId, "MAX_CATEGORIAS");
+        return tx.category.create({
+          data: {
+            storeId,
+            name: data.name,
+            slug,
+            kind: "SIMPLE",
+            sortOrder: 0,
+          },
+        });
       });
     }
 

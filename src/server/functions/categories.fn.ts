@@ -2,6 +2,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
+import { prisma } from "../db/client";
+import { garantirLimite } from "@/server/billing/guarda-de-limite";
 import {
   countProductsInCategory,
   createCategory,
@@ -47,9 +49,25 @@ export const saveCategoryFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string().nullish(), data: categorySchema }))
   .handler(async ({ data }) => {
     const { storeId } = await requireAdminSession();
+
+    /*
+     * ═══ CABE MAIS UMA CATEGORIA NESTE PLANO? ══════════════════════════════
+     *
+     * SÓ NA CRIAÇÃO. Editar uma categoria que já existe não consome cota —
+     * por isso a pergunta mora neste ramo, e não antes do `if`.
+     *
+     * A TRANSAÇÃO EXISTE PARA A CONTAGEM. A criação sozinha nunca precisou de
+     * uma; o que precisa é contar e gravar no mesmo instante, senão duas
+     * requisições simultâneas veriam 9 categorias e gravariam a 10ª e a 11ª.
+     * A guarda tranca a loja para este limite até o commit.
+     */
     const category = data.id
       ? await updateCategory(storeId, data.id, data.data)
-      : await createCategory(storeId, data.data);
+      : await prisma.$transaction(async (tx) => {
+          await garantirLimite(tx, storeId, "MAX_CATEGORIAS");
+          return createCategory(storeId, data.data, tx);
+        });
+
     return { ok: true as const, category };
   });
 
