@@ -6,6 +6,14 @@ import {
   calcularMovimentoDeCompra,
   conteudoDaEmbalagem,
 } from "@/lib/embalagem-de-compra";
+import {
+  ajuda,
+  campo,
+  estiloDaSeta,
+  marcaObrigatorio,
+  rotulo,
+  selecao,
+} from "./campos";
 
 export interface MovementFormProps {
   storeId: string;
@@ -185,14 +193,48 @@ export function MovementForm(props: MovementFormProps) {
    */
   const custoUnitario = previa.custoUnitario;
 
-  return (
-    <div className="movement-form space-y-4 p-4 border rounded bg-white">
-      <h3 className="text-lg font-bold">Registrar Movimentação</h3>
+  /*
+    O RÓTULO DE CADA ITEM NA LISTA.
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Item Selection */}
+    Era `Queijo muçarela (QUEIJO-MUC) - 8.99kg`: três informações grudadas, com
+    o código no meio empurrando o saldo para fora da caixa. O SKU é interno —
+    quem registra a compra procura pelo nome, não pelo código.
+
+    Mas ele não some de vez: quando dois itens têm o MESMO nome, o SKU é a única
+    coisa que os separa, e aí ele volta. Some quando é ruído, aparece quando é a
+    resposta.
+  */
+  const nomesRepetidos = new Set(
+    items
+      .map((i) => i.name.trim().toLowerCase())
+      .filter((nome, i, todos) => todos.indexOf(nome) !== i),
+  );
+
+  const rotuloDoItem = (item: InventoryItem) => {
+    const saldo = `${item.quantityOnHand.toLocaleString("pt-BR", {
+      maximumFractionDigits: 3,
+    })} ${item.baseUnit.code}`;
+    const desempate = nomesRepetidos.has(item.name.trim().toLowerCase())
+      ? ` [${item.sku}]`
+      : "";
+    return `${item.name}${desempate} · ${saldo}`;
+  };
+
+  return (
+    <div className="movement-form rounded-2xl border border-neutral-200 bg-white p-5">
+      <h3 className="font-display text-base font-bold text-neutral-900">
+        Registrar movimentação
+      </h3>
+      <p className="mt-0.5 text-xs text-neutral-500">
+        Entrada de compra ou baixa por perda. O saldo muda na hora.
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        {/* ─────────────────────────── ITEM ─────────────────────────── */}
         <div>
-          <label className="block text-sm font-medium mb-2">Item *</label>
+          <label className={rotulo}>
+            Item <span className={marcaObrigatorio}>*</span>
+          </label>
           <select
             value={formData.itemId}
             onChange={(e) => {
@@ -201,131 +243,139 @@ export function MovementForm(props: MovementFormProps) {
             }}
             disabled={loading || submitting}
             required
-            className="w-full px-3 py-2 border rounded bg-white text-foreground"
+            className={selecao}
+            style={estiloDaSeta}
           >
             <option value="">
               {loading ? "Carregando..." : "Selecione um item..."}
             </option>
             {items.map((item) => (
               <option key={item.id} value={item.id}>
-                {item.name} ({item.sku}) - {item.quantityOnHand}
-                {item.baseUnit.code}
+                {rotuloDoItem(item)}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Show Selected Item Info */}
+        {/*
+          O SALDO DO ITEM ESCOLHIDO, em três números que se explicam juntos:
+          o que existe, o que já está prometido a um pedido e o que sobra.
+          Ver só "em estoque" faria alguém dar baixa de algo que já foi vendido.
+        */}
         {selectedItem && (
-          <div className="p-3 bg-neutral-50 rounded text-sm space-y-2">
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <span className="text-neutral-600">Em estoque:</span>
-                <p className="font-semibold">
-                  {selectedItem.quantityOnHand} {selectedItem.baseUnit.code}
+          <div className="grid grid-cols-3 gap-2 rounded-xl bg-neutral-50 p-3 text-center">
+            {[
+              { r: "Em estoque", v: selectedItem.quantityOnHand, cor: "text-neutral-900" },
+              { r: "Reservado", v: selectedItem.quantityReserved, cor: "text-amber-600" },
+              { r: "Disponível", v: getAvailableQuantity(), cor: "text-emerald-600" },
+            ].map(({ r, v, cor }) => (
+              <div key={r}>
+                <p className="text-[11px] uppercase tracking-wide text-neutral-500">{r}</p>
+                <p className={`mt-0.5 text-sm font-bold tabular-nums ${cor}`}>
+                  {v}
+                  <span className="ml-0.5 text-xs font-medium text-neutral-400">
+                    {selectedItem.baseUnit.code}
+                  </span>
                 </p>
               </div>
-              <div>
-                <span className="text-neutral-600">Reservado:</span>
-                <p className="font-semibold text-amber-600">
-                  {selectedItem.quantityReserved} {selectedItem.baseUnit.code}
-                </p>
-              </div>
-              <div>
-                <span className="text-neutral-600">Disponível:</span>
-                <p className="font-semibold text-green-600">
-                  {getAvailableQuantity()} {selectedItem.baseUnit.code}
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         )}
 
-        {/* Movement Type */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Tipo de Movimento *</label>
-          <select
-            value={formData.type}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                type: e.target.value as MovementType,
-              })
-            }
-            disabled={submitting}
-            className="w-full px-3 py-2 border rounded bg-white text-foreground"
-          >
-            <option value="PURCHASE">Compra (+)</option>
-            <option value="LOSS">Perda (-)</option>
-          </select>
+        {/*
+          TIPO E QUANTIDADE LADO A LADO. São a mesma frase — "entrou 30" ou
+          "perdi 2" —, e empilhá-los espichava o formulário sem necessidade
+          num espaço que já era estreito demais.
+        */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={rotulo}>
+              Tipo de movimento <span className={marcaObrigatorio}>*</span>
+            </label>
+            <select
+              value={formData.type}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  type: e.target.value as MovementType,
+                })
+              }
+              disabled={submitting}
+              className={selecao}
+              style={estiloDaSeta}
+            >
+              <option value="PURCHASE">Compra — entrada</option>
+              <option value="LOSS">Perda — baixa</option>
+            </select>
+          </div>
+
+          <div>
+            <label className={rotulo}>
+              {emEmbalagens ? `Quantidade (${rotuloDaEmbalagem}s)` : "Quantidade"}{" "}
+              <span className={marcaObrigatorio}>*</span>
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              placeholder="0,00"
+              value={formData.quantity}
+              onChange={(e) =>
+                setFormData({ ...formData, quantity: e.target.value })
+              }
+              disabled={submitting}
+              required
+              className={campo}
+            />
+          </div>
         </div>
 
-        {/* Quantity */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            {emEmbalagens
-              ? `Quantidade (em ${rotuloDaEmbalagem}s) *`
-              : "Quantidade *"}
+        {/*
+          O item diz que vem em caixa de 30. A escolha aqui é só se ESTA
+          compra veio em caixa fechada ou avulsa — comprar 12 ovos soltos
+          acontece, e travar em múltiplos de 30 obrigaria a mentir no número.
+        */}
+        {podeComprarEmEmbalagens && (
+          <label className="flex cursor-pointer items-start gap-2 rounded-xl border border-neutral-200 p-3 text-sm text-neutral-700 hover:bg-neutral-50">
+            <input
+              type="checkbox"
+              checked={formData.emEmbalagens}
+              onChange={(e) =>
+                setFormData({ ...formData, emEmbalagens: e.target.checked })
+              }
+              disabled={submitting}
+              className="mt-0.5"
+            />
+            <span>
+              Comprei em {rotuloDaEmbalagem} de{" "}
+              <strong>
+                {conteudo.toLocaleString("pt-BR")} {selectedItem?.baseUnit.code}
+              </strong>
+            </span>
           </label>
-          <input
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={formData.quantity}
-            onChange={(e) =>
-              setFormData({ ...formData, quantity: e.target.value })
-            }
-            disabled={submitting}
-            required
-            className="w-full px-3 py-2 border rounded bg-white text-foreground"
-          />
-          {/*
-            O item diz que vem em caixa de 30. A escolha aqui é só se ESTA
-            compra veio em caixa fechada ou avulsa — comprar 12 ovos soltos
-            acontece, e travar em múltiplos de 30 obrigaria a mentir no número.
-          */}
-          {podeComprarEmEmbalagens && (
-            <label className="flex items-center gap-2 mt-2 text-sm">
-              <input
-                type="checkbox"
-                checked={formData.emEmbalagens}
-                onChange={(e) =>
-                  setFormData({ ...formData, emEmbalagens: e.target.checked })
-                }
-                disabled={submitting}
-              />
-              <span>
-                Comprei em {rotuloDaEmbalagem} de{" "}
+        )}
+
+        {selectedItem && (
+          <p className={ajuda}>
+            {emEmbalagens &&
+            Number.isFinite(quantidadeEmEstoque) &&
+            quantidadeEmEstoque > 0 ? (
+              <>
                 <strong>
-                  {conteudo.toLocaleString("pt-BR")}{" "}
-                  {selectedItem?.baseUnit.code}
-                </strong>
-              </span>
-            </label>
-          )}
-          {selectedItem && (
-            <p className="text-xs text-neutral-600 mt-1">
-              {emEmbalagens &&
-              Number.isFinite(quantidadeEmEstoque) &&
-              quantidadeEmEstoque > 0 ? (
-                <>
-                  <strong>
-                    {digitado.toLocaleString("pt-BR")} {rotuloDaEmbalagem}
-                    {digitado > 1 ? "s" : ""}
-                  </strong>{" "}
-                  ={" "}
-                  <strong>
-                    {quantidadeEmEstoque.toLocaleString("pt-BR")}{" "}
-                    {selectedItem.baseUnit.code}
-                  </strong>{" "}
-                  no estoque
-                </>
-              ) : (
-                <>Unidade: {selectedItem.baseUnit.code}</>
-              )}
-            </p>
-          )}
-        </div>
+                  {digitado.toLocaleString("pt-BR")} {rotuloDaEmbalagem}
+                  {digitado > 1 ? "s" : ""}
+                </strong>{" "}
+                ={" "}
+                <strong>
+                  {quantidadeEmEstoque.toLocaleString("pt-BR")}{" "}
+                  {selectedItem.baseUnit.code}
+                </strong>{" "}
+                no estoque
+              </>
+            ) : (
+              <>Unidade: {selectedItem.baseUnit.code}</>
+            )}
+          </p>
+        )}
 
         {/*
           Valor pago — só na compra.
@@ -334,8 +384,9 @@ export function MovementForm(props: MovementFormProps) {
         */}
         {formData.type === "PURCHASE" && (
           <div>
-            <label className="block text-sm font-medium mb-2">
-              Valor total pago (opcional)
+            <label className={rotulo}>
+              Valor total pago{" "}
+              <span className="font-normal text-neutral-400">(opcional)</span>
             </label>
             <input
               type="number"
@@ -347,19 +398,16 @@ export function MovementForm(props: MovementFormProps) {
                 setFormData({ ...formData, totalPaid: e.target.value })
               }
               disabled={submitting}
-              className="w-full px-3 py-2 border rounded bg-white text-foreground"
+              className={campo}
             />
             {custoUnitario !== null ? (
-              <p className="text-xs text-neutral-700 mt-1">
-                ={" "}
-                <strong>
-                  R$ {custoUnitario.toFixed(2)}
-                </strong>{" "}
-                por {selectedItem?.baseUnit.code ?? "unidade"} — passa a ser o
-                custo deste item
+              <p className="mt-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs leading-snug text-emerald-800">
+                = <strong>R$ {custoUnitario.toFixed(2)}</strong> por{" "}
+                {selectedItem?.baseUnit.code ?? "unidade"} — passa a ser o custo
+                deste item
               </p>
             ) : (
-              <p className="text-xs text-neutral-500 mt-1">
+              <p className={ajuda}>
                 O que está na nota. Em branco, a entrada não altera o custo
                 {selectedItem?.cost != null
                   ? ` (hoje R$ ${Number(selectedItem.cost).toFixed(2)})`
@@ -370,47 +418,47 @@ export function MovementForm(props: MovementFormProps) {
           </div>
         )}
 
-        {/* Reference */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Referência (opcional)
-          </label>
-          <input
-            type="text"
-            placeholder="ex: order-123, lote-456"
-            value={formData.reference}
-            onChange={(e) =>
-              setFormData({ ...formData, reference: e.target.value })
-            }
-            disabled={submitting}
-            className="w-full px-3 py-2 border rounded bg-white text-foreground"
-          />
+        {/* Os dois campos livres, lado a lado: nenhum precisa da linha inteira. */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={rotulo}>
+              Referência{" "}
+              <span className="font-normal text-neutral-400">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="ex: order-123, lote-456"
+              value={formData.reference}
+              onChange={(e) =>
+                setFormData({ ...formData, reference: e.target.value })
+              }
+              disabled={submitting}
+              className={campo}
+            />
+          </div>
+
+          <div>
+            <label className={rotulo}>
+              Notas{" "}
+              <span className="font-normal text-neutral-400">(opcional)</span>
+            </label>
+            <input
+              type="text"
+              placeholder="Motivo, observações..."
+              value={formData.note}
+              onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+              disabled={submitting}
+              className={campo}
+            />
+          </div>
         </div>
 
-        {/* Note */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Notas (opcional)
-          </label>
-          <textarea
-            placeholder="Motivo, observações, etc."
-            value={formData.note}
-            onChange={(e) =>
-              setFormData({ ...formData, note: e.target.value })
-            }
-            disabled={submitting}
-            rows={3}
-            className="w-full px-3 py-2 border rounded bg-white text-foreground"
-          />
-        </div>
-
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={submitting || loading || !formData.itemId}
-          className="w-full px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-xl bg-[#E11D2E] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#c4172a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E11D2E] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
         >
-          {submitting ? "Registrando..." : "Registrar Movimentação"}
+          {submitting ? "Registrando..." : "Registrar movimentação"}
         </button>
       </form>
     </div>

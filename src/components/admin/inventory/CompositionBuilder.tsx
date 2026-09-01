@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
+import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { adminGetStockReport } from "@/server/functions/report.fn";
+import {
+  ajuda,
+  botaoPrimario,
+  campo,
+  estiloDaSeta,
+  marcaObrigatorio,
+  selecao,
+} from "./campos";
 import { adminCreateComposition, adminGetProductVersions, adminUpdateComposition } from "@/server/functions/composition.fn";
 import {
   adminListarConversoesDeUnidade,
@@ -18,6 +27,16 @@ import {
   type MapaDeConversoes,
 } from "@/lib/conversao-de-unidade";
 import { unidadesCompativeis, type UnidadeConhecida } from "@/lib/unidades-compativeis";
+
+/*
+  R$ 9,71 — e não "R$ 9.71".
+
+  `toFixed(2)` devolve ponto decimal, que aqui se lê como separador de milhar:
+  um custo de R$ 9,71 escrito "R$ 9.71" é ambíguo na única língua em que esta
+  tela é usada. O resto do painel já formata assim.
+*/
+const brl = (v: number) =>
+  Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export interface CompositionBuilderProps {
   storeId: string;
@@ -287,167 +306,221 @@ export function CompositionBuilder(props: CompositionBuilderProps) {
   const totalCost = calculateTotalCost();
 
   return (
-    <div className="composition-builder space-y-4">
-      {/* Nova Receita */}
-      <div className="p-4 border rounded bg-white space-y-4">
-        <h3 className="text-lg font-bold">Criar Nova Receita</h3>
+    <div className="composition-builder space-y-5">
+      {/*
+        SEM MOLDURA PRÓPRIA.
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Itens da Receita *</label>
-          {compositionItems.length === 0 ? (
-            <p className="text-sm text-neutral-600 mb-2">Nenhum item adicionado ainda</p>
-          ) : (
-            <div className="space-y-2 mb-4">
-              {compositionItems.map((comp, idx) => {
-                const item = items.find((i) => i.id === comp.inventoryItemId);
-                return (
-                  /*
-                    A LINHA QUEBRA NO CELULAR EM VEZ DE ESPREMER.
+        Este bloco só aparece dentro de outro card branco — na etapa 3 da
+        criação e embaixo da lista de receitas cadastradas. A moldura que ele
+        desenhava era um card dentro de um card, com o título "Criar Nova
+        Receita" repetindo o que o cabeçalho de cima já dizia.
+      */}
+      <div>
+        <p className="text-sm font-semibold text-neutral-900">
+          Itens da receita <span className={marcaObrigatorio}>*</span>
+        </p>
+        <p className={ajuda}>
+          O que sai do estoque a cada unidade produzida.
+        </p>
 
-                    Eram quatro campos numa `flex` sem wrap: a 360px o nome do
-                    insumo espremia a quantidade e a unidade contra o custo. Em
-                    duas faixas — insumo em cima, numeros embaixo — cada campo
-                    fica com largura de dedo, e a partir de `sm` tudo volta para
-                    uma linha so.
-                  */
-                  <div
-                    key={idx}
-                    className="flex min-w-0 flex-col gap-2 rounded bg-neutral-50 p-3 sm:flex-row sm:items-center"
+        {compositionItems.length === 0 ? (
+          <p className="mt-3 rounded-xl border border-dashed border-neutral-300 px-4 py-6 text-center text-sm text-neutral-500">
+            Nenhum ingrediente ainda.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {compositionItems.map((comp, idx) => {
+              const item = items.find((i) => i.id === comp.inventoryItemId);
+              const custo = custoDaLinha(comp);
+              return (
+                /*
+                  A LINHA QUEBRA NO CELULAR EM VEZ DE ESPREMER.
+
+                  Eram quatro campos numa `flex` sem wrap: a 360px o nome do
+                  insumo espremia a quantidade e a unidade contra o custo. Em
+                  duas faixas — insumo em cima, numeros embaixo — cada campo
+                  fica com largura de dedo, e a partir de `sm` tudo volta para
+                  uma linha so.
+                */
+                <div
+                  key={idx}
+                  className="flex min-w-0 flex-col gap-2 rounded-xl border border-neutral-200 bg-neutral-50 p-2.5 sm:flex-row sm:items-center"
+                >
+                  <select
+                    value={comp.inventoryItemId}
+                    onChange={(e) => updateItemId(idx, e.target.value)}
+                    aria-label="Ingrediente"
+                    className={`${selecao} min-w-0 flex-1`}
+                    style={estiloDaSeta}
                   >
+                    {items.map((i) => (
+                      /*
+                        O SKU SÓ APARECE SE EXISTIR. Sem essa checagem o item
+                        sem código virava "Bolo de Chocolate ()" — um par de
+                        parênteses vazios que parece defeito, porque é.
+                      */
+                      <option key={i.id} value={i.id}>
+                        {i.sku ? `${i.name} (${i.sku})` : i.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <div className="flex min-w-0 items-center gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={comp.quantity}
+                      onChange={(e) => updateItemQuantity(idx, parseFloat(e.target.value) || 0)}
+                      placeholder="Qtd"
+                      aria-label="Quantidade"
+                      className={`${campo} w-20 shrink-0 text-right tabular-nums`}
+                    />
+                    {/*
+                      A UNIDADE DA RECEITA, e nao a do estoque.
+
+                      Era um `<span>` mostrando `baseUnit.code`: quem estoca
+                      acucar em kg era obrigado a escrever a receita em kg.
+                      A lista vem de `unidadesCompativeis`, a mesma regra que
+                      o servidor usa para recusar — entao o que da para
+                      escolher aqui e exatamente o que da para gravar la.
+
+                      Com uma opcao so (un), continua um select, desabilitado:
+                      o valor segue sendo enviado e o layout nao muda de forma.
+                    */}
                     <select
-                      value={comp.inventoryItemId}
-                      onChange={(e) => updateItemId(idx, e.target.value)}
-                      aria-label="Ingrediente"
-                      className="min-w-0 flex-1 rounded border bg-white px-3 py-2 text-sm"
+                      value={comp.unitId}
+                      onChange={(e) => updateItemUnit(idx, e.target.value)}
+                      disabled={unidadesDaLinha(comp.inventoryItemId).length <= 1}
+                      aria-label="Unidade"
+                      className={`${selecao} w-24 shrink-0 px-2 pr-8`}
+                      style={estiloDaSeta}
                     >
-                      {items.map((i) => (
-                        <option key={i.id} value={i.id}>
-                          {i.name} ({i.sku})
+                      {unidadesDaLinha(comp.inventoryItemId).map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.code}
                         </option>
                       ))}
                     </select>
 
-                    <div className="flex min-w-0 items-center gap-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={comp.quantity}
-                        onChange={(e) => updateItemQuantity(idx, parseFloat(e.target.value) || 0)}
-                        placeholder="Qtd"
-                        aria-label="Quantidade"
-                        className="w-20 shrink-0 rounded border px-3 py-2 text-sm"
-                      />
-                      {/*
-                        A UNIDADE DA RECEITA, e nao a do estoque.
-
-                        Era um `<span>` mostrando `baseUnit.code`: quem estoca
-                        acucar em kg era obrigado a escrever a receita em kg.
-                        A lista vem de `unidadesCompativeis`, a mesma regra que
-                        o servidor usa para recusar — entao o que da para
-                        escolher aqui e exatamente o que da para gravar la.
-
-                        Com uma opcao so (un), continua um select, desabilitado:
-                        o valor segue sendo enviado e o layout nao muda de forma.
-                      */}
-                      <select
-                        value={comp.unitId}
-                        onChange={(e) => updateItemUnit(idx, e.target.value)}
-                        disabled={unidadesDaLinha(comp.inventoryItemId).length <= 1}
-                        aria-label="Unidade"
-                        className="w-24 shrink-0 rounded border bg-white px-2 py-2 text-sm disabled:bg-neutral-100 disabled:text-neutral-600"
-                      >
-                        {unidadesDaLinha(comp.inventoryItemId).map((u) => (
-                          <option key={u.id} value={u.id}>
-                            {u.code}
-                          </option>
-                        ))}
-                      </select>
-
-                      <span className="ml-auto w-24 shrink-0 text-right text-sm font-medium sm:ml-0">
-                        {custoDaLinha(comp) === null
-                          ? "—"
-                          : `R$ ${(custoDaLinha(comp) as number).toFixed(2)}`}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(idx)}
-                        className="shrink-0 text-sm font-medium text-red-600 hover:text-red-700"
-                      >
-                        Remover
-                      </button>
-                    </div>
+                    <span className="ml-auto w-24 shrink-0 text-right text-sm font-semibold tabular-nums text-neutral-900 sm:ml-0">
+                      {custo === null ? "—" : brl(custo)}
+                    </span>
+                    {/*
+                      "Remover" era texto vermelho ao lado do custo, do mesmo
+                      tamanho — e ficava mais chamativo que o próprio número.
+                      Como ícone ele continua alcançável, com o nome no
+                      `aria-label` e na dica.
+                    */}
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      aria-label={`Remover ${item?.name ?? "ingrediente"}`}
+                      title="Remover"
+                      className="shrink-0 rounded-lg p-2 text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600 motion-reduce:transition-none"
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={addItem}
-            disabled={loading || items.length === 0}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
-          >
-            + Adicionar Item
-          </button>
-        </div>
-
-        {/* Resumo de Custo */}
-        {compositionItems.length > 0 && (
-          <div className="border-t pt-4 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="font-medium">Custo Total:</span>
-              <span className="text-xl font-bold text-green-600">R$ {totalCost.toFixed(2)}</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleSaveComposition}
-              disabled={saving}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 font-medium"
-            >
-              {saving ? "Salvando..." : "Salvar Receita"}
-            </button>
+                </div>
+              );
+            })}
           </div>
         )}
+
+        {/*
+          ADICIONAR NÃO É A AÇÃO PRINCIPAL. Em azul sólido e largura cheia ele
+          pesava mais que "Salvar Receita", que é o que fecha o trabalho.
+        */}
+        <button
+          type="button"
+          onClick={addItem}
+          disabled={loading || items.length === 0}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:border-neutral-400 hover:bg-neutral-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+          Adicionar ingrediente
+        </button>
       </div>
+
+      {/* Resumo de Custo */}
+      {compositionItems.length > 0 && (
+        <div className="space-y-3 border-t border-neutral-200 pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-sm font-medium text-neutral-700">Custo total</span>
+            <span className="font-display text-2xl font-bold tabular-nums text-neutral-900">
+              {brl(totalCost)}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveComposition}
+            disabled={saving}
+            className={`${botaoPrimario} w-full py-3`}
+          >
+            {saving ? "Salvando..." : "Salvar receita"}
+          </button>
+        </div>
+      )}
 
       {/* Versões Existentes */}
       {versions.length > 0 && (
-        <div className="p-4 border rounded bg-white space-y-4">
-          <h3 className="text-lg font-bold">Versões da Receita</h3>
-          <div className="space-y-2">
-            {versions.map((version) => (
-              <div key={version.id} className={`flex items-center justify-between p-3 rounded transition ${
-                editingVersionId === version.id ? "bg-blue-50 border-2 border-blue-200" : "bg-neutral-50"
-              }`}>
-                <div>
-                  <p className="font-medium text-sm">{version.name || "Versão " + version.version}</p>
-                  <p className="text-xs text-neutral-600">
-                    {version.items?.length || 0} itens • R$ {version.totalCost?.toFixed(2) || "0.00"}
-                  </p>
+        <div className="border-t border-neutral-200 pt-4">
+          <h3 className="font-display text-sm font-bold text-neutral-900">
+            Versões da receita
+          </h3>
+          <div className="mt-3 space-y-2">
+            {versions.map((version) => {
+              const editando = editingVersionId === version.id;
+              return (
+                <div
+                  key={version.id}
+                  className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors motion-reduce:transition-none ${
+                    editando
+                      ? "border-neutral-900 bg-neutral-50"
+                      : "border-neutral-200"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-neutral-900">
+                      {version.name || "Versão " + version.version}
+                    </p>
+                    <p className="text-xs tabular-nums text-neutral-500">
+                      {version.items?.length || 0} itens · {brl(version.totalCost ?? 0)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {version.isActive && (
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                        Em uso
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => loadVersionForEditing(version)}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-neutral-700 transition-colors hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-900 motion-reduce:transition-none"
+                    >
+                      {editando ? (
+                        <>
+                          <Check className="size-3.5" aria-hidden="true" />
+                          Editando
+                        </>
+                      ) : (
+                        <>
+                          <Pencil className="size-3.5" aria-hidden="true" />
+                          Editar
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {version.isActive && (
-                    <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">
-                      Ativa
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => loadVersionForEditing(version)}
-                    className="text-sm text-blue-600 hover:underline font-medium"
-                  >
-                    {editingVersionId === version.id ? "✓ Editando" : "Editar"}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {loading && <p className="text-center text-neutral-600">Carregando...</p>}
+      {loading && <p className="text-center text-sm text-neutral-500">Carregando...</p>}
     </div>
   );
 }
