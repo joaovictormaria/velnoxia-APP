@@ -1,14 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { hashInviteCode, newInviteCode } from "../auth/invite-code";
-import { requireAdminSession } from "../auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { prisma } from "../db/client";
 
 /** Quanto tempo um convite não usado continua valendo. */
 const VALIDADE_HORAS = 24;
 
 export const listCourierInvitesFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("DELIVERY_AVANCADO");
   const invites = await prisma.courierInvite.findMany({
     where: { storeId },
     orderBy: { createdAt: "desc" },
@@ -23,7 +23,7 @@ export const listCourierInvitesFn = createServerFn({ method: "GET" }).handler(as
 export const createCourierInviteFn = createServerFn({ method: "POST" })
   .validator(z.object({ name: z.string().trim().min(2, "Informe o nome do entregador.").max(60) }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("DELIVERY_AVANCADO");
     const code = newInviteCode();
     const invite = await prisma.courierInvite.create({
       data: {
@@ -41,7 +41,7 @@ export const createCourierInviteFn = createServerFn({ method: "POST" })
 export const revokeCourierInviteFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("DELIVERY_AVANCADO");
     // Só apaga o que ainda não virou conta: um convite usado é o registro de
     // como aquele entregador entrou, e apagá-lo perderia essa trilha.
     const r = await prisma.courierInvite.deleteMany({
@@ -57,7 +57,7 @@ export const revokeCourierInviteFn = createServerFn({ method: "POST" })
  * a próxima em vez de descobrir depois que sobrecarregou um.
  */
 export const listCouriersFn = createServerFn({ method: "GET" }).handler(async () => {
-  const { storeId } = await requireAdminSession();
+  const { storeId } = await exigirRecurso("DELIVERY_AVANCADO");
 
   const couriers = await prisma.adminUser.findMany({
     where: { storeId, role: "COURIER" },
@@ -102,7 +102,7 @@ export const listCouriersFn = createServerFn({ method: "GET" }).handler(async ()
 export const deleteCourierFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("DELIVERY_AVANCADO");
 
     // Mesma trava de tirar o acesso, pelo mesmo motivo: a entrega na rua
     // ficaria sem dono, e o pedido travado sem ninguém para marcar entregue.
@@ -138,7 +138,7 @@ export const deleteCourierFn = createServerFn({ method: "POST" })
 export const setCourierActiveFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), isActive: z.boolean() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("DELIVERY_AVANCADO");
 
     if (!data.isActive) {
       // Deixar entrega na rua com o acesso cortado prende o pedido: ele não

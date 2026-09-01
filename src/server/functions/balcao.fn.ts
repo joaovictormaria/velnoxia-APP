@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "../auth/session";
+import { garantirRecurso } from "@/server/billing/guarda-de-recurso";
 import { montarCardapioDoBalcao } from "../services/cardapio-do-balcao";
 import { aceitarComPagamentoEmAberto } from "../services/aceitar-fiado";
 import {
@@ -111,6 +112,24 @@ export const criarPedidoDeBalcaoFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const admin = await requireAdminSession();
+
+    /*
+     * ═══ O BALCÃO CONTINUA BASIC; A CAIXINHA "PAGAR DEPOIS" NÃO ═════════
+     *
+     * Vender no balcão é o coração do plano básico, e gatear esta função
+     * inteira tiraria o balcão de quem paga o BASIC. Mas UM dos campos que
+     * ela aceita é do módulo pago: `fiado` manda o pedido para o fluxo de
+     * contas a receber.
+     *
+     * A recusa vem ANTES de o pedido nascer, de propósito. Se viesse
+     * depois, o pedido já estaria criado e com estoque reservado quando a
+     * dívida fosse recusada — o atendente ficaria com um pedido pago-a-ver
+     * que ninguém registrou.
+     *
+     * Esconder a caixinha na tela não basta: um POST montado à mão com
+     * `fiado: true` chega aqui do mesmo jeito.
+     */
+    if (data.fiado) garantirRecurso(admin, "FIADO");
 
     const criado = await createOrderFromCheckout(admin.storeId, {
       items: data.items as CheckoutItem[],

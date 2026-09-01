@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { OrderInventoryHandler } from "@/server/services/order-inventory-handler";
 import { requireAdminSession } from "../auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { prisma } from "../db/client";
 import {
   getKanbanMetrics,
@@ -53,7 +54,7 @@ export const listKanbanOrdersFn = createServerFn({ method: "GET" })
 export const listMesasAbertasFn = createServerFn({ method: "GET" })
   .validator(z.object({ date: z.string().optional(), search: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MESAS");
     return listMesasAbertas(storeId, data ?? {});
   });
 
@@ -131,7 +132,7 @@ export const listPendingOrdersFn = createServerFn({ method: "GET" }).handler(asy
  */
 export const getTableOrderCountsFn = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MESAS");
     const orders = await prisma.order.findMany({
       where: {
         storeId,
@@ -156,7 +157,7 @@ export const getTableOrderCountsFn = createServerFn({ method: "GET" })
 
 export const getNextTableNumberFn = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MESAS");
     const maxTable = await prisma.table.findFirst({
       where: { storeId },
       orderBy: { number: "desc" },
@@ -168,7 +169,7 @@ export const getNextTableNumberFn = createServerFn({ method: "GET" })
 
 export const listTablesFn = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MESAS");
     const tables = await prisma.table.findMany({
       where: { storeId },
       orderBy: { number: "asc" },
@@ -181,7 +182,7 @@ export const listTablesFn = createServerFn({ method: "GET" })
 export const deleteTableFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("MESAS");
     const table = await prisma.table.findUnique({
       where: { id: data.id },
       select: { storeId: true },
@@ -217,10 +218,17 @@ export const markOrderNotificationsReadFn = createServerFn({ method: "POST" })
  * entrega" num pedido de entrega â€” o botÃ£o simples do quadro Ã© recusado sem
  * entregador, e Ã© aqui que a escolha acontece.
  */
+/*
+  ATRIBUIR ENTREGA É GESTÃO DE ENTREGADOR — e só ela é paga aqui.
+
+  O resto deste arquivo continua BASIC: mover pedido no quadro, confirmar
+  pagamento, listar mesas. O que exige o módulo avançado é escolher QUEM
+  leva, porque o entregador só existe se a loja pôde convidá-lo.
+*/
 export const dispatchOrderFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), courierId: z.string() }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("DELIVERY_AVANCADO");
     return dispatchOrder(admin.storeId, data.id, data.courierId, {
       authorType: "ADMIN",
       authorName: admin.name,
@@ -228,10 +236,11 @@ export const dispatchOrderFn = createServerFn({ method: "POST" })
   });
 
 /** Marca (ou desmarca) que o pedido estÃ¡ pronto esperando quem o leve. */
+/* Marcar "aguardando entregador" também pressupõe uma frota. */
 export const setOrderAwaitingCourierFn = createServerFn({ method: "POST" })
   .validator(z.object({ id: z.string(), awaiting: z.boolean() }))
   .handler(async ({ data }) => {
-    const { storeId } = await requireAdminSession();
+    const { storeId } = await exigirRecurso("DELIVERY_AVANCADO");
     return setOrderAwaitingCourier(storeId, data.id, data.awaiting);
   });
 

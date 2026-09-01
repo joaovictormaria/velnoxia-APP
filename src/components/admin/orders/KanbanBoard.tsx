@@ -101,6 +101,7 @@ export function KanbanBoard({
   onConfirmPayment,
   onAbrirFiado,
   mostrarEntrega = true,
+  permiteEntregador = true,
 }: {
   columns: KanbanColumnData[];
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
@@ -111,10 +112,26 @@ export function KanbanBoard({
   onAbrirFiado?: (order: KanbanOrder) => void;
   /** Falso numa loja que só faz retirada — ver listKanbanOrders. */
   mostrarEntrega?: boolean;
+  /**
+   * O plano da loja inclui a frota de entregadores?
+   *
+   * Sem ela não existe etapa "saiu para entrega": o servidor recusa esse
+   * status sem `courierId`, e um pedido só ganha `courierId` sendo
+   * despachado — o que exige o módulo. A entrega então se comporta como a
+   * retirada, indo de "em preparo" direto para concluída.
+   *
+   * Padrão `true`: um quadro montado sem a prop desenha como antes.
+   */
+  permiteEntregador?: boolean;
 }) {
-  const colunas = mostrarEntrega
-    ? COLUMNS
-    : COLUMNS.filter((c) => c.status !== "OUT_FOR_DELIVERY");
+  /*
+    A coluna cai por dois motivos independentes: a loja não faz entrega, ou
+    o plano não tem entregador. Nos dois casos ela ficaria vazia para sempre.
+  */
+  const colunas =
+    mostrarEntrega && permiteEntregador
+      ? COLUMNS
+      : COLUMNS.filter((c) => c.status !== "OUT_FOR_DELIVERY");
 
   return (
     <div
@@ -162,6 +179,7 @@ export function KanbanBoard({
                   onDispatch={onDispatch}
                   onConfirmPayment={onConfirmPayment}
                   onAbrirFiado={onAbrirFiado}
+                  permiteEntregador={permiteEntregador}
                 />
               ))}
 
@@ -195,9 +213,11 @@ function OrderCard({
   onDispatch,
   onConfirmPayment,
   onAbrirFiado,
+  permiteEntregador = true,
 }: {
   order: KanbanOrder;
   badge: string;
+  permiteEntregador?: boolean;
   status: OrderStatus;
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
   onDispatch: (order: KanbanOrder) => void;
@@ -212,15 +232,24 @@ function OrderCard({
     if (order.sessionId) {
       // Mesa: vai para "Mesas Abertas"
       next = { status: "TABLE_READY" as OrderStatus, label: "Pronto (Mesa aberta)" };
-    } else if (order.type === "PICKUP") {
-      // Retirada: vai direto para finalizado
+    } else if (order.type === "PICKUP" || !permiteEntregador) {
+      /*
+        Retirada vai direto para finalizado — e ENTREGA TAMBÉM, quando o
+        plano não tem entregador.
+
+        Não é uma exceção nova: é a mesma situação da retirada. Sem frota
+        não há a quem despachar, o servidor recusaria `OUT_FOR_DELIVERY`
+        sem `courierId`, e oferecer o botão levaria a um erro garantido.
+        O pedido de entrega continua sendo criado, preparado e concluído.
+      */
       next = { status: "COMPLETED" as OrderStatus, label: "Finalizar" };
     }
   }
 
   // Sair para entrega é escolher quem leva: o botão abre a escolha em vez de
   // mudar o status, que o servidor recusaria sem entregador.
-  const precisaEscolherEntregador = status === "PREPARING" && order.type === "DELIVERY";
+  const precisaEscolherEntregador =
+    permiteEntregador && status === "PREPARING" && order.type === "DELIVERY";
   const esperando = Boolean(order.awaitingCourierSince);
 
   return (

@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { prisma } from "@/server/db/client";
 import { decimalToNumber } from "@/server/utils/decimal-converter";
 import { InventoryCostService } from "@/server/services/inventory-cost-service";
@@ -64,7 +65,7 @@ export const getTransactionHistory = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }): Promise<Transacao[]> => {
-    const store = await requireAdminSession();
+    const store = await exigirRecurso("FINANCEIRO");
     if (!store) {
       throw new Error("Not authenticated");
     }

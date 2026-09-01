@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getCurrentAdmin, requireCourierSession } from "../auth/session";
+import { garantirRecurso } from "@/server/billing/guarda-de-recurso";
 import { prisma } from "../db/client";
 import { transitionOrderStatus } from "../services/order-service";
 import { decimalToNumber } from "../utils/decimal-converter";
@@ -130,6 +131,17 @@ export const reportCourierLocationFn = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const courier = await requireCourierSession();
+    /*
+      PAPEL É UMA COISA; PLANO É OUTRA.
+
+      `requireCourierSession` já disse que quem chama É um entregador —
+      isso é PAPEL, e continua intocado. A pergunta que falta é do plano
+      da LOJA dele: rastreamento é do módulo avançado.
+
+      Por isso `garantirRecurso` e não `exigirRecurso`: a segunda exige
+      uma sessão de PAINEL e recusaria o entregador antes de chegar aqui.
+    */
+    garantirRecurso(courier, "DELIVERY_AVANCADO");
 
     const emRota = await prisma.order.count({
       where: { storeId: courier.storeId, courierId: courier.id, status: "OUT_FOR_DELIVERY" },
@@ -161,6 +173,17 @@ export const reportCourierLocationFn = createServerFn({ method: "POST" })
  *  do banco na hora, sem depender de a entrega terminar. */
 export const stopSharingLocationFn = createServerFn({ method: "POST" }).handler(async () => {
   const courier = await requireCourierSession();
+    /*
+      PAPEL É UMA COISA; PLANO É OUTRA.
+
+      `requireCourierSession` já disse que quem chama É um entregador —
+      isso é PAPEL, e continua intocado. A pergunta que falta é do plano
+      da LOJA dele: rastreamento é do módulo avançado.
+
+      Por isso `garantirRecurso` e não `exigirRecurso`: a segunda exige
+      uma sessão de PAINEL e recusaria o entregador antes de chegar aqui.
+    */
+    garantirRecurso(courier, "DELIVERY_AVANCADO");
   await prisma.courierLocation.deleteMany({ where: { courierId: courier.id } });
   return { ok: true as const };
 });

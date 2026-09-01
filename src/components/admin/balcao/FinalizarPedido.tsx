@@ -53,6 +53,7 @@ export function FinalizarPedido({
   erro,
   onFechar,
   onConfirmar,
+  permiteFiado = true,
 }: {
   aberto: boolean;
   total: number | null;
@@ -61,6 +62,15 @@ export function FinalizarPedido({
   erro: string | null;
   onFechar: () => void;
   onConfirmar: (dados: DadosDaFinalizacao) => void;
+  /**
+   * O plano da loja inclui fiado?
+   *
+   * Padrão `true` de propósito: um balcão montado sem a prop — num teste,
+   * numa tela futura — desenha exatamente como antes desta fase. Quem
+   * recusa de verdade é o servidor, que já barra `fiado: true` sem o
+   * recurso; esconder a caixinha é só não oferecer o que não se pode dar.
+   */
+  permiteFiado?: boolean;
 }) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -248,6 +258,14 @@ export function FinalizarPedido({
               </div>
             )}
 
+            {/*
+              SEM FIADO NO PLANO, A CAIXINHA NÃO APARECE.
+
+              Nada mais desta tela muda: as formas de pagamento, o cliente e
+              a observação seguem iguais, e o balcão continua vendendo. O que
+              sai é a única opção que dependia do módulo pago.
+            */}
+            {permiteFiado && (
             <button
               type="button"
               onClick={() => setFiado((f) => !f)}
@@ -277,6 +295,7 @@ export function FinalizarPedido({
                 </span>
               </span>
             </button>
+            )}
           </section>
 
           <section>

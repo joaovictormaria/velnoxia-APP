@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireAdminSession } from "@/server/auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { RecebimentosService } from "@/server/services/recebimentos-service";
 import { aceitarComPagamentoEmAberto } from "@/server/services/aceitar-fiado";
 import { numeros } from "./serializar";
@@ -51,7 +51,7 @@ export const abrirFiadoFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("FIADO");
     const r = await aceitarComPagamentoEmAberto(
       admin.storeId,
       data.orderId,
@@ -79,7 +79,7 @@ export const receberPagamentoFn = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("FIADO");
     const r = await RecebimentosService.receberPagamento(
       admin.storeId,
       data.orderId,
@@ -93,7 +93,7 @@ export const receberPagamentoFn = createServerFn({ method: "POST" })
 export const estornarPagamentoFn = createServerFn({ method: "POST" })
   .validator(z.object({ paymentId: z.string(), reason: z.string().min(1).max(500) }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("FIADO");
     const r = await RecebimentosService.estornarPagamento(
       admin.storeId,
       data.paymentId,
@@ -113,7 +113,7 @@ export const estornarPagamentoFn = createServerFn({ method: "POST" })
 export const getPagamentosEmAbertoFn = createServerFn({ method: "POST" })
   .validator(z.object({}).optional())
   .handler(async () => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("FIADO");
     return numeros(await RecebimentosService.pagamentosEmAberto(admin.storeId));
   });
 
@@ -121,7 +121,7 @@ export const getPagamentosEmAbertoFn = createServerFn({ method: "POST" })
 export const getRecebimentosFn = createServerFn({ method: "POST" })
   .validator(z.object({ days: z.number().int().positive().optional() }))
   .handler(async ({ data }) => {
-    const admin = await requireAdminSession();
+    const admin = await exigirRecurso("FIADO");
     const dias = data.days || 30;
     const fim = new Date();
     const inicio = new Date();

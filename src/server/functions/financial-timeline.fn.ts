@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireAdminSession } from "@/server/auth/session";
+import { exigirRecurso } from "@/server/billing/guarda-de-recurso";
 import { InventoryCostService } from "@/server/services/inventory-cost-service";
 
 /**
@@ -50,7 +51,7 @@ export const getFinancialTimeline = createServerFn({ method: "POST" })
     })
   )
   .handler(async ({ data }) => {
-    const store = await requireAdminSession();
+    const store = await exigirRecurso("FINANCEIRO");
     if (!store) {
       throw new Error("Not authenticated");
     }
