@@ -264,3 +264,70 @@ describe("rota e interface", () => {
     expect(tela).toContain("permiteFiado?: boolean;");
   });
 });
+
+/*
+ * ═══════════════════════════════════════════════════════════════════════════
+ *  O QUADRO DE PEDIDOS TAMBÉM NÃO OFERECE — 01/09/2026
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * O balcão escondia a caixinha "pagar depois" desde a fase do Fiado, mas o
+ * Kanban continuava mostrando "Pagamento outro dia" em toda loja — inclusive
+ * na BASIC, que veria o botão e levaria uma recusa do servidor ao clicar.
+ *
+ * ESCONDIDO, e não trancado: este é o quadro que a loja tem aberto o dia
+ * inteiro, e um cadeado em cada pedido pendente viraria ruído no lugar mais
+ * movimentado do produto. Quem apresenta o Fiado é a tela de planos.
+ */
+describe("o botão 'Pagamento outro dia' segue o plano", () => {
+  const quadro = readFileSync(
+    resolve(__dirname, "../../../components/admin/orders/KanbanBoard.tsx"),
+    "utf8",
+  );
+  const rota = readFileSync(
+    resolve(__dirname, "../../../routes/admin/pedidos/index.tsx"),
+    "utf8",
+  );
+
+  it("o botão depende do plano", () => {
+    expect(quadro).toContain(
+      '{order.paymentStatus === "PENDING" && onAbrirFiado && permiteFiado && (',
+    );
+    expect(quadro).toContain("Pagamento outro dia");
+  });
+
+  /*
+   * O padrão `true` mantém o comportamento de antes quando a prop não vem —
+   * num teste, numa tela futura. Trocá-lo por `false` esconderia o botão de
+   * quem tem direito a ele.
+   */
+  it("o padrão não esconde de quem tem o recurso", () => {
+    expect(quadro).toContain("permiteFiado = true,");
+    expect(quadro).toContain("permiteFiado?: boolean;");
+  });
+
+  /*
+   * A pergunta vai à camada central, e o plano vem da SESSÃO — nenhuma
+   * consulta a mais. É o mesmo desenho do `permiteEntregador`, ao lado.
+   */
+  it("a rota pergunta ao lugar de sempre, sem consulta extra", () => {
+    expect(rota).toContain('recursoNoEstado(admin.store.plano, "FIADO") !== "BLOQUEADO"');
+    expect(rota).toContain("permiteFiado={");
+    expect(rota).not.toMatch(/plan(o)?\s*===\s*["'](PREMIUM|BASIC)["']/);
+  });
+
+  /*
+   * E ESCONDER NÃO É A SEGURANÇA. `abrirFiadoFn` continua exigindo FIADO, e
+   * recusaria ainda que o botão seguisse na tela.
+   */
+  it("o servidor continua recusando por baixo", () => {
+    const porta = readFileSync(
+      resolve(__dirname, "../../functions/recebimentos.fn.ts"),
+      "utf8",
+    );
+    const bloco = porta.slice(
+      porta.indexOf("export const abrirFiadoFn"),
+      porta.indexOf("export const", porta.indexOf("export const abrirFiadoFn") + 10),
+    );
+    expect(bloco).toContain('exigirRecurso("FIADO")');
+  });
+});

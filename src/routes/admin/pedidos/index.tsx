@@ -301,6 +301,11 @@ function KanbanPage() {
             !admin?.store.plano ||
             recursoNoEstado(admin.store.plano, "DELIVERY_AVANCADO") !== "BLOQUEADO"
           }
+          /* Idem para a venda a prazo: mesma sessão, mesma pergunta. */
+          permiteFiado={
+            !admin?.store.plano ||
+            recursoNoEstado(admin.store.plano, "FIADO") !== "BLOQUEADO"
+          }
           onAdvance={handleAdvance}
           onDispatch={(order) =>
             setDispatching({

@@ -102,6 +102,7 @@ export function KanbanBoard({
   onAbrirFiado,
   mostrarEntrega = true,
   permiteEntregador = true,
+  permiteFiado = true,
 }: {
   columns: KanbanColumnData[];
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
@@ -123,6 +124,24 @@ export function KanbanBoard({
    * Padrão `true`: um quadro montado sem a prop desenha como antes.
    */
   permiteEntregador?: boolean;
+  /**
+   * O plano da loja inclui venda a prazo?
+   *
+   * Sem ele o botão "Pagamento outro dia" não aparece. ESCONDIDO, e não
+   * trancado: este é o quadro que a loja tem aberto o dia inteiro, e um
+   * cadeado em cada pedido pendente viraria ruído no lugar mais movimentado
+   * do produto. Quem apresenta o Fiado é a tela de planos, que o lista.
+   *
+   * É a mesma escolha que o balcão já fazia com a caixinha "pagar depois" —
+   * as duas telas escondem a mesma oferta pelo mesmo motivo.
+   *
+   * NÃO É A SEGURANÇA. `abrirFiadoFn` exige FIADO desde a fase do módulo, e
+   * recusaria ainda que este botão continuasse na tela. Esconder é só não
+   * oferecer o que não se pode dar.
+   *
+   * Padrão `true`: um quadro montado sem a prop desenha como antes.
+   */
+  permiteFiado?: boolean;
 }) {
   /*
     A coluna cai por dois motivos independentes: a loja não faz entrega, ou
@@ -180,6 +199,7 @@ export function KanbanBoard({
                   onConfirmPayment={onConfirmPayment}
                   onAbrirFiado={onAbrirFiado}
                   permiteEntregador={permiteEntregador}
+                  permiteFiado={permiteFiado}
                 />
               ))}
 
@@ -214,10 +234,12 @@ function OrderCard({
   onConfirmPayment,
   onAbrirFiado,
   permiteEntregador = true,
+  permiteFiado = true,
 }: {
   order: KanbanOrder;
   badge: string;
   permiteEntregador?: boolean;
+  permiteFiado?: boolean;
   status: OrderStatus;
   onAdvance: (order: KanbanOrder, status: OrderStatus) => void;
   onDispatch: (order: KanbanOrder) => void;
@@ -374,7 +396,7 @@ function OrderCard({
             Não muda o status do pedido: ele segue para o preparo normalmente, e
             o estoque baixa na hora de sempre.
           */}
-          {order.paymentStatus === "PENDING" && onAbrirFiado && (
+          {order.paymentStatus === "PENDING" && onAbrirFiado && permiteFiado && (
             <button
               type="button"
               onClick={(e) => {
